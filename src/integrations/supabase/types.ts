@@ -59,6 +59,62 @@ export type Database = {
         }
         Relationships: []
       }
+      usuarios: {
+        Row: {
+          auth_user_id: string | null
+          celular: string | null
+          cidade_id: string | null
+          cpf: string
+          created_at: string
+          data_nascimento: string | null
+          email: string | null
+          id: string
+          is_motorista: boolean | null
+          is_passageiro: boolean | null
+          nome: string
+          perfil_ativo: Database["public"]["Enums"]["user_profile_type"]
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          celular?: string | null
+          cidade_id?: string | null
+          cpf: string
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          id?: string
+          is_motorista?: boolean | null
+          is_passageiro?: boolean | null
+          nome: string
+          perfil_ativo?: Database["public"]["Enums"]["user_profile_type"]
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          celular?: string | null
+          cidade_id?: string | null
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          id?: string
+          is_motorista?: boolean | null
+          is_passageiro?: boolean | null
+          nome?: string
+          perfil_ativo?: Database["public"]["Enums"]["user_profile_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -68,6 +124,7 @@ export type Database = {
     }
     Enums: {
       cidade_status: "em_breve" | "piloto" | "ativa"
+      user_profile_type: "passageiro" | "motorista"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -196,6 +253,7 @@ export const Constants = {
   public: {
     Enums: {
       cidade_status: ["em_breve", "piloto", "ativa"],
+      user_profile_type: ["passageiro", "motorista"],
     },
   },
 } as const
