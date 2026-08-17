@@ -37,7 +37,6 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
           email: session.user.email ?? null,
           is_passageiro: false,
           is_motorista: false,
-          perfil_ativo: null as any,
         });
 
       if (insertError) {
