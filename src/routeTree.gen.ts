@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
 import { Route as AuthCadastroRouteImport } from './routes/auth.cadastro'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthPerfilRouteImport } from './routes/auth.perfil'
 
@@ -25,9 +27,19 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingMotoristaRoute = OnboardingMotoristaRouteImport.update({
+  id: '/onboarding-motorista',
+  path: '/onboarding-motorista',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCadastroRoute = AuthCadastroRouteImport.update({
   id: '/cadastro',
   path: '/cadastro',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
@@ -44,14 +56,18 @@ const AuthPerfilRoute = AuthPerfilRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
 }
@@ -59,20 +75,38 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/auth/cadastro' | '/auth/login' | '/auth/perfil'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/onboarding-motorista'
+    | '/auth/cadastro'
+    | '/auth/callback'
+    | '/auth/login'
+    | '/auth/perfil'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/auth/cadastro' | '/auth/login' | '/auth/perfil'
+  to:
+    | '/'
+    | '/auth'
+    | '/onboarding-motorista'
+    | '/auth/cadastro'
+    | '/auth/callback'
+    | '/auth/login'
+    | '/auth/perfil'
   id:
     | '__root__'
     | '/'
     | '/auth'
+    | '/onboarding-motorista'
     | '/auth/cadastro'
+    | '/auth/callback'
     | '/auth/login'
     | '/auth/perfil'
   fileRoutesById: FileRoutesById
@@ -80,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
+  OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -98,11 +133,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding-motorista': {
+      id: '/onboarding-motorista'
+      path: '/onboarding-motorista'
+      fullPath: '/onboarding-motorista'
+      preLoaderRoute: typeof OnboardingMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/cadastro': {
       id: '/auth/cadastro'
       path: '/cadastro'
       fullPath: '/auth/cadastro'
       preLoaderRoute: typeof AuthCadastroRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
     '/auth/login': {
@@ -124,12 +173,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthCadastroRoute: typeof AuthCadastroRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthPerfilRoute: typeof AuthPerfilRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCadastroRoute: AuthCadastroRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthPerfilRoute: AuthPerfilRoute,
 }
@@ -139,6 +190,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
+  OnboardingMotoristaRoute: OnboardingMotoristaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

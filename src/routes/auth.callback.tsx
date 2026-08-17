@@ -4,7 +4,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { handleGoogleAuthRedirect } from '@/lib/auth-google.functions';
 import { toast } from 'sonner';
 
-export const Route = createFileRoute('/auth/callback' as any)({
+export const Route = createFileRoute('/auth/callback')({
   component: AuthCallbackPage,
 });
 
