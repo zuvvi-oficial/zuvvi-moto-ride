@@ -61,45 +61,39 @@ export type Database = {
       }
       motoristas: {
         Row: {
-          bio: string | null
+          chave_pix: string | null
+          cnh_categoria: string | null
+          cnh_numero: string | null
+          cnh_validade: string | null
+          conta_mercado_pago_id: string | null
           created_at: string
-          display_name: string
           id: string
-          onboarding_completed_at: string | null
-          payment_ready: boolean
-          rating_average: number
-          rating_count: number
-          status: Database["public"]["Enums"]["motorista_status"]
-          suspended_at: string | null
-          suspension_reason: string | null
+          nota_media: number
+          status_aprovacao: Database["public"]["Enums"]["motorista_status_aprovacao"]
           updated_at: string
         }
         Insert: {
-          bio?: string | null
+          chave_pix?: string | null
+          cnh_categoria?: string | null
+          cnh_numero?: string | null
+          cnh_validade?: string | null
+          conta_mercado_pago_id?: string | null
           created_at?: string
-          display_name: string
           id: string
-          onboarding_completed_at?: string | null
-          payment_ready?: boolean
-          rating_average?: number
-          rating_count?: number
-          status?: Database["public"]["Enums"]["motorista_status"]
-          suspended_at?: string | null
-          suspension_reason?: string | null
+          nota_media?: number
+          status_aprovacao?: Database["public"]["Enums"]["motorista_status_aprovacao"]
           updated_at?: string
         }
         Update: {
-          bio?: string | null
+          chave_pix?: string | null
+          cnh_categoria?: string | null
+          cnh_numero?: string | null
+          cnh_validade?: string | null
+          conta_mercado_pago_id?: string | null
           created_at?: string
-          display_name?: string
           id?: string
-          onboarding_completed_at?: string | null
-          payment_ready?: boolean
-          rating_average?: number
-          rating_count?: number
-          status?: Database["public"]["Enums"]["motorista_status"]
-          suspended_at?: string | null
-          suspension_reason?: string | null
+          nota_media?: number
+          status_aprovacao?: Database["public"]["Enums"]["motorista_status_aprovacao"]
           updated_at?: string
         }
         Relationships: [
@@ -183,6 +177,12 @@ export type Database = {
         | "approved"
         | "suspended"
         | "rejected"
+      motorista_status_aprovacao:
+        | "em_preenchimento"
+        | "em_analise"
+        | "aprovado"
+        | "recusado"
+        | "suspenso"
       user_profile_type: "passageiro" | "motorista"
     }
     CompositeTypes: {
@@ -318,6 +318,13 @@ export const Constants = {
         "approved",
         "suspended",
         "rejected",
+      ],
+      motorista_status_aprovacao: [
+        "em_preenchimento",
+        "em_analise",
+        "aprovado",
+        "recusado",
+        "suspenso",
       ],
       user_profile_type: ["passageiro", "motorista"],
     },
