@@ -14,6 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      avaliacoes: {
+        Row: {
+          avaliado_id: string
+          avaliador_id: string
+          comentario: string | null
+          corrida_id: string
+          created_at: string
+          id: string
+          nota: number
+          updated_at: string
+        }
+        Insert: {
+          avaliado_id: string
+          avaliador_id: string
+          comentario?: string | null
+          corrida_id: string
+          created_at?: string
+          id?: string
+          nota: number
+          updated_at?: string
+        }
+        Update: {
+          avaliado_id?: string
+          avaliador_id?: string
+          comentario?: string | null
+          corrida_id?: string
+          created_at?: string
+          id?: string
+          nota?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_avaliado_id_fkey"
+            columns: ["avaliado_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_avaliador_id_fkey"
+            columns: ["avaliador_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: false
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cidades: {
         Row: {
           bandeirada: number
