@@ -36,7 +36,7 @@ function Wordmark({ className = "" }: { className?: string }) {
       className={`font-display font-bold tracking-tight ${className}`}
       style={{ letterSpacing: "-0.04em" }}
     >
-      <span className="ember-text">Zu</span>
+      <span className="volt-text">Zu</span>
       <span>vvi</span>
     </span>
   );
@@ -44,7 +44,7 @@ function Wordmark({ className = "" }: { className?: string }) {
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3.5 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3.5 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-white">
       {children}
     </span>
   );
@@ -84,7 +84,7 @@ const values = [
 
 function Index() {
   return (
-    <div className="min-h-screen asphalt-gradient text-foreground">
+    <div className="min-h-screen zuvvi-gradient text-foreground">
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
@@ -100,7 +100,7 @@ function Index() {
               Contato
             </a>
           </nav>
-          <span className="rounded-full border border-ember/40 bg-ember/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider ember-text">
+          <span className="rounded-full border border-zuvvi-volt/40 bg-zuvvi-volt/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider volt-text">
             Em breve
           </span>
         </div>
@@ -112,12 +112,12 @@ function Index() {
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-5 pb-20 pt-16 sm:pt-24 lg:grid-cols-2 lg:gap-8 lg:pb-28 lg:pt-28">
           <div className="animate-rise">
             <Pill>
-              <span className="h-1.5 w-1.5 rounded-full bg-ember" />
+              <span className="h-1.5 w-1.5 rounded-full bg-zuvvi-volt" />
               Moto-táxi no Brasil
             </Pill>
             <h1 className="mt-6 text-balance font-display text-5xl font-bold leading-[1.02] sm:text-6xl lg:text-7xl">
               Mobilidade urbana na{" "}
-              <span className="ember-text">velocidade da moto</span>.
+              <span className="volt-text">velocidade da moto</span>.
             </h1>
             <p className="mt-6 max-w-md text-lg text-muted-foreground">
               O Zuvvi conecta você a mototaxistas verificados para cruzar a
@@ -126,7 +126,7 @@ function Index() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 to="/auth/cadastro"
-                className="ember-glow inline-flex items-center gap-2 rounded-full bg-ember px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
+                className="zuvvi-glow inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
               >
                 CADASTRAR AGORA
                 <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
@@ -143,7 +143,7 @@ function Index() {
           </div>
 
           <div className="relative">
-            <div className="relative overflow-hidden rounded-3xl border border-border/80 ember-glow">
+            <div className="relative overflow-hidden rounded-3xl border border-border/80 zuvvi-glow">
               <img
                 src={heroMoto}
                 alt="Mototaxista do Zuvvi atravessa a cidade ao entardecer"
@@ -152,11 +152,11 @@ function Index() {
                 className="aspect-[4/3] w-full object-cover"
                 fetchPriority="high"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-asphalt-deep via-transparent to-transparent" aria-hidden="true" />
+              <div className="absolute inset-0 bg-gradient-to-t from-zuvvi-indigo-dark via-transparent to-transparent" aria-hidden="true" />
               <div className="absolute bottom-5 left-5 flex items-center gap-3 rounded-2xl border border-border/70 bg-asphalt-deep/80 px-4 py-3 backdrop-blur-md">
                 <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-pulse-ring absolute inline-flex h-full w-full rounded-full bg-ember" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-ember" />
+                  <span className="animate-pulse-ring absolute inline-flex h-full w-full rounded-full bg-zuvvi-volt" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-zuvvi-volt" />
                 </span>
                 <span className="text-sm font-medium text-cream">
                   Pronto para acelerar
@@ -172,11 +172,11 @@ function Index() {
             <div className="animate-marquee flex shrink-0 items-center gap-10 pr-10 text-sm uppercase tracking-[0.2em] text-muted-foreground">
               {Array.from({ length: 2 }).map((_, dup) => (
                 <div key={dup} className="flex shrink-0 items-center gap-10 pr-10">
-                  <span>Ágil</span><span className="ember-text">•</span>
-                  <span>Seguro</span><span className="ember-text">•</span>
-                  <span>Urbano</span><span className="ember-text">•</span>
-                  <span>Brasil</span><span className="ember-text">•</span>
-                  <span>Moto-táxi</span><span className="ember-text">•</span>
+                  <span>Ágil</span><span className="volt-text">•</span>
+                  <span>Seguro</span><span className="volt-text">•</span>
+                  <span>Urbano</span><span className="volt-text">•</span>
+                  <span>Brasil</span><span className="volt-text">•</span>
+                  <span>Moto-táxi</span><span className="volt-text">•</span>
                 </div>
               ))}
             </div>
@@ -189,7 +189,7 @@ function Index() {
         <div className="grid gap-10 lg:grid-cols-[1.1fr_1.4fr] lg:gap-16">
           <div>
             <Pill>
-              <span className="h-1.5 w-1.5 rounded-full bg-ember" />
+              <span className="h-1.5 w-1.5 rounded-full bg-zuvvi-volt" />
               Por que Zuvvi
             </Pill>
             <h2 className="mt-6 text-balance font-display text-4xl font-bold leading-tight sm:text-5xl">
@@ -206,9 +206,9 @@ function Index() {
             {values.map((v) => (
               <div
                 key={v.title}
-                className="group rounded-2xl border border-border bg-card/60 p-6 transition-colors hover:border-ember/50"
+                className="group rounded-2xl border border-border bg-card/60 p-6 transition-colors hover:border-zuvvi-volt/50"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-ember/12 ember-text">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-zuvvi-volt/10 volt-text">
                   {v.icon}
                 </div>
                 <h3 className="mt-5 font-display text-xl font-semibold">
@@ -227,7 +227,7 @@ function Index() {
           <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
             <div>
               <Pill>
-                <span className="h-1.5 w-1.5 rounded-full bg-ember" />
+                <span className="h-1.5 w-1.5 rounded-full bg-zuvvi-volt" />
                 Manifesto
               </Pill>
               <h2 className="mt-6 text-balance font-display text-4xl font-bold leading-tight sm:text-5xl">
@@ -255,7 +255,7 @@ function Index() {
 
       {/* Contato / CTA final */}
       <section id="contato" className="mx-auto max-w-6xl px-5 py-24 lg:py-32">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-asphalt-deep px-6 py-14 text-center sm:px-12">
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-zuvvi-indigo-dark px-6 py-14 text-center sm:px-12">
           <div className="speed-lines absolute inset-0 opacity-30" aria-hidden="true" />
           <div className="relative mx-auto max-w-2xl">
             <h2 className="text-balance font-display text-4xl font-bold leading-tight sm:text-5xl">
@@ -266,7 +266,7 @@ function Index() {
               moto-táxi em poucos toques.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <span className="ember-glow inline-flex items-center gap-2 rounded-full bg-ember px-6 py-3 text-sm font-semibold text-primary-foreground">
+              <span className="zuvvi-glow inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-pulse-ring absolute inline-flex h-full w-full rounded-full bg-primary-foreground" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-foreground" />

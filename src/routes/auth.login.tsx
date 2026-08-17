@@ -62,31 +62,31 @@ function LoginPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-semibold text-white font-space">Entrar no Zuvvi</h2>
-        <p className="text-zinc-400 text-sm mt-1">Bem-vindo de volta, piloto ou passageiro</p>
+        <h2 className="text-2xl font-semibold text-white">Entrar no Zuvvi</h2>
+        <p className="text-muted-foreground text-sm mt-1">Bem-vindo de volta, piloto ou passageiro</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-zinc-300">E-mail</Label>
+          <Label htmlFor="email" className="text-white/80">E-mail</Label>
           <Input 
             id="email" 
             type="email" 
             placeholder="seu@email.com" 
-            className="bg-zinc-800 border-zinc-700 text-white focus:border-amber-500"
+            className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
             {...register("email")}
           />
           {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-zinc-300">Senha</Label>
+          <Label htmlFor="password" className="text-white/80">Senha</Label>
           <div className="relative">
             <Input 
               id="password" 
               type={showPassword ? "text" : "password"} 
               placeholder="••••••••" 
-              className="bg-zinc-800 border-zinc-700 text-white pr-10 focus:border-amber-500"
+              className="bg-zuvvi-indigo border-white/10 text-white pr-10 focus:border-zuvvi-volt"
               {...register("password")}
             />
             <button
@@ -103,14 +103,14 @@ function LoginPage() {
         <Button 
           type="submit" 
           disabled={isLoading}
-          className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold h-12 text-lg mt-4 transition-all active:scale-[0.98]"
+          className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-12 text-lg mt-4 transition-all active:scale-[0.98]"
         >
           {isLoading ? "Entrando..." : "ENTRAR"}
         </Button>
 
-        <p className="text-center text-zinc-500 text-sm mt-4">
+        <p className="text-center text-muted-foreground text-sm mt-4">
           Não tem uma conta?{" "}
-          <Link to="/auth/cadastro" className="text-amber-500 cursor-pointer hover:underline">
+          <Link to="/auth/cadastro" className="volt-text cursor-pointer hover:underline">
             Criar conta
           </Link>
         </p>
