@@ -36,13 +36,20 @@ function AuthCallbackPage() {
           return;
         }
 
+        console.log("Executing redirect logic server function...");
         const result = await executeRedirectLogic();
         if (cancelled) return;
+        
+        console.log("Redirect logic result:", result);
+        
         if (result.error) {
           setError(result.error);
           toast.error(result.error);
           return;
         }
+        
+        // Final redirection
+        navigate({ to: result.redirectTo as any });
         
         // Final redirection
         navigate({ to: result.redirectTo as any });
