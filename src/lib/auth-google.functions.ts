@@ -17,12 +17,6 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
       .eq("auth_user_id", session.user.id)
       .single();
 
-    const { data: userRecord, error: userError } = await supabaseAdmin
-      .from("usuarios")
-      .select("is_passageiro, is_motorista")
-      .eq("auth_user_id", session.user.id)
-      .single();
-
     if (userError || !userRecord) {
       const metadata = session.user.user_metadata || {};
       const nome = metadata['full_name'] || metadata['name'] || "Usuário Google";
