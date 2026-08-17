@@ -69,6 +69,54 @@ export type Database = {
           },
         ]
       }
+      chamados_suporte: {
+        Row: {
+          corrida_id: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          status: Database["public"]["Enums"]["status_chamado_suporte"]
+          tipo: Database["public"]["Enums"]["tipo_chamado_suporte"]
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          corrida_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["status_chamado_suporte"]
+          tipo: Database["public"]["Enums"]["tipo_chamado_suporte"]
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          corrida_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["status_chamado_suporte"]
+          tipo?: Database["public"]["Enums"]["tipo_chamado_suporte"]
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamados_suporte_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: false
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chamados_suporte_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cidades: {
         Row: {
           bandeirada: number
@@ -113,6 +161,41 @@ export type Database = {
           valor_min?: number
         }
         Relationships: []
+      }
+      contatos_confianca: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          passageiro_id: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          passageiro_id: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          passageiro_id?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contatos_confianca_passageiro_id_fkey"
+            columns: ["passageiro_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       corridas: {
         Row: {
@@ -468,6 +551,38 @@ export type Database = {
           },
         ]
       }
+      viagens_compartilhadas: {
+        Row: {
+          corrida_id: string
+          created_at: string
+          expira_em: string
+          id: string
+          link_publico: string
+        }
+        Insert: {
+          corrida_id: string
+          created_at?: string
+          expira_em: string
+          id?: string
+          link_publico?: string
+        }
+        Update: {
+          corrida_id?: string
+          created_at?: string
+          expira_em?: string
+          id?: string
+          link_publico?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "viagens_compartilhadas_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: false
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -503,6 +618,12 @@ export type Database = {
         | "recusado"
         | "suspenso"
       pagamento_status: "pendente" | "pago" | "falhou" | "estornado"
+      status_chamado_suporte:
+        | "aberto"
+        | "em_atendimento"
+        | "resolvido"
+        | "fechado"
+      tipo_chamado_suporte: "duvida" | "sos" | "reclamacao"
       tipo_documento:
         | "identidade"
         | "cnh"
@@ -674,6 +795,13 @@ export const Constants = {
         "suspenso",
       ],
       pagamento_status: ["pendente", "pago", "falhou", "estornado"],
+      status_chamado_suporte: [
+        "aberto",
+        "em_atendimento",
+        "resolvido",
+        "fechado",
+      ],
+      tipo_chamado_suporte: ["duvida", "sos", "reclamacao"],
       tipo_documento: [
         "identidade",
         "cnh",
