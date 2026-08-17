@@ -1,22 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
-  .handler(async () => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { supabase: supabaseClient } = await import("@/integrations/supabase/client");
-
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    
-    if (!session?.user) {
-      console.warn("No active session found during Google redirect processing");
-      return { redirectTo: "/auth/login" };
-    }
+    const userId = context.userId;
 
     // Check if user record already exists
     const { data: userRecord, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("is_passageiro, is_motorista")
-      .eq("auth_user_id", session.user.id)
+      .eq("auth_user_id", userId)
       .maybeSingle();
 
     if (userError) {
@@ -25,16 +20,18 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     }
 
     if (!userRecord) {
-      // Create new user record from Google metadata
-      const metadata = session.user.user_metadata || {};
+      // Create new user record from Google metadata (fetched server-side)
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const metadata = (authUser?.user?.user_metadata ?? {}) as Record<string, string | undefined>;
       const nome = metadata['full_name'] || metadata['name'] || "Usuário Google";
+      const email = authUser?.user?.email ?? null;
       
       const { error: insertError } = await supabaseAdmin
         .from("usuarios")
         .insert({
-          auth_user_id: session.user.id,
+          auth_user_id: userId,
           nome: nome,
-          email: session.user.email ?? null,
+          email: email,
           is_passageiro: false,
           is_motorista: false,
         });
