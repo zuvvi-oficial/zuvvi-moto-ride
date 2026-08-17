@@ -119,12 +119,9 @@ function CadastroPage() {
     control
   } = useForm<CadastroForm>({
     resolver: zodResolver(cadastroSchema),
-    defaultValues: {
-      perfil_inicial: "passageiro",
-    }
+    defaultValues: {}
   });
 
-  const perfil = watch("perfil_inicial");
   const passwordValue = watch("password");
 
   const passwordStrength = useMemo(() => calculatePasswordStrength(passwordValue || ""), [passwordValue]);
@@ -135,7 +132,7 @@ function CadastroPage() {
     try {
       await executeSignUp({ data: submitData as any });
       toast.success("Cadastro realizado com sucesso!");
-      navigate({ to: "/" });
+      navigate({ to: "/auth/perfil" });
     } catch (error: any) {
       const userFriendlyMessage = error.message?.includes('violates unique constraint')
         ? "Este e-mail, CPF ou celular já está cadastrado."
@@ -270,23 +267,6 @@ function CadastroPage() {
           {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword.message}</p>}
         </div>
 
-        <div className="space-y-3">
-          <Label className="text-white/80">Eu quero ser:</Label>
-          <RadioGroup 
-            defaultValue="passageiro" 
-            onValueChange={(value) => setValue("perfil_inicial", value as any)}
-            className="flex gap-4"
-          >
-            <div className="flex items-center space-x-2 bg-zuvvi-indigo p-3 rounded-lg border border-white/10 cursor-pointer hover:border-zuvvi-volt transition-colors">
-              <RadioGroupItem value="passageiro" id="passageiro" className="text-zuvvi-volt border-white/30" />
-              <Label htmlFor="passageiro" className="text-white cursor-pointer">Passageiro</Label>
-            </div>
-            <div className="flex items-center space-x-2 bg-zuvvi-indigo p-3 rounded-lg border border-white/10 cursor-pointer hover:border-zuvvi-volt transition-colors">
-              <RadioGroupItem value="motorista" id="motorista" className="text-zuvvi-volt border-white/30" />
-              <Label htmlFor="motorista" className="text-white cursor-pointer">Motorista</Label>
-            </div>
-          </RadioGroup>
-        </div>
 
         <Button 
           type="submit" 
