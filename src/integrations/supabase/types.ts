@@ -260,6 +260,53 @@ export type Database = {
           },
         ]
       }
+      pagamentos: {
+        Row: {
+          corrida_id: string
+          created_at: string
+          id: string
+          id_transacao_mercadopago: string | null
+          meio: Database["public"]["Enums"]["forma_pagamento"]
+          status: Database["public"]["Enums"]["pagamento_status"]
+          updated_at: string
+          valor_comissao: number
+          valor_motorista: number
+          valor_total: number
+        }
+        Insert: {
+          corrida_id: string
+          created_at?: string
+          id?: string
+          id_transacao_mercadopago?: string | null
+          meio: Database["public"]["Enums"]["forma_pagamento"]
+          status?: Database["public"]["Enums"]["pagamento_status"]
+          updated_at?: string
+          valor_comissao: number
+          valor_motorista: number
+          valor_total: number
+        }
+        Update: {
+          corrida_id?: string
+          created_at?: string
+          id?: string
+          id_transacao_mercadopago?: string | null
+          meio?: Database["public"]["Enums"]["forma_pagamento"]
+          status?: Database["public"]["Enums"]["pagamento_status"]
+          updated_at?: string
+          valor_comissao?: number
+          valor_motorista?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: false
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           auth_user_id: string | null
@@ -400,6 +447,7 @@ export type Database = {
         | "aprovado"
         | "recusado"
         | "suspenso"
+      pagamento_status: "pendente" | "pago" | "falhou" | "estornado"
       tipo_documento:
         | "identidade"
         | "cnh"
@@ -570,6 +618,7 @@ export const Constants = {
         "recusado",
         "suspenso",
       ],
+      pagamento_status: ["pendente", "pago", "falhou", "estornado"],
       tipo_documento: [
         "identidade",
         "cnh",
