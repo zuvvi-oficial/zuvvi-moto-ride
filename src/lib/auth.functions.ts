@@ -47,7 +47,6 @@ export const signUp = createServerFn({ method: "POST" })
         data_nascimento: data.data_nascimento ?? null,
         is_passageiro: false,
         is_motorista: false,
-        perfil_ativo: null as any,
       });
 
     if (dbError) {

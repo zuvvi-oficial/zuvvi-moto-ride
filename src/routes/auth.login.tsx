@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { GoogleLoginButton, AuthSeparator } from '@/components/auth/SocialLogin';
+import { useServerFn } from '@tanstack/react-start';
+import { checkUserProfileStatus } from '@/lib/auth-status.functions';
 
 const loginSchema = z.object({
   email: z
@@ -29,6 +31,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const checkStatus = useServerFn(checkUserProfileStatus);
 
   const { 
     register, 
@@ -52,7 +55,15 @@ function LoginPage() {
       }
 
       toast.success("Login realizado com sucesso!");
-      navigate({ to: "/" });
+      
+      // Verificação de perfil completo antes de redirecionar
+      const { hasProfile } = await checkStatus();
+      
+      if (hasProfile) {
+        navigate({ to: "/" });
+      } else {
+        navigate({ to: "/auth/perfil" });
+      }
     } catch (error: any) {
       toast.error("Ocorreu um erro ao tentar entrar. Tente novamente.");
     } finally {
