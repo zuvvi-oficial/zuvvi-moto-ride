@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import heroMoto from "@/assets/hero-moto.jpg";
 
 export const Route = createFileRoute("/")({
