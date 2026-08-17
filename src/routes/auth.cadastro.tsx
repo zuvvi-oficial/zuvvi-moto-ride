@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,6 +10,16 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { signUp } from '@/lib/auth.functions';
+import { Eye, EyeOff, Check, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const titleCase = (str: string) => {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
 const validateCPF = (cpf: string) => {
   const cleanCPF = cpf.replace(/\D/g, '');
@@ -52,12 +62,13 @@ const cadastroSchema = z.object({
   nome: z
     .string()
     .min(3, "O nome deve ter pelo menos 3 caracteres")
-    .transform((val) => val.trim().replace(/\s+/g, ' ')),
+    .transform((val) => titleCase(val.trim().replace(/\s+/g, ' '))),
   email: z
     .string()
     .email("E-mail inválido")
     .transform((val) => val.trim().toLowerCase()),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+  confirmPassword: z.string(),
   cpf: z
     .string()
     .transform((val) => val.replace(/\D/g, ''))
@@ -68,6 +79,9 @@ const cadastroSchema = z.object({
     .transform((val) => val.replace(/\D/g, ''))
     .refine((val) => val.length >= 10 && val.length <= 11, "Celular inválido"),
   perfil_inicial: z.enum(["passageiro", "motorista"]),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
 });
 
 type CadastroForm = z.infer<typeof cadastroSchema>;
@@ -80,6 +94,21 @@ function CadastroPage() {
   const navigate = useNavigate();
   const executeSignUp = useServerFn(signUp);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const calculatePasswordStrength = (pwd: string) => {
+    if (!pwd) return { score: 0, label: "" };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++;
+    if (/\d/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    
+    if (score <= 1) return { score: 1, label: "Fraca", color: "bg-red-500" };
+    if (score <= 3) return { score: 2, label: "Média", color: "bg-amber-500" };
+    return { score: 3, label: "Forte", color: "bg-green-500" };
+  };
 
   const { 
     register, 
@@ -96,11 +125,15 @@ function CadastroPage() {
   });
 
   const perfil = watch("perfil_inicial");
+  const passwordValue = watch("password");
+
+  const passwordStrength = useMemo(() => calculatePasswordStrength(passwordValue || ""), [passwordValue]);
 
   const onSubmit = async (formData: CadastroForm) => {
     setIsLoading(true);
+    const { confirmPassword, ...submitData } = formData;
     try {
-      await executeSignUp({ data: formData });
+      await executeSignUp({ data: submitData as any });
       toast.success("Cadastro realizado com sucesso!");
       navigate({ to: "/" });
     } catch (error: any) {
@@ -183,14 +216,58 @@ function CadastroPage() {
 
         <div className="space-y-2">
           <Label htmlFor="password" className="text-zinc-300">Senha</Label>
-          <Input 
-            id="password" 
-            type="password" 
-            placeholder="••••••••" 
-            className="bg-zinc-800 border-zinc-700 text-white"
-            {...register("password")}
-          />
+          <div className="relative">
+            <Input 
+              id="password" 
+              type={showPassword ? "text" : "password"} 
+              placeholder="••••••••" 
+              className="bg-zinc-800 border-zinc-700 text-white pr-10 focus:border-amber-500"
+              {...register("password")}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {passwordValue && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex gap-1 h-1 w-full bg-zinc-700 rounded-full overflow-hidden">
+                <div className={cn("h-full transition-all duration-300", passwordStrength.score >= 1 ? passwordStrength.color : "w-0", passwordStrength.score === 1 ? "w-1/3" : passwordStrength.score === 2 ? "w-2/3" : "w-full")} />
+              </div>
+              <p className={cn("text-[10px] font-medium uppercase tracking-wider", 
+                passwordStrength.score === 1 ? "text-red-500" : 
+                passwordStrength.score === 2 ? "text-amber-500" : 
+                "text-green-500"
+              )}>
+                Senha {passwordStrength.label}
+              </p>
+            </div>
+          )}
           {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword" className="text-zinc-300">Confirmar Senha</Label>
+          <div className="relative">
+            <Input 
+              id="confirmPassword" 
+              type={showConfirmPassword ? "text" : "password"} 
+              placeholder="••••••••" 
+              className="bg-zinc-800 border-zinc-700 text-white pr-10 focus:border-amber-500"
+              {...register("confirmPassword")}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword.message}</p>}
         </div>
 
         <div className="space-y-3">
