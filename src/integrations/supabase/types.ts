@@ -59,6 +59,63 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_motorista: {
+        Row: {
+          created_at: string
+          data_analise: string | null
+          data_envio: string
+          id: string
+          motivo_recusa: string | null
+          motorista_id: string
+          status_analise: Database["public"]["Enums"]["documento_status_analise"]
+          storage_path: string
+          tipo_documento: Database["public"]["Enums"]["tipo_documento"]
+          updated_at: string
+          veiculo_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_analise?: string | null
+          data_envio?: string
+          id?: string
+          motivo_recusa?: string | null
+          motorista_id: string
+          status_analise?: Database["public"]["Enums"]["documento_status_analise"]
+          storage_path: string
+          tipo_documento: Database["public"]["Enums"]["tipo_documento"]
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_analise?: string | null
+          data_envio?: string
+          id?: string
+          motivo_recusa?: string | null
+          motorista_id?: string
+          status_analise?: Database["public"]["Enums"]["documento_status_analise"]
+          storage_path?: string
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento"]
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_motorista_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_motorista_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motoristas: {
         Row: {
           chave_pix: string | null
@@ -221,6 +278,7 @@ export type Database = {
     }
     Enums: {
       cidade_status: "em_breve" | "piloto" | "ativa"
+      documento_status_analise: "pendente" | "aprovado" | "recusado"
       motorista_status:
         | "draft"
         | "under_review"
@@ -233,6 +291,13 @@ export type Database = {
         | "aprovado"
         | "recusado"
         | "suspenso"
+      tipo_documento:
+        | "identidade"
+        | "cnh"
+        | "comprovante_residencia"
+        | "crlv"
+        | "foto_veiculo"
+        | "foto_placa"
       user_profile_type: "passageiro" | "motorista"
       veiculo_status_aprovacao:
         | "em_preenchimento"
@@ -368,6 +433,7 @@ export const Constants = {
   public: {
     Enums: {
       cidade_status: ["em_breve", "piloto", "ativa"],
+      documento_status_analise: ["pendente", "aprovado", "recusado"],
       motorista_status: [
         "draft",
         "under_review",
@@ -381,6 +447,14 @@ export const Constants = {
         "aprovado",
         "recusado",
         "suspenso",
+      ],
+      tipo_documento: [
+        "identidade",
+        "cnh",
+        "comprovante_residencia",
+        "crlv",
+        "foto_veiculo",
+        "foto_placa",
       ],
       user_profile_type: ["passageiro", "motorista"],
       veiculo_status_aprovacao: [
