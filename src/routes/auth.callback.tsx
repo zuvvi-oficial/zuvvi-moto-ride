@@ -4,6 +4,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { handleGoogleAuthRedirect } from '@/lib/auth-google.functions';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Route = createFileRoute('/auth/callback')({
   component: AuthCallbackPage,
@@ -15,9 +16,28 @@ function AuthCallbackPage() {
   const executeRedirectLogic = useServerFn(handleGoogleAuthRedirect);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const waitForSession = async () => {
+      for (let i = 0; i < 25; i++) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) return data.session;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      return null;
+    };
+
     const processAuth = async () => {
       try {
+        const session = await waitForSession();
+        if (cancelled) return;
+        if (!session) {
+          setError('Não conseguimos confirmar seu login com o Google. Tente novamente.');
+          return;
+        }
+
         const result = await executeRedirectLogic();
+        if (cancelled) return;
         if (result.error) {
           setError(result.error);
           toast.error(result.error);
@@ -28,12 +48,16 @@ function AuthCallbackPage() {
         navigate({ to: result.redirectTo as any });
       } catch (err) {
         console.error("Auth callback error:", err);
+        if (cancelled) return;
         setError("Ocorreu um erro inesperado na autenticação social.");
         toast.error("Erro na autenticação social.");
       }
     };
 
     processAuth();
+    return () => {
+      cancelled = true;
+    };
   }, [executeRedirectLogic, navigate]);
 
   if (error) {
