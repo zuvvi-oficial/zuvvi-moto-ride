@@ -5,12 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Zuvvi — Design System
- *
- * Marca de mobilidade urbana por moto-táxi. Direção visual: asfalto escuro
- * quente com acento âmbar/saffron vibrante, transmitindo velocidade,
- * agilidade e confiança. Tipografia: Space Grotesk (display) + DM Sans (texto).
- * Todos os valores de cor em oklch.
+ * Zuvvi — Official Design System
  */
 
 @theme inline {
@@ -43,14 +38,15 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
 
-  --color-asphalt: var(--asphalt);
-  --color-asphalt-deep: var(--asphalt-deep);
-  --color-ember: var(--ember);
-  --color-ember-soft: var(--ember-soft);
-  --color-cream: var(--cream);
-
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  /* Zuvvi Official Palette */
+  --color-zuvvi-indigo: #130F36;
+  --color-zuvvi-indigo-dark: #1C1650;
+  --color-zuvvi-violet: #6C3CE9;
+  --color-zuvvi-volt: #C6FF3D;
+  --color-zuvvi-amber: #FFB020;
+  
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
   --animate-marquee: marquee 28s linear infinite;
   --animate-pulse-ring: pulse-ring 2.4s ease-out infinite;
@@ -75,83 +71,54 @@
 :root {
   --radius: 0.875rem;
 
-  /* Base — asfalto quente escuro */
-  --background: oklch(0.165 0.008 65);
-  --foreground: oklch(0.96 0.012 85);
-  --card: oklch(0.205 0.012 65);
-  --card-foreground: oklch(0.96 0.012 85);
-  --popover: oklch(0.205 0.012 65);
-  --popover-foreground: oklch(0.96 0.012 85);
+  /* Zuvvi Indigo Base */
+  --background: #130F36;
+  --foreground: #FFFFFF;
+  
+  --card: #1C1650;
+  --card-foreground: #FFFFFF;
+  
+  --popover: #1C1650;
+  --popover-foreground: #FFFFFF;
 
-  /* Primário — âmbar/saffron vibrante (velocidade, visibilidade) */
-  --primary: oklch(0.79 0.16 63);
-  --primary-foreground: oklch(0.165 0.008 65);
+  /* Zuvvi Volt (Action) */
+  --primary: #C6FF3D;
+  --primary-foreground: #130F36;
 
-  --secondary: oklch(0.255 0.014 65);
-  --secondary-foreground: oklch(0.96 0.012 85);
-  --muted: oklch(0.245 0.012 65);
-  --muted-foreground: oklch(0.72 0.018 75);
-  --accent: oklch(0.72 0.15 52);
-  --accent-foreground: oklch(0.165 0.008 65);
+  /* Zuvvi Violet (Secondary) */
+  --secondary: #6C3CE9;
+  --secondary-foreground: #FFFFFF;
 
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.96 0.012 85);
-  --border: oklch(0.3 0.014 65);
-  --input: oklch(0.26 0.014 65);
-  --ring: oklch(0.79 0.16 63 / 55%);
+  --muted: #3F4354;
+  --muted-foreground: #6B7280;
+  
+  --accent: #6C3CE9;
+  --accent-foreground: #FFFFFF;
 
-  /* Tokens de marca */
-  --asphalt: oklch(0.165 0.008 65);
-  --asphalt-deep: oklch(0.115 0.006 65);
-  --ember: oklch(0.79 0.16 63);
-  --ember-soft: oklch(0.72 0.15 52);
-  --cream: oklch(0.96 0.012 85);
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.05);
+  --ring: rgba(198, 255, 61, 0.5);
 
-  --sidebar: oklch(0.205 0.012 65);
-  --sidebar-foreground: oklch(0.96 0.012 85);
-  --sidebar-primary: oklch(0.79 0.16 63);
-  --sidebar-primary-foreground: oklch(0.165 0.008 65);
-  --sidebar-accent: oklch(0.255 0.014 65);
-  --sidebar-accent-foreground: oklch(0.96 0.012 85);
-  --sidebar-border: oklch(0.3 0.014 65);
-  --sidebar-ring: oklch(0.79 0.16 63 / 55%);
-
-  --chart-1: oklch(0.79 0.16 63);
-  --chart-2: oklch(0.72 0.15 52);
-  --chart-3: oklch(0.68 0.13 45);
-  --chart-4: oklch(0.8 0.1 80);
-  --chart-5: oklch(0.55 0.12 260);
+  --sidebar: #130F36;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #C6FF3D;
+  --sidebar-primary-foreground: #130F36;
+  --sidebar-accent: #6C3CE9;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: rgba(198, 255, 61, 0.5);
 }
 
 .dark {
-  /* A marca é escura por padrão — .dark mantém o mesmo sistema. */
-  --background: oklch(0.165 0.008 65);
-  --foreground: oklch(0.96 0.012 85);
-  --card: oklch(0.205 0.012 65);
-  --card-foreground: oklch(0.96 0.012 85);
-  --popover: oklch(0.205 0.012 65);
-  --popover-foreground: oklch(0.96 0.012 85);
-  --primary: oklch(0.79 0.16 63);
-  --primary-foreground: oklch(0.165 0.008 65);
-  --secondary: oklch(0.255 0.014 65);
-  --secondary-foreground: oklch(0.96 0.012 85);
-  --muted: oklch(0.245 0.012 65);
-  --muted-foreground: oklch(0.72 0.018 75);
-  --accent: oklch(0.72 0.15 52);
-  --accent-foreground: oklch(0.165 0.008 65);
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.96 0.012 85);
-  --border: oklch(0.3 0.014 65);
-  --input: oklch(0.26 0.014 65);
-  --ring: oklch(0.79 0.16 63 / 55%);
-  --sidebar: oklch(0.205 0.012 65);
-  --sidebar-foreground: oklch(0.96 0.012 85);
-  --sidebar-primary: oklch(0.79 0.16 63);
-  --sidebar-primary-foreground: oklch(0.165 0.008 65);
-  --sidebar-accent: oklch(0.255 0.014 65);
-  --sidebar-accent-foreground: oklch(0.96 0.012 85);
-  --sidebar-border: oklch(0.3 0.014 65);
-  --sidebar-ring: oklch(0.79 0.16 63 / 55%);
+  --background: #130F36;
+  --foreground: #FFFFFF;
+  --primary: #C6FF3D;
+  --primary-foreground: #130F36;
+  --secondary: #6C3CE9;
+  --secondary-foreground: #FFFFFF;
 }
 
 @layer base {
@@ -187,20 +154,20 @@
   }
 
   .bg-grain {
-    background-image: radial-gradient(circle at 50% 50%, transparent 0%, color-mix(in oklch, var(--background) 80%, transparent) 100%);
+    background-image: radial-gradient(circle at 50% 50%, transparent 0%, rgba(19, 15, 54, 0.8) 100%);
   }
 
-  .ember-glow {
-    box-shadow: 0 0 0 1px color-mix(in oklch, var(--ember) 30%, transparent),
-      0 18px 60px -20px color-mix(in oklch, var(--ember) 45%, transparent);
+  .zuvvi-glow {
+    box-shadow: 0 0 0 1px rgba(198, 255, 61, 0.1),
+      0 18px 60px -20px rgba(198, 255, 61, 0.3);
   }
 
-  .ember-text {
-    color: var(--ember);
+  .volt-text {
+    color: var(--color-zuvvi-volt);
   }
 
-  .asphalt-gradient {
-    background: linear-gradient(180deg, var(--asphalt-deep) 0%, var(--asphalt) 100%);
+  .zuvvi-gradient {
+    background: linear-gradient(180deg, #1C1650 0%, #130F36 100%);
   }
 
   .speed-lines {
@@ -208,8 +175,8 @@
       90deg,
       transparent 0px,
       transparent 38px,
-      color-mix(in oklch, var(--ember) 12%, transparent) 38px,
-      color-mix(in oklch, var(--ember) 12%, transparent) 40px
+      rgba(198, 255, 61, 0.05) 38px,
+      rgba(198, 255, 61, 0.05) 40px
     );
   }
 }
@@ -229,4 +196,3 @@ div[style*="Edit with Lovable"],
   position: absolute !important;
   z-index: -9999 !important;
 }
-
