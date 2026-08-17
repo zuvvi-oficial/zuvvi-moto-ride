@@ -149,17 +149,17 @@ function CadastroPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-semibold text-white font-space">Criar Conta</h2>
-        <p className="text-zinc-400 text-sm mt-1">Junte-se à revolução da moto-táxi</p>
+        <h2 className="text-2xl font-semibold text-white">Criar Conta</h2>
+        <p className="text-muted-foreground text-sm mt-1">Junte-se à revolução da moto-táxi</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="nome" className="text-zinc-300">Nome Completo</Label>
+          <Label htmlFor="nome" className="text-white/80">Nome Completo</Label>
           <Input 
             id="nome" 
             placeholder="Ex: João Silva" 
-            className="bg-zinc-800 border-zinc-700 text-white focus:border-amber-500"
+            className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
             {...register("nome")}
           />
           {errors.nome && <p className="text-red-500 text-xs">{errors.nome.message}</p>}
@@ -167,7 +167,7 @@ function CadastroPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="cpf" className="text-zinc-300">CPF</Label>
+            <Label htmlFor="cpf" className="text-white/80">CPF</Label>
             <Controller
               name="cpf"
               control={control}
@@ -176,7 +176,7 @@ function CadastroPage() {
                   {...field}
                   id="cpf" 
                   placeholder="000.000.000-00" 
-                  className="bg-zinc-800 border-zinc-700 text-white"
+                  className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
                   onChange={(e) => field.onChange(formatCPF(e.target.value))}
                 />
               )}
@@ -184,7 +184,7 @@ function CadastroPage() {
             {errors.cpf && <p className="text-red-500 text-xs">{errors.cpf.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="celular" className="text-zinc-300">Celular</Label>
+            <Label htmlFor="celular" className="text-white/80">Celular</Label>
             <Controller
               name="celular"
               control={control}
@@ -193,7 +193,7 @@ function CadastroPage() {
                   {...field}
                   id="celular" 
                   placeholder="(00) 00000-0000" 
-                  className="bg-zinc-800 border-zinc-700 text-white"
+                  className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
                   onChange={(e) => field.onChange(formatPhone(e.target.value))}
                 />
               )}
@@ -203,25 +203,25 @@ function CadastroPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-zinc-300">E-mail</Label>
+          <Label htmlFor="email" className="text-white/80">E-mail</Label>
           <Input 
             id="email" 
             type="email" 
             placeholder="seu@email.com" 
-            className="bg-zinc-800 border-zinc-700 text-white"
+            className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
             {...register("email")}
           />
           {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-zinc-300">Senha</Label>
+          <Label htmlFor="password" className="text-white/80">Senha</Label>
           <div className="relative">
             <Input 
               id="password" 
               type={showPassword ? "text" : "password"} 
               placeholder="••••••••" 
-              className="bg-zinc-800 border-zinc-700 text-white pr-10 focus:border-amber-500"
+              className="bg-zuvvi-indigo border-white/10 text-white pr-10 focus:border-zuvvi-volt"
               {...register("password")}
             />
             <button
@@ -234,7 +234,7 @@ function CadastroPage() {
           </div>
           {passwordValue && (
             <div className="space-y-1.5 pt-1">
-              <div className="flex gap-1 h-1 w-full bg-zinc-700 rounded-full overflow-hidden">
+              <div className="flex gap-1 h-1 w-full bg-white/10 rounded-full overflow-hidden">
                 <div className={cn("h-full transition-all duration-300", passwordStrength.score >= 1 ? passwordStrength.color : "w-0", passwordStrength.score === 1 ? "w-1/3" : passwordStrength.score === 2 ? "w-2/3" : "w-full")} />
               </div>
               <p className={cn("text-[10px] font-medium uppercase tracking-wider", 
@@ -271,18 +271,18 @@ function CadastroPage() {
         </div>
 
         <div className="space-y-3">
-          <Label className="text-zinc-300">Eu quero ser:</Label>
+          <Label className="text-white/80">Eu quero ser:</Label>
           <RadioGroup 
             defaultValue="passageiro" 
             onValueChange={(value) => setValue("perfil_inicial", value as any)}
             className="flex gap-4"
           >
-            <div className="flex items-center space-x-2 bg-zinc-800 p-3 rounded-lg border border-zinc-700 cursor-pointer hover:border-amber-500 transition-colors">
-              <RadioGroupItem value="passageiro" id="passageiro" className="text-amber-500 border-zinc-500" />
+            <div className="flex items-center space-x-2 bg-zuvvi-indigo p-3 rounded-lg border border-white/10 cursor-pointer hover:border-zuvvi-volt transition-colors">
+              <RadioGroupItem value="passageiro" id="passageiro" className="text-zuvvi-volt border-white/30" />
               <Label htmlFor="passageiro" className="text-white cursor-pointer">Passageiro</Label>
             </div>
-            <div className="flex items-center space-x-2 bg-zinc-800 p-3 rounded-lg border border-zinc-700 cursor-pointer hover:border-amber-500 transition-colors">
-              <RadioGroupItem value="motorista" id="motorista" className="text-amber-500 border-zinc-500" />
+            <div className="flex items-center space-x-2 bg-zuvvi-indigo p-3 rounded-lg border border-white/10 cursor-pointer hover:border-zuvvi-volt transition-colors">
+              <RadioGroupItem value="motorista" id="motorista" className="text-zuvvi-volt border-white/30" />
               <Label htmlFor="motorista" className="text-white cursor-pointer">Motorista</Label>
             </div>
           </RadioGroup>
@@ -291,13 +291,13 @@ function CadastroPage() {
         <Button 
           type="submit" 
           disabled={isLoading}
-          className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold h-12 text-lg mt-4 transition-all active:scale-[0.98]"
+          className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-12 text-lg mt-4 transition-all active:scale-[0.98]"
         >
           {isLoading ? "Cadastrando..." : "CRIAR CONTA ZUVVI"}
         </Button>
 
-        <p className="text-center text-zinc-500 text-sm mt-4">
-          Já tem uma conta? <Link to="/auth/login" className="text-amber-500 cursor-pointer hover:underline">Fazer login</Link>
+        <p className="text-center text-muted-foreground text-sm mt-4">
+          Já tem uma conta? <Link to="/auth/login" className="volt-text cursor-pointer hover:underline">Fazer login</Link>
         </p>
       </form>
     </div>
