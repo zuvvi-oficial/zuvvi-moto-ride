@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -297,7 +297,7 @@ function CadastroPage() {
         </Button>
 
         <p className="text-center text-zinc-500 text-sm mt-4">
-          Já tem uma conta? <span className="text-amber-500 cursor-pointer hover:underline">Fazer login</span>
+          Já tem uma conta? <Link to="/auth/login" className="text-amber-500 cursor-pointer hover:underline">Fazer login</Link>
         </p>
       </form>
     </div>
