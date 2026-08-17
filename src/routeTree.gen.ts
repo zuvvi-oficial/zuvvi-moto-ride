@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
 import { Route as AuthCadastroRouteImport } from './routes/auth.cadastro'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthCompletarCadastroRouteImport } from './routes/auth.completar-cadastro'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthPerfilRouteImport } from './routes/auth.perfil'
 
@@ -42,6 +43,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthCompletarCadastroRoute = AuthCompletarCadastroRouteImport.update({
+  id: '/completar-cadastro',
+  path: '/completar-cadastro',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/onboarding-motorista'
     | '/auth/cadastro'
     | '/auth/callback'
+    | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/onboarding-motorista'
     | '/auth/cadastro'
     | '/auth/callback'
+    | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/onboarding-motorista'
     | '/auth/cadastro'
     | '/auth/callback'
+    | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
   fileRoutesById: FileRoutesById
@@ -154,6 +166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/auth/completar-cadastro': {
+      id: '/auth/completar-cadastro'
+      path: '/completar-cadastro'
+      fullPath: '/auth/completar-cadastro'
+      preLoaderRoute: typeof AuthCompletarCadastroRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/login'
@@ -174,6 +193,7 @@ declare module '@tanstack/react-router' {
 interface AuthRouteChildren {
   AuthCadastroRoute: typeof AuthCadastroRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthCompletarCadastroRoute: typeof AuthCompletarCadastroRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthPerfilRoute: typeof AuthPerfilRoute
 }
@@ -181,6 +201,7 @@ interface AuthRouteChildren {
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCadastroRoute: AuthCadastroRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthCompletarCadastroRoute: AuthCompletarCadastroRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthPerfilRoute: AuthPerfilRoute,
 }
