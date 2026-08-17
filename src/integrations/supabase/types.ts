@@ -162,6 +162,56 @@ export type Database = {
           },
         ]
       }
+      veiculos: {
+        Row: {
+          ano: number
+          ativo: boolean
+          cor: string
+          created_at: string
+          id: string
+          marca: string
+          modelo: string
+          motorista_id: string
+          placa: string
+          status_aprovacao: Database["public"]["Enums"]["veiculo_status_aprovacao"]
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          ativo?: boolean
+          cor: string
+          created_at?: string
+          id?: string
+          marca: string
+          modelo: string
+          motorista_id: string
+          placa: string
+          status_aprovacao?: Database["public"]["Enums"]["veiculo_status_aprovacao"]
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          marca?: string
+          modelo?: string
+          motorista_id?: string
+          placa?: string
+          status_aprovacao?: Database["public"]["Enums"]["veiculo_status_aprovacao"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculos_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -184,6 +234,12 @@ export type Database = {
         | "recusado"
         | "suspenso"
       user_profile_type: "passageiro" | "motorista"
+      veiculo_status_aprovacao:
+        | "em_preenchimento"
+        | "em_analise"
+        | "aprovado"
+        | "recusado"
+        | "suspenso"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -327,6 +383,13 @@ export const Constants = {
         "suspenso",
       ],
       user_profile_type: ["passageiro", "motorista"],
+      veiculo_status_aprovacao: [
+        "em_preenchimento",
+        "em_analise",
+        "aprovado",
+        "recusado",
+        "suspenso",
+      ],
     },
   },
 } as const
