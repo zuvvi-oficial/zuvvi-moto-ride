@@ -23,7 +23,7 @@ function PerfilPage() {
       toast.success("Perfil de passageiro ativado!");
       navigate({ to: "/" });
     } catch (error: any) {
-      toast.error("Erro ao selecionar perfil. Tente novamente.");
+      toast.error(error?.message ?? "Erro ao selecionar perfil. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -36,7 +36,7 @@ function PerfilPage() {
       toast.success("Perfil de motorista ativado!");
       navigate({ to: "/onboarding-motorista" as any }); // Placeholder route
     } catch (error: any) {
-      toast.error("Erro ao selecionar perfil. Tente novamente.");
+      toast.error(error?.message ?? "Erro ao selecionar perfil. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
