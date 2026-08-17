@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,62 @@ import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { signUp } from '@/lib/auth.functions';
 
+const validateCPF = (cpf: string) => {
+  const cleanCPF = cpf.replace(/\D/g, '');
+  if (cleanCPF.length !== 11) return false;
+  if (/^(\d)\1+$/.test(cleanCPF)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(cleanCPF.charAt(i)) * (10 - i);
+  let rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(cleanCPF.charAt(9))) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(cleanCPF.charAt(i)) * (11 - i);
+  rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(cleanCPF.charAt(10))) return false;
+  return true;
+};
+
+const formatCPF = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  return digits
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+};
+
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 10) {
+    return digits
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4})(\d{1,4})$/, '$1-$2');
+  }
+  return digits
+    .replace(/(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+};
+
 const cadastroSchema = z.object({
-  nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
-  email: z.string().email("E-mail inválido"),
+  nome: z
+    .string()
+    .min(3, "O nome deve ter pelo menos 3 caracteres")
+    .transform((val) => val.trim().replace(/\s+/g, ' ')),
+  email: z
+    .string()
+    .email("E-mail inválido")
+    .transform((val) => val.trim().toLowerCase()),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-  cpf: z.string().length(11, "CPF deve conter 11 números"),
-  celular: z.string().min(10, "Celular inválido"),
+  cpf: z
+    .string()
+    .transform((val) => val.replace(/\D/g, ''))
+    .refine((val) => val.length === 11, "CPF deve conter 11 números")
+    .refine(validateCPF, "CPF inválido"),
+  celular: z
+    .string()
+    .transform((val) => val.replace(/\D/g, ''))
+    .refine((val) => val.length >= 10 && val.length <= 11, "Celular inválido"),
   perfil_inicial: z.enum(["passageiro", "motorista"]),
 });
 
@@ -31,7 +81,14 @@ function CadastroPage() {
   const executeSignUp = useServerFn(signUp);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CadastroForm>({
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors }, 
+    setValue, 
+    watch,
+    control
+  } = useForm<CadastroForm>({
     resolver: zodResolver(cadastroSchema),
     defaultValues: {
       perfil_inicial: "passageiro",
@@ -40,14 +97,17 @@ function CadastroPage() {
 
   const perfil = watch("perfil_inicial");
 
-  const onSubmit = async (data: CadastroForm) => {
+  const onSubmit = async (formData: CadastroForm) => {
     setIsLoading(true);
     try {
-      await executeSignUp({ data });
+      await executeSignUp({ data: formData });
       toast.success("Cadastro realizado com sucesso!");
-      navigate({ to: "/" }); // Redireciona para home por enquanto
+      navigate({ to: "/" });
     } catch (error: any) {
-      toast.error(error.message || "Erro ao realizar cadastro");
+      const userFriendlyMessage = error.message?.includes('violates unique constraint')
+        ? "Este e-mail, CPF ou celular já está cadastrado."
+        : "Ocorreu um erro ao processar seu cadastro. Tente novamente.";
+      toast.error(userFriendlyMessage);
     } finally {
       setIsLoading(false);
     }
@@ -75,21 +135,35 @@ function CadastroPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="cpf" className="text-zinc-300">CPF</Label>
-            <Input 
-              id="cpf" 
-              placeholder="Apenas números" 
-              className="bg-zinc-800 border-zinc-700 text-white"
-              {...register("cpf")}
+            <Controller
+              name="cpf"
+              control={control}
+              render={({ field }) => (
+                <Input 
+                  {...field}
+                  id="cpf" 
+                  placeholder="000.000.000-00" 
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  onChange={(e) => field.onChange(formatCPF(e.target.value))}
+                />
+              )}
             />
             {errors.cpf && <p className="text-red-500 text-xs">{errors.cpf.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="celular" className="text-zinc-300">Celular</Label>
-            <Input 
-              id="celular" 
-              placeholder="(00) 00000-0000" 
-              className="bg-zinc-800 border-zinc-700 text-white"
-              {...register("celular")}
+            <Controller
+              name="celular"
+              control={control}
+              render={({ field }) => (
+                <Input 
+                  {...field}
+                  id="celular" 
+                  placeholder="(00) 00000-0000" 
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                />
+              )}
             />
             {errors.celular && <p className="text-red-500 text-xs">{errors.celular.message}</p>}
           </div>
