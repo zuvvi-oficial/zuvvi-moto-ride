@@ -1,0 +1,1 @@
+ALTER TABLE public.usuarios ALTER COLUMN cpf DROP NOT NULL;

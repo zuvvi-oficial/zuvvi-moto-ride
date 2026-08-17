@@ -450,7 +450,7 @@ export type Database = {
           auth_user_id: string | null
           celular: string | null
           cidade_id: string | null
-          cpf: string
+          cpf: string | null
           created_at: string
           data_nascimento: string | null
           email: string | null
@@ -465,7 +465,7 @@ export type Database = {
           auth_user_id?: string | null
           celular?: string | null
           cidade_id?: string | null
-          cpf: string
+          cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
@@ -480,7 +480,7 @@ export type Database = {
           auth_user_id?: string | null
           celular?: string | null
           cidade_id?: string | null
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
