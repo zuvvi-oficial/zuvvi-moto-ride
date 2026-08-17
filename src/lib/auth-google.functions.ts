@@ -8,16 +8,24 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     const { data: { session } } = await supabaseClient.auth.getSession();
     
     if (!session?.user) {
+      console.warn("No active session found during Google redirect processing");
       return { redirectTo: "/auth/login" };
     }
 
+    // Check if user record already exists
     const { data: userRecord, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("is_passageiro, is_motorista")
       .eq("auth_user_id", session.user.id)
-      .single();
+      .maybeSingle();
 
-    if (userError || !userRecord) {
+    if (userError) {
+      console.error("Database error checking for existing user:", userError);
+      return { redirectTo: "/auth/login", error: "Erro ao verificar sua conta. Por favor, tente novamente." };
+    }
+
+    if (!userRecord) {
+      // Create new user record from Google metadata
       const metadata = session.user.user_metadata || {};
       const nome = metadata['full_name'] || metadata['name'] || "Usuário Google";
       
@@ -33,18 +41,18 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
         });
 
       if (insertError) {
-        console.error("Erro ao criar usuário via Google:", insertError);
-        return { redirectTo: "/auth/login", error: "Erro ao criar perfil" };
+        console.error("Error creating user record from Google auth:", insertError);
+        return { redirectTo: "/auth/login", error: "Não foi possível criar seu perfil. Por favor, tente novamente." };
       }
 
       return { redirectTo: "/auth/perfil" };
     }
 
-    // Se já tem perfil definido, vai para a Home
+    // Existing user: check if profile choice is completed
     if (userRecord.is_passageiro || userRecord.is_motorista) {
       return { redirectTo: "/" };
     }
 
-    // Se existe mas não escolheu perfil
+    // Record exists but profile hasn't been chosen yet
     return { redirectTo: "/auth/perfil" };
   });
