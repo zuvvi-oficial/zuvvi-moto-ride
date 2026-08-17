@@ -8,7 +8,7 @@ const signUpSchema = z.object({
   cpf: z.string().length(11, "CPF deve ter 11 dígitos"),
   celular: z.string().min(10, "Telefone inválido"),
   data_nascimento: z.string().optional(),
-  perfil_inicial: z.enum(["passageiro", "motorista"]),
+  
 });
 
 export const signUp = createServerFn({ method: "POST" })
