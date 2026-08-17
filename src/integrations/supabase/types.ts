@@ -59,6 +59,59 @@ export type Database = {
         }
         Relationships: []
       }
+      motoristas: {
+        Row: {
+          bio: string | null
+          created_at: string
+          display_name: string
+          id: string
+          onboarding_completed_at: string | null
+          payment_ready: boolean
+          rating_average: number
+          rating_count: number
+          status: Database["public"]["Enums"]["motorista_status"]
+          suspended_at: string | null
+          suspension_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          id: string
+          onboarding_completed_at?: string | null
+          payment_ready?: boolean
+          rating_average?: number
+          rating_count?: number
+          status?: Database["public"]["Enums"]["motorista_status"]
+          suspended_at?: string | null
+          suspension_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          onboarding_completed_at?: string | null
+          payment_ready?: boolean
+          rating_average?: number
+          rating_count?: number
+          status?: Database["public"]["Enums"]["motorista_status"]
+          suspended_at?: string | null
+          suspension_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motoristas_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           auth_user_id: string | null
@@ -124,6 +177,12 @@ export type Database = {
     }
     Enums: {
       cidade_status: "em_breve" | "piloto" | "ativa"
+      motorista_status:
+        | "draft"
+        | "under_review"
+        | "approved"
+        | "suspended"
+        | "rejected"
       user_profile_type: "passageiro" | "motorista"
     }
     CompositeTypes: {
@@ -253,6 +312,13 @@ export const Constants = {
   public: {
     Enums: {
       cidade_status: ["em_breve", "piloto", "ativa"],
+      motorista_status: [
+        "draft",
+        "under_review",
+        "approved",
+        "suspended",
+        "rejected",
+      ],
       user_profile_type: ["passageiro", "motorista"],
     },
   },
