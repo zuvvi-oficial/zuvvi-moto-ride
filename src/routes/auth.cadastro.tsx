@@ -81,7 +81,14 @@ function CadastroPage() {
   const executeSignUp = useServerFn(signUp);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CadastroForm>({
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors }, 
+    setValue, 
+    watch,
+    control
+  } = useForm<CadastroForm>({
     resolver: zodResolver(cadastroSchema),
     defaultValues: {
       perfil_inicial: "passageiro",
@@ -90,14 +97,17 @@ function CadastroPage() {
 
   const perfil = watch("perfil_inicial");
 
-  const onSubmit = async (data: CadastroForm) => {
+  const onSubmit = async (formData: CadastroForm) => {
     setIsLoading(true);
     try {
-      await executeSignUp({ data });
+      await executeSignUp({ data: formData });
       toast.success("Cadastro realizado com sucesso!");
-      navigate({ to: "/" }); // Redireciona para home por enquanto
+      navigate({ to: "/" });
     } catch (error: any) {
-      toast.error(error.message || "Erro ao realizar cadastro");
+      const userFriendlyMessage = error.message?.includes('violates unique constraint')
+        ? "Este e-mail, CPF ou celular já está cadastrado."
+        : "Ocorreu um erro ao processar seu cadastro. Tente novamente.";
+      toast.error(userFriendlyMessage);
     } finally {
       setIsLoading(false);
     }
@@ -125,21 +135,35 @@ function CadastroPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="cpf" className="text-zinc-300">CPF</Label>
-            <Input 
-              id="cpf" 
-              placeholder="Apenas números" 
-              className="bg-zinc-800 border-zinc-700 text-white"
-              {...register("cpf")}
+            <Controller
+              name="cpf"
+              control={control}
+              render={({ field }) => (
+                <Input 
+                  {...field}
+                  id="cpf" 
+                  placeholder="000.000.000-00" 
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  onChange={(e) => field.onChange(formatCPF(e.target.value))}
+                />
+              )}
             />
             {errors.cpf && <p className="text-red-500 text-xs">{errors.cpf.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="celular" className="text-zinc-300">Celular</Label>
-            <Input 
-              id="celular" 
-              placeholder="(00) 00000-0000" 
-              className="bg-zinc-800 border-zinc-700 text-white"
-              {...register("celular")}
+            <Controller
+              name="celular"
+              control={control}
+              render={({ field }) => (
+                <Input 
+                  {...field}
+                  id="celular" 
+                  placeholder="(00) 00000-0000" 
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                />
+              )}
             />
             {errors.celular && <p className="text-red-500 text-xs">{errors.celular.message}</p>}
           </div>
