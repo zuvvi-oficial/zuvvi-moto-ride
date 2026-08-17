@@ -17,15 +17,22 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
       .eq("auth_user_id", session.user.id)
       .single();
 
+    const { data: userRecord, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("is_passageiro, is_motorista")
+      .eq("auth_user_id", session.user.id)
+      .single();
+
     if (userError || !userRecord) {
-      // Se não existe na tabela usuarios, cria o registro básico
+      const metadata = session.user.user_metadata || {};
+      const nome = metadata['full_name'] || metadata['name'] || "Usuário Google";
+      
       const { error: insertError } = await supabaseAdmin
         .from("usuarios")
         .insert({
           auth_user_id: session.user.id,
-          nome: session.user.user_metadata.full_name || session.user.user_metadata.name || "Usuário Google",
-          email: session.user.email,
-          cpf: `GOOGLE_${session.user.id.slice(0, 5)}`, // Placeholder temporário se CPF for obrigatório e não vier do Google
+          nome: nome,
+          email: session.user.email ?? null,
           is_passageiro: false,
           is_motorista: false,
           perfil_ativo: null as any,
