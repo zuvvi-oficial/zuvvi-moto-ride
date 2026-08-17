@@ -45,10 +45,10 @@ export const signUp = createServerFn({ method: "POST" })
         email: data.email,
         cpf: data.cpf,
         celular: data.celular,
-        data_nascimento: data.data_nascimento,
+        data_nascimento: data.data_nascimento ?? null,
         is_passageiro: data.perfil_inicial === "passageiro",
         is_motorista: data.perfil_inicial === "motorista",
-        perfil_ativo: data.perfil_inicial as any, // Cast para o tipo enum no banco
+        perfil_ativo: data.perfil_inicial as any,
       });
 
     if (dbError) {
