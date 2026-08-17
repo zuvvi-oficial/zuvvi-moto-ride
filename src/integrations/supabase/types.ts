@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cidades: {
+        Row: {
+          bandeirada: number
+          comissao_pct: number
+          created_at: string
+          estado_uf: string
+          id: string
+          nome: string
+          raio_atuacao_km: number
+          status: Database["public"]["Enums"]["cidade_status"]
+          tarifa_minima: number
+          updated_at: string
+          valor_km: number
+          valor_min: number
+        }
+        Insert: {
+          bandeirada?: number
+          comissao_pct?: number
+          created_at?: string
+          estado_uf: string
+          id?: string
+          nome: string
+          raio_atuacao_km?: number
+          status?: Database["public"]["Enums"]["cidade_status"]
+          tarifa_minima?: number
+          updated_at?: string
+          valor_km?: number
+          valor_min?: number
+        }
+        Update: {
+          bandeirada?: number
+          comissao_pct?: number
+          created_at?: string
+          estado_uf?: string
+          id?: string
+          nome?: string
+          raio_atuacao_km?: number
+          status?: Database["public"]["Enums"]["cidade_status"]
+          tarifa_minima?: number
+          updated_at?: string
+          valor_km?: number
+          valor_min?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +67,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      cidade_status: "em_breve" | "piloto" | "ativa"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +194,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      cidade_status: ["em_breve", "piloto", "ativa"],
+    },
   },
 } as const
