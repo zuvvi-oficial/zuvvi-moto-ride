@@ -1,14 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 
 export const selectPassageiroPerfil = createServerFn({ method: "POST" })
-  .handler(async ({ request }) => {
+  .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { supabase: supabaseClient } = await import("@/integrations/supabase/client");
     
-    // In a real app, we'd get the user from the session
-    // For this technical phase, we expect the user to be authenticated in the client
-    // and we'll verify the session here.
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session?.user) throw new Error("Não autorizado");
 
@@ -25,14 +21,13 @@ export const selectPassageiroPerfil = createServerFn({ method: "POST" })
   });
 
 export const selectMotoristaPerfil = createServerFn({ method: "POST" })
-  .handler(async ({ request }) => {
+  .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { supabase: supabaseClient } = await import("@/integrations/supabase/client");
     
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session?.user) throw new Error("Não autorizado");
 
-    // 1. Get user ID
     const { data: user, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("id")
@@ -41,7 +36,6 @@ export const selectMotoristaPerfil = createServerFn({ method: "POST" })
 
     if (userError || !user) throw new Error("Usuário não encontrado");
 
-    // 2. Update user profile
     const { error: updateError } = await supabaseAdmin
       .from("usuarios")
       .update({
@@ -52,7 +46,6 @@ export const selectMotoristaPerfil = createServerFn({ method: "POST" })
 
     if (updateError) throw new Error(updateError.message);
 
-    // 3. Create motorista record
     const { error: motoristaError } = await supabaseAdmin
       .from("motoristas")
       .insert({
