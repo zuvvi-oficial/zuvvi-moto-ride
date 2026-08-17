@@ -79,7 +79,7 @@ const cadastroSchema = z.object({
     .string()
     .transform((val) => val.replace(/\D/g, ''))
     .refine((val) => val.length >= 10 && val.length <= 11, "Celular inválido"),
-  perfil_inicial: z.enum(["passageiro", "motorista"]),
+  
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
