@@ -1,12 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const selectPassageiroPerfil = createServerFn({ method: "POST" })
-  .handler(async () => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { supabase: supabaseClient } = await import("@/integrations/supabase/client");
-    
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session?.user) throw new Error("Não autorizado");
+    const userId = context.userId;
 
     const { error } = await supabaseAdmin
       .from("usuarios")
@@ -14,24 +13,22 @@ export const selectPassageiroPerfil = createServerFn({ method: "POST" })
         is_passageiro: true,
         perfil_ativo: 'passageiro'
       })
-      .eq("auth_user_id", session.user.id);
+      .eq("auth_user_id", userId);
 
     if (error) throw new Error(error.message);
     return { success: true };
   });
 
 export const selectMotoristaPerfil = createServerFn({ method: "POST" })
-  .handler(async () => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { supabase: supabaseClient } = await import("@/integrations/supabase/client");
-    
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session?.user) throw new Error("Não autorizado");
+    const userId = context.userId;
 
     const { data: user, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("id")
-      .eq("auth_user_id", session.user.id)
+      .eq("auth_user_id", userId)
       .single();
 
     if (userError || !user) throw new Error("Usuário não encontrado");
@@ -48,11 +45,11 @@ export const selectMotoristaPerfil = createServerFn({ method: "POST" })
 
     const { error: motoristaError } = await supabaseAdmin
       .from("motoristas")
-      .insert({
+      .upsert({
         id: user.id,
         status_aprovacao: 'em_preenchimento',
         nota_media: 0
-      });
+      }, { onConflict: 'id' });
 
     if (motoristaError) throw new Error(motoristaError.message);
 
