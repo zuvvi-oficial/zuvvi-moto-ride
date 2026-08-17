@@ -77,16 +77,36 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Zuvvi — Mobilidade urbana na velocidade da moto" },
+      {
+        name: "description",
+        content:
+          "Zuvvi é a plataforma brasileira de moto-táxi. Corridas rápidas, ágeis e confiáveis para se mover pela cidade.",
+      },
+      { name: "author", content: "Zuvvi" },
+      {
+        property: "og:title",
+        content: "Zuvvi — Mobilidade urbana na velocidade da moto",
+      },
+      {
+        property: "og:description",
+        content:
+          "Plataforma brasileira de moto-táxi. Corridas rápidas, ágeis e confiáveis pela cidade.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Grotesk:wght@400;500;600;700&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
