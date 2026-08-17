@@ -250,13 +250,13 @@ function CadastroPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-zinc-300">Confirmar Senha</Label>
+          <Label htmlFor="confirmPassword" className="text-white/80">Confirmar Senha</Label>
           <div className="relative">
             <Input 
               id="confirmPassword" 
               type={showConfirmPassword ? "text" : "password"} 
               placeholder="••••••••" 
-              className="bg-zinc-800 border-zinc-700 text-white pr-10 focus:border-amber-500"
+              className="bg-zuvvi-indigo border-white/10 text-white pr-10 focus:border-zuvvi-volt"
               {...register("confirmPassword")}
             />
             <button
