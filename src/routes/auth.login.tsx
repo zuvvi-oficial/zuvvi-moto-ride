@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { GoogleLoginButton, AuthSeparator } from '@/components/auth/SocialLogin';
 
 const loginSchema = z.object({
   email: z
@@ -65,6 +66,9 @@ function LoginPage() {
         <h2 className="text-2xl font-semibold text-white">Entrar no Zuvvi</h2>
         <p className="text-muted-foreground text-sm mt-1">Bem-vindo de volta, piloto ou passageiro</p>
       </div>
+      
+      <GoogleLoginButton />
+      <AuthSeparator />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">

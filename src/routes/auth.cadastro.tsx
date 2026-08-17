@@ -12,6 +12,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { signUp } from '@/lib/auth.functions';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GoogleLoginButton, AuthSeparator } from '@/components/auth/SocialLogin';
 
 const titleCase = (str: string) => {
   return str
@@ -149,6 +150,9 @@ function CadastroPage() {
         <h2 className="text-2xl font-semibold text-white">Criar Conta</h2>
         <p className="text-muted-foreground text-sm mt-1">Junte-se à revolução da moto-táxi</p>
       </div>
+
+      <GoogleLoginButton />
+      <AuthSeparator />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
