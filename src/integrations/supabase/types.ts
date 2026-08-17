@@ -59,6 +59,103 @@ export type Database = {
         }
         Relationships: []
       }
+      corridas: {
+        Row: {
+          cancelado_por: Database["public"]["Enums"]["cancelado_por"] | null
+          cidade_id: string
+          codigo_embarque: string
+          created_at: string
+          data_aceite: string | null
+          data_cancelamento: string | null
+          data_chegada_motorista: string | null
+          data_finalizacao: string | null
+          data_inicio: string | null
+          destino_lat: number
+          destino_lng: number
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+          id: string
+          motivo_cancelamento: string | null
+          motorista_id: string | null
+          origem_lat: number
+          origem_lng: number
+          passageiro_id: string
+          status: Database["public"]["Enums"]["corrida_status"]
+          updated_at: string
+          valor_estimado: number
+          valor_final: number | null
+        }
+        Insert: {
+          cancelado_por?: Database["public"]["Enums"]["cancelado_por"] | null
+          cidade_id: string
+          codigo_embarque: string
+          created_at?: string
+          data_aceite?: string | null
+          data_cancelamento?: string | null
+          data_chegada_motorista?: string | null
+          data_finalizacao?: string | null
+          data_inicio?: string | null
+          destino_lat: number
+          destino_lng: number
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+          id?: string
+          motivo_cancelamento?: string | null
+          motorista_id?: string | null
+          origem_lat: number
+          origem_lng: number
+          passageiro_id: string
+          status?: Database["public"]["Enums"]["corrida_status"]
+          updated_at?: string
+          valor_estimado: number
+          valor_final?: number | null
+        }
+        Update: {
+          cancelado_por?: Database["public"]["Enums"]["cancelado_por"] | null
+          cidade_id?: string
+          codigo_embarque?: string
+          created_at?: string
+          data_aceite?: string | null
+          data_cancelamento?: string | null
+          data_chegada_motorista?: string | null
+          data_finalizacao?: string | null
+          data_inicio?: string | null
+          destino_lat?: number
+          destino_lng?: number
+          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"]
+          id?: string
+          motivo_cancelamento?: string | null
+          motorista_id?: string | null
+          origem_lat?: number
+          origem_lng?: number
+          passageiro_id?: string
+          status?: Database["public"]["Enums"]["corrida_status"]
+          updated_at?: string
+          valor_estimado?: number
+          valor_final?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corridas_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corridas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corridas_passageiro_id_fkey"
+            columns: ["passageiro_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_motorista: {
         Row: {
           created_at: string
@@ -277,8 +374,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      cancelado_por: "passageiro" | "motorista" | "operacao"
       cidade_status: "em_breve" | "piloto" | "ativa"
+      corrida_status:
+        | "solicitada"
+        | "buscando_motorista"
+        | "aceita"
+        | "motorista_a_caminho"
+        | "motorista_chegou"
+        | "em_andamento"
+        | "concluida"
+        | "cancelada"
+        | "sem_motorista"
       documento_status_analise: "pendente" | "aprovado" | "recusado"
+      forma_pagamento: "pix" | "cartao" | "dinheiro"
       motorista_status:
         | "draft"
         | "under_review"
@@ -432,8 +541,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      cancelado_por: ["passageiro", "motorista", "operacao"],
       cidade_status: ["em_breve", "piloto", "ativa"],
+      corrida_status: [
+        "solicitada",
+        "buscando_motorista",
+        "aceita",
+        "motorista_a_caminho",
+        "motorista_chegou",
+        "em_andamento",
+        "concluida",
+        "cancelada",
+        "sem_motorista",
+      ],
       documento_status_analise: ["pendente", "aprovado", "recusado"],
+      forma_pagamento: ["pix", "cartao", "dinheiro"],
       motorista_status: [
         "draft",
         "under_review",
