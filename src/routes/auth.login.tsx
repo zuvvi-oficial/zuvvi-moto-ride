@@ -57,9 +57,9 @@ function LoginPage() {
       toast.success("Login realizado com sucesso!");
       
       // Verificação de perfil completo antes de redirecionar
-      const { hasProfile } = await checkStatus();
+      const status = await checkStatus();
       
-      if (hasProfile) {
+      if (status.hasProfile) {
         navigate({ to: "/" });
       } else {
         navigate({ to: "/auth/perfil" });
@@ -133,3 +133,4 @@ function LoginPage() {
     </div>
   );
 }
+
