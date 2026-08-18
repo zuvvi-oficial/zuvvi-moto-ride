@@ -7,8 +7,8 @@ import { Bike, Loader2, CheckCircle2, FileText, CreditCard, Upload, AlertCircle,
 type UploadState = {
   status: 'idle' | 'uploading' | 'success' | 'error';
   fileName?: string;
-  previewUrl?: string;
-  errorMessage?: string;
+  previewUrl?: string | undefined;
+  errorMessage?: string | undefined;
 };
 
 export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => void }) {
