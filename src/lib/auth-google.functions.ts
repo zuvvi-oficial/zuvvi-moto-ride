@@ -109,26 +109,26 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
 
     console.log("[GoogleAuth] final_record_found=true");
     console.log("[GoogleAuth] deciding_navigation");
-
-    // Rule 1: Verify if mandatory registration is complete
+    
+    // Step 1: Verify CPF, Phone, Birthdate, City
     const isRegistrationComplete = !!(
       finalRecord.cpf && 
       finalRecord.celular && 
       finalRecord.data_nascimento && 
       finalRecord.cidade_id
     );
-
+    
     if (!isRegistrationComplete) {
       console.log("[GoogleAuth] navigation_decision=completar-cadastro");
       return { redirectTo: "/auth/completar-cadastro" };
     }
-
-    // Rule 2: Apply profile check after registration is complete
+    
+    // Step 2: Verify Profile Selection
     if (!finalRecord.is_passageiro && !finalRecord.is_motorista) {
       console.log("[GoogleAuth] navigation_decision=perfil");
       return { redirectTo: "/auth/perfil" };
     }
-
+    
     console.log("[GoogleAuth] navigation_decision=home");
     return { redirectTo: "/" };
   });
