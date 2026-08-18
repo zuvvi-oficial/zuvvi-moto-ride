@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { updateUserInfo } from '@/lib/auth-google.functions';
-import { checkUserProfileStatus, resolvePostLoginDestination } from '@/lib/auth-status.functions';
+import { checkUserProfileStatus, resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { redirect } from '@tanstack/react-router';
 import { getUFs, getCitiesByUF } from '@/lib/locations.functions';
 
@@ -57,7 +57,7 @@ type CompletionForm = z.infer<typeof completionSchema>;
 
 export const Route = createFileRoute('/auth/completar-cadastro')({
   loader: async () => {
-    const dest = await resolvePostLoginDestination();
+    const dest = await resolveDestinationForLoader();
     if (dest.redirectTo && dest.redirectTo !== "/auth/completar-cadastro") {
       throw redirect({ to: dest.redirectTo as any });
     }
