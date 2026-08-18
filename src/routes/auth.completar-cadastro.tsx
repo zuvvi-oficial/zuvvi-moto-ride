@@ -59,6 +59,21 @@ export const Route = createFileRoute('/auth/completar-cadastro')({
   component: CompletarCadastroPage,
 });
 
+const meses = [
+  { value: '01', label: 'Janeiro' },
+  { value: '02', label: 'Fevereiro' },
+  { value: '03', label: 'Março' },
+  { value: '04', label: 'Abril' },
+  { value: '05', label: 'Maio' },
+  { value: '06', label: 'Junho' },
+  { value: '07', label: 'Julho' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Setembro' },
+  { value: '10', label: 'Outubro' },
+  { value: '11', label: 'Novembro' },
+  { value: '12', label: 'Dezembro' },
+];
+
 function CompletarCadastroPage() {
   const navigate = useNavigate();
   const executeUpdate = useServerFn(updateUserInfo);
@@ -68,6 +83,11 @@ function CompletarCadastroPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [locations, setLocations] = useState<any[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
+
+  // Estados locais para os seletores de data
+  const [day, setDay] = useState('');
+  const [month, setMonth] = useState('');
+  const [year, setYear] = useState('');
 
   const { 
     handleSubmit, 
@@ -87,6 +107,15 @@ function CompletarCadastroPage() {
   });
 
   const selectedUF = watch('uf');
+
+  // Atualiza o valor de data_nascimento no formulário quando os seletores mudam
+  useEffect(() => {
+    if (day && month && year) {
+      setValue('data_nascimento', `${year}-${month}-${day.padStart(2, '0')}`);
+    } else {
+      setValue('data_nascimento', '');
+    }
+  }, [day, month, year, setValue]);
 
   useEffect(() => {
     const loadLocations = async () => {
@@ -119,7 +148,50 @@ function CompletarCadastroPage() {
     }
   }, [selectedUF, setValue]);
 
+  // Lógica para anos (do ano atual até 100 anos atrás)
+  const anos = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = currentYear; i >= currentYear - 100; i--) {
+      years.push(i.toString());
+    }
+    return years;
+  }, []);
+
+  // Lógica para dias baseada no mês e ano
+  const dias = useMemo(() => {
+    if (!month) return Array.from({ length: 31 }, (_, i) => (i + 1).toString());
+    
+    let daysInMonth = 31;
+    const m = parseInt(month);
+    
+    if ([4, 6, 9, 11].includes(m)) {
+      daysInMonth = 30;
+    } else if (m === 2) {
+      const y = parseInt(year);
+      const isLeapYear = y ? (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0) : false;
+      daysInMonth = isLeapYear ? 29 : 28;
+    }
+    
+    return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
+  }, [month, year]);
+
+  // Reseta o dia se o novo mês tiver menos dias
+  useEffect(() => {
+    if (day && parseInt(day) > dias.length) {
+      setDay('');
+    }
+  }, [dias, day]);
+
   const onSubmit = async (data: CompletionForm) => {
+    // Validação extra para não permitir data futura
+    const birthDate = new Date(data.data_nascimento);
+    const today = new Date();
+    if (birthDate > today) {
+      toast.error("Data de nascimento não pode ser no futuro.");
+      return;
+    }
+
     setIsLoading(true);
     try {
       await executeUpdate({ data });
@@ -142,13 +214,13 @@ function CompletarCadastroPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-semibold text-white">Quase lá!</h2>
-        <p className="text-muted-foreground text-sm mt-1">Precisamos de mais alguns dados para sua segurança</p>
+        <h2 className="text-2xl font-semibold text-white font-poppins">Quase lá!</h2>
+        <p className="text-muted-foreground text-sm mt-1 font-poppins">Precisamos de mais alguns dados para sua segurança</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="cpf" className="text-white/80">CPF</Label>
+          <Label htmlFor="cpf" className="text-white/80 font-poppins text-sm">CPF</Label>
           <Controller
             name="cpf"
             control={control}
@@ -157,16 +229,16 @@ function CompletarCadastroPage() {
                 {...field}
                 id="cpf" 
                 placeholder="000.000.000-00" 
-                className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
+                className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12"
                 onChange={(e) => field.onChange(formatCPF(e.target.value))}
               />
             )}
           />
-          {errors.cpf && <p className="text-red-500 text-xs">{errors.cpf.message}</p>}
+          {errors.cpf && <p className="text-red-500 text-xs font-poppins">{errors.cpf.message}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="celular" className="text-white/80">Celular</Label>
+          <Label htmlFor="celular" className="text-white/80 font-poppins text-sm">Celular</Label>
           <Controller
             name="celular"
             control={control}
@@ -175,34 +247,57 @@ function CompletarCadastroPage() {
                 {...field}
                 id="celular" 
                 placeholder="(00) 00000-0000" 
-                className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
+                className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12"
                 onChange={(e) => field.onChange(formatPhone(e.target.value))}
               />
             )}
           />
-          {errors.celular && <p className="text-red-500 text-xs">{errors.celular.message}</p>}
+          {errors.celular && <p className="text-red-500 text-xs font-poppins">{errors.celular.message}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="data_nascimento" className="text-white/80">Data de Nascimento</Label>
-          <Controller
-            name="data_nascimento"
-            control={control}
-            render={({ field }) => (
-              <Input 
-                {...field}
-                type="date"
-                id="data_nascimento" 
-                className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt [color-scheme:dark]"
-              />
-            )}
-          />
-          {errors.data_nascimento && <p className="text-red-500 text-xs">{errors.data_nascimento.message}</p>}
+          <Label className="text-white/80 font-poppins text-sm">Data de Nascimento</Label>
+          <div className="grid grid-cols-3 gap-2">
+            <Select onValueChange={setDay} value={day}>
+              <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                <SelectValue placeholder="Dia" />
+              </SelectTrigger>
+              <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                {dias.map(d => (
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select onValueChange={setMonth} value={month}>
+              <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                {meses.map(m => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select onValueChange={setYear} value={year}>
+              <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                {anos.map(y => (
+                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <input type="hidden" {...control.register('data_nascimento')} />
+          {errors.data_nascimento && <p className="text-red-500 text-xs font-poppins">{errors.data_nascimento.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="uf" className="text-white/80">Estado</Label>
+            <Label htmlFor="uf" className="text-white/80 font-poppins text-sm">Estado</Label>
             <Controller
               name="uf"
               control={control}
@@ -212,10 +307,10 @@ function CompletarCadastroPage() {
                   value={field.value}
                   disabled={isLoadingLocations}
                 >
-                  <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt">
-                    <SelectValue placeholder={isLoadingLocations ? "Carregando..." : "UF"} />
+                  <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                    <SelectValue placeholder={isLoadingLocations ? "..." : "UF"} />
                   </SelectTrigger>
-                  <SelectContent className="bg-zuvvi-indigo border-white/10 text-white">
+                  <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
                     {estados.map(uf => (
                       <SelectItem key={uf} value={uf}>{uf}</SelectItem>
                     ))}
@@ -223,11 +318,11 @@ function CompletarCadastroPage() {
                 </Select>
               )}
             />
-            {errors.uf && <p className="text-red-500 text-xs">{errors.uf.message}</p>}
+            {errors.uf && <p className="text-red-500 text-xs font-poppins">{errors.uf.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cidade_id" className="text-white/80">Cidade</Label>
+            <Label htmlFor="cidade_id" className="text-white/80 font-poppins text-sm">Cidade</Label>
             <Controller
               name="cidade_id"
               control={control}
@@ -237,7 +332,7 @@ function CompletarCadastroPage() {
                   value={field.value}
                   disabled={!selectedUF || isLoadingLocations}
                 >
-                  <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt">
+                  <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
                     <SelectValue placeholder="Cidade" />
                   </SelectTrigger>
                   <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
@@ -248,14 +343,14 @@ function CompletarCadastroPage() {
                 </Select>
               )}
             />
-            {errors.cidade_id && <p className="text-red-500 text-xs">{errors.cidade_id.message}</p>}
+            {errors.cidade_id && <p className="text-red-500 text-xs font-poppins">{errors.cidade_id.message}</p>}
           </div>
         </div>
 
         <Button 
           type="submit" 
           disabled={isLoading}
-          className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-12 text-lg mt-4 transition-all active:scale-[0.98]"
+          className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-14 text-lg mt-6 transition-all active:scale-[0.98] font-poppins"
         >
           {isLoading ? "Salvando..." : "CONCLUIR CADASTRO"}
         </Button>
