@@ -152,11 +152,17 @@ function CompletarCadastroPage() {
         setIsLoadingCities(false);
       }
     };
-    loadCities();
     
-    // Limpa a cidade quando o UF muda
-    setValue('cidade_id', '');
-  }, [selectedUF, fetchCities, setValue]);
+    // Só limpa a cidade e recarrega se o UF realmente mudou
+    if (selectedUF !== prevUFRef.current) {
+      setValue('cidade_id', '');
+      prevUFRef.current = selectedUF;
+      loadCities();
+    } else if (cities.length === 0 && selectedUF) {
+      // Caso inicial onde temos UF mas não temos cidades
+      loadCities();
+    }
+  }, [selectedUF, fetchCities, setValue, cities.length]);
 
   // Lógica para anos (do ano atual até 100 anos atrás)
   const anos = useMemo(() => {
