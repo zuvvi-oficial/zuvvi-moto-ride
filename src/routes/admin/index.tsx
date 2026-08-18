@@ -1,12 +1,13 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { getAdminStats } from '@/lib/admin.functions';
-import { Users, Bike, MapPin, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Users, Bike, MapPin, CheckCircle, Clock, AlertCircle, LogOut } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { queryOptions } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
 
 const adminStatsOptions = queryOptions({
   queryKey: ['admin-stats'],
@@ -26,6 +27,12 @@ export const Route = createFileRoute('/admin/')({
 
 function AdminDashboard() {
   const { data: stats } = useSuspenseQuery(adminStatsOptions);
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: '/auth/login' });
+  };
 
   const statCards = [
     {
@@ -75,7 +82,18 @@ function AdminDashboard() {
   return (
     <div className="p-6 space-y-6 bg-zuvvi-indigo min-h-screen text-white">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard Administrativo</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard Administrativo</h1>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleSignOut}
+            className="text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2"
+          >
+            <LogOut className="w-3 h-3" />
+            Sair
+          </Button>
+        </div>
         <div className="text-sm text-gray-400">
           Última atualização: {new Date(stats.lastUpdate).toLocaleString('pt-BR')}
         </div>
