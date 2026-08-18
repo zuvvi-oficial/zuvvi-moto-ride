@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { selectPassageiroPerfil, selectMotoristaPerfil } from '@/lib/perfil.functions';
 import { useServerFn } from '@tanstack/react-start';
-import { checkUserProfileStatus, resolvePostLoginDestination } from '@/lib/auth-status.functions';
+import { checkUserProfileStatus, resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { redirect } from '@tanstack/react-router';
 import { Bike, User } from 'lucide-react';
 
 export const Route = createFileRoute('/auth/perfil')({
   loader: async () => {
-    const dest = await resolvePostLoginDestination();
+    const dest = await resolveDestinationForLoader();
     if (dest.redirectTo && dest.redirectTo !== "/auth/perfil") {
       throw redirect({ to: dest.redirectTo as any });
     }
