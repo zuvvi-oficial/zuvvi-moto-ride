@@ -70,6 +70,7 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [isCityAvailable, setIsCityAvailable] = useState<boolean | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
   const [debugStatus, setDebugStatus] = useState<string>("Verificando token...");
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
@@ -131,6 +132,7 @@ function HomePassageiro({ nome }: { nome: string }) {
         setCityName(result.cityName);
       } catch (err) {
         console.error("Erro ao verificar cidade:", err);
+        setAvailabilityError(err instanceof Error ? err.message : String(err));
         setIsCityAvailable(false);
       }
     };
@@ -213,8 +215,22 @@ function HomePassageiro({ nome }: { nome: string }) {
   return (
     <div className="relative min-h-screen bg-zuvvi-indigo text-foreground overflow-hidden">
       {/* Etiqueta de status temporária para depuração */}
-      <div className="fixed top-2 right-2 z-[9999] bg-black/80 text-white text-[8px] px-2 py-1 rounded border border-white/20 pointer-events-none uppercase tracking-tighter">
-        Status: {debugStatus}
+      <div className="fixed top-2 right-2 z-[9999] bg-black/90 text-white text-[10px] px-3 py-2 rounded-lg border border-white/20 pointer-events-none uppercase tracking-tighter flex flex-col gap-1 shadow-2xl backdrop-blur-md min-w-[200px]">
+        <div className="font-bold border-b border-white/10 pb-1 flex justify-between">
+          <span>Debug Info</span>
+          <span className={debugStatus.includes('✓') ? 'text-zuvvi-volt' : 'text-yellow-500'}>●</span>
+        </div>
+        <div className="flex flex-col gap-0.5 opacity-80">
+          <p><span className="text-zuvvi-volt/70">Status:</span> {debugStatus}</p>
+          <p><span className="text-zuvvi-volt/70">Nome (prop):</span> {nome || 'Vazio'}</p>
+          <p><span className="text-zuvvi-volt/70">Disponível:</span> {String(isCityAvailable)}</p>
+          <p><span className="text-zuvvi-volt/70">Buscando Loc:</span> {String(isLocating)}</p>
+          {availabilityError && (
+            <p className="text-red-400 normal-case mt-1 bg-red-500/10 p-1 rounded border border-red-500/20">
+              <span className="font-bold">Erro CheckCity:</span> {availabilityError}
+            </p>
+          )}
+        </div>
       </div>
 
       <div 
