@@ -23,10 +23,9 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     }
 
     if (!userRecord) {
-      console.log("[handleGoogleAuthRedirect] No user record found, creating one...");
-      // Create new user record from Google metadata (fetched server-side)
-      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
+      console.log("[handleGoogleAuthRedirect] No user record found with auth_user_id, checking email...");
       
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
       if (authError || !authUser?.user) {
         console.error("[handleGoogleAuthRedirect] Error fetching auth user metadata:", authError);
         return { redirectTo: "/auth/login", error: "Não foi possível obter dados do Google." };
@@ -34,44 +33,84 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
 
       const metadata = (authUser.user.user_metadata ?? {}) as Record<string, string | undefined>;
       const nome = metadata['full_name'] || metadata['name'] || "Usuário Google";
-      const email = authUser.user.email ?? null;
-      
-      console.log("[handleGoogleAuthRedirect] Metadata found:", { nome, email });
+      const email = authUser.user.email;
 
-      const { error: insertError } = await supabaseAdmin
-        .from("usuarios")
-        .insert({
-          auth_user_id: userId,
-          nome: nome,
-          email: email,
-          is_passageiro: false,
-          is_motorista: false,
-        });
-
-      if (insertError) {
-        console.error("[handleGoogleAuthRedirect] Error creating user record:", insertError);
-        return { redirectTo: "/auth/login", error: "Erro ao criar perfil no banco de dados." };
+      if (!email) {
+        return { redirectTo: "/auth/login", error: "O Google não forneceu um e-mail válido." };
       }
 
-      console.log("[handleGoogleAuthRedirect] New user record created, redirecting to complete info...");
-      return { redirectTo: "/auth/completar-cadastro" };
+      // Check if email already exists in public.usuarios
+      const { data: emailRecord, error: emailError } = await supabaseAdmin
+        .from("usuarios")
+        .select("id, auth_user_id, is_passageiro, is_motorista, cpf, celular")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (emailError) {
+        console.error("[handleGoogleAuthRedirect] Error checking email existence:", emailError);
+        return { redirectTo: "/auth/login", error: "Erro ao verificar e-mail no banco de dados." };
+      }
+
+      if (emailRecord) {
+        // Case: Email exists linked to ANOTHER auth_user_id
+        if (emailRecord.auth_user_id && emailRecord.auth_user_id !== userId) {
+          console.error("[handleGoogleAuthRedirect] Email already linked to another account:", email);
+          return { redirectTo: "/auth/login", error: "Este e-mail já está vinculado a outra conta." };
+        }
+
+        // Case: Email exists with NULL auth_user_id - Link it
+        console.log("[handleGoogleAuthRedirect] Linking existing email record to new auth_user_id...");
+        const { error: updateError } = await supabaseAdmin
+          .from("usuarios")
+          .update({ auth_user_id: userId })
+          .eq("id", emailRecord.id);
+
+        if (updateError) {
+          console.error("[handleGoogleAuthRedirect] Error linking auth_user_id:", updateError);
+          return { redirectTo: "/auth/login", error: "Erro ao vincular conta Google ao perfil existente." };
+        }
+      } else {
+        // Case: No record exists for this email - Create new one
+        console.log("[handleGoogleAuthRedirect] Creating new user record...");
+        const { error: insertError } = await supabaseAdmin
+          .from("usuarios")
+          .insert({
+            auth_user_id: userId,
+            nome: nome,
+            email: email,
+            is_passageiro: false,
+            is_motorista: false,
+          });
+
+        if (insertError) {
+          console.error("[handleGoogleAuthRedirect] Error creating user record:", insertError);
+          return { redirectTo: "/auth/login", error: "Erro ao criar perfil no banco de dados." };
+        }
+      }
     }
 
-    console.log("[handleGoogleAuthRedirect] Existing user found:", userRecord.id);
+    // Final navigation check using the record associated with this auth_user_id
+    const { data: finalRecord, error: finalError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, is_passageiro, is_motorista, cpf, celular")
+      .eq("auth_user_id", userId)
+      .single();
 
-    // If existing user has no profile choice, go to profile selection
-    if (!userRecord.is_passageiro && !userRecord.is_motorista) {
-      console.log("[handleGoogleAuthRedirect] Profile choice missing.");
+    if (finalError || !finalRecord) {
+      console.error("[handleGoogleAuthRedirect] Error retrieving final record:", finalError);
+      return { redirectTo: "/auth/login", error: "Erro ao recuperar perfil atualizado." };
+    }
+
+    console.log("[handleGoogleAuthRedirect] Record verified, deciding navigation...");
+
+    if (!finalRecord.is_passageiro && !finalRecord.is_motorista) {
       return { redirectTo: "/auth/perfil" };
     }
 
-    // If CPF or Celular is missing (common in social auth), go to completion screen
-    if (!userRecord.cpf || !userRecord.celular) {
-      console.log("[handleGoogleAuthRedirect] CPF or Celular missing.");
+    if (!finalRecord.cpf || !finalRecord.celular) {
       return { redirectTo: "/auth/completar-cadastro" };
     }
 
-    console.log("[handleGoogleAuthRedirect] All good, redirecting to home.");
     return { redirectTo: "/" };
   });
 
