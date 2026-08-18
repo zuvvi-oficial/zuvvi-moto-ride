@@ -1,74 +1,80 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getAuthContextFromRequest } from "./auth-status.server";
 
 /**
- * Função unificada server-side para resolver o destino pós-login.
- * Garante segurança absoluta para a conta administrativa mokahz@gmail.com.
+ * Versão interna server-only para evitar recursão e problemas de header no SSR.
  */
+async function resolveDestinationInternal(userId: string, email: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // 1. Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
+  const isAdmin = email === 'mokahz@gmail.com';
+
+  if (isAdmin) {
+    // Bootstrap idempotente em admin_users
+    await supabaseAdmin.from("admin_users").upsert(
+      { auth_user_id: userId, role: 'admin', ativo: true },
+      { onConflict: 'auth_user_id' }
+    );
+    
+    return { 
+      isAdmin: true,
+      redirectTo: "/admin"
+    };
+  }
+
+  // 2. Verificar status para usuários comuns
+  const { data: userRecord } = await supabaseAdmin
+    .from("usuarios")
+    .select("is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  if (!userRecord) {
+    return { isAdmin: false, redirectTo: "/auth/completar-cadastro" };
+  }
+
+  const isRegistrationComplete = !!(
+    userRecord.cpf && 
+    userRecord.celular && 
+    userRecord.data_nascimento && 
+    userRecord.cidade_id
+  );
+
+  if (!isRegistrationComplete) {
+    return { isAdmin: false, redirectTo: "/auth/completar-cadastro" };
+  }
+
+  const hasProfile = !!(userRecord.is_passageiro || userRecord.is_motorista);
+  if (!hasProfile) {
+    return { isAdmin: false, redirectTo: "/auth/perfil" };
+  }
+
+  return { 
+    isAdmin: false,
+    isPassageiro: userRecord.is_passageiro,
+    isMotorista: userRecord.is_motorista,
+    redirectTo: userRecord.is_motorista ? "/onboarding-motorista" : "/"
+  };
+}
+
 export const resolvePostLoginDestination = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const userId = context.userId;
+    return resolveDestinationInternal(context.userId, context.claims.email || '');
+  });
 
-    // 1. Obter dados reais do Auth (Server-side trust)
-    const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
-    
-    if (authError || !authUser) {
+/**
+ * Função segura para ser chamada por loaders (SSR) sem causar loop 500.
+ */
+export const resolveDestinationForLoader = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const auth = await getAuthContextFromRequest();
+    if (!auth) {
       return { redirectTo: "/auth/login" };
     }
-
-    // 2. Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
-    const isAdmin = authUser.email === 'mokahz@gmail.com' && !!authUser.email_confirmed_at;
-
-    if (isAdmin) {
-      // Bootstrap idempotente em admin_users
-      await supabaseAdmin.from("admin_users").upsert(
-        { auth_user_id: userId, role: 'admin', ativo: true },
-        { onConflict: 'auth_user_id' }
-      );
-      
-      return { 
-        isAdmin: true,
-        redirectTo: "/admin"
-      };
-    }
-
-    // 3. Verificar status para usuários comuns
-    const { data: userRecord } = await supabaseAdmin
-      .from("usuarios")
-      .select("is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
-      .eq("auth_user_id", userId)
-      .maybeSingle();
-
-    if (!userRecord) {
-      return { isAdmin: false, redirectTo: "/auth/completar-cadastro" };
-    }
-
-    const isRegistrationComplete = !!(
-      userRecord.cpf && 
-      userRecord.celular && 
-      userRecord.data_nascimento && 
-      userRecord.cidade_id
-    );
-
-    if (!isRegistrationComplete) {
-      return { isAdmin: false, redirectTo: "/auth/completar-cadastro" };
-    }
-
-    const hasProfile = !!(userRecord.is_passageiro || userRecord.is_motorista);
-    if (!hasProfile) {
-      return { isAdmin: false, redirectTo: "/auth/perfil" };
-    }
-
-    return { 
-      isAdmin: false,
-      isPassageiro: userRecord.is_passageiro,
-      isMotorista: userRecord.is_motorista,
-      redirectTo: userRecord.is_motorista ? "/onboarding-motorista" : "/"
-    };
+    return resolveDestinationInternal(auth.userId, auth.email);
   });
 
 export const checkUserProfileStatus = createServerFn({ method: "GET" })
@@ -76,10 +82,9 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
+    const email = context.claims.email;
 
-    const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
-
-    const isAdmin = authUser?.email === 'mokahz@gmail.com' && !!authUser?.email_confirmed_at;
+    const isAdmin = email === 'mokahz@gmail.com';
 
     if (isAdmin) {
       return { 
@@ -116,63 +121,3 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
       isRegistrationComplete
     };
   });
-
-export const getAuthStatus = createServerFn({ method: "GET" })
-  .handler(async () => {
-    const SUPABASE_URL = process.env['SUPABASE_URL'];
-    const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'];
-    
-    const request = getRequest();
-    const authHeader = request?.headers.get('authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { authenticated: false };
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    
-    try {
-      const supabase = createClient(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-        auth: {
-          persistSession: false,
-        }
-      });
-
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-
-      if (error || !user) {
-        return { authenticated: false };
-      }
-
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: userRecord } = await supabaseAdmin
-        .from("usuarios")
-        .select("nome, is_passageiro, is_motorista, cpf, celular, data_nascimento, city:cidade_id")
-        .eq("auth_user_id", user.id)
-        .maybeSingle();
-
-      const isRegistrationComplete = !!(
-        userRecord?.cpf && 
-        userRecord?.celular && 
-        userRecord?.data_nascimento && 
-        userRecord?.city
-      );
-
-      return { 
-        authenticated: true,
-        nome: userRecord?.nome || user.email,
-        isPassageiro: userRecord?.is_passageiro || false,
-        isMotorista: userRecord?.is_motorista || false,
-        isRegistrationComplete
-      };
-    } catch (e) {
-      console.error("Auth status error:", e);
-      return { authenticated: false };
-    }
-  });
-
