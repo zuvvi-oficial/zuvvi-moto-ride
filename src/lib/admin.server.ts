@@ -6,6 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 export const requireAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => data) // Adicionando um validador vazio para satisfazer o tipo se necessário
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
@@ -52,6 +53,6 @@ export async function createAuditLog({
     entidade_id: entidadeId,
     estado_anterior: estadoAnterior,
     estado_novo: estadoNovo,
-    justificativa,
+    justificativa: justificativa ?? null,
   });
 }

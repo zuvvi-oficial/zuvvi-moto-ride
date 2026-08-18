@@ -40,6 +40,8 @@ export const getAdminStats = createServerFn({ method: "GET" })
 /**
  * Gestão de Motoristas
  */
+const statusMotoristaSchema = z.enum(["aprovado", "em_analise", "em_preenchimento", "recusado", "suspenso"]);
+
 export const getMotoristasAdmin = createServerFn({ method: "GET" })
   .middleware([requireAdmin])
   .inputValidator((data: unknown) => 
@@ -55,7 +57,7 @@ export const getMotoristasAdmin = createServerFn({ method: "GET" })
       .from("usuarios")
       .select(`
         id, nome, email, celular, cpf,
-        motoristas!inner(status_aprovacao, is_disponivel, ultima_localizacao_at),
+        motoristas!inner(id, status_aprovacao, is_disponivel, ultima_localizacao_at),
         cidades(nome, estado_uf)
       `)
       .eq("is_motorista", true);
@@ -83,7 +85,7 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const adminId = context.userId;
+    const adminId = context!.userId;
 
     // Obter estado anterior
     const { data: motorista } = await supabaseAdmin
@@ -154,7 +156,7 @@ export const updateStatusVeiculo = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const adminId = context.userId;
+    const adminId = context!.userId;
 
     const { data: veiculo } = await supabaseAdmin
       .from("veiculos")
