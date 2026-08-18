@@ -5,6 +5,8 @@ import { getCorrida, getMapboxToken } from '@/lib/user.functions';
 import { Bike, Loader2, ChevronLeft, User, Star } from 'lucide-react';
 import { z } from 'zod';
 import { MapView } from '@/components/MapView';
+import { supabase } from '@/integrations/supabase/client';
+
 
 const searchSchema = z.object({
   rideId: z.string(),
@@ -19,6 +21,8 @@ function AcompanhamentoCorrida() {
   const { rideId } = Route.useSearch();
   const navigate = useNavigate();
   const [corrida, setCorrida] = useState<any>(null);
+  const [motorista, setMotorista] = useState<any>(null);
+  const [veiculo, setVeiculo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
 
@@ -34,6 +38,26 @@ function AcompanhamentoCorrida() {
         ]);
         setCorrida(rideData);
         setMapboxToken(token);
+
+        if (rideData.motorista_id) {
+          // Buscar dados reais do motorista e veículo
+          const { data: mData } = await supabase
+            .from("usuarios")
+            .select("*, motoristas(*)")
+            .eq("id", rideData.motorista_id)
+            .single();
+          
+          setMotorista(mData);
+
+          const { data: vData } = await supabase
+            .from("veiculos")
+            .select("*")
+            .eq("motorista_id", rideData.motorista_id)
+            .eq("ativo", true)
+            .maybeSingle();
+          
+          setVeiculo(vData);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -72,12 +96,12 @@ function AcompanhamentoCorrida() {
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
-          <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">Corrida em curso</p>
+          <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">Motorista Aceitou</p>
         </div>
         <div className="w-12" />
       </div>
 
-      {/* Card do Motorista (Placeholder UI) */}
+      {/* Card do Motorista Real */}
       <div className="absolute bottom-0 left-0 right-0 p-6 z-10 pointer-events-none">
         <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl pointer-events-auto animate-rise space-y-6">
           <div className="flex items-center justify-between">
@@ -86,16 +110,18 @@ function AcompanhamentoCorrida() {
                 <User className="w-8 h-8 text-zuvvi-volt" />
               </div>
               <div>
-                <h3 className="text-white font-bold">Motorista Parceiro</h3>
+                <h3 className="text-white font-bold">{motorista?.nome || 'Motorista Zuvvi'}</h3>
                 <div className="flex items-center gap-1">
                   <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
-                  <span className="text-xs text-zuvvi-volt font-bold">4.9</span>
+                  <span className="text-xs text-zuvvi-volt font-bold">
+                    {motorista?.motoristas?.nota_media?.toFixed(1) || '5.0'}
+                  </span>
                 </div>
               </div>
             </div>
             <div className="text-right">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Placa</p>
-              <p className="text-sm font-black text-white">ZVV-2026</p>
+              <p className="text-sm font-black text-white">{veiculo?.placa || '---'}</p>
             </div>
           </div>
 
@@ -106,15 +132,18 @@ function AcompanhamentoCorrida() {
               </div>
               <div>
                 <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Veículo</p>
-                <p className="text-xs font-bold text-white">Honda CG 160</p>
+                <p className="text-xs font-bold text-white">
+                  {veiculo ? `${veiculo.marca} ${veiculo.modelo}` : 'Moto Cadastrada'}
+                </p>
               </div>
             </div>
-            <button className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-transform zuvvi-glow">
-              Mensagem
-            </button>
+            <div className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl">
+               <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">Em breve: Chat</p>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 }

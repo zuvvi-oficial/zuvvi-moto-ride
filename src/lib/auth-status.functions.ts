@@ -49,42 +49,48 @@ export const getAuthStatus = createServerFn({ method: "GET" })
 
     const token = authHeader.replace('Bearer ', '');
     
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
+    try {
+      const supabase = createClient(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      },
-      auth: {
-        persistSession: false,
+        auth: {
+          persistSession: false,
+        }
+      });
+
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (error || !user) {
+        return { authenticated: false };
       }
-    });
 
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: userRecord } = await supabaseAdmin
+        .from("usuarios")
+        .select("nome, is_passageiro, is_motorista, cpf, celular, data_nascimento, city:cidade_id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
 
-    if (error || !user) {
+      const isRegistrationComplete = !!(
+        userRecord?.cpf && 
+        userRecord?.celular && 
+        userRecord?.data_nascimento && 
+        userRecord?.city
+      );
+
+      return { 
+        authenticated: true,
+        nome: userRecord?.nome || user.email,
+        isPassageiro: userRecord?.is_passageiro || false,
+        isMotorista: userRecord?.is_motorista || false,
+        isRegistrationComplete
+      };
+    } catch (e) {
+      console.error("Auth status error:", e);
       return { authenticated: false };
     }
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: userRecord } = await supabaseAdmin
-      .from("usuarios")
-      .select("nome, is_passageiro, is_motorista, cpf, celular, data_nascimento, city:cidade_id")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-
-    const isRegistrationComplete = !!(
-      userRecord?.cpf && 
-      userRecord?.celular && 
-      userRecord?.data_nascimento && 
-      userRecord?.city
-    );
-
-    return { 
-      authenticated: true,
-      nome: userRecord?.nome || user.email,
-      isPassageiro: userRecord?.is_passageiro || false,
-      isMotorista: userRecord?.is_motorista || false,
-      isRegistrationComplete
-    };
   });
+
