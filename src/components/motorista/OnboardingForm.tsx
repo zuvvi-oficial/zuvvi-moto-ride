@@ -16,6 +16,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
   const [veiculoData, setVeiculoData] = useState({ placa: "", marca: "", modelo: "", ano: "", cor: "" });
   const [veiculoStatus, setVeiculoStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [pix, setPix] = useState("");
+  const [pixType, setPixType] = useState<'cpf' | 'telefone' | 'email' | 'aleatoria' | null>(null);
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -186,7 +187,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
   };
 
   const canSubmit = 
-    cnhData.numero && cnhData.validade && pix &&
+    cnhData.numero.length === 11 && cnhData.validade && pix && pixType &&
     veiculoStatus === 'success' &&
     ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'].every(t => uploads[t]?.status === 'success');
 
@@ -197,7 +198,8 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         cnh_numero: cnhData.numero, 
         cnh_categoria: cnhData.categoria, 
         cnh_validade: cnhData.validade, 
-        chave_pix: pix 
+        chave_pix: pix,
+        tipo_chave_pix: pixType || undefined
       } });
       
       // O veículo já é salvo via auto-save, mas garantimos aqui se necessário
@@ -236,10 +238,16 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         </h3>
         <div className="space-y-3">
           <input 
-            placeholder="Número da CNH" 
+            placeholder="Número da CNH (11 dígitos)" 
             className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
             value={cnhData.numero}
-            onChange={e => setCnhData({...cnhData, numero: e.target.value})}
+            maxLength={11}
+            onChange={e => {
+              const val = e.target.value.replace(/\D/g, "");
+              if (val.length <= 11) {
+                setCnhData({...cnhData, numero: val});
+              }
+            }}
           />
           <div className="flex gap-2">
             {['A', 'AB'].map(cat => (
@@ -272,10 +280,17 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         </h3>
         <div className="grid grid-cols-2 gap-3">
           <input 
-            placeholder="Placa" 
-            className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
+            placeholder="Placa (ABC-1234)" 
+            className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all font-mono"
             value={veiculoData.placa}
-            onChange={e => setVeiculoData({...veiculoData, placa: e.target.value.toUpperCase()})}
+            maxLength={8}
+            onChange={e => {
+              let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+              if (val.length > 3) {
+                val = val.slice(0, 3) + "-" + val.slice(3, 7);
+              }
+              setVeiculoData({...veiculoData, placa: val});
+            }}
             onBlur={() => handleSaveVeiculo(veiculoData)}
           />
           <input 
@@ -340,11 +355,41 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         <h3 className="text-xs font-black text-zuvvi-volt uppercase tracking-widest flex items-center gap-2">
           <CreditCard className="w-4 h-4" /> 4. Recebimento
         </h3>
+        <div className="flex gap-2 mb-3">
+          {(['cpf', 'telefone', 'email', 'aleatoria'] as const).map(type => (
+            <button 
+              key={type}
+              type="button"
+              onClick={() => {
+                setPixType(type);
+                setPix(""); // Limpa ao trocar tipo
+              }}
+              className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all uppercase ${pixType === type ? 'bg-zuvvi-volt text-zuvvi-indigo' : 'bg-white/5 text-white/40 border border-white/10'}`}
+            >
+              {type === 'aleatoria' ? 'Aleatória' : type}
+            </button>
+          ))}
+        </div>
         <input 
-          placeholder="Chave Pix" 
-          className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
+          placeholder={!pixType ? "Selecione o tipo de chave" : "Digite a chave Pix"} 
+          disabled={!pixType}
+          className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all disabled:opacity-50"
           value={pix}
-          onChange={e => setPix(e.target.value)}
+          onChange={e => {
+            let val = e.target.value;
+            if (pixType === 'cpf') {
+              val = val.replace(/\D/g, "").slice(0, 11);
+              if (val.length > 9) val = val.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+              else if (val.length > 6) val = val.replace(/(\d{3})(\d{3})(\d{0,3})/, "$1.$2.$3");
+              else if (val.length > 3) val = val.replace(/(\d{3})(\d{0,3})/, "$1.$2");
+            } else if (pixType === 'telefone') {
+              val = val.replace(/\D/g, "").slice(0, 11);
+              if (val.length > 10) val = val.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+              else if (val.length > 6) val = val.replace(/(\d{2})(\d{4,5})(\d{0,4})/, "($1) $2-$3");
+              else if (val.length > 2) val = val.replace(/(\d{2})(\d{0,5})/, "($1) $2");
+            }
+            setPix(val);
+          }}
         />
       </section>
 
