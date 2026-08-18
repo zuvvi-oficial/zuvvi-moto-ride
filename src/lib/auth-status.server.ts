@@ -34,11 +34,13 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
     const authHeader = request.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (!error && user) {
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      if (!error && authData?.user) {
+        const user = authData.user;
         // Obter identidade real via Admin API
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: adminUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
+        const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id);
+        const adminUser = adminData?.user;
         
         return {
           userId: user.id,
@@ -49,13 +51,15 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
     }
 
     // Priority 2: Session from Cookies (from SSR loaders)
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: authData, error: userError } = await supabase.auth.getUser();
     
-    if (userError || !user) return null;
+    if (userError || !authData?.user) return null;
+    const user = authData.user;
 
     // Obter identidade real via Admin API
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: adminUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
+    const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id);
+    const adminUser = adminData?.user;
 
     return {
       userId: user.id,

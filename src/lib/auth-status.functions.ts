@@ -6,7 +6,7 @@ import { getAuthContextFromRequest } from "./auth-status.server";
  * Unificação da lógica de decisão de destino pós-login e guardas de rota.
  * Esta função é central e deve ser a única fonte de verdade para o destino de um usuário.
  */
-async function resolveDestinationInternal(userId: string) {
+export async function resolveDestinationInternal(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   // 1. Validar a identidade real via Supabase Admin (Server-side trust)
