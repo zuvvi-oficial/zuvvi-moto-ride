@@ -33,7 +33,11 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
 
       const metadata = (authUser.user.user_metadata ?? {}) as Record<string, string | undefined>;
       const nome = metadata['full_name'] || metadata['name'] || "Usuário Google";
-      const email = authUser.user.email ?? null;
+      const email = authUser.user.email;
+
+      if (!email) {
+        return { redirectTo: "/auth/login", error: "O Google não forneceu um e-mail válido." };
+      }
 
       // Check if email already exists in public.usuarios
       const { data: emailRecord, error: emailError } = await supabaseAdmin
