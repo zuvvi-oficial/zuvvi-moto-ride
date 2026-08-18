@@ -38,7 +38,7 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
       
       console.log("[handleGoogleAuthRedirect] Metadata found:", { nome, email });
 
-      const { data: newUser, error: insertError } = await supabaseAdmin
+      const { error: insertError } = await supabaseAdmin
         .from("usuarios")
         .insert({
           auth_user_id: userId,
@@ -46,9 +46,7 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
           email: email,
           is_passageiro: false,
           is_motorista: false,
-        })
-        .select()
-        .single();
+        });
 
       if (insertError) {
         console.error("[handleGoogleAuthRedirect] Error creating user record:", insertError);
