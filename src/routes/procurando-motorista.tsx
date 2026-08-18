@@ -187,7 +187,7 @@ function ProcurandoMotorista() {
             <div className="bg-white/5 rounded-2xl p-3 space-y-1">
               <p className="text-[8px] text-muted-foreground uppercase tracking-widest">Valor Estimado</p>
               <p className="text-lg font-black text-zuvvi-volt">
-                R$ {corrida.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {(corrida as any).valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="bg-white/5 rounded-2xl p-3 space-y-1">
