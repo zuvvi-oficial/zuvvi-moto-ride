@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { checkUserProfileStatus } from "@/lib/auth-status.functions";
 import { Button } from "@/components/ui/button";
+import OnboardingForm from "@/components/motorista/OnboardingForm";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { redirect } from "@tanstack/react-router";
