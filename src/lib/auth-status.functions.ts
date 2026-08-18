@@ -121,3 +121,33 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
       isRegistrationComplete
     };
   });
+
+export const getAuthStatus = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const auth = await getAuthContextFromRequest();
+    if (!auth) {
+      return { authenticated: false };
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: userRecord } = await supabaseAdmin
+      .from("usuarios")
+      .select("nome, is_passageiro, is_motorista, cpf, celular, data_nascimento, city:cidade_id")
+      .eq("auth_user_id", auth.userId)
+      .maybeSingle();
+
+    const isRegistrationComplete = !!(
+      userRecord?.cpf && 
+      userRecord?.celular && 
+      userRecord?.data_nascimento && 
+      userRecord?.city
+    );
+
+    return { 
+      authenticated: true,
+      nome: userRecord?.nome || auth.email,
+      isPassageiro: userRecord?.is_passageiro || false,
+      isMotorista: userRecord?.is_motorista || false,
+      isRegistrationComplete
+    };
+  });
