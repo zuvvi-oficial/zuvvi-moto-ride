@@ -1,9 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { Database } from "@/integrations/supabase/types";
+
+type TipoDocumento = Database["public"]["Enums"]["tipo_documento"];
 
 /**
- * Funções Operacionais do Motorista - Zuvvi
+ * Funções Operacionais e Onboarding do Motorista - Zuvvi
  * Foco: Brasília/DF e Jacarezinho/PR (Pilotos)
  */
 
