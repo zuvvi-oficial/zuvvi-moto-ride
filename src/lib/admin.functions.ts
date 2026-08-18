@@ -81,7 +81,7 @@ export const getMotoristasAdmin = createServerFn({ method: "GET" })
       .eq("is_motorista", true);
 
     if (data.status) {
-      query = query.eq("motoristas.status_aprovacao", data.status);
+      query = query.eq("motoristas.status_aprovacao", data.status as any);
     }
     if (data.busca) {
       query = query.or(`nome.ilike.%${data.busca}%,email.ilike.%${data.busca}%`);
@@ -136,9 +136,9 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       acao: `status_update_${data.novoStatus}`,
       entidade: "motoristas",
       entidadeId: data.motoristaId,
-      estadoAnterior: { status: motorista.status_aprovacao as any },
+      estadoAnterior: { status: motorista.status_aprovacao },
       estadoNovo: { status: data.novoStatus },
-      justificativa: data.justificativa,
+      justificativa: data.justificativa ?? null,
     });
 
     return { success: true };
@@ -203,9 +203,9 @@ export const updateStatusVeiculo = createServerFn({ method: "POST" })
       acao: `veiculo_status_${data.novoStatus}`,
       entidade: "veiculos",
       entidadeId: data.veiculoId,
-      estadoAnterior: { status: veiculo.status_aprovacao as any },
+      estadoAnterior: { status: veiculo.status_aprovacao },
       estadoNovo: { status: data.novoStatus },
-      justificativa: data.justificativa,
+      justificativa: data.justificativa ?? null,
     });
 
     return { success: true };
