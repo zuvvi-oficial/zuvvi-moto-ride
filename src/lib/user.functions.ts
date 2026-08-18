@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
+import { nanoid } from "nanoid";
 
 type UserRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type MotoristaRow = Database["public"]["Tables"]["motoristas"]["Row"];
@@ -143,4 +144,64 @@ export const calcularValorCorrida = createServerFn({ method: "POST" })
         tarifa_minima: Number(tarifa_minima)
       }
     };
+  });
+
+const createRideSchema = z.object({
+  origemLat: z.number(),
+  origemLng: z.number(),
+  destinoLat: z.number(),
+  destinoLng: z.number(),
+  valorEstimado: z.number(),
+  formaPagamento: z.enum(["pix", "cartao", "dinheiro"]),
+});
+
+export const criarCorrida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => createRideSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const userId = context.userId;
+
+    // 1. Obter o perfil do usuário (passageiro) no banco público
+    const { data: usuario, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, cidade_id")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (userError || !usuario) {
+      throw new Error("Perfil de usuário não encontrado para criar corrida.");
+    }
+
+    if (!usuario.cidade_id) {
+      throw new Error("Cidade do usuário não configurada.");
+    }
+
+    // 2. Gerar código de embarque (4 dígitos numéricos conforme CHAR(4))
+    const codigoEmbarque = Math.floor(1000 + Math.random() * 9000).toString();
+
+    // 3. Inserir a corrida
+    const { data: corrida, error: insertError } = await supabaseAdmin
+      .from("corridas")
+      .insert({
+        passageiro_id: usuario.id,
+        cidade_id: usuario.cidade_id,
+        origem_lat: data.origemLat,
+        origem_lng: data.origemLng,
+        destino_lat: data.destinoLat,
+        destino_lng: data.destinoLng,
+        valor_estimado: data.valorEstimado,
+        forma_pagamento: data.formaPagamento,
+        codigo_embarque: codigoEmbarque,
+        status: 'solicitada'
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Erro ao inserir corrida:", insertError);
+      throw new Error("Falha ao registrar a corrida no sistema.");
+    }
+
+    return { success: true, rideId: corrida.id };
   });

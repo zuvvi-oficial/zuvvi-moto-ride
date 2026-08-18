@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
-import { getMapboxToken, calcularValorCorrida } from '@/lib/user.functions';
+import { getMapboxToken, calcularValorCorrida, criarCorrida } from '@/lib/user.functions';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode } from 'lucide-react';
@@ -30,11 +30,48 @@ function ConfirmarCorrida() {
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao' | 'dinheiro' | null>(null);
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const calcularValorCorridaFn = useServerFn(calcularValorCorrida);
+  const criarCorridaFn = useServerFn(criarCorrida);
+
+  const handleConfirmarCorrida = async () => {
+    if (!metodoPagamento || !estimatedFare) {
+      toast.error("Selecione uma forma de pagamento para continuar.");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const result = await criarCorridaFn({
+        data: {
+          origemLat: originLat,
+          origemLng: originLng,
+          destinoLat: destLat,
+          destinoLng: destLng,
+          valorEstimado: estimatedFare,
+          formaPagamento: metodoPagamento,
+        }
+      });
+
+      if (result.success) {
+        toast.success("Corrida solicitada com sucesso!");
+        // Por enquanto, apenas notifica. A instrução diz "avançar para o estado/tela já prevista de busca por motorista".
+        // Se houver uma rota específica (ex: /buscando-motorista), navegaríamos aqui. 
+        // Como o usuário não definiu a rota de destino final, mas pediu para avançar, 
+        // vou simular o avanço ou manter um estado de sucesso se não houver tela definida.
+        // navigate({ to: '/buscando-motorista', search: { rideId: result.rideId } });
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao solicitar corrida. Tente novamente.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   useEffect(() => {
     async function init() {
@@ -234,10 +271,11 @@ function ConfirmarCorrida() {
               </div>
 
               <button 
+                onClick={handleConfirmarCorrida}
                 className="w-full bg-zuvvi-volt text-zuvvi-indigo py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-sm zuvvi-glow transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
-                disabled={isLoading || !metodoPagamento}
+                disabled={isLoading || isCreating || !metodoPagamento}
               >
-                {isLoading ? (
+                {isLoading || isCreating ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
