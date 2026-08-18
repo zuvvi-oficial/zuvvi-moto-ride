@@ -18,23 +18,19 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
 
     // 1. Verificação de Administrador (Server-side trust)
     const { data: { user: authUser }, error: authUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
-    if (!authUserError && authUser && authUser.email === 'mokahz@gmail.com' && authUser.email_confirmed_at) {
+    if (!authUserError && authUser && authUser.email === 'mokahz@gmail.com' && !!authUser.email_confirmed_at) {
       console.log("[GoogleAuth] Admin detected: mokahz@gmail.com");
       
       // Bootstrap idempotente em admin_users
-      const { error: upsertError } = await supabaseAdmin
+      await supabaseAdmin
         .from("admin_users")
         .upsert(
           { auth_user_id: userId, role: 'admin', ativo: true },
           { onConflict: 'auth_user_id' }
         );
       
-      if (upsertError) {
-        console.error("[GoogleAuth] Admin bootstrap error:", upsertError);
-      } else {
-        console.log("[GoogleAuth] Admin access granted, redirecting to /admin");
-        return { redirectTo: "/admin" };
-      }
+      console.log("[GoogleAuth] Admin access granted, redirecting to /admin");
+      return { redirectTo: "/admin" };
     }
 
     console.log("[GoogleAuth] user_record_lookup_started");

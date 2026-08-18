@@ -15,6 +15,9 @@ export const signUp = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     // Import inside handler to avoid client bundle issues
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Bloqueio de segurança: não permitir criar mokahz@gmail.com manualmente se ele já for o admin autorizado
+    // O admin deve vir apenas via Google Auth ou bootstrap seguro.
     
     // 1. Criar usuário no Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
