@@ -228,9 +228,13 @@ function HomePassageiro({ nome }: { nome: string }) {
         toast.error("Não foi possível carregar o mapa: verifique o token do Mapbox.");
       });
 
-      new mapboxgl.Marker({ color: "#C6FF3D" })
+      // Adicionar marcador inicial e manter referência
+      const marker = new mapboxgl.Marker({ color: "#C6FF3D" })
         .setLngLat([location!.lng, location!.lat])
         .addTo(map.current);
+      
+      // Armazenar marcador no objeto do mapa para fácil acesso (hack prático)
+      (map.current as any)._zuvviMarker = marker;
     } catch (err) {
       console.error("Erro ao inicializar mapa:", err);
       setDebugStatus(`Erro fatal: ${err instanceof Error ? err.message : 'Desconhecido'}`);
