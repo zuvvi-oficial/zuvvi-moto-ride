@@ -133,7 +133,7 @@ function CadastroPage() {
     try {
       await executeSignUp({ data: submitData as any });
       toast.success("Cadastro realizado com sucesso!");
-      navigate({ to: "/auth/perfil" });
+      navigate({ to: "/auth/completar-cadastro" });
     } catch (error: any) {
       const userFriendlyMessage = error.message?.includes('violates unique constraint')
         ? "Este e-mail, CPF ou celular já está cadastrado."
