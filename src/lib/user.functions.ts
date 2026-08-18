@@ -5,7 +5,6 @@ import { z } from "zod";
 
 type UserRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type MotoristaRow = Database["public"]["Tables"]["motoristas"]["Row"];
-type CidadeRow = Database["public"]["Tables"]["cidades"]["Row"];
 
 export type UserWithMotorista = UserRow & {
   motorista: MotoristaRow | null;
@@ -37,26 +36,28 @@ export const getSessionUser = createServerFn({ method: "GET" })
 
 export const getMapboxToken = createServerFn({ method: "GET" })
   .handler(async () => {
-    return process.env.MAPBOX_TOKEN || null;
+    return process.env['MAPBOX_TOKEN'] || null;
   });
+
+const cityAvailabilitySchema = z.object({ 
+  cidadeId: z.string().uuid().nullable().optional(),
+  coords: z.object({
+    lat: z.number(),
+    lng: z.number()
+  }).optional()
+});
 
 export const checkCityAvailability = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ 
-    cidadeId: z.string().uuid().nullable().optional(),
-    coords: z.object({
-      lat: z.number(),
-      lng: z.number()
-    }).optional()
-  }).parse(data))
-  .handler(async ({ input, context }) => {
+  .validator((data: unknown) => cityAvailabilitySchema.parse(data))
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
-    if (input.cidadeId) {
+    if (data.cidadeId) {
       const { data: cidade } = await supabaseAdmin
         .from("cidades")
         .select("status, nome")
-        .eq("id", input.cidadeId)
+        .eq("id", data.cidadeId)
         .maybeSingle();
       
       if (cidade) {
