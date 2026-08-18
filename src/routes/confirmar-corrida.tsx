@@ -4,7 +4,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { getMapboxToken, calcularValorCorrida } from '@/lib/user.functions';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin } from 'lucide-react';
+import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -30,6 +30,7 @@ function ConfirmarCorrida() {
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao' | 'dinheiro' | null>(null);
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const calcularValorCorridaFn = useServerFn(calcularValorCorrida);
@@ -172,6 +173,35 @@ function ConfirmarCorrida() {
               )}
             </div>
 
+            {/* Forma de Pagamento */}
+            <div className="space-y-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">Forma de pagamento</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'pix', label: 'Pix', icon: QrCode },
+                  { id: 'cartao', label: 'Cartão', icon: CreditCard },
+                  { id: 'dinheiro', label: 'Dinheiro', icon: Banknote },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isSelected = metodoPagamento === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setMetodoPagamento(item.id as any)}
+                      className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${
+                        isSelected 
+                          ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo' 
+                          : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${isSelected ? 'text-zuvvi-indigo' : 'text-zuvvi-volt'}`} />
+                      <span className="text-[10px] font-bold uppercase">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Valor e Ação */}
             <div className="pt-2 border-t border-white/10 space-y-4">
               <div className="flex items-center justify-between">
@@ -191,8 +221,8 @@ function ConfirmarCorrida() {
               </div>
 
               <button 
-                className="w-full bg-zuvvi-volt text-zuvvi-indigo py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-sm zuvvi-glow transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
-                disabled={isLoading}
+                className="w-full bg-zuvvi-volt text-zuvvi-indigo py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-sm zuvvi-glow transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
+                disabled={isLoading || !metodoPagamento}
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
