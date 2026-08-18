@@ -366,8 +366,12 @@ export type Database = {
           conta_mercado_pago_id: string | null
           created_at: string
           id: string
+          is_disponivel: boolean
           nota_media: number
           status_aprovacao: Database["public"]["Enums"]["motorista_status_aprovacao"]
+          ultima_lat: number | null
+          ultima_lng: number | null
+          ultima_localizacao_at: string | null
           updated_at: string
         }
         Insert: {
@@ -378,8 +382,12 @@ export type Database = {
           conta_mercado_pago_id?: string | null
           created_at?: string
           id: string
+          is_disponivel?: boolean
           nota_media?: number
           status_aprovacao?: Database["public"]["Enums"]["motorista_status_aprovacao"]
+          ultima_lat?: number | null
+          ultima_lng?: number | null
+          ultima_localizacao_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -390,8 +398,12 @@ export type Database = {
           conta_mercado_pago_id?: string | null
           created_at?: string
           id?: string
+          is_disponivel?: boolean
           nota_media?: number
           status_aprovacao?: Database["public"]["Enums"]["motorista_status_aprovacao"]
+          ultima_lat?: number | null
+          ultima_lng?: number | null
+          ultima_localizacao_at?: string | null
           updated_at?: string
         }
         Relationships: [
