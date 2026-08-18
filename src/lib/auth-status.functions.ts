@@ -11,7 +11,7 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
 
     const { data: userRecord, error: userError } = await supabaseAdmin
       .from("usuarios")
-      .select("is_passageiro, is_motorista, nome")
+      .select("is_passageiro, is_motorista, nome, cpf, celular, data_nascimento, city:cidade_id")
       .eq("auth_user_id", userId)
       .maybeSingle();
 
@@ -19,11 +19,19 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
       return { hasProfile: false };
     }
 
+    const isRegistrationComplete = !!(
+      userRecord.cpf && 
+      userRecord.celular && 
+      userRecord.data_nascimento && 
+      userRecord.city
+    );
+
     return { 
       hasProfile: !!(userRecord.is_passageiro || userRecord.is_motorista),
       isPassageiro: userRecord.is_passageiro,
       isMotorista: userRecord.is_motorista,
-      nome: userRecord.nome
+      nome: userRecord.nome,
+      isRegistrationComplete
     };
   });
 
@@ -61,15 +69,22 @@ export const getAuthStatus = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userRecord } = await supabaseAdmin
       .from("usuarios")
-      .select("nome, is_passageiro, is_motorista")
+      .select("nome, is_passageiro, is_motorista, cpf, celular, data_nascimento, city:cidade_id")
       .eq("auth_user_id", user.id)
       .maybeSingle();
+
+    const isRegistrationComplete = !!(
+      userRecord?.cpf && 
+      userRecord?.celular && 
+      userRecord?.data_nascimento && 
+      userRecord?.city
+    );
 
     return { 
       authenticated: true,
       nome: userRecord?.nome || user.email,
       isPassageiro: userRecord?.is_passageiro || false,
-      isMotorista: userRecord?.is_motorista || false
+      isMotorista: userRecord?.is_motorista || false,
+      isRegistrationComplete
     };
   });
-

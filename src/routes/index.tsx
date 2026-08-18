@@ -40,11 +40,23 @@ function UnifiedIndex() {
   }
 
   if (auth?.authenticated) {
+    if (!auth.isRegistrationComplete) {
+      navigate({ to: "/auth/completar-cadastro" });
+      return null;
+    }
+
     if (auth.isMotorista) {
       navigate({ to: "/onboarding-motorista" });
       return null;
     }
-    return <HomePassageiro nome={auth.nome || ""} />;
+    
+    if (auth.isPassageiro) {
+      return <HomePassageiro nome={auth.nome || ""} />;
+    }
+
+    // Authenticated but no profile chosen yet (should have been caught by server decision, but for safety)
+    navigate({ to: "/auth/perfil" });
+    return null;
   }
 
   return <LandingPage />;

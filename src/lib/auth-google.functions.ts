@@ -92,7 +92,7 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     // Final navigation check using the record associated with this auth_user_id
     const { data: finalRecord, error: finalError } = await supabaseAdmin
       .from("usuarios")
-      .select("id, is_passageiro, is_motorista, cpf, celular")
+      .select("id, is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
       .eq("auth_user_id", userId)
       .single();
 
@@ -103,14 +103,26 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
 
     console.log("[handleGoogleAuthRedirect] Record verified, deciding navigation...");
 
-    if (!finalRecord.is_passageiro && !finalRecord.is_motorista) {
-      return { redirectTo: "/auth/perfil" };
-    }
+    // Rule 1: Verify if mandatory registration is complete
+    const isRegistrationComplete = !!(
+      finalRecord.cpf && 
+      finalRecord.celular && 
+      finalRecord.data_nascimento && 
+      finalRecord.cidade_id
+    );
 
-    if (!finalRecord.cpf || !finalRecord.celular) {
+    if (!isRegistrationComplete) {
+      console.log("[handleGoogleAuthRedirect] Registration incomplete, redirecting to complete-cadastro");
       return { redirectTo: "/auth/completar-cadastro" };
     }
 
+    // Rule 2: Apply profile check after registration is complete
+    if (!finalRecord.is_passageiro && !finalRecord.is_motorista) {
+      console.log("[handleGoogleAuthRedirect] Profile not chosen, redirecting to perfil");
+      return { redirectTo: "/auth/perfil" };
+    }
+
+    console.log("[handleGoogleAuthRedirect] Everything complete, redirecting to Home");
     return { redirectTo: "/" };
   });
 
