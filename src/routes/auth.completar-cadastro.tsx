@@ -78,8 +78,8 @@ function CompletarCadastroPage() {
   const navigate = useNavigate();
   const executeUpdate = useServerFn(updateUserInfo);
   const checkStatus = useServerFn(checkUserProfileStatus);
-  const fetchUFs = useMemo(() => useServerFn(getUFs), []);
-  const fetchCities = useMemo(() => useServerFn(getCitiesByUF), []);
+  const fetchUFs = useServerFn(getUFs);
+  const fetchCities = useServerFn(getCitiesByUF);
   
   const [isLoading, setIsLoading] = useState(false);
   const [ufs, setUfs] = useState<string[]>([]);
