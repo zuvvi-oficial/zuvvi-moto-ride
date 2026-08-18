@@ -48,8 +48,8 @@ function ConfirmarCorrida() {
     try {
       const result = await criarCorridaFn({
         data: {
-          origemLat,
-          origemLng,
+          origemLat: originLat,
+          origemLng: originLng,
           destinoLat: destLat,
           destinoLng: destLng,
           valorEstimado: estimatedFare,
