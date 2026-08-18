@@ -213,7 +213,10 @@ function HomePassageiro({ nome }: { nome: string }) {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-zuvvi-indigo text-foreground overflow-hidden">
+    <div 
+      className="relative bg-zuvvi-indigo text-foreground overflow-y-auto"
+      style={{ minHeight: '100vh', height: '100dvh' }}
+    >
       {/* Etiqueta de status temporária para depuração */}
       <div className="fixed top-2 right-2 z-[9999] bg-black/90 text-white text-[10px] px-3 py-2 rounded-lg border border-white/20 pointer-events-none uppercase tracking-tighter flex flex-col gap-1 shadow-2xl backdrop-blur-md min-w-[200px]">
         <div className="font-bold border-b border-white/10 pb-1 flex justify-between">
