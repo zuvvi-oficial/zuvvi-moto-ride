@@ -41,15 +41,17 @@ function AuthCallbackPage() {
         }
 
         console.log("[GoogleAuth] session_found=true");
-        const token = session.access_token;
-        console.log("[GoogleAuth] access_token_present=" + !!token);
-
+        console.log("[GoogleAuth] session_found=true");
         console.log("[GoogleAuth] calling_redirect_logic");
-        // We pass the token manually as the global middleware might not have 
-        // picked it up yet even if the session is present in this closure.
+        // We pass the token manually and ensure getSession() is stable
+        const currentSession = await supabase.auth.getSession();
+        const activeToken = currentSession.data.session?.access_token || session.access_token;
+        console.log("[GoogleAuth] access_token_present=" + !!activeToken);
+        
         const result = await executeRedirectLogic({
+          data: undefined, // Ensure no body interference
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${activeToken}`
           }
         });
         
@@ -72,12 +74,17 @@ function AuthCallbackPage() {
         console.error("[GoogleAuth] unexpected_error:", err);
         if (cancelled) return;
         
-        // Sanitize error for display but log details
-        const errorType = err?.constructor?.name || typeof err;
         const errorMessage = err?.message || String(err);
-        console.log(`[GoogleAuth] error_details type=${errorType} message=${errorMessage}`);
+        console.log(`[GoogleAuth] error_details: ${errorMessage}`);
         
-        setError("Ocorreu um erro inesperado na autenticação social.");
+        // Provide more specific feedback for common auth failures
+        if (errorMessage.includes("Unauthorized")) {
+          setError("Sessão não autorizada. Por favor, tente o login novamente.");
+        } else if (errorMessage.includes("Database") || errorMessage.includes("perfil")) {
+          setError("Erro ao sincronizar seu perfil. Tente novamente em instantes.");
+        } else {
+          setError(`Erro na autenticação: ${errorMessage.slice(0, 100)}`);
+        }
         toast.error("Erro na autenticação social.");
       }
     };

@@ -9,11 +9,12 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    if (userId) {
-      console.log("[GoogleAuth] authenticated_user_context=true");
-    } else {
-      console.log("[GoogleAuth] authenticated_user_context=false");
+    if (!userId) {
+      console.error("[GoogleAuth] No userId in context after middleware");
+      return { redirectTo: "/auth/login", error: "Usuário não identificado pelo servidor." };
     }
+    
+    console.log("[GoogleAuth] authenticated_user_context=true");
 
     console.log("[GoogleAuth] user_record_lookup_started");
     const { data: userRecord, error: userError } = await supabaseAdmin
