@@ -115,23 +115,25 @@ function HomePassageiro({ nome }: { nome: string }) {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
+        const newCoords = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
-        });
+        };
+        setLocation(newCoords);
         setIsLocating(false);
         setIsUpdatingLocation(false);
         
         // Atualizar marcador no mapa se ele existir
         if (map.current) {
           map.current.flyTo({
-            center: [position.coords.longitude, position.coords.latitude],
+            center: [newCoords.lng, newCoords.lat],
             zoom: 15
           });
           
-          // Nota: Seria ideal ter uma ref para o marcador, mas para simplificar aqui recriamos se necessário 
-          // ou confiamos no useEffect do mapa que carrega no init. 
-          // Atualmente initMap cria o marcador inicial.
+          const existingMarker = (map.current as any)._zuvviMarker;
+          if (existingMarker) {
+            existingMarker.setLngLat([newCoords.lng, newCoords.lat]);
+          }
         }
       },
       (error) => {
