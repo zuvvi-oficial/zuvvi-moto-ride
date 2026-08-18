@@ -63,6 +63,7 @@ function UnifiedIndex() {
 }
 
 function HomePassageiro({ nome }: { nome: string }) {
+  const navigate = useNavigate();
   const map = useRef<mapboxgl.Map | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
