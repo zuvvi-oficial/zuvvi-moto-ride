@@ -234,7 +234,7 @@ function HomePassageiro({ nome }: { nome: string }) {
                 <Bike className="text-zuvvi-volt w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold mb-2">Zuvvi ainda não <br/><span className="volt-text">chegou aqui</span></h2>
+                <h2 className="text-2xl font-bold mb-2">Zuvvi ainda não chegou <br/><span className="volt-text">até aqui</span></h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {cityName ? `Estamos trabalhando para liberar as corridas em ${cityName} em breve.` : "Sua localização atual ainda não está coberta pela nossa rede."}
                 </p>
