@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getUploadUrl, registrarDocumento, salvarDadosCNH, criarVeiculo, enviarParaAnalise } from "@/lib/motorista.functions";
 import { toast } from "sonner";
 import { Bike, Loader2, CheckCircle2, FileText, CreditCard, Upload, AlertCircle, FileText as DocIcon, Camera } from "lucide-react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 
 type UploadState = {
   status: 'idle' | 'uploading' | 'success' | 'error';
