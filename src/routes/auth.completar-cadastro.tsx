@@ -68,8 +68,8 @@ function CompletarCadastroPage() {
       await executeUpdate({ data });
       toast.success("Informações atualizadas!");
       
-      const { hasProfile } = await checkStatus();
-      if (hasProfile) {
+      const status = await checkStatus();
+      if (status.hasProfile) {
         navigate({ to: "/" });
       } else {
         navigate({ to: "/auth/perfil" });
@@ -138,3 +138,4 @@ function CompletarCadastroPage() {
     </div>
   );
 }
+
