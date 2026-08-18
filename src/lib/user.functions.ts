@@ -182,6 +182,17 @@ export const criarCorrida = createServerFn({ method: "POST" })
     // 2. Gerar código de embarque (4 dígitos numéricos conforme CHAR(4))
     const codigoEmbarque = Math.floor(1000 + Math.random() * 9000).toString();
 
+    // 2.1 Validar se a cidade é Jacarezinho (praça piloto)
+    const { data: cidade } = await supabaseAdmin
+      .from("cidades")
+      .select("status, nome")
+      .eq("id", usuario.cidade_id)
+      .single();
+
+    if (!cidade || (cidade.nome !== 'Jacarezinho' && cidade.status !== 'ativa')) {
+        throw new Error("Desculpe, o Zuvvi ainda não opera corridas nesta cidade.");
+    }
+
     // 3. Inserir a corrida
     const { data: corrida, error: insertError } = await supabaseAdmin
       .from("corridas")
@@ -196,11 +207,9 @@ export const criarCorrida = createServerFn({ method: "POST" })
         forma_pagamento: data.formaPagamento,
         codigo_embarque: codigoEmbarque,
         status: 'solicitada',
-        ...({
-          origem_nome: data.origemNome || 'Sua localização',
-          destino_nome: data.destinoNome || 'Destino'
-        } as any)
-      })
+        origem_nome: data.origemNome || 'Sua localização',
+        destino_nome: data.destinoNome || 'Destino'
+      } as any)
       .select()
       .single();
 
@@ -210,6 +219,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
     }
 
     return { success: true, rideId: corrida.id };
+
   });
 
 export const getCorrida = createServerFn({ method: "GET" })
