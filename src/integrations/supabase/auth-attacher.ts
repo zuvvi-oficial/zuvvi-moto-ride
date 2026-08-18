@@ -8,6 +8,11 @@ export const attachSupabaseAuth = createMiddleware({ type: 'function' }).client(
   async ({ next }) => {
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
+
+    // Synchronization of session to cookies for SSR
+    // The Supabase client with persistSession: true + cookies should handle this,
+    // but we can explicitly ensure the cookie exists or let the client do its job.
+    
     return next({
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
