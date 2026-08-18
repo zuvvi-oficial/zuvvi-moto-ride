@@ -12,16 +12,32 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
   const request = getRequest();
   if (!request) return null;
 
-  const authHeader = request.headers.get("authorization");
-
   const SUPABASE_URL = process.env['SUPABASE_URL'];
   const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'];
-
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return null;
 
+  // Try to find a token in the Authorization header or cookies
   let token: string | null = null;
+  const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     token = authHeader.substring(7);
+  }
+
+  if (!token) {
+    // Fallback to cookie (TanStack Start/Supabase Auth usually sets sb-xxx-auth-token)
+    // For now, we'll try to extract the access token from the cookies if present
+    const cookieHeader = request.headers.get("cookie") || "";
+    // Note: This regex is simplified. In a real scenario with @supabase/ssr, 
+    // it would use a more robust cookie parser.
+    const match = cookieHeader.match(/sb-[a-z0-9]+-auth-token=([^;]+)/);
+    if (match) {
+      try {
+        const sessionData = JSON.parse(decodeURIComponent(match[1]));
+        token = sessionData.access_token;
+      } catch (e) {
+        // Not a valid JSON or missing access_token
+      }
+    }
   }
 
   if (!token) return null;
