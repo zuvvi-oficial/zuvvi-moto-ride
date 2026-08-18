@@ -180,7 +180,7 @@ function ConfirmarCorrida() {
                   <div className="flex items-baseline gap-1">
                     <span className="text-xs font-bold text-zuvvi-volt">R$</span>
                     <span className="text-3xl font-black text-white">
-                      {estimatedFare ? estimatedFare.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '--,--'}
+                      {estimatedFare ? estimatedFare.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--,--'}
                     </span>
                   </div>
                 </div>
