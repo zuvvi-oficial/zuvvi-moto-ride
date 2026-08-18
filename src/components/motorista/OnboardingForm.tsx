@@ -30,7 +30,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
     
     setUploads(prev => ({
       ...prev,
-      [tipo]: { status: 'uploading', fileName: file.name, previewUrl }
+      [tipo]: { status: 'uploading', fileName: file.name, previewUrl } as UploadState
     }));
 
     try {
@@ -65,7 +65,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           status: 'error', 
           fileName: file.name,
           errorMessage: e.message || "Erro ao enviar arquivo" 
-        }
+        } as UploadState
       }));
       toast.error(e.message || "Erro no upload");
     }
