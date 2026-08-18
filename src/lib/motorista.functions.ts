@@ -297,3 +297,179 @@ export const recusarCorrida = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+export const getUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ tipo: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const userId = context.userId;
+    const tipo = data.tipo as TipoDocumento;
+
+    const fileName = `${userId}/${tipo}_${Date.now()}`;
+    
+    const { data: uploadData, error } = await supabaseAdmin.storage
+      .from('documentos-motorista')
+      .createSignedUploadUrl(fileName);
+
+    if (error) throw new Error("Erro ao gerar URL de upload: " + error.message);
+
+    return { 
+      uploadUrl: uploadData.signedUrl, 
+      storagePath: uploadData.path,
+      token: uploadData.token 
+    };
+  });
+
+export const registrarDocumento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ 
+    tipo: z.string(), 
+    storagePath: z.string() 
+  }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const userId = context.userId;
+    const tipo = data.tipo as TipoDocumento;
+
+    const { data: motorista } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .single();
+
+    if (!motorista) throw new Error("Motorista não encontrado.");
+
+    const { error } = await supabaseAdmin
+      .from("documentos_motorista")
+      .upsert({
+        motorista_id: motorista.id,
+        tipo_documento: tipo,
+        storage_path: data.storagePath,
+        status_analise: 'pendente',
+        data_envio: new Date().toISOString()
+      }, { onConflict: 'motorista_id,tipo_documento' } as any);
+
+    if (error) throw new Error("Erro ao registrar documento: " + error.message);
+    return { success: true };
+  });
+
+export const salvarDadosCNH = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    cnh_numero: z.string(),
+    cnh_categoria: z.string(),
+    cnh_validade: z.string(),
+    chave_pix: z.string()
+  }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    const { data: user } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", context.userId)
+      .single();
+
+    if (!user) throw new Error("Usuário não encontrado.");
+
+    const { error } = await supabaseAdmin
+      .from("motoristas")
+      .update({
+        cnh_numero: data.cnh_numero,
+        cnh_categoria: data.cnh_categoria,
+        cnh_validade: data.cnh_validade,
+        chave_pix: data.chave_pix
+      })
+      .eq("id", user.id);
+
+    if (error) throw new Error("Erro ao salvar dados: " + error.message);
+    return { success: true };
+  });
+
+export const criarVeiculo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    placa: z.string(),
+    marca: z.string(),
+    modelo: z.string(),
+    ano: z.number(),
+    cor: z.string()
+  }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    const { data: user } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", context.userId)
+      .single();
+
+    if (!user) throw new Error("Usuário não encontrado.");
+
+    const { error } = await supabaseAdmin
+      .from("veiculos")
+      .upsert({
+        motorista_id: user.id,
+        ...data,
+        status_aprovacao: 'em_preenchimento',
+        ativo: true
+      }, { onConflict: 'motorista_id' } as any);
+
+    if (error) throw new Error("Erro ao salvar veículo: " + error.message);
+    return { success: true };
+  });
+
+export const enviarParaAnalise = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    const { data: user } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, motoristas!inner(*)")
+      .eq("auth_user_id", context.userId)
+      .single();
+
+    if (!user) throw new Error("Usuário não encontrado.");
+    const motorista = user.motoristas as any;
+
+    const { data: docs } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("tipo_documento")
+      .eq("motorista_id", user.id);
+
+    const tiposEnviados = docs?.map(d => d.tipo_documento) || [];
+    const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
+    const faltantes = tiposObrigatorios.filter(t => !tiposEnviados.includes(t as any));
+
+    if (faltantes.length > 0) {
+      throw new Error(`Documentos faltantes: ${faltantes.join(', ')}`);
+    }
+
+    if (!motorista.cnh_numero || !motorista.cnh_categoria || !motorista.cnh_validade || !motorista.chave_pix) {
+      throw new Error("Dados de CNH ou Pix incompletos.");
+    }
+
+    const { data: veiculo } = await supabaseAdmin
+      .from("veiculos")
+      .select("id")
+      .eq("motorista_id", user.id)
+      .single();
+
+    if (!veiculo) throw new Error("Veículo não cadastrado.");
+
+    const { error: mErr } = await supabaseAdmin
+      .from("motoristas")
+      .update({ status_aprovacao: 'em_analise' } as any)
+      .eq("id", user.id);
+
+    const { error: vErr } = await supabaseAdmin
+      .from("veiculos")
+      .update({ status_aprovacao: 'em_analise' } as any)
+      .eq("motorista_id", user.id);
+
+    if (mErr || vErr) throw new Error("Erro ao enviar para análise.");
+
+    return { success: true };
+  });
