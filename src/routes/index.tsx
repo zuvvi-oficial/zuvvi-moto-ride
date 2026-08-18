@@ -63,16 +63,23 @@ function UnifiedIndex() {
 }
 
 function HomePassageiro({ nome }: { nome: string }) {
-  const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
   const [isCityAvailable, setIsCityAvailable] = useState<boolean | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
+  const [debugStatus, setDebugStatus] = useState<string>("Verificando token...");
   
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
+
+  // Callback ref para garantir o DOM pronto
+  const mapContainerRef = (el: HTMLDivElement | null) => {
+    if (el && !map.current && location) {
+      initMap(el);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
