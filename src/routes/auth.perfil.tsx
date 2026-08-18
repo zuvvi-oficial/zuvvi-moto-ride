@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { selectPassageiroPerfil, selectMotoristaPerfil } from '@/lib/perfil.functions';
 import { useServerFn } from '@tanstack/react-start';
+import { checkUserProfileStatus } from '@/lib/auth-status.functions';
 import { Bike, User } from 'lucide-react';
 
 export const Route = createFileRoute('/auth/perfil')({
@@ -15,6 +16,22 @@ function PerfilPage() {
   const executeSelectPassageiro = useServerFn(selectPassageiroPerfil);
   const executeSelectMotorista = useServerFn(selectMotoristaPerfil);
   const [isLoading, setIsLoading] = useState(false);
+  const checkStatus = useServerFn(checkUserProfileStatus);
+
+  useEffect(() => {
+    const verifyAccess = async () => {
+      try {
+        const status = await checkStatus();
+        if (!status.isRegistrationComplete) {
+          toast.error("Complete seu cadastro primeiro.");
+          navigate({ to: "/auth/completar-cadastro" });
+        }
+      } catch (error) {
+        console.error("Erro ao verificar status do perfil:", error);
+      }
+    };
+    verifyAccess();
+  }, [checkStatus, navigate]);
 
   const handleSelectPassageiro = async () => {
     setIsLoading(true);

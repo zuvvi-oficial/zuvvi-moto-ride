@@ -56,13 +56,15 @@ function LoginPage() {
 
       toast.success("Login realizado com sucesso!");
       
-      // Verificação de perfil completo antes de redirecionar
+      // Verificação de fluxo obrigatório
       const status = await checkStatus();
       
-      if (status.hasProfile) {
-        navigate({ to: "/" });
-      } else {
+      if (!status.isRegistrationComplete) {
+        navigate({ to: "/auth/completar-cadastro" });
+      } else if (!status.hasProfile) {
         navigate({ to: "/auth/perfil" });
+      } else {
+        navigate({ to: "/" });
       }
     } catch (error: any) {
       toast.error("Ocorreu um erro ao tentar entrar. Tente novamente.");
