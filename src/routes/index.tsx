@@ -138,27 +138,43 @@ function HomePassageiro({ nome }: { nome: string }) {
     if (!location || map.current) return;
 
     const initMap = async () => {
-      const token = await getMapboxTokenFn();
-      if (!token) {
-        toast.error("Configuração de mapa ausente.");
-        return;
+      try {
+        const token = await getMapboxTokenFn();
+        
+        if (!token) {
+          toast.error("Configuração de mapa ausente (Token não encontrado).");
+          return;
+        }
+
+        if (!token.startsWith("pk.")) {
+          toast.error("Configuração de mapa inválida: use um token PÚBLICO (pk.xxx).");
+          return;
+        }
+
+        mapboxgl.accessToken = token;
+        
+        if (!mapContainer.current) return;
+
+        map.current = new mapboxgl.Map({
+          container: mapContainer.current,
+          style: "mapbox://styles/mapbox/dark-v11",
+          center: [location.lng, location.lat],
+          zoom: 15,
+          attributionControl: false
+        });
+
+        map.current.on('error', (e) => {
+          console.error("Mapbox error:", e);
+          toast.error("Não foi possível carregar o mapa: verifique o token do Mapbox.");
+        });
+
+        new mapboxgl.Marker({ color: "#C6FF3D" })
+          .setLngLat([location.lng, location.lat])
+          .addTo(map.current);
+      } catch (err) {
+        console.error("Erro ao inicializar mapa:", err);
+        toast.error("Falha ao inicializar o mapa.");
       }
-
-      mapboxgl.accessToken = token;
-      
-      if (!mapContainer.current) return;
-
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: "mapbox://styles/mapbox/dark-v11",
-        center: [location.lng, location.lat],
-        zoom: 15,
-        attributionControl: false
-      });
-
-      new mapboxgl.Marker({ color: "#C6FF3D" })
-        .setLngLat([location.lng, location.lat])
-        .addTo(map.current);
     };
 
     initMap();
