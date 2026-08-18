@@ -210,12 +210,14 @@ export type Database = {
           data_inicio: string | null
           destino_lat: number
           destino_lng: number
+          destino_nome: string | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           id: string
           motivo_cancelamento: string | null
           motorista_id: string | null
           origem_lat: number
           origem_lng: number
+          origem_nome: string | null
           passageiro_id: string
           status: Database["public"]["Enums"]["corrida_status"]
           updated_at: string
@@ -234,12 +236,14 @@ export type Database = {
           data_inicio?: string | null
           destino_lat: number
           destino_lng: number
+          destino_nome?: string | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
           motivo_cancelamento?: string | null
           motorista_id?: string | null
           origem_lat: number
           origem_lng: number
+          origem_nome?: string | null
           passageiro_id: string
           status?: Database["public"]["Enums"]["corrida_status"]
           updated_at?: string
@@ -258,12 +262,14 @@ export type Database = {
           data_inicio?: string | null
           destino_lat?: number
           destino_lng?: number
+          destino_nome?: string | null
           forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
           motivo_cancelamento?: string | null
           motorista_id?: string | null
           origem_lat?: number
           origem_lng?: number
+          origem_nome?: string | null
           passageiro_id?: string
           status?: Database["public"]["Enums"]["corrida_status"]
           updated_at?: string
