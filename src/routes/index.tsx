@@ -68,11 +68,16 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isCityAvailable, setIsCityAvailable] = useState<boolean | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
   const [debugStatus, setDebugStatus] = useState<string>("Verificando token...");
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [originAddress, setOriginAddress] = useState<string>("Buscando endereço...");
+  const [isManualOrigin, setIsManualOrigin] = useState(false);
+  const [manualLocation, setManualLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [manualAddress, setManualAddress] = useState<string | null>(null);
+  const [isEditingOrigin, setIsEditingOrigin] = useState(false);
   
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
@@ -91,22 +96,45 @@ function HomePassageiro({ nome }: { nome: string }) {
   };
 
   const requestLocation = () => {
+    if (isUpdatingLocation) return;
+    
+    setIsUpdatingLocation(true);
     setIsLocating(true);
     setLocationError(null);
+    setIsManualOrigin(false);
+    setManualLocation(null);
+    setManualAddress(null);
+    setIsEditingOrigin(false);
     
     if (!navigator.geolocation) {
       setLocationError("Geolocalização não é suportada pelo seu navegador.");
       setIsLocating(false);
+      setIsUpdatingLocation(false);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
+        const newCoords = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
-        });
+        };
+        setLocation(newCoords);
         setIsLocating(false);
+        setIsUpdatingLocation(false);
+        
+        // Atualizar marcador no mapa se ele existir
+        if (map.current) {
+          map.current.flyTo({
+            center: [newCoords.lng, newCoords.lat],
+            zoom: 15
+          });
+          
+          const existingMarker = (map.current as any)._zuvviMarker;
+          if (existingMarker) {
+            existingMarker.setLngLat([newCoords.lng, newCoords.lat]);
+          }
+        }
       },
       (error) => {
         console.error("Erro GPS:", error);
@@ -116,6 +144,7 @@ function HomePassageiro({ nome }: { nome: string }) {
           setLocationError("Não foi possível obter sua localização. Tente novamente.");
         }
         setIsLocating(false);
+        setIsUpdatingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -201,9 +230,13 @@ function HomePassageiro({ nome }: { nome: string }) {
         toast.error("Não foi possível carregar o mapa: verifique o token do Mapbox.");
       });
 
-      new mapboxgl.Marker({ color: "#C6FF3D" })
+      // Adicionar marcador inicial e manter referência
+      const marker = new mapboxgl.Marker({ color: "#C6FF3D" })
         .setLngLat([location!.lng, location!.lat])
         .addTo(map.current);
+      
+      // Armazenar marcador no objeto do mapa para fácil acesso (hack prático)
+      (map.current as any)._zuvviMarker = marker;
     } catch (err) {
       console.error("Erro ao inicializar mapa:", err);
       setDebugStatus(`Erro fatal: ${err instanceof Error ? err.message : 'Desconhecido'}`);
@@ -325,19 +358,79 @@ function HomePassageiro({ nome }: { nome: string }) {
 
           {!isLocating && !locationError && isCityAvailable === true && (
             <div className="space-y-4 animate-rise pointer-events-auto">
+              {/* Card de Origem */}
+              <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 shadow-2xl space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
+                    </div>
+                    <div 
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => setIsEditingOrigin(!isEditingOrigin)}
+                    >
+                      <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.2em] mb-0.5">Origem</p>
+                      <p className="text-sm font-bold truncate pr-2">
+                        {isManualOrigin ? manualAddress : originAddress}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={requestLocation}
+                    disabled={isUpdatingLocation}
+                    className={`w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-all hover:bg-white/10 active:scale-95 ${isUpdatingLocation ? 'opacity-50' : ''}`}
+                  >
+                    <LocateFixed className={`w-4 h-4 text-zuvvi-volt ${isUpdatingLocation ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {isEditingOrigin && (
+                  <div className="pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <DestinoSearch 
+                      location={location} 
+                      placeholder="Pesquisar nova origem..."
+                      autoFocus={true}
+                      onSelect={(res) => {
+                        setIsManualOrigin(true);
+                        setManualLocation({ lat: res.center[1], lng: res.center[0] });
+                        setManualAddress(res.place_name);
+                        setIsEditingOrigin(false);
+                        
+                        // Centralizar mapa na nova origem
+                        if (map.current) {
+                          map.current.flyTo({
+                            center: [res.center[0], res.center[1]],
+                            zoom: 15
+                          });
+                          
+                          const existingMarker = (map.current as any)._zuvviMarker;
+                          if (existingMarker) {
+                            existingMarker.setLngLat([res.center[0], res.center[1]]);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Card de Destino */}
               <DestinoSearch 
-                location={location} 
+                location={isManualOrigin ? manualLocation : location} 
                 onSelect={(dest) => {
-                  if (location) {
+                  const currentOrigin = isManualOrigin ? manualLocation : location;
+                  const currentOriginName = isManualOrigin ? manualAddress : originAddress;
+                  
+                  if (currentOrigin && currentOriginName) {
                     navigate({
                       to: '/confirmar-corrida',
                       search: {
-                        originLat: location.lat,
-                        originLng: location.lng,
+                        originLat: currentOrigin.lat,
+                        originLng: currentOrigin.lng,
                         destLat: dest.center[1],
                         destLng: dest.center[0],
                         destName: dest.place_name.split(',')[0],
-                        originName: originAddress.split(',')[0] + (originAddress.split(',')[1] ? ', ' + originAddress.split(',')[1] : '')
+                        originName: currentOriginName.split(',')[0] + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
                       }
                     });
                   }
@@ -388,7 +481,17 @@ function HomePassageiro({ nome }: { nome: string }) {
   );
 }
 
-function DestinoSearch({ location, onSelect }: { location: { lat: number; lng: number } | null, onSelect: (dest: any) => void }) {
+function DestinoSearch({ 
+  location, 
+  onSelect, 
+  placeholder = "Para onde vamos?", 
+  autoFocus = false 
+}: { 
+  location: { lat: number; lng: number } | null, 
+  onSelect: (dest: any) => void,
+  placeholder?: string,
+  autoFocus?: boolean
+}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -431,8 +534,9 @@ function DestinoSearch({ location, onSelect }: { location: { lat: number; lng: n
       <input
         type="text"
         value={query}
+        autoFocus={autoFocus}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Para onde vamos?"
+        placeholder={placeholder}
         className="w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] py-6 pl-14 pr-4 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl text-base font-bold placeholder:text-muted-foreground/50"
       />
       
