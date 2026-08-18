@@ -73,7 +73,7 @@ function ProcurandoMotorista() {
           const updatedRide = payload.new;
           setCorrida(updatedRide);
           
-          if (updatedRide.motorista_id && !motoristaEncontrado) {
+          if (updatedRide['motorista_id'] && !motoristaEncontrado) {
             setMotoristaEncontrado(true);
             toast.success("Motorista encontrou você!");
             // A navegação para a próxima tela será feita futuramente
