@@ -227,6 +227,19 @@ function CompletarCadastroPage() {
     }
   };
 
+  const onInvalid = (errors: any) => {
+    console.log("Validation errors:", errors);
+    toast.error("Por favor, preencha todos os campos obrigatórios corretamente.");
+    
+    // Rola para o primeiro erro
+    const firstError = Object.keys(errors)[0];
+    const element = document.getElementById(firstError);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
