@@ -43,7 +43,7 @@ function ProcurandoMotorista() {
         const data = await getCorridaFn({ data: { rideId } });
         setCorrida(data);
         
-        if (data.motorista_id) {
+        if (data && 'motorista_id' in data && data['motorista_id']) {
           setMotoristaEncontrado(true);
         }
       } catch (err) {
