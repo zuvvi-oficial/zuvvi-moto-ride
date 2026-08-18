@@ -1,13 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireAdmin, createAuditLog } from "./admin.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { createAuditLog } from "./admin.server";
 import { z } from "zod";
+
+/**
+ * Internal Admin Check Helper
+ */
+async function checkAdmin(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: admin, error } = await supabaseAdmin
+    .from("admin_users")
+    .select("role, ativo")
+    .eq("auth_user_id", userId)
+    .single();
+
+  if (error || !admin || !admin.ativo || admin.role !== "admin") {
+    throw new Error("Acesso negado: Administrador não autorizado.");
+  }
+  return admin;
+}
 
 /**
  * Dashboard Stats
  */
 export const getAdminStats = createServerFn({ method: "GET" })
-  .middleware([requireAdmin])
-  .handler(async () => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await checkAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [
@@ -40,17 +59,16 @@ export const getAdminStats = createServerFn({ method: "GET" })
 /**
  * Gestão de Motoristas
  */
-const statusMotoristaSchema = z.enum(["aprovado", "em_analise", "em_preenchimento", "recusado", "suspenso"]);
-
 export const getMotoristasAdmin = createServerFn({ method: "GET" })
-  .middleware([requireAdmin])
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => 
     z.object({
       status: z.string().optional(),
       busca: z.string().optional(),
     }).parse(data)
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     let query = supabaseAdmin
@@ -75,7 +93,7 @@ export const getMotoristasAdmin = createServerFn({ method: "GET" })
   });
 
 export const updateStatusMotorista = createServerFn({ method: "POST" })
-  .middleware([requireAdmin])
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
     z.object({
       motoristaId: z.string(),
@@ -84,8 +102,9 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
     }).parse(data)
   )
   .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const adminId = context!.userId;
+    const adminId = context.userId;
 
     // Obter estado anterior
     const { data: motorista } = await supabaseAdmin
@@ -117,7 +136,7 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       acao: `status_update_${data.novoStatus}`,
       entidade: "motoristas",
       entidadeId: data.motoristaId,
-      estadoAnterior: { status: motorista.status_aprovacao },
+      estadoAnterior: { status: motorista.status_aprovacao as any },
       estadoNovo: { status: data.novoStatus },
       justificativa: data.justificativa,
     });
@@ -129,8 +148,9 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
  * Gestão de Veículos
  */
 export const getVeiculosAdmin = createServerFn({ method: "GET" })
-  .middleware([requireAdmin])
-  .handler(async () => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await checkAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: veiculos, error } = await supabaseAdmin
@@ -146,7 +166,7 @@ export const getVeiculosAdmin = createServerFn({ method: "GET" })
   });
 
 export const updateStatusVeiculo = createServerFn({ method: "POST" })
-  .middleware([requireAdmin])
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
     z.object({
       veiculoId: z.string(),
@@ -155,8 +175,9 @@ export const updateStatusVeiculo = createServerFn({ method: "POST" })
     }).parse(data)
   )
   .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const adminId = context!.userId;
+    const adminId = context.userId;
 
     const { data: veiculo } = await supabaseAdmin
       .from("veiculos")
@@ -182,7 +203,7 @@ export const updateStatusVeiculo = createServerFn({ method: "POST" })
       acao: `veiculo_status_${data.novoStatus}`,
       entidade: "veiculos",
       entidadeId: data.veiculoId,
-      estadoAnterior: { status: veiculo.status_aprovacao },
+      estadoAnterior: { status: veiculo.status_aprovacao as any },
       estadoNovo: { status: data.novoStatus },
       justificativa: data.justificativa,
     });

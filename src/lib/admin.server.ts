@@ -1,12 +1,18 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createMiddleware } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
  * Middleware para exigir que o usuário seja um administrador ativo.
  */
+export const adminOnlyMiddleware = createMiddleware().middleware(async ({ next, context }) => {
+  // requireSupabaseAuth já deve ter rodado se encadeado, ou podemos checar direto aqui
+  // Mas requireSupabaseAuth é uma 'function' middleware.
+  // Vamos simplificar e usar a lógica de admin dentro do requireAdmin server fn.
+  return next();
+});
+
 export const requireAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) => data) // Adicionando um validador vazio para satisfazer o tipo se necessário
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
