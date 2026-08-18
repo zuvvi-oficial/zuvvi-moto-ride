@@ -44,7 +44,14 @@ function AuthCallbackPage() {
         console.log("[GoogleAuth] access_token_present=" + !!token);
 
         console.log("[GoogleAuth] calling_redirect_logic");
-        const result = await executeRedirectLogic();
+        // We pass the token manually to ensure the server function receives it
+        // even if the global middleware hasn't synchronized yet
+        const result = await executeRedirectLogic({
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
         if (cancelled) return;
         
         console.log("[GoogleAuth] redirect_logic_result_received");
@@ -58,7 +65,7 @@ function AuthCallbackPage() {
         
         console.log("[GoogleAuth] redirect_logic_success to=" + result.redirectTo);
         
-        // Final redirection
+        // Final redirection (navigation duplication fixed by removing the extra call that was here)
         navigate({ to: result.redirectTo as any });
       } catch (err: any) {
         console.error("[GoogleAuth] unexpected_error:", err);
