@@ -82,6 +82,8 @@ export const updateUserInfo = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
     cpf: z.string().length(11, "CPF deve ter 11 dígitos"),
     celular: z.string().min(10).max(11, "Celular deve ter 10 ou 11 dígitos"),
+    data_nascimento: z.string().min(10, "Data de nascimento inválida"),
+    cidade_id: z.string().uuid("Cidade inválida"),
   }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -91,7 +93,9 @@ export const updateUserInfo = createServerFn({ method: "POST" })
       .from("usuarios")
       .update({
         cpf: data.cpf,
-        celular: data.celular
+        celular: data.celular,
+        data_nascimento: data.data_nascimento,
+        cidade_id: data.cidade_id
       })
       .eq("auth_user_id", userId);
 
