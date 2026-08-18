@@ -16,6 +16,27 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     
     console.log("[GoogleAuth] authenticated_user_context=true");
 
+    // 1. Verificação de Administrador (Server-side trust)
+    const { data: { user: authUser }, error: authUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (!authUserError && authUser && authUser.email === 'mokahz@gmail.com' && authUser.email_confirmed_at) {
+      console.log("[GoogleAuth] Admin detected: mokahz@gmail.com");
+      
+      // Bootstrap idempotente em admin_users
+      const { error: upsertError } = await supabaseAdmin
+        .from("admin_users")
+        .upsert(
+          { auth_user_id: userId, role: 'admin', ativo: true },
+          { onConflict: 'auth_user_id' }
+        );
+      
+      if (upsertError) {
+        console.error("[GoogleAuth] Admin bootstrap error:", upsertError);
+      } else {
+        console.log("[GoogleAuth] Admin access granted, redirecting to /admin");
+        return { redirectTo: "/admin" };
+      }
+    }
+
     console.log("[GoogleAuth] user_record_lookup_started");
     const { data: userRecord, error: userError } = await supabaseAdmin
       .from("usuarios")
@@ -30,17 +51,22 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
 
     if (!userRecord) {
       console.log("[GoogleAuth] user_record_found=false");
-      console.log("[GoogleAuth] email_lookup_started");
       
-      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
-      if (authError || !authUser?.user) {
-        console.error("[GoogleAuth] Error fetching auth user metadata:", authError);
-        return { redirectTo: "/auth/login", error: "Não foi possível obter dados do Google." };
+      if (!authUser) {
+        // Fallback if not already fetched above
+        const { data: freshAuth, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
+        if (authError || !freshAuth?.user) {
+          console.error("[GoogleAuth] Error fetching auth user metadata:", authError);
+          return { redirectTo: "/auth/login", error: "Não foi possível obter dados do Google." };
+        }
+        // Use fresh data if needed, but we already have authUser from above normally
       }
+      
+      const targetUser = authUser;
 
-      const metadata = (authUser.user.user_metadata ?? {}) as Record<string, string | undefined>;
+      const metadata = (targetUser!.user_metadata ?? {}) as Record<string, string | undefined>;
       const nome = metadata['full_name'] || metadata['name'] || "Usuário Google";
-      const email = authUser.user.email;
+      const email = targetUser!.email;
 
       if (!email) {
         return { redirectTo: "/auth/login", error: "O Google não forneceu um e-mail válido." };
