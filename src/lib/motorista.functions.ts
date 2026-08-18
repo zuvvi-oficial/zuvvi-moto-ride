@@ -427,51 +427,59 @@ export const enviarParaAnalise = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
-    const { data: user } = await supabaseAdmin
+    const { data: user, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("id, motoristas!inner(*)")
       .eq("auth_user_id", context.userId)
-      .single();
+      .maybeSingle();
 
-    if (!user) throw new Error("Usuário não encontrado.");
+    if (userError) throw new Error("Erro ao buscar usuário: " + userError.message);
+    if (!user) throw new Error("Usuário motorista não encontrado no sistema.");
+    
     const motorista = user.motoristas as any;
 
-    const { data: docs } = await supabaseAdmin
+    const { data: docs, error: docsError } = await supabaseAdmin
       .from("documentos_motorista")
       .select("tipo_documento")
       .eq("motorista_id", user.id);
+
+    if (docsError) throw new Error("Erro ao validar documentos: " + docsError.message);
 
     const tiposEnviados = docs?.map(d => d.tipo_documento) || [];
     const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
     const faltantes = tiposObrigatorios.filter(t => !tiposEnviados.includes(t as any));
 
     if (faltantes.length > 0) {
-      throw new Error(`Documentos faltantes: ${faltantes.join(', ')}`);
+      throw new Error(`Documentos obrigatórios pendentes: ${faltantes.join(', ')}`);
     }
 
-    if (!motorista.cnh_numero || !motorista.cnh_categoria || !motorista.cnh_validade || !motorista.chave_pix) {
-      throw new Error("Dados de CNH ou Pix incompletos.");
-    }
+    if (!motorista.cnh_numero) throw new Error("Número da CNH não informado.");
+    if (!motorista.cnh_categoria) throw new Error("Categoria da CNH não informada.");
+    if (!motorista.cnh_validade) throw new Error("Validade da CNH não informada.");
+    if (!motorista.chave_pix) throw new Error("Chave Pix para recebimento não informada.");
 
-    const { data: veiculo } = await supabaseAdmin
+    const { data: veiculo, error: veiculoError } = await supabaseAdmin
       .from("veiculos")
       .select("id")
       .eq("motorista_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (!veiculo) throw new Error("Veículo não cadastrado.");
+    if (veiculoError) throw new Error("Erro ao validar veículo: " + veiculoError.message);
+    if (!veiculo) throw new Error("Dados do veículo não encontrados. Por favor, preencha a seção do veículo.");
 
     const { error: mErr } = await supabaseAdmin
       .from("motoristas")
       .update({ status_aprovacao: 'em_analise' } as any)
       .eq("id", user.id);
 
+    if (mErr) throw new Error("Erro ao atualizar status do motorista: " + mErr.message);
+
     const { error: vErr } = await supabaseAdmin
       .from("veiculos")
       .update({ status_aprovacao: 'em_analise' } as any)
       .eq("motorista_id", user.id);
 
-    if (mErr || vErr) throw new Error("Erro ao enviar para análise.");
+    if (vErr) throw new Error("Erro ao atualizar status do veículo: " + vErr.message);
 
     return { success: true };
   });
