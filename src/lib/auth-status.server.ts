@@ -37,7 +37,6 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
       const { data: authData, error } = await supabase.auth.getUser(token);
       if (!error && authData?.user) {
         const user = authData.user;
-        // Obter identidade real via Admin API
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id);
         const adminUser = adminData?.user;
@@ -51,21 +50,26 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
     }
 
     // Priority 2: Session from Cookies (from SSR loaders)
-    const { data: authData, error: userError } = await supabase.auth.getUser();
+    const cookies = parseCookieHeader(request.headers.get('Cookie') ?? '');
+    const accessToken = cookies.find(c => c.name === 'sb-access-token')?.value;
+
+    if (accessToken) {
+      const { data: authData, error: userError } = await supabase.auth.getUser(accessToken);
+      if (!userError && authData?.user) {
+        const user = authData.user;
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id);
+        const adminUser = adminData?.user;
+
+        return {
+          userId: user.id,
+          email: adminUser?.email || user.email || '',
+          isAdmin: adminUser?.email === 'mokahz@gmail.com' && !!adminUser?.email_confirmed_at
+        };
+      }
+    }
     
-    if (userError || !authData?.user) return null;
-    const user = authData.user;
-
-    // Obter identidade real via Admin API
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id);
-    const adminUser = adminData?.user;
-
-    return {
-      userId: user.id,
-      email: adminUser?.email || user.email || '',
-      isAdmin: adminUser?.email === 'mokahz@gmail.com' && !!adminUser?.email_confirmed_at
-    };
+    return null;
   } catch (e) {
     return null;
   }
