@@ -6,20 +6,17 @@ export const getUFs = createServerFn({ method: "GET" })
   .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Consulta dedicada para retornar apenas as UFs distintas
-    const { data, error } = await supabaseAdmin
-      .from("cidades")
-      .select("estado_uf")
-      .order("estado_uf");
+    // Chama a função RPC que retorna UFs distintas diretamente do banco
+    const { data, error } = await supabaseAdmin.rpc("get_distinct_ufs");
 
     if (error) {
-      console.error("[getUFs] Error fetching UFs:", error);
+      console.error("[getUFs] Error fetching UFs via RPC:", error);
       throw new Error("Erro ao carregar estados.");
     }
 
-    // Extrair UFs únicas do resultado
-    const ufs = Array.from(new Set((data || []).map(item => item.estado_uf)));
-    return ufs;
+    // O retorno já é a lista de UFs (como array de objetos ou strings dependendo da tipagem do RPC)
+    // Se retornar objetos { estado_uf: '...' }, mapeamos.
+    return (data as any[] || []).map(item => typeof item === 'string' ? item : item.estado_uf);
   });
 
 export const getCitiesByUF = createServerFn({ method: "GET" })
