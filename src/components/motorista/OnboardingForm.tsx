@@ -289,8 +289,28 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
     ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'].every(t => uploads[t]?.status === 'success');
 
   const handleSubmit = async () => {
+    console.log("Iniciando submissão do formulário de onboarding...");
     setIsSubmitting(true);
+    
     try {
+      // 1. Validações locais rigorosas antes de chamar o servidor
+      if (!cnhData.numero || cnhData.numero.length !== 11) {
+        throw new Error("O número da CNH deve ter exatamente 11 dígitos.");
+      }
+      if (!cnhData.validade) {
+        throw new Error("A data de validade da CNH é obrigatória.");
+      }
+      if (!pix || !pixType) {
+        throw new Error("Selecione o tipo de Pix e informe a chave para recebimento.");
+      }
+      
+      const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
+      const docsFaltantes = tiposObrigatorios.filter(t => uploads[t]?.status !== 'success');
+      if (docsFaltantes.length > 0) {
+        throw new Error("Você precisa enviar todos os documentos obrigatórios antes de prosseguir.");
+      }
+
+      console.log("Salvando dados de CNH e Pix...");
       await salvarCNHFn({ data: { 
         cnh_numero: cnhData.numero, 
         cnh_categoria: cnhData.categoria, 
@@ -299,19 +319,30 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         tipo_chave_pix: pixType || undefined
       } });
       
-      // O veículo já é salvo via auto-save, mas garantimos aqui se necessário
+      console.log("Verificando status do veículo...");
       if (veiculoStatus !== 'success') {
+        console.log("Veículo não salvo via auto-save, tentando salvar agora...");
+        if (!veiculoData.placa || !veiculoData.marca || !veiculoData.modelo || !veiculoData.ano || !veiculoData.cor) {
+          throw new Error("Por favor, preencha todos os campos do veículo.");
+        }
         await criarVeiculoFn({ data: { 
           ...veiculoData, 
           ano: parseInt(veiculoData.ano) 
         } });
       }
       
-      await enviarAnaliseFn();
-      toast.success("Cadastro enviado para análise!");
+      console.log("Enviando para análise final...");
+      const result = await enviarAnaliseFn();
+      console.log("Resultado do envio:", result);
+
+      toast.success("Cadastro enviado para análise com sucesso!");
       onSubmitted();
     } catch (e: any) {
-      toast.error(e.message || "Erro ao enviar cadastro");
+      console.error("ERRO CRÍTICO NO SUBMIT DO ONBOARDING:", e);
+      const errorMessage = e.message || "Ocorreu um erro inesperado ao enviar seu cadastro.";
+      toast.error(errorMessage, {
+        duration: 5000,
+      });
     } finally {
       setIsSubmitting(false);
     }
