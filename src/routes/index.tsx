@@ -352,19 +352,74 @@ function HomePassageiro({ nome }: { nome: string }) {
 
           {!isLocating && !locationError && isCityAvailable === true && (
             <div className="space-y-4 animate-rise pointer-events-auto">
+              {/* Card de Origem */}
+              <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 shadow-2xl space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
+                    </div>
+                    <div 
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => setIsEditingOrigin(!isEditingOrigin)}
+                    >
+                      <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.2em] mb-0.5">Origem</p>
+                      <p className="text-sm font-bold truncate pr-2">
+                        {isManualOrigin ? manualAddress : originAddress}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={requestLocation}
+                    disabled={isUpdatingLocation}
+                    className={`w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-all hover:bg-white/10 active:scale-95 ${isUpdatingLocation ? 'opacity-50' : ''}`}
+                  >
+                    <LocateFixed className={`w-4 h-4 text-zuvvi-volt ${isUpdatingLocation ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {isEditingOrigin && (
+                  <div className="pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <DestinoSearch 
+                      location={location} 
+                      placeholder="Pesquisar nova origem..."
+                      autoFocus={true}
+                      onSelect={(res) => {
+                        setIsManualOrigin(true);
+                        setManualLocation({ lat: res.center[1], lng: res.center[0] });
+                        setManualAddress(res.place_name);
+                        setIsEditingOrigin(false);
+                        
+                        // Centralizar mapa na nova origem
+                        if (map.current) {
+                          map.current.flyTo({
+                            center: [res.center[0], res.center[1]],
+                            zoom: 15
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Card de Destino */}
               <DestinoSearch 
-                location={location} 
+                location={isManualOrigin ? manualLocation : location} 
                 onSelect={(dest) => {
-                  if (location) {
+                  const currentOrigin = isManualOrigin ? manualLocation : location;
+                  const currentOriginName = isManualOrigin ? manualAddress : originAddress;
+                  
+                  if (currentOrigin && currentOriginName) {
                     navigate({
                       to: '/confirmar-corrida',
                       search: {
-                        originLat: location.lat,
-                        originLng: location.lng,
+                        originLat: currentOrigin.lat,
+                        originLng: currentOrigin.lng,
                         destLat: dest.center[1],
                         destLng: dest.center[0],
                         destName: dest.place_name.split(',')[0],
-                        originName: originAddress.split(',')[0] + (originAddress.split(',')[1] ? ', ' + originAddress.split(',')[1] : '')
+                        originName: currentOriginName.split(',')[0] + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
                       }
                     });
                   }
