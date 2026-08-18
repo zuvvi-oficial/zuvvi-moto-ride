@@ -5,6 +5,8 @@ import { getCorrida, getMapboxToken } from '@/lib/user.functions';
 import { Bike, Loader2, ChevronLeft, User, Star } from 'lucide-react';
 import { z } from 'zod';
 import { MapView } from '@/components/MapView';
+import { supabase } from '@/integrations/supabase/client';
+
 
 const searchSchema = z.object({
   rideId: z.string(),
