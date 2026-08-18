@@ -219,7 +219,9 @@ function CompletarCadastroPage() {
       toast.success("Informações atualizadas!");
       
       const status = await checkStatus();
-      if (status.hasProfile) {
+      if (status.isAdmin || (status as any).redirectTo) {
+        navigate({ to: (status as any).redirectTo || "/admin" });
+      } else if (status.hasProfile) {
         navigate({ to: "/" });
       } else {
         navigate({ to: "/auth/perfil" });

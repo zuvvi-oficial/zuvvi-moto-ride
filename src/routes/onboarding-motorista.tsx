@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSessionUser } from "@/lib/user.functions";
@@ -7,6 +7,8 @@ import { Bike, Loader2, User, Power, MapPin, Navigation, Clock, CheckCircle2, X,
 import { toggleDisponibilidade, updateLocalizacaoMotorista, getOfertasDisponiveis, aceitarCorrida, recusarCorrida } from "@/lib/motorista.functions";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { checkUserProfileStatus } from "@/lib/auth-status.functions";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/onboarding-motorista")({
   component: HomeMotoristaPage,
@@ -30,6 +32,18 @@ function HomeMotoristaPage() {
   const [ofertas, setOfertas] = useState<any[]>([]);
   const [corridaAceita, setCorridaAceita] = useState<any>(null);
   const [isAccepting, setIsAccepting] = useState<string | null>(null);
+
+  const checkStatus = useServerFn(checkUserProfileStatus);
+  const navigate = useNavigate();
+
+  // Guarda ADM e redirecionamento de segurança
+  useEffect(() => {
+    checkStatus().then((status: any) => {
+      if (status.isAdmin || status.redirectTo) {
+        navigate({ to: status.redirectTo || "/admin" });
+      }
+    });
+  }, [checkStatus, navigate]);
 
   const motorista = user.motorista;
   const statusAprovacao = motorista?.status_aprovacao || "em_preenchimento";
@@ -153,6 +167,14 @@ function HomeMotoristaPage() {
           <div className="px-3 py-1 bg-white/5 rounded-lg border border-white/10 text-[10px] font-bold uppercase">
             {statusAprovacao === 'em_analise' ? 'Em Análise' : 'Pendente'}
           </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => supabase.auth.signOut().then(() => navigate({ to: '/auth/login' }))}
+            className="text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest"
+          >
+            Sair
+          </Button>
         </header>
         <main className="p-6 space-y-6 max-w-md mx-auto">
           <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">

@@ -9,6 +9,25 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
+    const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+
+    // Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
+    const isAdmin = authUser?.email === 'mokahz@gmail.com' && !!authUser?.email_confirmed_at;
+
+    if (isAdmin) {
+      // Garantir bootstrap idempotente
+      await supabaseAdmin.from("admin_users").upsert(
+        { auth_user_id: userId, role: 'admin', ativo: true },
+        { onConflict: 'auth_user_id' }
+      );
+      return { 
+        hasProfile: true, 
+        isAdmin: true,
+        isRegistrationComplete: true,
+        redirectTo: "/admin"
+      };
+    }
+
     const { data: userRecord, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("is_passageiro, is_motorista, nome, cpf, celular, data_nascimento, city:cidade_id")
@@ -16,7 +35,7 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
       .maybeSingle();
 
     if (userError || !userRecord) {
-      return { hasProfile: false };
+      return { hasProfile: false, isAdmin: false };
     }
 
     const isRegistrationComplete = !!(
@@ -28,6 +47,7 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
 
     return { 
       hasProfile: !!(userRecord.is_passageiro || userRecord.is_motorista),
+      isAdmin: false,
       isPassageiro: userRecord.is_passageiro,
       isMotorista: userRecord.is_motorista,
       nome: userRecord.nome,

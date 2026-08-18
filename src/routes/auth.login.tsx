@@ -59,7 +59,9 @@ function LoginPage() {
       // Verificação de fluxo obrigatório
       const status = await checkStatus();
       
-      if (!status.isRegistrationComplete) {
+      if (status.isAdmin || (status as any).redirectTo) {
+        navigate({ to: (status as any).redirectTo || "/admin" });
+      } else if (!status.isRegistrationComplete) {
         navigate({ to: "/auth/completar-cadastro" });
       } else if (!status.hasProfile) {
         navigate({ to: "/auth/perfil" });
