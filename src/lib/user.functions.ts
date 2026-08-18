@@ -19,7 +19,7 @@ export const getSessionUser = createServerFn({ method: "GET" })
 
     const { data: user, error: userError } = await supabaseAdmin
       .from("usuarios")
-      .select("*, motorista:motoristas(*)")
+      .select("*, motorista:motoristas(*), cidade:cidades(nome, estado_uf)")
       .eq("auth_user_id", userId)
       .maybeSingle();
 

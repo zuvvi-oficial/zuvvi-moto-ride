@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getSessionUser } from "@/lib/user.functions";
 import { useEffect, useState } from "react";
 import { Bike, Loader2, User, Power, MapPin, Navigation, Clock, CheckCircle2, X, FileText, Shield, CreditCard } from "lucide-react";
-import { toggleDisponibilidade, updateLocalizacaoMotorista, getOfertasDisponiveis, aceitarCorrida } from "@/lib/motorista.functions";
+import { toggleDisponibilidade, updateLocalizacaoMotorista, getOfertasDisponiveis, aceitarCorrida, recusarCorrida } from "@/lib/motorista.functions";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,6 +18,7 @@ function HomeMotoristaPage() {
   const updateLocFn = useServerFn(updateLocalizacaoMotorista);
   const getOfertasFn = useServerFn(getOfertasDisponiveis);
   const aceitarFn = useServerFn(aceitarCorrida);
+  const recusarCorridaFn = useServerFn(recusarCorrida);
 
   const { data: user, refetch: refetchUser } = useSuspenseQuery({
     queryKey: ["session-user"],
@@ -94,7 +95,10 @@ function HomeMotoristaPage() {
       setIsOnline(nextState);
       toast.success(nextState ? "Você está online!" : "Você está offline.");
     } catch (err: any) {
+      // Tratamento de erros específicos vindos do servidor (veículo, aprovação, etc)
       toast.error(err.message || "Erro ao mudar status.");
+      // Se falhou, garante que o estado local reflita a realidade (offline se erro ao entrar)
+      if (!isOnline) setIsOnline(false);
     } finally {
       setIsToggling(false);
     }
@@ -105,12 +109,23 @@ function HomeMotoristaPage() {
     try {
       await aceitarFn({ data: { rideId } });
       toast.success("Corrida aceita!");
+      // Navegar para uma futura tela de "Corrida em Curso" ou atualizar o dashboard
       const novas = await getOfertasFn();
       setOfertas(novas);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível aceitar.");
     } finally {
       setIsAccepting(null);
+    }
+  };
+
+  const handleRecusar = async (rideId: string) => {
+    try {
+      await recusarCorridaFn({ data: { rideId } });
+      setOfertas(prev => prev.filter(o => o.id !== rideId));
+      toast.info("Oferta removida.");
+    } catch (err) {
+      toast.error("Erro ao recusar oferta.");
     }
   };
 
@@ -151,7 +166,9 @@ function HomeMotoristaPage() {
             <User className="w-5 h-5 text-zuvvi-volt" />
           </div>
           <div>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Jacarezinho, PR</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-widest">
+              {(user.cidade as any)?.nome || 'Brasília'}, {(user.cidade as any)?.estado_uf || 'DF'}
+            </p>
             <h1 className="text-sm font-bold uppercase">{user.nome.split(" ")[0]}</h1>
           </div>
         </div>
@@ -233,6 +250,7 @@ function HomeMotoristaPage() {
                     ACEITAR
                   </button>
                   <button 
+                    onClick={() => handleRecusar(ride.id)}
                     className="bg-white/5 text-white/60 py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] border border-white/5 active:scale-95 transition-all"
                   >
                     RECUSAR
