@@ -28,6 +28,7 @@ function HomeMotoristaPage() {
   const [isOnline, setIsOnline] = useState(user.motorista?.is_disponivel || false);
   const [isToggling, setIsToggling] = useState(false);
   const [ofertas, setOfertas] = useState<any[]>([]);
+  const [corridaAceita, setCorridaAceita] = useState<any>(null);
   const [isAccepting, setIsAccepting] = useState<string | null>(null);
 
   const motorista = user.motorista;
