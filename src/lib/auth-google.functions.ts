@@ -5,12 +5,17 @@ import { z } from "zod";
 export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    console.log("[GoogleAuth] handler_started");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    console.log("[handleGoogleAuthRedirect] Processing for userId:", userId);
+    if (userId) {
+      console.log("[GoogleAuth] authenticated_user_context=true");
+    } else {
+      console.log("[GoogleAuth] authenticated_user_context=false");
+    }
 
-    // Check if user record already exists
+    console.log("[GoogleAuth] user_record_lookup_started");
     const { data: userRecord, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("id, is_passageiro, is_motorista, cpf, celular")
@@ -23,9 +28,8 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     }
 
     if (!userRecord) {
-      console.log("[handleGoogleAuthRedirect] No user record found with auth_user_id, checking email...");
-      
-      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
+      console.log("[GoogleAuth] user_record_found=false");
+      console.log("[GoogleAuth] email_lookup_started");
       if (authError || !authUser?.user) {
         console.error("[handleGoogleAuthRedirect] Error fetching auth user metadata:", authError);
         return { redirectTo: "/auth/login", error: "Não foi possível obter dados do Google." };
@@ -100,8 +104,21 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
       console.error("[handleGoogleAuthRedirect] Error retrieving final record:", finalError);
       return { redirectTo: "/auth/login", error: "Erro ao recuperar perfil atualizado." };
     }
+    
+    console.log("[GoogleAuth] final_record_lookup_started");
+    const { data: finalRecord, error: finalError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
+      .eq("auth_user_id", userId)
+      .single();
 
-    console.log("[handleGoogleAuthRedirect] Record verified, deciding navigation...");
+    if (finalError || !finalRecord) {
+      console.error("[GoogleAuth] final_record_lookup_failed:", finalError);
+      return { redirectTo: "/auth/login", error: "Erro ao recuperar perfil atualizado." };
+    }
+
+    console.log("[GoogleAuth] final_record_found=true");
+    console.log("[GoogleAuth] deciding_navigation");
 
     // Rule 1: Verify if mandatory registration is complete
     const isRegistrationComplete = !!(
@@ -112,17 +129,17 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     );
 
     if (!isRegistrationComplete) {
-      console.log("[handleGoogleAuthRedirect] Registration incomplete, redirecting to complete-cadastro");
+      console.log("[GoogleAuth] navigation_decision=completar-cadastro");
       return { redirectTo: "/auth/completar-cadastro" };
     }
 
     // Rule 2: Apply profile check after registration is complete
     if (!finalRecord.is_passageiro && !finalRecord.is_motorista) {
-      console.log("[handleGoogleAuthRedirect] Profile not chosen, redirecting to perfil");
+      console.log("[GoogleAuth] navigation_decision=perfil");
       return { redirectTo: "/auth/perfil" };
     }
 
-    console.log("[handleGoogleAuthRedirect] Everything complete, redirecting to Home");
+    console.log("[GoogleAuth] navigation_decision=home");
     return { redirectTo: "/" };
   });
 

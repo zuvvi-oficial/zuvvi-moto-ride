@@ -29,33 +29,46 @@ function AuthCallbackPage() {
 
     const processAuth = async () => {
       try {
+        console.log("[GoogleAuth] callback_started");
         const session = await waitForSession();
         if (cancelled) return;
+        
         if (!session) {
+          console.log("[GoogleAuth] session_found=false");
           setError('Não conseguimos confirmar seu login com o Google. Tente novamente.');
           return;
         }
 
-        console.log("Executing redirect logic server function...");
+        console.log("[GoogleAuth] session_found=true");
+        const token = session.access_token;
+        console.log("[GoogleAuth] access_token_present=" + !!token);
+
+        console.log("[GoogleAuth] calling_redirect_logic");
         const result = await executeRedirectLogic();
         if (cancelled) return;
         
-        console.log("Redirect logic result:", result);
+        console.log("[GoogleAuth] redirect_logic_result_received");
         
         if (result.error) {
+          console.log("[GoogleAuth] redirect_logic_failed error=" + result.error);
           setError(result.error);
           toast.error(result.error);
           return;
         }
         
-        // Final redirection
-        navigate({ to: result.redirectTo as any });
+        console.log("[GoogleAuth] redirect_logic_success to=" + result.redirectTo);
         
         // Final redirection
         navigate({ to: result.redirectTo as any });
-      } catch (err) {
-        console.error("Auth callback error:", err);
+      } catch (err: any) {
+        console.error("[GoogleAuth] unexpected_error:", err);
         if (cancelled) return;
+        
+        // Sanitize error for display but log details
+        const errorType = err?.constructor?.name || typeof err;
+        const errorMessage = err?.message || String(err);
+        console.log(`[GoogleAuth] error_details type=${errorType} message=${errorMessage}`);
+        
         setError("Ocorreu um erro inesperado na autenticação social.");
         toast.error("Erro na autenticação social.");
       }
