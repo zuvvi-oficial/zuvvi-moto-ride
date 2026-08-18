@@ -1,5 +1,6 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
+import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import type { Database } from "@/integrations/supabase/types";
 
 export interface AuthContext {
@@ -12,44 +13,41 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
   const request = getRequest();
   if (!request) return null;
 
-  const SUPABASE_URL = process.env['SUPABASE_URL'];
-  const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'];
+  const SUPABASE_URL = process.env['SUPABASE_URL'] as string;
+  const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'] as string;
+
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return null;
 
-  // Try to find a token in the Authorization header or cookies
-  let token: string | null = null;
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    token = authHeader.substring(7);
-  }
-
-  if (!token) {
-    // Fallback to cookie (TanStack Start/Supabase Auth usually sets sb-xxx-auth-token)
-    // For now, we'll try to extract the access token from the cookies if present
-    const cookieHeader = request.headers.get("cookie") || "";
-    // Note: This regex is simplified. In a real scenario with @supabase/ssr, 
-    // it would use a more robust cookie parser.
-    const match = cookieHeader.match(/sb-[a-z0-9]+-auth-token=([^;]+)/);
-    if (match) {
-      try {
-        const sessionData = JSON.parse(decodeURIComponent(match[1]));
-        token = sessionData.access_token;
-      } catch (e) {
-        // Not a valid JSON or missing access_token
-      }
+  const supabase = createServerClient<Database>(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      cookies: {
+        getAll: () => parseCookieHeader(request.headers.get('Cookie') ?? ''),
+        setAll: () => {}, // Read-only for this check
+      },
     }
-  }
-
-  if (!token) return null;
+  );
 
   try {
-    const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: { persistSession: false }
-    });
+    // Priority 1: Authorization Header (from server functions)
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (!error && user) {
+        return {
+          userId: user.id,
+          email: user.email || '',
+          isAdmin: user.email === 'mokahz@gmail.com' && !!user.email_confirmed_at
+        };
+      }
+    }
+
+    // Priority 2: Session from Cookies (from SSR loaders)
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    
-    if (error || !user) return null;
+    if (userError || !user) return null;
 
     const isAdmin = user.email === 'mokahz@gmail.com' && !!user.email_confirmed_at;
 
