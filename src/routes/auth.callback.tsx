@@ -31,18 +31,6 @@ function AuthCallbackPage() {
       try {
         console.log("[GoogleAuth] callback_started");
         
-        // 1. Exchange the code for a session (PKCE flow)
-        // The URL will have a ?code=... parameter after Google redirect
-        const code = new URL(window.location.href).searchParams.get('code');
-        if (code) {
-          console.log("[GoogleAuth] exchanging_code_for_session");
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) {
-            console.error("[GoogleAuth] exchange_error:", exchangeError);
-            throw exchangeError;
-          }
-        }
-
         const session = await waitForSession();
         if (cancelled) return;
         
