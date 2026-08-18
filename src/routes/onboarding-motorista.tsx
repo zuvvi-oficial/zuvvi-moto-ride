@@ -31,6 +31,18 @@ function HomeMotoristaPage() {
   const [corridaAceita, setCorridaAceita] = useState<any>(null);
   const [isAccepting, setIsAccepting] = useState<string | null>(null);
 
+  const checkStatus = useServerFn(checkUserProfileStatus);
+  const navigate = useNavigate();
+
+  // Guarda ADM e redirecionamento de segurança
+  useEffect(() => {
+    checkStatus().then(status => {
+      if (status.isAdmin || (status as any).redirectTo) {
+        navigate({ to: (status as any).redirectTo || "/admin" });
+      }
+    });
+  }, [checkStatus, navigate]);
+
   const motorista = user.motorista;
   const statusAprovacao = motorista?.status_aprovacao || "em_preenchimento";
   const isAprovado = statusAprovacao === "aprovado";
@@ -153,6 +165,14 @@ function HomeMotoristaPage() {
           <div className="px-3 py-1 bg-white/5 rounded-lg border border-white/10 text-[10px] font-bold uppercase">
             {statusAprovacao === 'em_analise' ? 'Em Análise' : 'Pendente'}
           </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => supabase.auth.signOut().then(() => navigate({ to: '/auth/login' }))}
+            className="text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest"
+          >
+            Sair
+          </Button>
         </header>
         <main className="p-6 space-y-6 max-w-md mx-auto">
           <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">

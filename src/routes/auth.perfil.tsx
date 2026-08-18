@@ -22,6 +22,10 @@ function PerfilPage() {
     const verifyAccess = async () => {
       try {
         const status = await checkStatus();
+        if (status.isAdmin || (status as any).redirectTo) {
+          navigate({ to: (status as any).redirectTo || "/admin" });
+          return;
+        }
         if (!status.isRegistrationComplete) {
           toast.error("Complete seu cadastro primeiro.");
           navigate({ to: "/auth/completar-cadastro" });
