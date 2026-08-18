@@ -205,3 +205,22 @@ export const criarCorrida = createServerFn({ method: "POST" })
 
     return { success: true, rideId: corrida.id };
   });
+
+export const getCorrida = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    const { data: corrida, error } = await supabaseAdmin
+      .from("corridas")
+      .select("*")
+      .eq("id", data.rideId)
+      .maybeSingle();
+
+    if (error || !corrida) {
+      throw new Error("Corrida não encontrada");
+    }
+
+    return corrida;
+  });

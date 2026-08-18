@@ -59,11 +59,10 @@ function ConfirmarCorrida() {
 
       if (result.success) {
         toast.success("Corrida solicitada com sucesso!");
-        // Por enquanto, apenas notifica. A instrução diz "avançar para o estado/tela já prevista de busca por motorista".
-        // Se houver uma rota específica (ex: /buscando-motorista), navegaríamos aqui. 
-        // Como o usuário não definiu a rota de destino final, mas pediu para avançar, 
-        // vou simular o avanço ou manter um estado de sucesso se não houver tela definida.
-        // navigate({ to: '/buscando-motorista', search: { rideId: result.rideId } });
+        navigate({ 
+          to: '/procurando-motorista', 
+          search: { rideId: result.rideId } 
+        });
       }
     } catch (err: any) {
       console.error(err);
