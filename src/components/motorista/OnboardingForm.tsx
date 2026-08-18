@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getUploadUrl, registrarDocumento, salvarDadosCNH, criarVeiculo, enviarParaAnalise } from "@/lib/motorista.functions";
 import { toast } from "sonner";
 import { Bike, Loader2, CheckCircle2, FileText, CreditCard, Upload, AlertCircle, FileText as DocIcon, Camera } from "lucide-react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 
 type UploadState = {
   status: 'idle' | 'uploading' | 'success' | 'error';
@@ -13,12 +20,74 @@ type UploadState = {
 
 export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [cnhData, setCnhData] = useState({ numero: "", categoria: "A", validade: "" });
+  const [validadeDay, setValidadeDay] = useState('');
+  const [validadeMonth, setValidadeMonth] = useState('');
+  const [validadeYear, setValidadeYear] = useState('');
   const [veiculoData, setVeiculoData] = useState({ placa: "", marca: "", modelo: "", ano: "", cor: "" });
   const [veiculoStatus, setVeiculoStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [pix, setPix] = useState("");
   const [pixType, setPixType] = useState<'cpf' | 'telefone' | 'email' | 'aleatoria' | null>(null);
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const meses = [
+    { value: '01', label: 'Janeiro' },
+    { value: '02', label: 'Fevereiro' },
+    { value: '03', label: 'Março' },
+    { value: '04', label: 'Abril' },
+    { value: '05', label: 'Maio' },
+    { value: '06', label: 'Junho' },
+    { value: '07', label: 'Julho' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' },
+  ];
+
+  const anos = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    // Validade de CNH é no futuro, vamos listar até 15 anos à frente e 10 atrás (por segurança)
+    for (let i = currentYear + 15; i >= currentYear - 5; i--) {
+      years.push(i.toString());
+    }
+    return years;
+  }, []);
+
+  const dias = useMemo(() => {
+    if (!validadeMonth) return Array.from({ length: 31 }, (_, i) => (i + 1).toString());
+    
+    let daysInMonth = 31;
+    const m = parseInt(validadeMonth);
+    
+    if ([4, 6, 9, 11].includes(m)) {
+      daysInMonth = 30;
+    } else if (m === 2) {
+      const y = parseInt(validadeYear);
+      const isLeapYear = y ? (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0) : false;
+      daysInMonth = isLeapYear ? 29 : 28;
+    }
+    
+    return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
+  }, [validadeMonth, validadeYear]);
+
+  // Atualiza cnhData.validade quando os seletores mudam
+  useEffect(() => {
+    if (validadeDay && validadeMonth && validadeYear) {
+      const dateStr = `${validadeYear}-${validadeMonth.padStart(2, '0')}-${validadeDay.padStart(2, '0')}`;
+      setCnhData(prev => ({ ...prev, validade: dateStr }));
+    } else {
+      setCnhData(prev => ({ ...prev, validade: "" }));
+    }
+  }, [validadeDay, validadeMonth, validadeYear]);
+
+  // Corrige dia se o mês mudar e o dia atual for inválido para o novo mês
+  useEffect(() => {
+    if (validadeDay && parseInt(validadeDay) > dias.length) {
+      setValidadeDay('');
+    }
+  }, [dias, validadeDay]);
 
   const getUploadUrlFn = useServerFn(getUploadUrl);
   const registrarDocFn = useServerFn(registrarDocumento);
@@ -291,12 +360,40 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           </div>
           <div className="space-y-1">
             <label className="text-[10px] text-white/40 uppercase tracking-widest ml-1">Validade da CNH</label>
-            <input 
-              type="date"
-              className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
-              value={cnhData.validade}
-              onChange={e => setCnhData({...cnhData, validade: e.target.value})}
-            />
+            <div className="grid grid-cols-3 gap-2">
+              <Select onValueChange={setValidadeDay} value={validadeDay}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white focus:border-zuvvi-volt h-12 rounded-2xl">
+                  <SelectValue placeholder="Dia" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {dias.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select onValueChange={setValidadeMonth} value={validadeMonth}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white focus:border-zuvvi-volt h-12 rounded-2xl">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {meses.map(m => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select onValueChange={setValidadeYear} value={validadeYear}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white focus:border-zuvvi-volt h-12 rounded-2xl">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {anos.map(y => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {renderUpload('cnh', 'Foto da CNH')}
         </div>
