@@ -149,7 +149,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       .select("corrida_id")
       .eq("motorista_id", user.id);
     
-    const idsRecusados = recusas?.map((r: any) => r.corrida_id) || [];
+    const idsRecusados = (recusas?.map((r: any) => r.corrida_id) || []).filter((id): id is string => id !== null);
 
     let query = supabaseAdmin
       .from("corridas")
