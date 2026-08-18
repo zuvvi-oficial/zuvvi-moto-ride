@@ -10,7 +10,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkUserProfileStatus } from "@/lib/auth-status.functions";
 import { Button } from "@/components/ui/button";
 
+import { resolvePostLoginDestination } from "@/lib/auth-status.functions";
+import { redirect } from "@tanstack/react-router";
+
 export const Route = createFileRoute("/onboarding-motorista")({
+  loader: async () => {
+    const dest = await resolvePostLoginDestination();
+    if (dest.redirectTo && dest.redirectTo !== "/onboarding-motorista") {
+      throw redirect({ to: dest.redirectTo as any });
+    }
+  },
   component: HomeMotoristaPage,
 });
 
@@ -36,11 +45,13 @@ function HomeMotoristaPage() {
   const checkStatus = useServerFn(checkUserProfileStatus);
   const navigate = useNavigate();
 
-  // Guarda ADM e redirecionamento de segurança
+  // Redirecionamento de segurança (guarda client-side em adição ao loader)
   useEffect(() => {
     checkStatus().then((status: any) => {
       if (status.isAdmin || status.redirectTo) {
-        navigate({ to: status.redirectTo || "/admin" });
+        if (status.redirectTo && status.redirectTo !== "/onboarding-motorista") {
+          navigate({ to: status.redirectTo || "/admin" });
+        }
       }
     });
   }, [checkStatus, navigate]);

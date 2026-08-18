@@ -59,13 +59,6 @@ function AuthCallbackPage() {
         
         console.log("[GoogleAuth] redirect_logic_result_received");
         
-        if (result.error) {
-          console.log("[GoogleAuth] redirect_logic_failed error=" + result.error);
-          setError(result.error);
-          toast.error(result.error);
-          return;
-        }
-        
         console.log("[GoogleAuth] redirect_logic_success to=" + result.redirectTo);
         
         // Final redirection (navigation duplication fixed by removing the extra call that was here)

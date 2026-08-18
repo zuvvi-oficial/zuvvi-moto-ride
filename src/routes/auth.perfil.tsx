@@ -4,10 +4,17 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { selectPassageiroPerfil, selectMotoristaPerfil } from '@/lib/perfil.functions';
 import { useServerFn } from '@tanstack/react-start';
-import { checkUserProfileStatus } from '@/lib/auth-status.functions';
+import { checkUserProfileStatus, resolvePostLoginDestination } from '@/lib/auth-status.functions';
+import { redirect } from '@tanstack/react-router';
 import { Bike, User } from 'lucide-react';
 
 export const Route = createFileRoute('/auth/perfil')({
+  loader: async () => {
+    const dest = await resolvePostLoginDestination();
+    if (dest.redirectTo && dest.redirectTo !== "/auth/perfil") {
+      throw redirect({ to: dest.redirectTo as any });
+    }
+  },
   component: PerfilPage,
 });
 
@@ -23,8 +30,11 @@ function PerfilPage() {
       try {
         const status = await checkStatus();
         if (status.isAdmin || (status as any).redirectTo) {
-          navigate({ to: (status as any).redirectTo || "/admin" });
-          return;
+          const target = (status as any).redirectTo || "/admin";
+          if (target !== "/auth/perfil") {
+            navigate({ to: target as any });
+            return;
+          }
         }
         if (!status.isRegistrationComplete) {
           toast.error("Complete seu cadastro primeiro.");
