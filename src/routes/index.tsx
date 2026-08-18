@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAuthStatus } from "@/lib/auth-status.functions";
 import heroMoto from "@/assets/hero-moto.jpg";
-import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, GpsFixed, AlertTriangle, Loader2 } from "lucide-react";
+import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
@@ -17,9 +17,6 @@ export const Route = createFileRoute("/")({
       { title: "Zuvvi — Mobilidade urbana na velocidade da moto" },
       { name: "description", content: "Zuvvi é a plataforma brasileira de moto-táxi." },
     ],
-    links: [
-      { rel: "stylesheet", href: "https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css" }
-    ]
   }),
   component: UnifiedIndex,
 });
@@ -102,19 +99,19 @@ function HomePassageiro({ nome }: { nome: string }) {
     );
   };
 
-  // 1. Request initial location
   useEffect(() => {
     requestLocation();
   }, []);
 
-  // 2. Check city availability once we have location or user profile
   useEffect(() => {
     const checkAvailability = async () => {
       try {
         const user = await getSessionUserFn();
         const result = await checkCityAvailabilityFn({ 
-          cidadeId: user.cidade_id,
-          coords: location || undefined
+          data: {
+            cidadeId: user.cidade_id,
+            coords: location || undefined
+          }
         });
         setIsCityAvailable(result.isAvailable);
         setCityName(result.cityName);
@@ -129,7 +126,6 @@ function HomePassageiro({ nome }: { nome: string }) {
     }
   }, [location, isLocating]);
 
-  // 3. Initialize Map
   useEffect(() => {
     if (!location || !isCityAvailable || map.current) return;
 
@@ -152,7 +148,6 @@ function HomePassageiro({ nome }: { nome: string }) {
         attributionControl: false
       });
 
-      // Add user marker
       new mapboxgl.Marker({ color: "#C6FF3D" })
         .setLngLat([location.lng, location.lat])
         .addTo(map.current);
@@ -170,15 +165,12 @@ function HomePassageiro({ nome }: { nome: string }) {
 
   return (
     <div className="relative min-h-screen bg-zuvvi-indigo text-foreground overflow-hidden">
-      {/* MAP BACKGROUND */}
       <div 
         ref={mapContainer} 
         className={`fixed inset-0 z-0 transition-opacity duration-1000 ${isCityAvailable ? 'opacity-100' : 'opacity-0'}`} 
       />
 
-      {/* OVERLAY UI */}
       <div className="relative z-10 flex flex-col min-h-screen pointer-events-none">
-        {/* Header - Glassmorphism */}
         <header className="px-5 py-4 pointer-events-auto">
           <div className="mx-auto max-w-md flex items-center justify-between bg-zuvvi-indigo/60 backdrop-blur-lg border border-white/10 rounded-3xl px-4 py-3 shadow-2xl">
             <div className="flex items-center gap-3">
@@ -200,10 +192,8 @@ function HomePassageiro({ nome }: { nome: string }) {
           </div>
         </header>
 
-        {/* MAIN CONTENT AREA */}
         <main className="flex-1 flex flex-col justify-end px-5 pb-24 mx-auto w-full max-w-md space-y-4">
           
-          {/* STATE: LOADING / LOCATING */}
           {isLocating && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-4 shadow-2xl pointer-events-auto animate-rise">
               <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
@@ -211,7 +201,6 @@ function HomePassageiro({ nome }: { nome: string }) {
             </div>
           )}
 
-          {/* STATE: GPS ERROR */}
           {!isLocating && locationError && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center space-y-6 shadow-2xl pointer-events-auto animate-rise">
               <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -230,7 +219,6 @@ function HomePassageiro({ nome }: { nome: string }) {
             </div>
           )}
 
-          {/* STATE: CITY NOT AVAILABLE */}
           {!isLocating && !locationError && isCityAvailable === false && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center space-y-6 shadow-2xl pointer-events-auto animate-rise">
               <div className="w-16 h-16 rounded-full bg-zuvvi-volt/20 flex items-center justify-center">
@@ -248,10 +236,8 @@ function HomePassageiro({ nome }: { nome: string }) {
             </div>
           )}
 
-          {/* STATE: SUCCESS / MAP UI */}
           {!isLocating && !locationError && isCityAvailable === true && (
             <div className="space-y-4 animate-rise pointer-events-auto">
-              {/* Destination Input Fixed at bottom */}
               <div className="relative group">
                 <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
                   <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
@@ -267,7 +253,6 @@ function HomePassageiro({ nome }: { nome: string }) {
                 </div>
               </div>
               
-              {/* Quick Actions (Floating) */}
               <div className="grid grid-cols-2 gap-3 pb-4">
                 <button className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]">
                   <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center">
@@ -286,7 +271,6 @@ function HomePassageiro({ nome }: { nome: string }) {
           )}
         </main>
 
-        {/* Bottom Nav - Fixed at bottom */}
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto">
           <div className="mx-auto max-w-md flex items-center justify-around">
             <button className="flex flex-col items-center gap-1 volt-text">
