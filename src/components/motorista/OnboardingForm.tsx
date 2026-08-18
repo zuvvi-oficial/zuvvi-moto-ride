@@ -291,21 +291,21 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           placeholder="Marca (ex: Honda)" 
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.marca}
-          onChange={e => setVeiculoData({...veiculoData, marca: e.target.value})}
+          onChange={e => setVeiculoData({...veiculoData, marca: e.target.value.toUpperCase()})}
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
         <input 
           placeholder="Modelo (ex: CG 160)" 
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.modelo}
-          onChange={e => setVeiculoData({...veiculoData, modelo: e.target.value})}
+          onChange={e => setVeiculoData({...veiculoData, modelo: e.target.value.toUpperCase()})}
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
         <input 
           placeholder="Cor" 
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.cor}
-          onChange={e => setVeiculoData({...veiculoData, cor: e.target.value})}
+          onChange={e => setVeiculoData({...veiculoData, cor: e.target.value.toUpperCase()})}
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
 
