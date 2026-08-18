@@ -1,5 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { useServerFn, useSuspenseQuery } from '@tanstack/react-start';
+import { useServerFn } from '@tanstack/react-start';
+import { useSuspenseQuery } from '@tanstack/react-query';
+
 import { getAdminStats } from '@/lib/admin.functions';
 import { Users, Bike, MapPin, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

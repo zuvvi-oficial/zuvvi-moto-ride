@@ -1,5 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { useServerFn, useSuspenseQuery } from '@tanstack/react-start';
+import { useServerFn } from '@tanstack/react-start';
+import { useSuspenseQuery } from '@tanstack/react-query';
+
 import { getMotoristasAdmin, updateStatusMotorista } from '@/lib/admin.functions';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
