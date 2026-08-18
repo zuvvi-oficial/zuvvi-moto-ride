@@ -233,7 +233,7 @@ function CompletarCadastroPage() {
     
     // Rola para o primeiro erro
     const firstError = Object.keys(errors)[0];
-    const element = document.getElementById(firstError);
+    const element = firstError ? document.getElementById(firstError) : null;
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       element.focus();
