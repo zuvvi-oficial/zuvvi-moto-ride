@@ -162,7 +162,7 @@ function CompletarCadastroPage() {
       // Caso inicial onde temos UF mas não temos cidades
       loadCities();
     }
-  }, [selectedUF, fetchCities, setValue, cities.length]);
+  }, [selectedUF]);
 
   // Lógica para anos (do ano atual até 100 anos atrás)
   const anos = useMemo(() => {
