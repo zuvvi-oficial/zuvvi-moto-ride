@@ -588,7 +588,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_distinct_ufs: {
+        Args: never
+        Returns: {
+          estado_uf: string
+        }[]
+      }
     }
     Enums: {
       cancelado_por: "passageiro" | "motorista" | "operacao"
