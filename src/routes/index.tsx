@@ -6,10 +6,9 @@ import heroMoto from "@/assets/hero-moto.jpg";
 import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
 import { getMapboxToken, checkCityAvailability, getReverseGeocoding } from "@/lib/user.functions";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -64,7 +63,7 @@ function UnifiedIndex() {
 
 function HomePassageiro({ nome }: { nome: string }) {
   const navigate = useNavigate();
-  const map = useRef<mapboxgl.Map | null>(null);
+
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
@@ -83,12 +82,6 @@ function HomePassageiro({ nome }: { nome: string }) {
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
   const getReverseGeocodingFn = useServerFn(getReverseGeocoding);
 
-  // Callback ref para garantir o DOM pronto
-  const mapContainerRef = (el: HTMLDivElement | null) => {
-    if (el && !map.current && location) {
-      initMap(el);
-    }
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -122,19 +115,7 @@ function HomePassageiro({ nome }: { nome: string }) {
         setLocation(newCoords);
         setIsLocating(false);
         setIsUpdatingLocation(false);
-        
-        // Atualizar marcador no mapa se ele existir
-        if (map.current) {
-          map.current.flyTo({
-            center: [newCoords.lng, newCoords.lat],
-            zoom: 15
-          });
-          
-          const existingMarker = (map.current as any)._zuvviMarker;
-          if (existingMarker) {
-            existingMarker.setLngLat([newCoords.lng, newCoords.lat]);
-          }
-        }
+
       },
       (error) => {
         console.error("Erro GPS:", error);
@@ -180,90 +161,18 @@ function HomePassageiro({ nome }: { nome: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.lat, location?.lng, isLocating]);
 
-  const initMap = async (container: HTMLDivElement) => {
-    if (map.current) return;
-
-    try {
-      setDebugStatus("Token ok, verificando WebGL...");
-      if (!mapboxgl.supported()) {
-        const errorMsg = "Seu navegador não suporta o mapa. Atualize o navegador ou tente outro.";
-        setDebugStatus(`Erro: ${errorMsg}`);
-        toast.error(errorMsg);
-        return;
-      }
-
-      setDebugStatus("Criando mapa...");
-      const token = await getMapboxTokenFn();
-      
-      if (!token) {
-        setDebugStatus("Erro: Token não encontrado");
-        toast.error("Configuração de mapa ausente (Token não encontrado).");
-        return;
-      }
-
-      if (!token.startsWith("pk.")) {
-        setDebugStatus("Erro: Token não é público (pk.)");
-        toast.error("Configuração de mapa inválida: use um token PÚBLICO (pk.xxx).");
-        return;
-      }
-
-      mapboxgl.accessToken = token;
-      
-      map.current = new mapboxgl.Map({
-        container: container,
-        style: "mapbox://styles/mapbox/dark-v11",
-        center: [location!.lng, location!.lat],
-        zoom: 15,
-        attributionControl: false
-      });
-
-      setDebugStatus("Mapa criado, aguardando carregar...");
-
-      map.current.on('load', () => {
-        setDebugStatus("Mapa carregado ✓");
-        map.current?.resize();
-      });
-
-      map.current.on('error', (e) => {
-        console.error("Mapbox error:", e);
-        setDebugStatus(`Erro Mapbox: ${e.error?.message || 'Erro desconhecido'}`);
-        toast.error("Não foi possível carregar o mapa: verifique o token do Mapbox.");
-      });
-
-      // Adicionar marcador inicial e manter referência
-      const marker = new mapboxgl.Marker({ color: "#C6FF3D" })
-        .setLngLat([location!.lng, location!.lat])
-        .addTo(map.current);
-      
-      // Armazenar marcador no objeto do mapa para fácil acesso (hack prático)
-      (map.current as any)._zuvviMarker = marker;
-    } catch (err) {
-      console.error("Erro ao inicializar mapa:", err);
-      setDebugStatus(`Erro fatal: ${err instanceof Error ? err.message : 'Desconhecido'}`);
-      toast.error("Falha ao inicializar o mapa.");
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, []);
 
   return (
     <div 
       className="relative bg-zuvvi-indigo text-foreground overflow-hidden"
       style={{ height: '100dvh', width: '100vw' }}
     >
-      {/* 1. O Mapa (Z-INDEX 0) - Camada de Fundo */}
+      {/* 1. Fundo (Z-INDEX 0) */}
       <div 
-        ref={mapContainerRef} 
         style={{ position: 'absolute', inset: 0, zIndex: 0 }}
-        className={`transition-opacity duration-1000 ${location ? 'opacity-100' : 'opacity-0'}`} 
+        className="bg-zuvvi-indigo-dark"
       />
+
 
       {/* 2. Camada de Interface (Z-INDEX 10) - Sobreposta ao mapa */}
       <div 
@@ -395,19 +304,7 @@ function HomePassageiro({ nome }: { nome: string }) {
                         setManualLocation({ lat: res.center[1], lng: res.center[0] });
                         setManualAddress(res.place_name);
                         setIsEditingOrigin(false);
-                        
-                        // Centralizar mapa na nova origem
-                        if (map.current) {
-                          map.current.flyTo({
-                            center: [res.center[0], res.center[1]],
-                            zoom: 15
-                          });
-                          
-                          const existingMarker = (map.current as any)._zuvviMarker;
-                          if (existingMarker) {
-                            existingMarker.setLngLat([res.center[0], res.center[1]]);
-                          }
-                        }
+
                       }}
                     />
                   </div>

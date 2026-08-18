@@ -90,7 +90,7 @@ function ProcurandoMotorista() {
           if (updatedRide['motorista_id'] && !motoristaEncontrado) {
             setMotoristaEncontrado(true);
             toast.success("Motorista encontrou você!");
-            // A navegação para a próxima tela será feita futuramente
+            navigate({ to: '/acompanhamento', search: { rideId } });
           }
         }
       )
@@ -299,7 +299,7 @@ function ProcurandoMotorista() {
             </div>
             <button 
               className="bg-zuvvi-indigo text-zuvvi-volt px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-transform"
-              onClick={() => toast.info("Próxima tela em desenvolvimento.")}
+              onClick={() => navigate({ to: '/acompanhamento', search: { rideId } })}
             >
               Ver Mapa
             </button>

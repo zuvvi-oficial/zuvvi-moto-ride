@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcompanhamentoRouteImport } from './routes/acompanhamento'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
@@ -23,6 +24,11 @@ import { Route as AuthPerfilRouteImport } from './routes/auth.perfil'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcompanhamentoRoute = AcompanhamentoRouteImport.update({
+  id: '/acompanhamento',
+  path: '/acompanhamento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -73,6 +79,7 @@ const AuthPerfilRoute = AuthPerfilRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
     | '/onboarding-motorista'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
     | '/onboarding-motorista'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
     | '/onboarding-motorista'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcompanhamentoRoute: typeof AcompanhamentoRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acompanhamento': {
+      id: '/acompanhamento'
+      path: '/acompanhamento'
+      fullPath: '/acompanhamento'
+      preLoaderRoute: typeof AcompanhamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -250,6 +270,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcompanhamentoRoute: AcompanhamentoRoute,
   AuthRoute: AuthRouteWithChildren,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
