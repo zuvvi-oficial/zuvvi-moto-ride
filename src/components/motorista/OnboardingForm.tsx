@@ -14,6 +14,7 @@ type UploadState = {
 export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [cnhData, setCnhData] = useState({ numero: "", categoria: "A", validade: "" });
   const [veiculoData, setVeiculoData] = useState({ placa: "", marca: "", modelo: "", ano: "", cor: "" });
+  const [veiculoStatus, setVeiculoStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [pix, setPix] = useState("");
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,9 +167,27 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
     );
   };
 
+  const handleSaveVeiculo = async (data: typeof veiculoData) => {
+    if (!data.placa || !data.marca || !data.modelo || !data.ano || !data.cor) return;
+    
+    setVeiculoStatus('saving');
+    try {
+      await criarVeiculoFn({ data: { 
+        ...data, 
+        ano: parseInt(data.ano) 
+      } });
+      setVeiculoStatus('success');
+      toast.success("Veículo salvo com sucesso!");
+    } catch (e: any) {
+      console.error("Erro ao salvar veículo:", e);
+      setVeiculoStatus('error');
+      toast.error(e.message || "Erro ao salvar veículo");
+    }
+  };
+
   const canSubmit = 
     cnhData.numero && cnhData.validade && pix &&
-    veiculoData.placa && veiculoData.marca && veiculoData.modelo && veiculoData.ano && veiculoData.cor &&
+    veiculoStatus === 'success' &&
     ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'].every(t => uploads[t]?.status === 'success');
 
   const handleSubmit = async () => {
@@ -181,10 +200,13 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         chave_pix: pix 
       } });
       
-      await criarVeiculoFn({ data: { 
-        ...veiculoData, 
-        ano: parseInt(veiculoData.ano) 
-      } });
+      // O veículo já é salvo via auto-save, mas garantimos aqui se necessário
+      if (veiculoStatus !== 'success') {
+        await criarVeiculoFn({ data: { 
+          ...veiculoData, 
+          ano: parseInt(veiculoData.ano) 
+        } });
+      }
       
       await enviarAnaliseFn();
       toast.success("Cadastro enviado para análise!");
@@ -254,6 +276,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
             className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
             value={veiculoData.placa}
             onChange={e => setVeiculoData({...veiculoData, placa: e.target.value.toUpperCase()})}
+            onBlur={() => handleSaveVeiculo(veiculoData)}
           />
           <input 
             placeholder="Ano" 
@@ -261,6 +284,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
             className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
             value={veiculoData.ano}
             onChange={e => setVeiculoData({...veiculoData, ano: e.target.value})}
+            onBlur={() => handleSaveVeiculo(veiculoData)}
           />
         </div>
         <input 
@@ -268,19 +292,43 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.marca}
           onChange={e => setVeiculoData({...veiculoData, marca: e.target.value})}
+          onBlur={() => handleSaveVeiculo(veiculoData)}
         />
         <input 
           placeholder="Modelo (ex: CG 160)" 
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.modelo}
           onChange={e => setVeiculoData({...veiculoData, modelo: e.target.value})}
+          onBlur={() => handleSaveVeiculo(veiculoData)}
         />
         <input 
           placeholder="Cor" 
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.cor}
           onChange={e => setVeiculoData({...veiculoData, cor: e.target.value})}
+          onBlur={() => handleSaveVeiculo(veiculoData)}
         />
+
+        <div className="flex items-center gap-2 ml-1 min-h-[16px]">
+          {veiculoStatus === 'saving' && (
+            <div className="flex items-center gap-1.5 text-[10px] text-white/40">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Salvando dados do veículo...</span>
+            </div>
+          )}
+          {veiculoStatus === 'success' && (
+            <div className="flex items-center gap-1.5 text-[10px] text-zuvvi-volt font-bold">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Dados do veículo salvos ✓</span>
+            </div>
+          )}
+          {veiculoStatus === 'error' && (
+            <div className="flex items-center gap-1.5 text-[10px] text-red-500 font-bold">
+              <AlertCircle className="w-3 h-3" />
+              <span>Erro ao salvar veículo. Tente novamente.</span>
+            </div>
+          )}
+        </div>
         <div className="space-y-2">
           {renderUpload('crlv', 'Foto do CRLV Digital')}
           {renderUpload('foto_veiculo', 'Foto do Veículo')}
