@@ -190,14 +190,16 @@ export const criarCorrida = createServerFn({ method: "POST" })
         cidade_id: usuario.cidade_id,
         origem_lat: data.origemLat,
         origem_lng: data.origemLng,
-        origem_nome: data.origemNome || 'Sua localização',
         destino_lat: data.destinoLat,
         destino_lng: data.destinoLng,
-        destino_nome: data.destinoNome || 'Destino',
         valor_estimado: data.valorEstimado,
         forma_pagamento: data.formaPagamento,
         codigo_embarque: codigoEmbarque,
-        status: 'solicitada'
+        status: 'solicitada',
+        ...({
+          origem_nome: data.origemNome || 'Sua localização',
+          destino_nome: data.destinoNome || 'Destino'
+        } as any)
       })
       .select()
       .single();
