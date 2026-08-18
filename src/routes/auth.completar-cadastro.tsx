@@ -247,7 +247,7 @@ function CompletarCadastroPage() {
         <p className="text-muted-foreground text-sm mt-1 font-poppins">Precisamos de mais alguns dados para sua segurança</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="cpf" className="text-white/80 font-poppins text-sm">CPF</Label>
           <Controller
