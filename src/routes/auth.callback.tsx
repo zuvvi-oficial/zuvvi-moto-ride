@@ -13,6 +13,7 @@ export const Route = createFileRoute('/auth/callback')({
 function AuthCallbackPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [debugError, setDebugError] = useState<string | null>(null);
   const executeRedirectLogic = useServerFn(handleGoogleAuthRedirect);
 
   useEffect(() => {
@@ -68,7 +69,9 @@ function AuthCallbackPage() {
         if (cancelled) return;
         
         const errorMessage = err?.message || String(err);
+        const fullErrorInfo = err && typeof err === 'object' ? JSON.stringify(err, null, 2) : String(err);
         console.log(`[GoogleAuth] error_details: ${errorMessage}`);
+        setDebugError(fullErrorInfo);
         
         // Provide more specific feedback for common auth failures
         if (errorMessage.includes("Unauthorized")) {
@@ -101,6 +104,14 @@ function AuthCallbackPage() {
           <p className="text-muted-foreground text-sm max-w-[280px]">
             {error}
           </p>
+          {debugError && (
+            <div className="mt-4 p-2 bg-white/5 rounded border border-white/10 text-left overflow-auto max-h-[150px]">
+              <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Diagnóstico</p>
+              <pre className="text-[10px] font-mono text-white/60 whitespace-pre-wrap break-all">
+                {debugError}
+              </pre>
+            </div>
+          )}
         </div>
         <Button asChild className="w-full bg-zuvvi-volt text-zuvvi-indigo hover:bg-zuvvi-volt/90 font-bold">
           <Link to="/auth/login">Voltar ao Login</Link>
