@@ -734,6 +734,7 @@ export type Database = {
         | "approved"
         | "suspended"
         | "rejected"
+        | "em_analise"
       motorista_status_aprovacao:
         | "em_preenchimento"
         | "em_analise"
@@ -909,6 +910,7 @@ export const Constants = {
         "approved",
         "suspended",
         "rejected",
+        "em_analise",
       ],
       motorista_status_aprovacao: [
         "em_preenchimento",
