@@ -129,13 +129,15 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       return [];
     }
 
+    if (!user.cidade_id) return [];
+
     // 3. Buscar recusas do motorista para filtrar
     const { data: recusas } = await supabaseAdmin
-      .from("motorista_recusas")
+      .from("motorista_recusas" as any)
       .select("corrida_id")
       .eq("motorista_id", user.id);
     
-    const idsRecusados = recusas?.map(r => r.corrida_id) || [];
+    const idsRecusados = recusas?.map((r: any) => r.corrida_id) || [];
 
     // 4. Buscar corridas solicitadas na cidade do motorista
     let query = supabaseAdmin
@@ -146,6 +148,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       .is("motorista_id", null);
 
     if (idsRecusados.length > 0) {
+      // @ts-ignore - Supabase type for .in with strings
       query = query.not("id", "in", `(${idsRecusados.join(',')})`);
     }
 
@@ -197,6 +200,8 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
 
     if (!veiculo) throw new Error("Veículo não disponível ou não aprovado.");
 
+    if (!motoristaInfo.cidade_id) throw new Error("Cidade do motorista não definida.");
+
     // 2. Aceite Transacional (Atomic Update)
     // Garante que motorista_id seja nulo, status seja solicitada e a cidade coincida
     const { data: corrida, error: uError } = await supabaseAdmin
@@ -246,13 +251,13 @@ export const recusarCorrida = createServerFn({ method: "POST" })
     if (!user) throw new Error("Usuário não encontrado.");
 
     const { error } = await supabaseAdmin
-      .from("motorista_recusas")
+      .from("motorista_recusas" as any)
       .insert({
         motorista_id: user.id,
         corrida_id: data.rideId
       });
 
-    if (error && error.code !== '23505') { // Ignora erro de duplicata (já recusado)
+    if (error && (error as any).code !== '23505') { // Ignora erro de duplicata (já recusado)
       throw new Error("Erro ao registrar recusa.");
     }
 

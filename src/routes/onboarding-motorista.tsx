@@ -167,7 +167,7 @@ function HomeMotoristaPage() {
           </div>
           <div>
             <p className="text-[9px] text-muted-foreground uppercase tracking-widest">
-              {(user.cidade as any)?.nome || 'Brasília'}, {(user.cidade as any)?.estado_uf || 'DF'}
+              {(user as any).cidade?.nome || 'Brasília'}, {(user as any).cidade?.estado_uf || 'DF'}
             </p>
             <h1 className="text-sm font-bold uppercase">{user.nome.split(" ")[0]}</h1>
           </div>
