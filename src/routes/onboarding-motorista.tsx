@@ -114,9 +114,15 @@ function HomeMotoristaPage() {
     try {
       await aceitarFn({ data: { rideId } });
       toast.success("Corrida aceita!");
-      // Navegar para uma futura tela de "Corrida em Curso" ou atualizar o dashboard
-      const novas = await getOfertasFn();
-      setOfertas(novas);
+      
+      const { data: rideData } = await supabase
+        .from("corridas")
+        .select("*")
+        .eq("id", rideId)
+        .single();
+      
+      setCorridaAceita(rideData);
+      setIsOnline(false);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível aceitar.");
     } finally {
@@ -189,7 +195,50 @@ function HomeMotoristaPage() {
       </header>
 
       <main className="p-6 max-w-md mx-auto space-y-6">
-        {!isOnline && (
+        {corridaAceita && (
+          <div className="bg-white/5 border border-zuvvi-volt rounded-[2rem] p-6 space-y-6 animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black text-zuvvi-volt uppercase tracking-widest">Corrida em Curso</h2>
+              <div className="bg-zuvvi-volt text-zuvvi-indigo px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                {corridaAceita.status}
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Destino</p>
+                <p className="text-sm font-bold">{corridaAceita.destino_nome}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Origem</p>
+                <p className="text-sm opacity-70 italic">{corridaAceita.origem_nome}</p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+              <div>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Valor</p>
+                <p className="text-lg font-black text-zuvvi-volt">R$ {corridaAceita.valor_estimado?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Pagamento</p>
+                <p className="text-[10px] font-bold uppercase">{corridaAceita.forma_pagamento}</p>
+              </div>
+            </div>
+
+            <button 
+              className="w-full bg-white/10 hover:bg-white/20 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
+              onClick={() => {
+                // Futura navegação para detalhes/conclusão
+                toast.info("Funcionalidade de conclusão em breve.");
+              }}
+            >
+              Ver Detalhes
+            </button>
+          </div>
+        )}
+
+        {!isOnline && !corridaAceita && (
           <div className="py-20 text-center space-y-4 animate-in fade-in duration-700">
             <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto border border-white/5">
               <Bike className="w-10 h-10 text-white/20" />
