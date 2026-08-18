@@ -39,6 +39,7 @@ const formatPhone = (value: string) => {
     .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
 };
 
+// 2. O schema Zod do formulário passa a ter apenas: cpf, celular, cidade_id.
 const completionSchema = z.object({
   cpf: z
     .string()
@@ -48,8 +49,6 @@ const completionSchema = z.object({
     .string()
     .transform((val) => val.replace(/\D/g, ''))
     .refine((val) => val.length >= 10 && val.length <= 11, "Celular inválido"),
-  data_nascimento: z.string().min(1, "Data de nascimento é obrigatória"),
-  uf: z.string().min(1, "Estado é obrigatório"),
   cidade_id: z.string().uuid("Cidade é obrigatória"),
 });
 
@@ -87,40 +86,29 @@ function CompletarCadastroPage() {
   const [isLoadingUfs, setIsLoadingUfs] = useState(true);
   const [isLoadingCities, setIsLoadingCities] = useState(false);
 
-  // Estados locais para os seletores de data
+  // Estados locais para os seletores de data e UF (agora manuais)
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
+  const [selectedUF, setSelectedUF] = useState('');
 
   const { 
     handleSubmit, 
     formState: { errors }, 
     control,
-    watch,
     setValue
   } = useForm<CompletionForm>({
     resolver: zodResolver(completionSchema),
     defaultValues: {
       cpf: '',
       celular: '',
-      data_nascimento: '',
-      uf: '',
       cidade_id: '',
     }
   });
 
-  const selectedUF = watch('uf');
   const lastSelectedUF = useRef(selectedUF);
 
-  // Atualiza o valor de data_nascimento no formulário quando os seletores mudam
-  useEffect(() => {
-    if (day && month && year) {
-      setValue('data_nascimento', `${year}-${month}-${day.padStart(2, '0')}`);
-    } else {
-      setValue('data_nascimento', '');
-    }
-  }, [day, month, year, setValue]);
-
+  // 5. Nos dois useEffects (loadUFs e loadCities): manter dependências VAZIAS [] para loadUFs e [selectedUF] para loadCities
   useEffect(() => {
     const loadUFs = async () => {
       try {
@@ -133,7 +121,8 @@ function CompletarCadastroPage() {
       }
     };
     loadUFs();
-  }, [fetchUFs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const loadCities = async () => {
@@ -159,12 +148,11 @@ function CompletarCadastroPage() {
       lastSelectedUF.current = selectedUF;
       loadCities();
     } else if (cities.length === 0 && selectedUF) {
-      // Caso inicial onde temos UF mas não temos cidades
       loadCities();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUF]);
 
-  // Lógica para anos (do ano atual até 100 anos atrás)
   const anos = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const years = [];
@@ -174,7 +162,6 @@ function CompletarCadastroPage() {
     return years;
   }, []);
 
-  // Lógica para dias baseada no mês e ano
   const dias = useMemo(() => {
     if (!month) return Array.from({ length: 31 }, (_, i) => (i + 1).toString());
     
@@ -192,17 +179,28 @@ function CompletarCadastroPage() {
     return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
   }, [month, year]);
 
-  // Reseta o dia se o novo mês tiver menos dias
   useEffect(() => {
     if (day && parseInt(day) > dias.length) {
       setDay('');
     }
   }, [dias, day]);
 
-  const onSubmit = async (data: CompletionForm) => {
-    // Validação extra para não permitir data futura
-    const birthDate = new Date(data.data_nascimento);
+  // 3. No onSubmit, antes de chamar executeUpdate, fazer validação manual
+  const onSubmit = async (formData: CompletionForm) => {
+    if (!day || !month || !year) {
+      toast.error("Selecione sua data de nascimento completa");
+      return;
+    }
+
+    if (!selectedUF) {
+      toast.error("Selecione seu estado");
+      return;
+    }
+
+    const data_nascimento = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const birthDate = new Date(data_nascimento);
     const today = new Date();
+    
     if (birthDate > today) {
       toast.error("Data de nascimento não pode ser no futuro.");
       return;
@@ -210,7 +208,14 @@ function CompletarCadastroPage() {
 
     setIsLoading(true);
     try {
-      await executeUpdate({ data });
+      // Passar para executeUpdate: { cpf, celular, data_nascimento, cidade_id }
+      await executeUpdate({ 
+        data: {
+          ...formData,
+          data_nascimento
+        } 
+      });
+      
       toast.success("Informações atualizadas!");
       
       const status = await checkStatus();
@@ -231,7 +236,6 @@ function CompletarCadastroPage() {
     console.log("Validation errors:", errors);
     toast.error("Por favor, preencha todos os campos obrigatórios corretamente.");
     
-    // Rola para o primeiro erro
     const firstError = Object.keys(errors)[0];
     const element = firstError ? document.getElementById(firstError) : null;
     if (element) {
@@ -320,34 +324,25 @@ function CompletarCadastroPage() {
               </SelectContent>
             </Select>
           </div>
-          <input type="hidden" {...control.register('data_nascimento')} />
-          {errors.data_nascimento && <p className="text-red-500 text-xs font-poppins">{errors.data_nascimento.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="uf" className="text-white/80 font-poppins text-sm">Estado</Label>
-            <Controller
-              name="uf"
-              control={control}
-              render={({ field }) => (
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={field.value}
-                  disabled={isLoadingUfs}
-                >
-                  <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                    <SelectValue placeholder={isLoadingUfs ? "..." : "UF"} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zuvvi-indigo border-white/10 text-white pointer-events-auto touch-pan-y">
-                    {ufs.map(uf => (
-                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.uf && <p className="text-red-500 text-xs font-poppins">{errors.uf.message}</p>}
+            <Select 
+              onValueChange={setSelectedUF} 
+              value={selectedUF}
+              disabled={isLoadingUfs}
+            >
+              <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                <SelectValue placeholder={isLoadingUfs ? "..." : "UF"} />
+              </SelectTrigger>
+              <SelectContent className="bg-zuvvi-indigo border-white/10 text-white pointer-events-auto touch-pan-y">
+                {ufs.map(uf => (
+                  <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
