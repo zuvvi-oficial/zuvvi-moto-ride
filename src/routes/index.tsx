@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { getMapboxToken, checkCityAvailability } from "@/lib/user.functions";
+import { getMapboxToken, checkCityAvailability, getReverseGeocoding } from "@/lib/user.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -72,9 +72,11 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [cityName, setCityName] = useState<string | null>(null);
   const [debugStatus, setDebugStatus] = useState<string>("Verificando token...");
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [originAddress, setOriginAddress] = useState<string>("Buscando endereço...");
   
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
+  const getReverseGeocodingFn = useServerFn(getReverseGeocoding);
 
   // Callback ref para garantir o DOM pronto
   const mapContainerRef = (el: HTMLDivElement | null) => {
@@ -124,23 +126,28 @@ function HomePassageiro({ nome }: { nome: string }) {
   }, []);
 
   useEffect(() => {
-    const checkAvailability = async () => {
-      try {
-        const result = await checkCityAvailabilityFn({
-          data: { coords: location || undefined }
-        });
-        setIsCityAvailable(result.isAvailable);
-        setCityName(result.cityName);
-      } catch (err) {
-        console.error("Erro ao verificar cidade:", err);
-        setAvailabilityError(err instanceof Error ? err.message : String(err));
-        setIsCityAvailable(false);
+    const checkAvailabilityAndAddress = async () => {
+      if (!isLocating && location) {
+        try {
+          // Dispara as duas chamadas em paralelo
+          const [availabilityResult, addressResult] = await Promise.all([
+            checkCityAvailabilityFn({ data: { coords: location } }),
+            getReverseGeocodingFn({ data: { lat: location.lat, lng: location.lng } })
+          ]);
+          
+          setIsCityAvailable(availabilityResult.isAvailable);
+          setCityName(availabilityResult.cityName);
+          setOriginAddress(addressResult.address);
+        } catch (err) {
+          console.error("Erro ao verificar cidade ou endereço:", err);
+          setAvailabilityError(err instanceof Error ? err.message : String(err));
+          setIsCityAvailable(false);
+          setOriginAddress("Sua localização");
+        }
       }
     };
 
-    if (!isLocating && location) {
-      checkAvailability();
-    }
+    checkAvailabilityAndAddress();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.lat, location?.lng, isLocating]);
 
@@ -330,6 +337,7 @@ function HomePassageiro({ nome }: { nome: string }) {
                         destLat: dest.center[1],
                         destLng: dest.center[0],
                         destName: dest.place_name.split(',')[0],
+                        originName: originAddress.split(',')[0] + (originAddress.split(',')[1] ? ', ' + originAddress.split(',')[1] : '')
                       }
                     });
                   }
