@@ -9,16 +9,19 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
 
     const { data: userRecord, error: userError } = await supabaseAdmin
       .from("usuarios")
-      .select("is_passageiro, is_motorista")
+      .select("is_passageiro, is_motorista, nome")
       .eq("auth_user_id", userId)
       .maybeSingle();
 
     if (userError || !userRecord) {
-      // If error or user not found, we can't determine profile, so assume incomplete
       return { hasProfile: false };
     }
 
     return { 
-      hasProfile: !!(userRecord.is_passageiro || userRecord.is_motorista) 
+      hasProfile: !!(userRecord.is_passageiro || userRecord.is_motorista),
+      isPassageiro: userRecord.is_passageiro,
+      isMotorista: userRecord.is_motorista,
+      nome: userRecord.nome
     };
   });
+
