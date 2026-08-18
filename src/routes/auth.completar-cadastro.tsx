@@ -310,7 +310,7 @@ function CompletarCadastroPage() {
                   <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
                     <SelectValue placeholder={isLoadingLocations ? "..." : "UF"} />
                   </SelectTrigger>
-                  <SelectContent className="bg-zuvvi-indigo border-white/10 text-white">
+                  <SelectContent className="bg-zuvvi-indigo border-white/10 text-white pointer-events-auto touch-pan-y">
                     {estados.map(uf => (
                       <SelectItem key={uf} value={uf}>{uf}</SelectItem>
                     ))}
