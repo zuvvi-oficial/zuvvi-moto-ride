@@ -397,7 +397,9 @@ function DestinoSearch({ location, onSelect }: { location: { lat: number; lng: n
       if (!token) return;
 
       const proximity = location ? `&proximity=${location.lng},${location.lat}` : '';
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=br&language=pt&types=address,poi,place${proximity}`;
+      // Limitando a busca ao Brasil e usando proximity com a localização atual do usuário.
+      // Adicionamos limit=5 para focar em resultados mais relevantes.
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=br&language=pt&types=address,poi,place${proximity}&limit=5`;
       
       try {
         const response = await fetch(url);

@@ -131,6 +131,9 @@ export const calcularValorCorrida = createServerFn({ method: "POST" })
       valorFinal = Number(tarifa_minima);
     }
 
+    // Arredonda para 2 casas decimais para evitar problemas de precisão flutuante
+    valorFinal = Math.round(valorFinal * 100) / 100;
+
     return {
       valor: valorFinal,
       tarifas: {
