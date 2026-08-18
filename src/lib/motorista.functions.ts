@@ -229,7 +229,7 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
       })
       .eq("id", data.rideId)
       .eq("status", 'solicitada')
-      .eq("cidade_id", motoristaInfo.cidade_id)
+      .eq("cidade_id", motoristaInfo.cidade_id as string)
       .is("motorista_id", null)
       .select()
       .maybeSingle();
