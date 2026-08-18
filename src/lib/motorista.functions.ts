@@ -360,7 +360,8 @@ export const salvarDadosCNH = createServerFn({ method: "POST" })
     cnh_numero: z.string(),
     cnh_categoria: z.string(),
     cnh_validade: z.string(),
-    chave_pix: z.string()
+    chave_pix: z.string(),
+    tipo_chave_pix: z.enum(['cpf', 'telefone', 'email', 'aleatoria']).optional()
   }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -379,7 +380,8 @@ export const salvarDadosCNH = createServerFn({ method: "POST" })
         cnh_numero: data.cnh_numero,
         cnh_categoria: data.cnh_categoria,
         cnh_validade: data.cnh_validade,
-        chave_pix: data.chave_pix
+        chave_pix: data.chave_pix,
+        tipo_chave_pix: data.tipo_chave_pix as any
       })
       .eq("id", user.id);
 
