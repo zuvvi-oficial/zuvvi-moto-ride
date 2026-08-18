@@ -159,7 +159,11 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       .is("motorista_id", null);
 
     if (idsRecusados.length > 0) {
-      query = query.not("id", "in", `(${idsRecusados.join(',')})`);
+      // Filtrar IDs nulos e converter para string para satisfazer o TypeScript e a query
+      const idsValidos = idsRecusados.filter((id): id is string => id !== null);
+      if (idsValidos.length > 0) {
+        query = query.not("id", "in", `(${idsValidos.join(',')})`);
+      }
     }
 
     const { data: ofertas } = await query
