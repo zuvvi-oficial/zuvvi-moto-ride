@@ -77,7 +77,11 @@ function HomeMotoristaPage() {
         event: 'UPDATE',
         schema: 'public', 
         table: 'corridas'
-      }, () => {
+      }, (payload) => {
+        if (payload.new && (payload.new as any).motorista_id === user.id) {
+          setCorridaAceita(payload.new);
+          setIsOnline(false);
+        }
         getOfertasFn().then(setOfertas);
       })
       .subscribe();
