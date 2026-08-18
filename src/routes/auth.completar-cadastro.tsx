@@ -154,9 +154,9 @@ function CompletarCadastroPage() {
     };
     
     // Só limpa a cidade e recarrega se o UF realmente mudou
-    if (selectedUF !== prevUFRef.current) {
+    if (selectedUF !== lastSelectedUF.current) {
       setValue('cidade_id', '');
-      prevUFRef.current = selectedUF;
+      lastSelectedUF.current = selectedUF;
       loadCities();
     } else if (cities.length === 0 && selectedUF) {
       // Caso inicial onde temos UF mas não temos cidades
