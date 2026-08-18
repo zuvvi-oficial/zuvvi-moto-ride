@@ -382,7 +382,7 @@ export const salvarDadosCNH = createServerFn({ method: "POST" })
         cnh_validade: data.cnh_validade,
         chave_pix: data.chave_pix,
         tipo_chave_pix: data.tipo_chave_pix as any
-      })
+      } as any)
       .eq("id", user.id);
 
     if (error) throw new Error("Erro ao salvar dados: " + error.message);
