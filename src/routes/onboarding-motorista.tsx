@@ -3,7 +3,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSessionUser } from "@/lib/user.functions";
 import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/onboarding-motorista")({
   component: HomeMotoristaPage,
@@ -16,7 +15,7 @@ function HomeMotoristaPage() {
     queryFn: () => getSessionUserFn(),
   });
 
-  const motorista = user.motoristas?.[0];
+  const motorista = user.motorista;
   const statusAprovacao = motorista?.status_aprovacao || "em_preenchimento";
 
   const getStatusDisplay = (status: string) => {
@@ -147,3 +146,4 @@ function HomeMotoristaPage() {
     </div>
   );
 }
+
