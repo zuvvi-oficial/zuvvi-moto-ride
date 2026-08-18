@@ -172,11 +172,11 @@ function ProcurandoMotorista() {
             <div className="flex-1 space-y-4 min-w-0">
               <div>
                 <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">Origem</p>
-                <p className="text-xs font-medium truncate opacity-60 italic">Sua localização</p>
+                <p className="text-xs font-medium truncate opacity-60 italic">{corrida.origem_nome || 'Sua localização'}</p>
               </div>
               <div>
                 <p className="text-[9px] text-zuvvi-volt uppercase tracking-widest mb-0.5">Destino</p>
-                <p className="text-xs font-bold truncate">Endereço de destino</p> 
+                <p className="text-xs font-bold truncate">{corrida.destino_nome || 'Endereço de destino'}</p> 
                 {/* Nota: No MVP, não salvamos o NOME do destino no banco, apenas as coordenadas. 
                     Em uma fase real, buscaríamos o reverse geocode ou salvaríamos o nome. */}
               </div>

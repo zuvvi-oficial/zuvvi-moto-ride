@@ -149,8 +149,10 @@ export const calcularValorCorrida = createServerFn({ method: "POST" })
 const createRideSchema = z.object({
   origemLat: z.number(),
   origemLng: z.number(),
+  origemNome: z.string().optional(),
   destinoLat: z.number(),
   destinoLng: z.number(),
+  destinoNome: z.string().optional(),
   valorEstimado: z.number(),
   formaPagamento: z.enum(["pix", "cartao", "dinheiro"]),
 });
@@ -188,8 +190,10 @@ export const criarCorrida = createServerFn({ method: "POST" })
         cidade_id: usuario.cidade_id,
         origem_lat: data.origemLat,
         origem_lng: data.origemLng,
+        origem_nome: data.origemNome || 'Sua localização',
         destino_lat: data.destinoLat,
         destino_lng: data.destinoLng,
+        destino_nome: data.destinoNome || 'Destino',
         valor_estimado: data.valorEstimado,
         forma_pagamento: data.formaPagamento,
         codigo_embarque: codigoEmbarque,
