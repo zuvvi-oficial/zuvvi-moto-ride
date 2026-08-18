@@ -302,48 +302,20 @@ function CompletarCadastroPage() {
               name="uf"
               control={control}
               render={({ field }) => (
-                <div className="relative group">
-                  {/* Seletor Nativo (Mobile) */}
-                  <select
-                    className="md:hidden absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    value={field.value}
-                    disabled={isLoadingLocations}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  >
-                    <option value="" disabled>UF</option>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value}
+                  disabled={isLoadingLocations}
+                >
+                  <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                    <SelectValue placeholder={isLoadingLocations ? "..." : "UF"} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zuvvi-indigo border-white/10 text-white">
                     {estados.map(uf => (
-                      <option key={uf} value={uf}>{uf}</option>
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
                     ))}
-                  </select>
-
-                  {/* UI Visual (Simula o SelectTrigger atual, visível em ambos mas interativo via Radix apenas no Desktop) */}
-                  <div className="md:hidden">
-                    <div className="flex h-12 w-full items-center justify-between rounded-md border border-white/10 bg-zuvvi-indigo px-3 py-2 text-sm text-white focus-within:border-zuvvi-volt">
-                      <span className="line-clamp-1">
-                        {field.value || (isLoadingLocations ? "..." : "UF")}
-                      </span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down h-4 w-4 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
-                    </div>
-                  </div>
-
-                  {/* Componente Radix (Desktop) */}
-                  <div className="hidden md:block">
-                    <Select 
-                      onValueChange={field.onChange} 
-                      value={field.value}
-                      disabled={isLoadingLocations}
-                    >
-                      <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                        <SelectValue placeholder={isLoadingLocations ? "..." : "UF"} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zuvvi-indigo border-white/10 text-white">
-                        {estados.map(uf => (
-                          <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                  </SelectContent>
+                </Select>
               )}
             />
             {errors.uf && <p className="text-red-500 text-xs font-poppins">{errors.uf.message}</p>}
