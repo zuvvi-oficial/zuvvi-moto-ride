@@ -50,8 +50,8 @@ function ConfirmarCorrida() {
         data: {
           origemLat,
           origemLng,
-          destinoLat,
-          destinoLng,
+          destinoLat: destLat,
+          destinoLng: destLng,
           valorEstimado: estimatedFare,
           formaPagamento: metodoPagamento,
         }
