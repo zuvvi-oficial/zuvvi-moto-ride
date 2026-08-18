@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          acao: string
+          admin_auth_id: string
+          created_at: string
+          entidade: string
+          entidade_id: string
+          estado_anterior: Json | null
+          estado_novo: Json | null
+          id: string
+          justificativa: string | null
+        }
+        Insert: {
+          acao: string
+          admin_auth_id: string
+          created_at?: string
+          entidade: string
+          entidade_id: string
+          estado_anterior?: Json | null
+          estado_novo?: Json | null
+          id?: string
+          justificativa?: string | null
+        }
+        Update: {
+          acao?: string
+          admin_auth_id?: string
+          created_at?: string
+          entidade?: string
+          entidade_id?: string
+          estado_anterior?: Json | null
+          estado_novo?: Json | null
+          id?: string
+          justificativa?: string | null
+        }
+        Relationships: []
+      }
+      admin_users: {
+        Row: {
+          ativo: boolean
+          auth_user_id: string
+          created_at: string
+          id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          auth_user_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          auth_user_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       avaliacoes: {
         Row: {
           avaliado_id: string
@@ -648,6 +711,7 @@ export type Database = {
           estado_uf: string
         }[]
       }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
       cancelado_por: "passageiro" | "motorista" | "operacao"
