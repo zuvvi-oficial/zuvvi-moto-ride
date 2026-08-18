@@ -5,12 +5,17 @@ import { z } from "zod";
 export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    console.log("[GoogleAuth] handler_started");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    console.log("[handleGoogleAuthRedirect] Processing for userId:", userId);
+    if (userId) {
+      console.log("[GoogleAuth] authenticated_user_context=true");
+    } else {
+      console.log("[GoogleAuth] authenticated_user_context=false");
+    }
 
-    // Check if user record already exists
+    console.log("[GoogleAuth] user_record_lookup_started");
     const { data: userRecord, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("id, is_passageiro, is_motorista, cpf, celular")
@@ -18,16 +23,17 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (userError) {
-      console.error("[handleGoogleAuthRedirect] Database error checking for existing user:", userError);
+      console.error("[GoogleAuth] Database error checking for existing user:", userError);
       return { redirectTo: "/auth/login", error: "Erro ao verificar sua conta no banco de dados." };
     }
 
     if (!userRecord) {
-      console.log("[handleGoogleAuthRedirect] No user record found with auth_user_id, checking email...");
+      console.log("[GoogleAuth] user_record_found=false");
+      console.log("[GoogleAuth] email_lookup_started");
       
       const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
       if (authError || !authUser?.user) {
-        console.error("[handleGoogleAuthRedirect] Error fetching auth user metadata:", authError);
+        console.error("[GoogleAuth] Error fetching auth user metadata:", authError);
         return { redirectTo: "/auth/login", error: "Não foi possível obter dados do Google." };
       }
 
@@ -47,31 +53,31 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
         .maybeSingle();
 
       if (emailError) {
-        console.error("[handleGoogleAuthRedirect] Error checking email existence:", emailError);
+        console.error("[GoogleAuth] Error checking email existence:", emailError);
         return { redirectTo: "/auth/login", error: "Erro ao verificar e-mail no banco de dados." };
       }
 
       if (emailRecord) {
         // Case: Email exists linked to ANOTHER auth_user_id
         if (emailRecord.auth_user_id && emailRecord.auth_user_id !== userId) {
-          console.error("[handleGoogleAuthRedirect] Email already linked to another account:", email);
+          console.error("[GoogleAuth] Email already linked to another account:", email);
           return { redirectTo: "/auth/login", error: "Este e-mail já está vinculado a outra conta." };
         }
 
         // Case: Email exists with NULL auth_user_id - Link it
-        console.log("[handleGoogleAuthRedirect] Linking existing email record to new auth_user_id...");
+        console.log("[GoogleAuth] Linking existing email record to new auth_user_id...");
         const { error: updateError } = await supabaseAdmin
           .from("usuarios")
           .update({ auth_user_id: userId })
           .eq("id", emailRecord.id);
 
         if (updateError) {
-          console.error("[handleGoogleAuthRedirect] Error linking auth_user_id:", updateError);
+          console.error("[GoogleAuth] Error linking auth_user_id:", updateError);
           return { redirectTo: "/auth/login", error: "Erro ao vincular conta Google ao perfil existente." };
         }
       } else {
         // Case: No record exists for this email - Create new one
-        console.log("[handleGoogleAuthRedirect] Creating new user record...");
+        console.log("[GoogleAuth] Creating new user record...");
         const { error: insertError } = await supabaseAdmin
           .from("usuarios")
           .insert({
@@ -83,13 +89,13 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
           });
 
         if (insertError) {
-          console.error("[handleGoogleAuthRedirect] Error creating user record:", insertError);
+          console.error("[GoogleAuth] Error creating user record:", insertError);
           return { redirectTo: "/auth/login", error: "Erro ao criar perfil no banco de dados." };
         }
       }
     }
 
-    // Final navigation check using the record associated with this auth_user_id
+    console.log("[GoogleAuth] final_record_lookup_started");
     const { data: finalRecord, error: finalError } = await supabaseAdmin
       .from("usuarios")
       .select("id, is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
@@ -97,11 +103,12 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
       .single();
 
     if (finalError || !finalRecord) {
-      console.error("[handleGoogleAuthRedirect] Error retrieving final record:", finalError);
+      console.error("[GoogleAuth] final_record_lookup_failed:", finalError);
       return { redirectTo: "/auth/login", error: "Erro ao recuperar perfil atualizado." };
     }
 
-    console.log("[handleGoogleAuthRedirect] Record verified, deciding navigation...");
+    console.log("[GoogleAuth] final_record_found=true");
+    console.log("[GoogleAuth] deciding_navigation");
 
     // Rule 1: Verify if mandatory registration is complete
     const isRegistrationComplete = !!(
@@ -112,17 +119,17 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     );
 
     if (!isRegistrationComplete) {
-      console.log("[handleGoogleAuthRedirect] Registration incomplete, redirecting to complete-cadastro");
+      console.log("[GoogleAuth] navigation_decision=completar-cadastro");
       return { redirectTo: "/auth/completar-cadastro" };
     }
 
     // Rule 2: Apply profile check after registration is complete
     if (!finalRecord.is_passageiro && !finalRecord.is_motorista) {
-      console.log("[handleGoogleAuthRedirect] Profile not chosen, redirecting to perfil");
+      console.log("[GoogleAuth] navigation_decision=perfil");
       return { redirectTo: "/auth/perfil" };
     }
 
-    console.log("[handleGoogleAuthRedirect] Everything complete, redirecting to Home");
+    console.log("[GoogleAuth] navigation_decision=home");
     return { redirectTo: "/" };
   });
 
