@@ -45,11 +45,13 @@ function HomeMotoristaPage() {
   const checkStatus = useServerFn(checkUserProfileStatus);
   const navigate = useNavigate();
 
-  // Guarda ADM e redirecionamento de segurança
+  // Redirecionamento de segurança (guarda client-side em adição ao loader)
   useEffect(() => {
     checkStatus().then((status: any) => {
       if (status.isAdmin || status.redirectTo) {
-        navigate({ to: status.redirectTo || "/admin" });
+        if (status.redirectTo && status.redirectTo !== "/onboarding-motorista") {
+          navigate({ to: status.redirectTo || "/admin" });
+        }
       }
     });
   }, [checkStatus, navigate]);

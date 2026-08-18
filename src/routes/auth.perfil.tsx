@@ -30,8 +30,11 @@ function PerfilPage() {
       try {
         const status = await checkStatus();
         if (status.isAdmin || (status as any).redirectTo) {
-          navigate({ to: (status as any).redirectTo || "/admin" });
-          return;
+          const target = (status as any).redirectTo || "/admin";
+          if (target !== "/auth/perfil") {
+            navigate({ to: target as any });
+            return;
+          }
         }
         if (!status.isRegistrationComplete) {
           toast.error("Complete seu cadastro primeiro.");
