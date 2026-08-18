@@ -110,6 +110,7 @@ function CompletarCadastroPage() {
   });
 
   const selectedUF = watch('uf');
+  const prevUFRef = useMemo(() => ({ current: selectedUF }), []); // Inicializado apenas uma vez
 
   // Atualiza o valor de data_nascimento no formulário quando os seletores mudam
   useEffect(() => {
