@@ -214,36 +214,42 @@ function HomePassageiro({ nome }: { nome: string }) {
 
   return (
     <div 
-      className="relative bg-zuvvi-indigo text-foreground overflow-y-auto"
-      style={{ minHeight: '100vh', height: '100dvh' }}
+      className="relative bg-zuvvi-indigo text-foreground overflow-hidden"
+      style={{ height: '100dvh', width: '100vw' }}
     >
-      {/* Etiqueta de status temporária para depuração */}
-      <div className="fixed top-2 right-2 z-[9999] bg-black/90 text-white text-[10px] px-3 py-2 rounded-lg border border-white/20 pointer-events-none uppercase tracking-tighter flex flex-col gap-1 shadow-2xl backdrop-blur-md min-w-[200px]">
-        <div className="font-bold border-b border-white/10 pb-1 flex justify-between">
-          <span>Debug Info</span>
-          <span className={debugStatus.includes('✓') ? 'text-zuvvi-volt' : 'text-yellow-500'}>●</span>
-        </div>
-        <div className="flex flex-col gap-0.5 opacity-80">
-          <p><span className="text-zuvvi-volt/70">Status:</span> {debugStatus}</p>
-          <p><span className="text-zuvvi-volt/70">Nome (prop):</span> {nome || 'Vazio'}</p>
-          <p><span className="text-zuvvi-volt/70">Disponível:</span> {String(isCityAvailable)}</p>
-          <p><span className="text-zuvvi-volt/70">Buscando Loc:</span> {String(isLocating)}</p>
-          {availabilityError && (
-            <p className="text-red-400 normal-case mt-1 bg-red-500/10 p-1 rounded border border-red-500/20">
-              <span className="font-bold">Erro CheckCity:</span> {availabilityError}
-            </p>
-          )}
-        </div>
-      </div>
-
+      {/* 1. O Mapa (Z-INDEX 0) - Camada de Fundo */}
       <div 
         ref={mapContainerRef} 
-        style={{ width: '100%', height: '100dvh', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-        className={`fixed inset-0 z-0 transition-opacity duration-1000 ${location ? 'opacity-100' : 'opacity-0'}`} 
+        style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+        className={`transition-opacity duration-1000 ${location ? 'opacity-100' : 'opacity-0'}`} 
       />
 
-      <div className="relative z-10 flex flex-col min-h-screen pointer-events-none">
-        <header className="px-5 py-4 pointer-events-auto">
+      {/* 2. Camada de Interface (Z-INDEX 10) - Sobreposta ao mapa */}
+      <div 
+        className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-y-auto"
+        style={{ height: '100dvh' }}
+      >
+        {/* Etiqueta de status temporária para depuração */}
+        <div className="absolute top-2 right-2 z-[9999] bg-black/90 text-white text-[10px] px-3 py-2 rounded-lg border border-white/20 pointer-events-none uppercase tracking-tighter flex flex-col gap-1 shadow-2xl backdrop-blur-md min-w-[200px]">
+          <div className="font-bold border-b border-white/10 pb-1 flex justify-between">
+            <span>Debug Info</span>
+            <span className={debugStatus.includes('✓') ? 'text-zuvvi-volt' : 'text-yellow-500'}>●</span>
+          </div>
+          <div className="flex flex-col gap-0.5 opacity-80">
+            <p><span className="text-zuvvi-volt/70">Status:</span> {debugStatus}</p>
+            <p><span className="text-zuvvi-volt/70">Nome (prop):</span> {nome || 'Vazio'}</p>
+            <p><span className="text-zuvvi-volt/70">Disponível:</span> {String(isCityAvailable)}</p>
+            <p><span className="text-zuvvi-volt/70">Buscando Loc:</span> {String(isLocating)}</p>
+            {availabilityError && (
+              <p className="text-red-400 normal-case mt-1 bg-red-500/10 p-1 rounded border border-red-500/20">
+                <span className="font-bold">Erro CheckCity:</span> {availabilityError}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Header */}
+        <header className="px-5 py-4 pointer-events-auto shrink-0">
           <div className="mx-auto max-w-md flex items-center justify-between bg-zuvvi-indigo/60 backdrop-blur-lg border border-white/10 rounded-3xl px-4 py-3 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
@@ -264,7 +270,8 @@ function HomePassageiro({ nome }: { nome: string }) {
           </div>
         </header>
 
-        <main className="flex-1 flex flex-col justify-end px-5 pb-24 mx-auto w-full max-w-md space-y-4">
+        {/* Conteúdo Principal */}
+        <main className="flex-1 flex flex-col justify-end px-5 pb-28 mx-auto w-full max-w-md space-y-4">
           
           {isLocating && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-4 shadow-2xl pointer-events-auto animate-rise">
@@ -343,7 +350,8 @@ function HomePassageiro({ nome }: { nome: string }) {
           )}
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto">
+        {/* Menu Inferior */}
+        <nav className="sticky bottom-0 left-0 right-0 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto shrink-0">
           <div className="mx-auto max-w-md flex items-center justify-around">
             <button className="flex flex-col items-center gap-1 volt-text">
               <Bike className="w-6 h-6" strokeWidth={2.5} />
