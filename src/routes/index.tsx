@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { getMapboxToken, checkCityAvailability, getSessionUser } from "@/lib/user.functions";
+import { getMapboxToken, checkCityAvailability } from "@/lib/user.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -73,7 +73,6 @@ function HomePassageiro({ nome }: { nome: string }) {
   
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
-  const getSessionUserFn = useServerFn(getSessionUser);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -118,12 +117,8 @@ function HomePassageiro({ nome }: { nome: string }) {
   useEffect(() => {
     const checkAvailability = async () => {
       try {
-        const user = await getSessionUserFn();
-        const result = await checkCityAvailabilityFn({ 
-          data: {
-            cidadeId: user.cidade_id,
-            coords: location || undefined
-          }
+        const result = await checkCityAvailabilityFn({
+          data: { coords: location || undefined }
         });
         setIsCityAvailable(result.isAvailable);
         setCityName(result.cityName);
@@ -133,13 +128,14 @@ function HomePassageiro({ nome }: { nome: string }) {
       }
     };
 
-    if (!isLocating) {
+    if (!isLocating && location) {
       checkAvailability();
     }
-  }, [location, isLocating]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.lat, location?.lng, isLocating]);
 
   useEffect(() => {
-    if (!location || !isCityAvailable || map.current) return;
+    if (!location || map.current) return;
 
     const initMap = async () => {
       const token = await getMapboxTokenFn();
@@ -173,13 +169,14 @@ function HomePassageiro({ nome }: { nome: string }) {
         map.current = null;
       }
     };
-  }, [location, isCityAvailable]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.lat, location?.lng]);
 
   return (
     <div className="relative min-h-screen bg-zuvvi-indigo text-foreground overflow-hidden">
       <div 
         ref={mapContainer} 
-        className={`fixed inset-0 z-0 transition-opacity duration-1000 ${isCityAvailable ? 'opacity-100' : 'opacity-0'}`} 
+        className={`fixed inset-0 z-0 transition-opacity duration-1000 ${location ? 'opacity-100' : 'opacity-0'}`} 
       />
 
       <div className="relative z-10 flex flex-col min-h-screen pointer-events-none">
@@ -237,7 +234,7 @@ function HomePassageiro({ nome }: { nome: string }) {
                 <Bike className="text-zuvvi-volt w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold mb-2">Zuvvi ainda não <br/><span className="volt-text">chegou aqui</span></h2>
+                <h2 className="text-2xl font-bold mb-2">Zuvvi ainda não chegou <br/><span className="volt-text">até aqui</span></h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {cityName ? `Estamos trabalhando para liberar as corridas em ${cityName} em breve.` : "Sua localização atual ainda não está coberta pela nossa rede."}
                 </p>
