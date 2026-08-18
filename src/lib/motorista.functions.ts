@@ -146,6 +146,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       .is("motorista_id", null);
 
     if (idsRecusados.length > 0) {
+      // @ts-ignore - Supabase type for .in with strings
       query = query.not("id", "in", `(${idsRecusados.join(',')})`);
     }
 
@@ -208,7 +209,7 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
       })
       .eq("id", data.rideId)
       .eq("status", 'solicitada')
-      .eq("cidade_id", motoristaInfo.cidade_id)
+      .eq("cidade_id", motoristaInfo.cidade_id!)
       .is("motorista_id", null)
       .select()
       .maybeSingle();
