@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
+import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
 import { Route as AuthCadastroRouteImport } from './routes/auth.cadastro'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthCompletarCadastroRouteImport } from './routes/auth.completar-cadastro'
@@ -37,6 +38,11 @@ const ConfirmarCorridaRoute = ConfirmarCorridaRouteImport.update({
 const OnboardingMotoristaRoute = OnboardingMotoristaRouteImport.update({
   id: '/onboarding-motorista',
   path: '/onboarding-motorista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProcurandoMotoristaRoute = ProcurandoMotoristaRouteImport.update({
+  id: '/procurando-motorista',
+  path: '/procurando-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCadastroRoute = AuthCadastroRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
+  '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
+  '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
+  '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/confirmar-corrida'
     | '/onboarding-motorista'
+    | '/procurando-motorista'
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/confirmar-corrida'
     | '/onboarding-motorista'
+    | '/procurando-motorista'
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/confirmar-corrida'
     | '/onboarding-motorista'
+    | '/procurando-motorista'
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
+  ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -170,6 +183,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding-motorista'
       fullPath: '/onboarding-motorista'
       preLoaderRoute: typeof OnboardingMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/procurando-motorista': {
+      id: '/procurando-motorista'
+      path: '/procurando-motorista'
+      fullPath: '/procurando-motorista'
+      preLoaderRoute: typeof ProcurandoMotoristaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/cadastro': {
@@ -233,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
+  ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
