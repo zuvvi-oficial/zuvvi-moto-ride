@@ -212,8 +212,14 @@ function HomePassageiro({ nome }: { nome: string }) {
 
   return (
     <div className="relative min-h-screen bg-zuvvi-indigo text-foreground overflow-hidden">
+      {/* Etiqueta de status temporária para depuração */}
+      <div className="fixed top-2 right-2 z-[9999] bg-black/80 text-white text-[8px] px-2 py-1 rounded border border-white/20 pointer-events-none uppercase tracking-tighter">
+        Status: {debugStatus}
+      </div>
+
       <div 
-        ref={mapContainer} 
+        ref={mapContainerRef} 
+        style={{ width: '100%', height: '100dvh' }}
         className={`fixed inset-0 z-0 transition-opacity duration-1000 ${location ? 'opacity-100' : 'opacity-0'}`} 
       />
 
