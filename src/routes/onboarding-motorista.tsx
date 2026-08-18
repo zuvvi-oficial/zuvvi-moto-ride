@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { checkUserProfileStatus } from "@/lib/auth-status.functions";
 import { Button } from "@/components/ui/button";
+import OnboardingForm from "@/components/motorista/OnboardingForm";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { redirect } from "@tanstack/react-router";
@@ -188,15 +189,19 @@ function HomeMotoristaPage() {
           </Button>
         </header>
         <main className="p-6 space-y-6 max-w-md mx-auto">
-          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">
-            <div className="w-16 h-16 bg-zuvvi-volt/10 rounded-full flex items-center justify-center mx-auto">
-              <Clock className="w-8 h-8 text-zuvvi-volt" />
+          {statusAprovacao === 'em_analise' ? (
+            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">
+              <div className="w-16 h-16 bg-zuvvi-volt/10 rounded-full flex items-center justify-center mx-auto">
+                <Clock className="w-8 h-8 text-zuvvi-volt" />
+              </div>
+              <h2 className="text-xl font-bold">Perfil em análise</h2>
+              <p className="text-sm text-muted-foreground">
+                Estamos verificando seus documentos. Você receberá um aviso assim que for aprovado para pilotar.
+              </p>
             </div>
-            <h2 className="text-xl font-bold">Perfil em análise</h2>
-            <p className="text-sm text-muted-foreground">
-              Estamos verificando seus documentos. Você receberá um aviso assim que for aprovado para pilotar.
-            </p>
-          </div>
+          ) : (
+            <OnboardingForm onSubmitted={() => refetchUser()} />
+          )}
         </main>
       </div>
     );
