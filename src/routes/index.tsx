@@ -68,11 +68,16 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isCityAvailable, setIsCityAvailable] = useState<boolean | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
   const [debugStatus, setDebugStatus] = useState<string>("Verificando token...");
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [originAddress, setOriginAddress] = useState<string>("Buscando endereço...");
+  const [isManualOrigin, setIsManualOrigin] = useState(false);
+  const [manualLocation, setManualLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [manualAddress, setManualAddress] = useState<string | null>(null);
+  const [isEditingOrigin, setIsEditingOrigin] = useState(false);
   
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
