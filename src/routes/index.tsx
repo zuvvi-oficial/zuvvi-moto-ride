@@ -63,6 +63,7 @@ function UnifiedIndex() {
 }
 
 function HomePassageiro({ nome }: { nome: string }) {
+  const navigate = useNavigate();
   const map = useRef<mapboxgl.Map | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -317,20 +318,23 @@ function HomePassageiro({ nome }: { nome: string }) {
 
           {!isLocating && !locationError && isCityAvailable === true && (
             <div className="space-y-4 animate-rise pointer-events-auto">
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-                  <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Para onde vamos?"
-                  className="w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] py-6 pl-14 pr-4 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl text-base font-bold placeholder:text-muted-foreground/50"
-                  disabled
-                />
-                <div className="absolute top-full left-0 right-0 mt-3 p-3 bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-xl text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.1em] text-center animate-pulse">
-                  Qual o seu destino? (Em breve)
-                </div>
-              </div>
+              <DestinoSearch 
+                location={location} 
+                onSelect={(dest) => {
+                  if (location) {
+                    navigate({
+                      to: '/confirmar-corrida',
+                      search: {
+                        originLat: location.lat,
+                        originLng: location.lng,
+                        destLat: dest.center[1],
+                        destLng: dest.center[0],
+                        destName: dest.place_name.split(',')[0],
+                      }
+                    });
+                  }
+                }}
+              />
               
               <div className="grid grid-cols-2 gap-3 pb-4">
                 <button className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]">
@@ -372,6 +376,79 @@ function HomePassageiro({ nome }: { nome: string }) {
           </div>
         </nav>
       </div>
+    </div>
+  );
+}
+
+function DestinoSearch({ location, onSelect }: { location: { lat: number; lng: number } | null, onSelect: (dest: any) => void }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const getMapboxTokenFn = useServerFn(getMapboxToken);
+
+  useEffect(() => {
+    const search = async () => {
+      if (query.length < 3) {
+        setResults([]);
+        return;
+      }
+
+      const token = await getMapboxTokenFn();
+      if (!token) return;
+
+      const proximity = location ? `&proximity=${location.lng},${location.lat}` : '';
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=br&language=pt&types=address,poi,place${proximity}`;
+      
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        setResults(data.features || []);
+        setIsOpen(true);
+      } catch (err) {
+        console.error("Erro geocoding:", err);
+      }
+    };
+
+    const timer = setTimeout(search, 500);
+    return () => clearTimeout(timer);
+  }, [query, location]);
+
+  return (
+    <div className="relative group">
+      <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+        <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
+      </div>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Para onde vamos?"
+        className="w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] py-6 pl-14 pr-4 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl text-base font-bold placeholder:text-muted-foreground/50"
+      />
+      
+      {isOpen && results.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-3 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+          {results.map((result) => (
+            <button
+              key={result.id}
+              onClick={() => {
+                onSelect(result);
+                setIsOpen(false);
+                setQuery('');
+              }}
+              className="w-full text-left px-6 py-4 flex items-start gap-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+            >
+              <div className="w-8 h-8 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0 mt-0.5">
+                <MapPin className="text-zuvvi-volt w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold truncate">{result.text}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{result.place_name}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
