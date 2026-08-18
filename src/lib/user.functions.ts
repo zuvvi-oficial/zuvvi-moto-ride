@@ -39,27 +39,32 @@ export const getMapboxToken = createServerFn({ method: "GET" })
     return process.env['MAPBOX_TOKEN'] || null;
   });
 
-const cityAvailabilitySchema = z.object({ 
-  cidadeId: z.string().uuid().nullable().optional(),
+const cityAvailabilitySchema = z.object({
   coords: z.object({
     lat: z.number(),
     lng: z.number()
   }).optional()
 });
 
-export const checkCityAvailability = createServerFn({ method: "GET" })
+export const checkCityAvailability = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) => cityAvailabilitySchema.parse(data))
-  .handler(async ({ data, context }) => {
+  .inputValidator((data: unknown) => cityAvailabilitySchema.parse(data ?? {}))
+  .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
-    if (data.cidadeId) {
+
+    const { data: usuario } = await supabaseAdmin
+      .from("usuarios")
+      .select("cidade_id")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+
+    if (usuario?.cidade_id) {
       const { data: cidade } = await supabaseAdmin
         .from("cidades")
         .select("status, nome")
-        .eq("id", data.cidadeId)
+        .eq("id", usuario.cidade_id)
         .maybeSingle();
-      
+
       if (cidade) {
         return {
           isAvailable: cidade.status === 'piloto' || cidade.status === 'ativa',
