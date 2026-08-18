@@ -402,6 +402,11 @@ function HomePassageiro({ nome }: { nome: string }) {
                             center: [res.center[0], res.center[1]],
                             zoom: 15
                           });
+                          
+                          const existingMarker = (map.current as any)._zuvviMarker;
+                          if (existingMarker) {
+                            existingMarker.setLngLat([res.center[0], res.center[1]]);
+                          }
                         }
                       }}
                     />
