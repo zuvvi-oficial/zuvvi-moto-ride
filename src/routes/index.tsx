@@ -523,8 +523,9 @@ function DestinoSearch({
       <input
         type="text"
         value={query}
+        autoFocus={autoFocus}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Para onde vamos?"
+        placeholder={placeholder}
         className="w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] py-6 pl-14 pr-4 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl text-base font-bold placeholder:text-muted-foreground/50"
       />
       
