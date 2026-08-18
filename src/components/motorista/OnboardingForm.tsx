@@ -360,12 +360,40 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           </div>
           <div className="space-y-1">
             <label className="text-[10px] text-white/40 uppercase tracking-widest ml-1">Validade da CNH</label>
-            <input 
-              type="date"
-              className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
-              value={cnhData.validade}
-              onChange={e => setCnhData({...cnhData, validade: e.target.value})}
-            />
+            <div className="grid grid-cols-3 gap-2">
+              <Select onValueChange={setValidadeDay} value={validadeDay}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white focus:border-zuvvi-volt h-12 rounded-2xl">
+                  <SelectValue placeholder="Dia" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {dias.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select onValueChange={setValidadeMonth} value={validadeMonth}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white focus:border-zuvvi-volt h-12 rounded-2xl">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {meses.map(m => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select onValueChange={setValidadeYear} value={validadeYear}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white focus:border-zuvvi-volt h-12 rounded-2xl">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {anos.map(y => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {renderUpload('cnh', 'Foto da CNH')}
         </div>
