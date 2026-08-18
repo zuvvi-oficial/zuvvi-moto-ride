@@ -96,12 +96,20 @@ function HomePassageiro({ nome }: { nome: string }) {
   };
 
   const requestLocation = () => {
+    if (isUpdatingLocation) return;
+    
+    setIsUpdatingLocation(true);
     setIsLocating(true);
     setLocationError(null);
+    setIsManualOrigin(false);
+    setManualLocation(null);
+    setManualAddress(null);
+    setIsEditingOrigin(false);
     
     if (!navigator.geolocation) {
       setLocationError("Geolocalização não é suportada pelo seu navegador.");
       setIsLocating(false);
+      setIsUpdatingLocation(false);
       return;
     }
 
@@ -112,6 +120,19 @@ function HomePassageiro({ nome }: { nome: string }) {
           lng: position.coords.longitude
         });
         setIsLocating(false);
+        setIsUpdatingLocation(false);
+        
+        // Atualizar marcador no mapa se ele existir
+        if (map.current) {
+          map.current.flyTo({
+            center: [position.coords.longitude, position.coords.latitude],
+            zoom: 15
+          });
+          
+          // Nota: Seria ideal ter uma ref para o marcador, mas para simplificar aqui recriamos se necessário 
+          // ou confiamos no useEffect do mapa que carrega no init. 
+          // Atualmente initMap cria o marcador inicial.
+        }
       },
       (error) => {
         console.error("Erro GPS:", error);
@@ -121,6 +142,7 @@ function HomePassageiro({ nome }: { nome: string }) {
           setLocationError("Não foi possível obter sua localização. Tente novamente.");
         }
         setIsLocating(false);
+        setIsUpdatingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
