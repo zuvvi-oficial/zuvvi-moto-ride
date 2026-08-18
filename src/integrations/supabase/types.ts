@@ -357,6 +357,42 @@ export type Database = {
           },
         ]
       }
+      motorista_recusas: {
+        Row: {
+          corrida_id: string
+          created_at: string | null
+          id: string
+          motorista_id: string
+        }
+        Insert: {
+          corrida_id: string
+          created_at?: string | null
+          id?: string
+          motorista_id: string
+        }
+        Update: {
+          corrida_id?: string
+          created_at?: string | null
+          id?: string
+          motorista_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motorista_recusas_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: false
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "motorista_recusas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motoristas: {
         Row: {
           chave_pix: string | null
