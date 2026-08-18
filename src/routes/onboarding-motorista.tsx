@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSessionUser } from "@/lib/user.functions";
@@ -7,6 +7,8 @@ import { Bike, Loader2, User, Power, MapPin, Navigation, Clock, CheckCircle2, X,
 import { toggleDisponibilidade, updateLocalizacaoMotorista, getOfertasDisponiveis, aceitarCorrida, recusarCorrida } from "@/lib/motorista.functions";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { checkUserProfileStatus } from "@/lib/auth-status.functions";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/onboarding-motorista")({
   component: HomeMotoristaPage,
@@ -36,9 +38,9 @@ function HomeMotoristaPage() {
 
   // Guarda ADM e redirecionamento de segurança
   useEffect(() => {
-    checkStatus().then(status => {
-      if (status.isAdmin || (status as any).redirectTo) {
-        navigate({ to: (status as any).redirectTo || "/admin" });
+    checkStatus().then((status: any) => {
+      if (status.isAdmin || status.redirectTo) {
+        navigate({ to: status.redirectTo || "/admin" });
       }
     });
   }, [checkStatus, navigate]);

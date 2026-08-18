@@ -9,7 +9,6 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
 
     // Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
