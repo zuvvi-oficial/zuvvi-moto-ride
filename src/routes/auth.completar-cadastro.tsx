@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -110,6 +110,7 @@ function CompletarCadastroPage() {
   });
 
   const selectedUF = watch('uf');
+  const lastSelectedUF = useRef(selectedUF);
 
   // Atualiza o valor de data_nascimento no formulário quando os seletores mudam
   useEffect(() => {
@@ -151,11 +152,17 @@ function CompletarCadastroPage() {
         setIsLoadingCities(false);
       }
     };
-    loadCities();
     
-    // Limpa a cidade quando o UF muda
-    setValue('cidade_id', '');
-  }, [selectedUF, fetchCities, setValue]);
+    // Só limpa a cidade e recarrega se o UF realmente mudou
+    if (selectedUF !== lastSelectedUF.current) {
+      setValue('cidade_id', '');
+      lastSelectedUF.current = selectedUF;
+      loadCities();
+    } else if (cities.length === 0 && selectedUF) {
+      // Caso inicial onde temos UF mas não temos cidades
+      loadCities();
+    }
+  }, [selectedUF, fetchCities, setValue, cities.length]);
 
   // Lógica para anos (do ano atual até 100 anos atrás)
   const anos = useMemo(() => {
@@ -220,6 +227,19 @@ function CompletarCadastroPage() {
     }
   };
 
+  const onInvalid = (errors: any) => {
+    console.log("Validation errors:", errors);
+    toast.error("Por favor, preencha todos os campos obrigatórios corretamente.");
+    
+    // Rola para o primeiro erro
+    const firstError = Object.keys(errors)[0];
+    const element = firstError ? document.getElementById(firstError) : null;
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -227,7 +247,7 @@ function CompletarCadastroPage() {
         <p className="text-muted-foreground text-sm mt-1 font-poppins">Precisamos de mais alguns dados para sua segurança</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="cpf" className="text-white/80 font-poppins text-sm">CPF</Label>
           <Controller
