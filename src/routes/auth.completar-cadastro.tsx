@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { updateUserInfo } from '@/lib/auth-google.functions';
 import { checkUserProfileStatus } from '@/lib/auth-status.functions';
-import { getLocations } from '@/lib/locations.functions';
+import { getUFs, getCitiesByUF } from '@/lib/locations.functions';
 
 const formatCPF = (value: string) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -78,11 +78,14 @@ function CompletarCadastroPage() {
   const navigate = useNavigate();
   const executeUpdate = useServerFn(updateUserInfo);
   const checkStatus = useServerFn(checkUserProfileStatus);
-  const fetchLocations = useServerFn(getLocations);
+  const fetchUFs = useServerFn(getUFs);
+  const fetchCities = useServerFn(getCitiesByUF);
   
   const [isLoading, setIsLoading] = useState(false);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [isLoadingLocations, setIsLoadingLocations] = useState(true);
+  const [ufs, setUfs] = useState<string[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+  const [isLoadingUfs, setIsLoadingUfs] = useState(true);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
 
   // Estados locais para os seletores de data
   const [day, setDay] = useState('');
@@ -118,35 +121,41 @@ function CompletarCadastroPage() {
   }, [day, month, year, setValue]);
 
   useEffect(() => {
-    const loadLocations = async () => {
+    const loadUFs = async () => {
       try {
-        const data = await fetchLocations();
-        setLocations(data);
+        const data = await fetchUFs();
+        setUfs(data);
       } catch (error) {
-        toast.error("Erro ao carregar cidades. Tente recarregar a página.");
+        toast.error("Erro ao carregar estados. Tente recarregar a página.");
       } finally {
-        setIsLoadingLocations(false);
+        setIsLoadingUfs(false);
       }
     };
-    loadLocations();
-  }, [fetchLocations]);
+    loadUFs();
+  }, [fetchUFs]);
 
-  const estados = useMemo(() => {
-    const ufs = Array.from(new Set(locations.map(c => c.estado_uf))).sort();
-    return ufs;
-  }, [locations]);
-
-  const cidadesFiltradas = useMemo(() => {
-    if (!selectedUF) return [];
-    return locations.filter(c => c.estado_uf === selectedUF).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [selectedUF, locations]);
-
-  // Limpa a cidade quando o UF muda
   useEffect(() => {
-    if (selectedUF) {
-      setValue('cidade_id', '');
-    }
-  }, [selectedUF, setValue]);
+    const loadCities = async () => {
+      if (!selectedUF) {
+        setCities([]);
+        return;
+      }
+      
+      setIsLoadingCities(true);
+      try {
+        const data = await fetchCities({ data: selectedUF });
+        setCities(data);
+      } catch (error) {
+        toast.error("Erro ao carregar cidades do estado selecionado.");
+      } finally {
+        setIsLoadingCities(false);
+      }
+    };
+    loadCities();
+    
+    // Limpa a cidade quando o UF muda
+    setValue('cidade_id', '');
+  }, [selectedUF, fetchCities, setValue]);
 
   // Lógica para anos (do ano atual até 100 anos atrás)
   const anos = useMemo(() => {
@@ -305,13 +314,13 @@ function CompletarCadastroPage() {
                 <Select 
                   onValueChange={field.onChange} 
                   value={field.value}
-                  disabled={isLoadingLocations}
+                  disabled={isLoadingUfs}
                 >
                   <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                    <SelectValue placeholder={isLoadingLocations ? "..." : "UF"} />
+                    <SelectValue placeholder={isLoadingUfs ? "..." : "UF"} />
                   </SelectTrigger>
                   <SelectContent className="bg-zuvvi-indigo border-white/10 text-white pointer-events-auto touch-pan-y">
-                    {estados.map(uf => (
+                    {ufs.map(uf => (
                       <SelectItem key={uf} value={uf}>{uf}</SelectItem>
                     ))}
                   </SelectContent>
@@ -330,13 +339,13 @@ function CompletarCadastroPage() {
                 <Select 
                   onValueChange={field.onChange} 
                   value={field.value}
-                  disabled={!selectedUF || isLoadingLocations}
+                  disabled={!selectedUF || isLoadingCities}
                 >
                   <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                    <SelectValue placeholder="Cidade" />
+                    <SelectValue placeholder={isLoadingCities ? "Carregando..." : "Cidade"} />
                   </SelectTrigger>
                   <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                    {cidadesFiltradas.map(cidade => (
+                    {cities.map(cidade => (
                       <SelectItem key={cidade.id} value={cidade.id}>{cidade.nome}</SelectItem>
                     ))}
                   </SelectContent>
