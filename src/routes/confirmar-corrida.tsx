@@ -30,6 +30,7 @@ function ConfirmarCorrida() {
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao' | 'dinheiro' | null>(null);
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
@@ -104,6 +105,7 @@ function ConfirmarCorrida() {
 
             map.current.fitBounds(bounds, { padding: 80 });
             setIsLoading(false);
+            setShowPaymentModal(true);
           });
         }
       } catch (err) {
@@ -175,7 +177,15 @@ function ConfirmarCorrida() {
 
             {/* Forma de Pagamento */}
             <div className="space-y-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">Forma de pagamento</p>
+              <div className="flex items-center justify-between px-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Forma de pagamento</p>
+                <button 
+                  onClick={() => setShowPaymentModal(true)}
+                  className="text-[10px] text-zuvvi-volt font-bold uppercase tracking-widest hover:underline"
+                >
+                  Alterar
+                </button>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'pix', label: 'Pix', icon: QrCode },
@@ -187,7 +197,10 @@ function ConfirmarCorrida() {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => setMetodoPagamento(item.id as any)}
+                      onClick={() => {
+                        setMetodoPagamento(item.id as any);
+                        setShowPaymentModal(false);
+                      }}
                       className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${
                         isSelected 
                           ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo' 
@@ -246,6 +259,52 @@ function ConfirmarCorrida() {
         <div className="absolute inset-0 z-50 bg-zuvvi-indigo/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">
           <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
           <p className="text-sm font-bold uppercase tracking-widest text-zuvvi-volt animate-pulse">Calculando Rota...</p>
+        </div>
+      )}
+      {/* Modal de Pagamento */}
+      {showPaymentModal && (
+        <div className="absolute inset-0 z-[60] flex items-end justify-center sm:items-center p-4">
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          
+          {/* Conteúdo do Modal */}
+          <div className="relative w-full max-w-md bg-zuvvi-indigo border border-white/10 rounded-[2.5rem] p-8 shadow-2xl animate-rise">
+            <div className="space-y-8">
+              <div className="text-center space-y-2">
+                <h2 className="text-xl font-black text-white uppercase tracking-wider">
+                  Escolha sua forma de pagamento
+                </h2>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                  Selecione uma opção para continuar
+                </p>
+              </div>
+
+              <div className="grid gap-3">
+                {[
+                  { id: 'pix', label: 'Pix', icon: QrCode },
+                  { id: 'cartao', label: 'Cartão', icon: CreditCard },
+                  { id: 'dinheiro', label: 'Dinheiro', icon: Banknote },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setMetodoPagamento(item.id as any);
+                        setShowPaymentModal(false);
+                      }}
+                      className="flex items-center gap-4 w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-[0.98] transition-all group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center group-hover:bg-zuvvi-volt/20 transition-colors">
+                        <Icon className="w-6 h-6 text-zuvvi-volt" />
+                      </div>
+                      <span className="text-sm font-bold uppercase tracking-[0.1em]">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
