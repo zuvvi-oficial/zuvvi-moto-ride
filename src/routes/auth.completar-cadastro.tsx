@@ -110,11 +110,6 @@ function CompletarCadastroPage() {
   });
 
   const selectedUF = watch('uf');
-  const prevUF = useMemo(() => {
-    return { value: selectedUF };
-  }, []); // Mantém a referência estável do objeto, mas o valor interno precisa de acompanhamento customizado
-  
-  // UseRef é melhor para rastrear o valor anterior sem disparar re-renders
   const lastSelectedUF = useRef(selectedUF);
 
   // Atualiza o valor de data_nascimento no formulário quando os seletores mudam
