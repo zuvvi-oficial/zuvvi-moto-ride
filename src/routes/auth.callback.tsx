@@ -69,7 +69,9 @@ function AuthCallbackPage() {
         if (cancelled) return;
         
         const errorMessage = err?.message || String(err);
+        const fullErrorInfo = err && typeof err === 'object' ? JSON.stringify(err, null, 2) : String(err);
         console.log(`[GoogleAuth] error_details: ${errorMessage}`);
+        setDebugError(fullErrorInfo);
         
         // Provide more specific feedback for common auth failures
         if (errorMessage.includes("Unauthorized")) {
