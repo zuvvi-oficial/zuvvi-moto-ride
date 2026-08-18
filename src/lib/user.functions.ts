@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
+import { nanoid } from "nanoid";
 
 type UserRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type MotoristaRow = Database["public"]["Tables"]["motoristas"]["Row"];
