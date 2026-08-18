@@ -3,8 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAuthStatus } from "@/lib/auth-status.functions";
 import heroMoto from "@/assets/hero-moto.jpg";
-import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight } from "lucide-react";
+import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useRef, useState } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { getMapboxToken, checkCityAvailability, getSessionUser } from "@/lib/user.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,11 +41,6 @@ function UnifiedIndex() {
 
   if (auth?.authenticated) {
     if (auth.isMotorista) {
-      // For motorista, redirect to their home (onboarding-motorista)
-      // We use navigate instead of redirect in component for smoother experience
-      // But according to requirement "show the corresponding Home", we could also render it here.
-      // However, /onboarding-motorista already has the logic.
-      // Let's redirect to centralize motorista logic there.
       navigate({ to: "/onboarding-motorista" });
       return null;
     }
@@ -51,110 +51,247 @@ function UnifiedIndex() {
 }
 
 function HomePassageiro({ nome }: { nome: string }) {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(true);
+  const [isCityAvailable, setIsCityAvailable] = useState<boolean | null>(null);
+  const [cityName, setCityName] = useState<string | null>(null);
+  
+  const getMapboxTokenFn = useServerFn(getMapboxToken);
+  const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
+  const getSessionUserFn = useServerFn(getSessionUser);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.reload();
   };
 
+  const requestLocation = () => {
+    setIsLocating(true);
+    setLocationError(null);
+    
+    if (!navigator.geolocation) {
+      setLocationError("Geolocalização não é suportada pelo seu navegador.");
+      setIsLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error("Erro GPS:", error);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Permissão de localização negada. Por favor, ative o GPS para usar o app.");
+        } else {
+          setLocationError("Não foi possível obter sua localização. Tente novamente.");
+        }
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  useEffect(() => {
+    requestLocation();
+  }, []);
+
+  useEffect(() => {
+    const checkAvailability = async () => {
+      try {
+        const user = await getSessionUserFn();
+        const result = await checkCityAvailabilityFn({ 
+          data: {
+            cidadeId: user.cidade_id,
+            coords: location || undefined
+          }
+        });
+        setIsCityAvailable(result.isAvailable);
+        setCityName(result.cityName);
+      } catch (err) {
+        console.error("Erro ao verificar cidade:", err);
+        setIsCityAvailable(false);
+      }
+    };
+
+    if (!isLocating) {
+      checkAvailability();
+    }
+  }, [location, isLocating]);
+
+  useEffect(() => {
+    if (!location || !isCityAvailable || map.current) return;
+
+    const initMap = async () => {
+      const token = await getMapboxTokenFn();
+      if (!token) {
+        toast.error("Configuração de mapa ausente.");
+        return;
+      }
+
+      mapboxgl.accessToken = token;
+      
+      if (!mapContainer.current) return;
+
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/dark-v11",
+        center: [location.lng, location.lat],
+        zoom: 15,
+        attributionControl: false
+      });
+
+      new mapboxgl.Marker({ color: "#C6FF3D" })
+        .setLngLat([location.lng, location.lat])
+        .addTo(map.current);
+    };
+
+    initMap();
+
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, [location, isCityAvailable]);
+
   return (
-    <div className="min-h-screen zuvvi-gradient text-foreground pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md px-5 py-4">
-        <div className="mx-auto max-w-md flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
-              <User className="text-zuvvi-volt w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Olá, {nome.split(" ")[0]}</p>
-              <h1 className="text-sm font-bold">Para onde vamos?</h1>
-            </div>
-          </div>
-          <button 
-            onClick={handleLogout} 
-            className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center border border-border transition-colors hover:bg-secondary"
-            title="Sair"
-          >
-            <LogOut className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-      </header>
+    <div className="relative min-h-screen bg-zuvvi-indigo text-foreground overflow-hidden">
+      <div 
+        ref={mapContainer} 
+        className={`fixed inset-0 z-0 transition-opacity duration-1000 ${isCityAvailable ? 'opacity-100' : 'opacity-0'}`} 
+      />
 
-      <main className="mx-auto max-w-md px-5 py-8 space-y-8">
-        {/* Search Bar Placeholder */}
-        <section className="relative group">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <MapPin className="text-zuvvi-volt w-5 h-5" />
-          </div>
-          <input
-            type="text"
-            placeholder="Qual o seu destino?"
-            className="w-full bg-card border border-border rounded-2xl py-5 pl-12 pr-4 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-xl shadow-black/40 text-sm font-medium"
-            disabled
-          />
-          <div className="absolute top-full left-0 right-0 mt-3 p-3 bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-xl text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.1em] text-center animate-pulse">
-            Em breve você poderá pedir corridas aqui
-          </div>
-        </section>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <button className="bg-secondary/30 border border-border rounded-2xl p-5 flex flex-col items-center gap-3 transition-transform active:scale-[0.98]">
-            <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center">
-              <Star className="text-zuvvi-volt w-5 h-5" />
-            </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest">Favoritos</p>
-          </button>
-          <button className="bg-secondary/30 border border-border rounded-2xl p-5 flex flex-col items-center gap-3 transition-transform active:scale-[0.98]">
-            <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center">
-              <Clock className="text-zuvvi-volt w-5 h-5" />
-            </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest">Recentes</p>
-          </button>
-        </div>
-
-        {/* Promo Banner */}
-        <section className="zuvvi-glow rounded-3xl border border-border bg-zuvvi-indigo-dark p-6 overflow-hidden relative">
-          <div className="speed-lines absolute inset-0 opacity-20" />
-          <div className="relative z-10">
-            <div className="flex justify-between items-start">
+      <div className="relative z-10 flex flex-col min-h-screen pointer-events-none">
+        <header className="px-5 py-4 pointer-events-auto">
+          <div className="mx-auto max-w-md flex items-center justify-between bg-zuvvi-indigo/60 backdrop-blur-lg border border-white/10 rounded-3xl px-4 py-3 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
+                <User className="text-zuvvi-volt w-6 h-6" />
+              </div>
               <div>
-                <h3 className="text-xl font-bold mb-2 text-white">Sua primeira corrida <br/><span className="volt-text">com 50% OFF</span></h3>
-                <p className="text-xs text-muted-foreground mb-4">Aproveite o lançamento da Zuvvi na sua cidade.</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20">
-                <Bike className="text-zuvvi-volt w-5 h-5" />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Olá, {nome.split(" ")[0]}</p>
+                <h1 className="text-sm font-bold">Zuvvi Moto</h1>
               </div>
             </div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-black uppercase tracking-widest">
-              Lançamento em breve
-              <ChevronRight size={12} strokeWidth={3} />
-            </div>
+            <button 
+              onClick={handleLogout} 
+              className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-colors hover:bg-white/10"
+              title="Sair"
+            >
+              <LogOut className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
-        </section>
-      </main>
+        </header>
 
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/90 backdrop-blur-md px-5 py-3">
-        <div className="mx-auto max-w-md flex items-center justify-around">
-          <button className="flex flex-col items-center gap-1 volt-text">
-            <Bike className="w-6 h-6" strokeWidth={2.5} />
-            <span className="text-[9px] font-black uppercase tracking-wider">Início</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
-            <Clock className="w-6 h-6" />
-            <span className="text-[9px] font-bold uppercase tracking-wider">Corridas</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
-            <CreditCard className="w-6 h-6" />
-            <span className="text-[9px] font-bold uppercase tracking-wider">Carteira</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
-            <User className="w-6 h-6" />
-            <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>
-          </button>
-        </div>
-      </nav>
+        <main className="flex-1 flex flex-col justify-end px-5 pb-24 mx-auto w-full max-w-md space-y-4">
+          
+          {isLocating && (
+            <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-4 shadow-2xl pointer-events-auto animate-rise">
+              <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
+              <p className="text-sm font-medium">Buscando sua localização...</p>
+            </div>
+          )}
+
+          {!isLocating && locationError && (
+            <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center space-y-6 shadow-2xl pointer-events-auto animate-rise">
+              <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold mb-2">GPS Necessário</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">{locationError}</p>
+              </div>
+              <button 
+                onClick={requestLocation}
+                className="w-full bg-zuvvi-volt text-zuvvi-indigo py-4 rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-transform active:scale-95"
+              >
+                TENTAR NOVAMENTE
+              </button>
+            </div>
+          )}
+
+          {!isLocating && !locationError && isCityAvailable === false && (
+            <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center space-y-6 shadow-2xl pointer-events-auto animate-rise">
+              <div className="w-16 h-16 rounded-full bg-zuvvi-volt/20 flex items-center justify-center">
+                <Bike className="text-zuvvi-volt w-8 h-8" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Zuvvi ainda não <br/><span className="volt-text">chegou aqui</span></h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {cityName ? `Estamos trabalhando para liberar as corridas em ${cityName} em breve.` : "Sua localização atual ainda não está coberta pela nossa rede."}
+                </p>
+                <p className="text-[10px] text-zuvvi-volt/60 font-bold uppercase tracking-widest mt-4">
+                  Você será avisado quando liberarmos
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!isLocating && !locationError && isCityAvailable === true && (
+            <div className="space-y-4 animate-rise pointer-events-auto">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                  <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Para onde vamos?"
+                  className="w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] py-6 pl-14 pr-4 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl text-base font-bold placeholder:text-muted-foreground/50"
+                  disabled
+                />
+                <div className="absolute top-full left-0 right-0 mt-3 p-3 bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-xl text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.1em] text-center animate-pulse">
+                  Qual o seu destino? (Em breve)
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 pb-4">
+                <button className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]">
+                  <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center">
+                    <Star className="text-zuvvi-volt w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Favoritos</span>
+                </button>
+                <button className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]">
+                  <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center">
+                    <Clock className="text-zuvvi-volt w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Recentes</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto">
+          <div className="mx-auto max-w-md flex items-center justify-around">
+            <button className="flex flex-col items-center gap-1 volt-text">
+              <Bike className="w-6 h-6" strokeWidth={2.5} />
+              <span className="text-[9px] font-black uppercase tracking-wider">Início</span>
+            </button>
+            <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
+              <Clock className="w-6 h-6" />
+              <span className="text-[9px] font-bold uppercase tracking-wider">Corridas</span>
+            </button>
+            <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
+              <CreditCard className="w-6 h-6" />
+              <span className="text-[9px] font-bold uppercase tracking-wider">Carteira</span>
+            </button>
+            <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
+              <User className="w-6 h-6" />
+              <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>
+            </button>
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }
