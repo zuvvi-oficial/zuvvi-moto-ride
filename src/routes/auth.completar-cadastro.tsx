@@ -75,7 +75,9 @@ function CompletarCadastroPage() {
         navigate({ to: "/auth/perfil" });
       }
     } catch (error: any) {
-      toast.error("Erro ao salvar informações. Verifique os dados.");
+      // Use the specific message from the server if available
+      const message = error.message || "Erro ao salvar informações. Verifique os dados.";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
