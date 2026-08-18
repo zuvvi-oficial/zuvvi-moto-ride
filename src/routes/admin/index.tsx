@@ -13,7 +13,7 @@ const adminStatsOptions = queryOptions({
   queryFn: () => getAdminStats(),
 });
 
-export const Route = createFileRoute('/admin/')({
+export const Route = createFileRoute('/admin')({
   loader: async ({ context }) => {
     try {
       await context.queryClient.ensureQueryData(adminStatsOptions);
