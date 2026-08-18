@@ -97,7 +97,18 @@ export const updateUserInfo = createServerFn({ method: "POST" })
 
     if (error) {
       console.error("[updateUserInfo] Error updating user info:", error);
-      throw new Error("Erro ao atualizar informações.");
+      
+      // Capture PostgreSQL unique violation (code 23505)
+      if (error.code === '23505') {
+        if (error.message?.includes('usuarios_cpf_key')) {
+          throw new Error("Este CPF já está cadastrado em outra conta.");
+        }
+        if (error.message?.includes('usuarios_celular_key')) {
+          throw new Error("Este número de celular já está cadastrado em outra conta.");
+        }
+      }
+      
+      throw new Error("Erro ao salvar informações. Verifique os dados.");
     }
 
     return { success: true };
