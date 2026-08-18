@@ -3,6 +3,74 @@ import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+/**
+ * Função unificada server-side para resolver o destino pós-login.
+ * Garante segurança absoluta para a conta administrativa mokahz@gmail.com.
+ */
+export const resolvePostLoginDestination = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const userId = context.userId;
+
+    // 1. Obter dados reais do Auth (Server-side trust)
+    const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    
+    if (authError || !authUser) {
+      return { redirectTo: "/auth/login" };
+    }
+
+    // 2. Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
+    const isAdmin = authUser.email === 'mokahz@gmail.com' && !!authUser.email_confirmed_at;
+
+    if (isAdmin) {
+      // Bootstrap idempotente em admin_users
+      await supabaseAdmin.from("admin_users").upsert(
+        { auth_user_id: userId, role: 'admin', ativo: true },
+        { onConflict: 'auth_user_id' }
+      );
+      
+      return { 
+        isAdmin: true,
+        redirectTo: "/admin"
+      };
+    }
+
+    // 3. Verificar status para usuários comuns
+    const { data: userRecord } = await supabaseAdmin
+      .from("usuarios")
+      .select("is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (!userRecord) {
+      return { isAdmin: false, redirectTo: "/auth/completar-cadastro" };
+    }
+
+    const isRegistrationComplete = !!(
+      userRecord.cpf && 
+      userRecord.celular && 
+      userRecord.data_nascimento && 
+      userRecord.cidade_id
+    );
+
+    if (!isRegistrationComplete) {
+      return { isAdmin: false, redirectTo: "/auth/completar-cadastro" };
+    }
+
+    const hasProfile = !!(userRecord.is_passageiro || userRecord.is_motorista);
+    if (!hasProfile) {
+      return { isAdmin: false, redirectTo: "/auth/perfil" };
+    }
+
+    return { 
+      isAdmin: false,
+      isPassageiro: userRecord.is_passageiro,
+      isMotorista: userRecord.is_motorista,
+      redirectTo: userRecord.is_motorista ? "/onboarding-motorista" : "/"
+    };
+  });
+
 export const checkUserProfileStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -11,15 +79,9 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
 
     const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
 
-    // Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
     const isAdmin = authUser?.email === 'mokahz@gmail.com' && !!authUser?.email_confirmed_at;
 
     if (isAdmin) {
-      // Garantir bootstrap idempotente
-      await supabaseAdmin.from("admin_users").upsert(
-        { auth_user_id: userId, role: 'admin', ativo: true },
-        { onConflict: 'auth_user_id' }
-      );
       return { 
         hasProfile: true, 
         isAdmin: true,

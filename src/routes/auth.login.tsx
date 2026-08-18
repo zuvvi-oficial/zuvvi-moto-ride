@@ -11,7 +11,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { GoogleLoginButton, AuthSeparator } from '@/components/auth/SocialLogin';
 import { useServerFn } from '@tanstack/react-start';
-import { checkUserProfileStatus } from '@/lib/auth-status.functions';
+import { resolvePostLoginDestination } from '@/lib/auth-status.functions';
 
 const loginSchema = z.object({
   email: z
@@ -31,7 +31,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const checkStatus = useServerFn(checkUserProfileStatus);
+  const resolveDestination = useServerFn(resolvePostLoginDestination);
 
   const { 
     register, 
@@ -56,18 +56,9 @@ function LoginPage() {
 
       toast.success("Login realizado com sucesso!");
       
-      // Verificação de fluxo obrigatório
-      const status = await checkStatus();
-      
-      if (status.isAdmin || (status as any).redirectTo) {
-        navigate({ to: (status as any).redirectTo || "/admin" });
-      } else if (!status.isRegistrationComplete) {
-        navigate({ to: "/auth/completar-cadastro" });
-      } else if (!status.hasProfile) {
-        navigate({ to: "/auth/perfil" });
-      } else {
-        navigate({ to: "/" });
-      }
+      // Decisão server-side unificada
+      const result = await resolveDestination();
+      navigate({ to: result.redirectTo as any });
     } catch (error: any) {
       toast.error("Ocorreu um erro ao tentar entrar. Tente novamente.");
     } finally {

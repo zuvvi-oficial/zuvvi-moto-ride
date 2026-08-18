@@ -10,7 +10,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkUserProfileStatus } from "@/lib/auth-status.functions";
 import { Button } from "@/components/ui/button";
 
+import { resolvePostLoginDestination } from "@/lib/auth-status.functions";
+import { redirect } from "@tanstack/react-router";
+
 export const Route = createFileRoute("/onboarding-motorista")({
+  loader: async () => {
+    const dest = await resolvePostLoginDestination();
+    if (dest.redirectTo && dest.redirectTo !== "/onboarding-motorista") {
+      throw redirect({ to: dest.redirectTo as any });
+    }
+  },
   component: HomeMotoristaPage,
 });
 
