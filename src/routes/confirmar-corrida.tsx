@@ -14,6 +14,7 @@ const searchSchema = z.object({
   destLat: z.number(),
   destLng: z.number(),
   destName: z.string(),
+  originName: z.string().optional(),
 });
 
 export const Route = createFileRoute('/confirmar-corrida')({
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/confirmar-corrida')({
 });
 
 function ConfirmarCorrida() {
-  const { originLat, originLng, destLat, destLng, destName } = Route.useSearch();
+  const { originLat, originLng, destLat, destLng, destName, originName } = Route.useSearch();
   const navigate = useNavigate();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -50,7 +51,7 @@ function ConfirmarCorrida() {
         data: {
           origemLat: originLat,
           origemLng: originLng,
-          origemNome: 'Sua localização',
+          origemNome: originName || 'Sua localização',
           destinoLat: destLat,
           destinoLng: destLng,
           destinoNome: destName,
@@ -189,7 +190,7 @@ function ConfirmarCorrida() {
                 <div className="flex-1 space-y-4 min-w-0">
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Origem</p>
-                    <p className="text-sm font-medium truncate opacity-60">Sua localização atual</p>
+                    <p className="text-sm font-medium truncate opacity-60">{originName || 'Sua localização atual'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-zuvvi-volt uppercase tracking-widest mb-1">Destino</p>

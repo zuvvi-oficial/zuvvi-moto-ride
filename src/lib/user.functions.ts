@@ -230,3 +230,28 @@ export const getCorrida = createServerFn({ method: "GET" })
 
     return corrida;
   });
+
+export const getReverseGeocoding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ lat: z.number(), lng: z.number() }).parse(data))
+  .handler(async ({ data }) => {
+    const token = process.env['MAPBOX_TOKEN'];
+    if (!token) throw new Error("Token do Mapbox não configurado");
+
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${data.lng},${data.lat}.json?access_token=${token}&language=pt&limit=1`;
+    
+    try {
+      const response = await fetch(url);
+      const json = await response.json();
+      
+      if (json.features && json.features.length > 0) {
+        // Retorna o place_name formatado (ex: Rua X, Bairro, Cidade)
+        return { address: json.features[0].place_name };
+      }
+      
+      return { address: "Localização desconhecida" };
+    } catch (err) {
+      console.error("Erro reverse geocoding:", err);
+      return { address: "Sua localização" };
+    }
+  });
