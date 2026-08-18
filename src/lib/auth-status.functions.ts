@@ -3,15 +3,25 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContextFromRequest } from "./auth-status.server";
 
 /**
- * Versão interna server-only para evitar recursão e problemas de header no SSR.
+ * Unificação da lógica de decisão de destino pós-login e guardas de rota.
+ * Esta função é central e deve ser a única fonte de verdade para o destino de um usuário.
  */
-async function resolveDestinationInternal(userId: string, email: string) {
+async function resolveDestinationInternal(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // 1. Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
-  const isAdmin = email === 'mokahz@gmail.com';
+  // 1. Validar a identidade real via Supabase Admin (Server-side trust)
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
+  
+  if (authError || !user) {
+    console.error("[AuthInternal] Erro ao obter usuário do Auth:", authError);
+    return { redirectTo: "/auth/login" };
+  }
 
-  if (isAdmin) {
+  const email = user.email;
+  const isEmailConfirmed = !!user.email_confirmed_at;
+
+  // 2. Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
+  if (email === 'mokahz@gmail.com' && isEmailConfirmed) {
     // Bootstrap idempotente em admin_users
     await supabaseAdmin.from("admin_users").upsert(
       { auth_user_id: userId, role: 'admin', ativo: true },
@@ -24,7 +34,7 @@ async function resolveDestinationInternal(userId: string, email: string) {
     };
   }
 
-  // 2. Verificar status para usuários comuns
+  // 3. Verificar status para usuários comuns
   const { data: userRecord } = await supabaseAdmin
     .from("usuarios")
     .select("is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
@@ -59,14 +69,18 @@ async function resolveDestinationInternal(userId: string, email: string) {
   };
 }
 
+/**
+ * Função chamada após login (Google ou E-mail) para decidir o destino.
+ */
 export const resolvePostLoginDestination = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    return resolveDestinationInternal(context.userId, context.claims.email || '');
+    return resolveDestinationInternal(context.userId);
   });
 
 /**
  * Função segura para ser chamada por loaders (SSR) sem causar loop 500.
+ * Obtém a sessão via cookies se disponível.
  */
 export const resolveDestinationForLoader = createServerFn({ method: "GET" })
   .handler(async () => {
@@ -74,19 +88,22 @@ export const resolveDestinationForLoader = createServerFn({ method: "GET" })
     if (!auth) {
       return { redirectTo: "/auth/login" };
     }
-    return resolveDestinationInternal(auth.userId, auth.email);
+    return resolveDestinationInternal(auth.userId);
   });
 
+/**
+ * Verifica o status completo do perfil para uso na interface.
+ */
 export const checkUserProfileStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
-    const email = context.claims.email;
 
-    const isAdmin = email === 'mokahz@gmail.com';
-
-    if (isAdmin) {
+    // A decisão de destino já contém as verificações necessárias
+    const destination = await resolveDestinationInternal(userId);
+    
+    if (destination.isAdmin) {
       return { 
         hasProfile: true, 
         isAdmin: true,
@@ -95,14 +112,14 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
       };
     }
 
-    const { data: userRecord, error: userError } = await supabaseAdmin
+    const { data: userRecord } = await supabaseAdmin
       .from("usuarios")
       .select("is_passageiro, is_motorista, nome, cpf, celular, data_nascimento, city:cidade_id")
       .eq("auth_user_id", userId)
       .maybeSingle();
 
-    if (userError || !userRecord) {
-      return { hasProfile: false, isAdmin: false };
+    if (!userRecord) {
+      return { hasProfile: false, isAdmin: false, redirectTo: "/auth/completar-cadastro" };
     }
 
     const isRegistrationComplete = !!(
@@ -118,10 +135,14 @@ export const checkUserProfileStatus = createServerFn({ method: "GET" })
       isPassageiro: userRecord.is_passageiro,
       isMotorista: userRecord.is_motorista,
       nome: userRecord.nome,
-      isRegistrationComplete
+      isRegistrationComplete,
+      redirectTo: destination.redirectTo
     };
   });
 
+/**
+ * Retorna o status de autenticação simplificado para a Home.
+ */
 export const getAuthStatus = createServerFn({ method: "GET" })
   .handler(async () => {
     const auth = await getAuthContextFromRequest();

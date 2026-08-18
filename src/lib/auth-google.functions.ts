@@ -5,19 +5,15 @@ import { z } from "zod";
 export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    console.log("[GoogleAuth] handler_started");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
     if (!userId) {
-      console.error("[GoogleAuth] No userId in context after middleware");
       return { redirectTo: "/auth/login", error: "Usuário não identificado pelo servidor." };
     }
     
-    console.log("[GoogleAuth] authenticated_user_context=true");
-
-    const { resolvePostLoginDestination } = await import("./auth-status.functions");
-    return await resolvePostLoginDestination();
+    // Obter e importar a lógica interna diretamente para evitar chamada de createServerFn encadeada
+    const { resolveDestinationInternal } = await import("./auth-status.functions");
+    return await resolveDestinationInternal(userId);
   });
 
 export const updateUserInfo = createServerFn({ method: "POST" })

@@ -36,10 +36,14 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
       const token = authHeader.substring(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (!error && user) {
+        // Obter identidade real via Admin API
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: adminUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
+        
         return {
           userId: user.id,
-          email: user.email || '',
-          isAdmin: user.email === 'mokahz@gmail.com' && !!user.email_confirmed_at
+          email: adminUser?.email || user.email || '',
+          isAdmin: adminUser?.email === 'mokahz@gmail.com' && !!adminUser?.email_confirmed_at
         };
       }
     }
@@ -49,12 +53,14 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
     
     if (userError || !user) return null;
 
-    const isAdmin = user.email === 'mokahz@gmail.com' && !!user.email_confirmed_at;
+    // Obter identidade real via Admin API
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: adminUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
 
     return {
       userId: user.id,
-      email: user.email || '',
-      isAdmin
+      email: adminUser?.email || user.email || '',
+      isAdmin: adminUser?.email === 'mokahz@gmail.com' && !!adminUser?.email_confirmed_at
     };
   } catch (e) {
     return null;
