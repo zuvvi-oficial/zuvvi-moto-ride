@@ -470,7 +470,17 @@ function HomePassageiro({ nome }: { nome: string }) {
   );
 }
 
-function DestinoSearch({ location, onSelect }: { location: { lat: number; lng: number } | null, onSelect: (dest: any) => void }) {
+function DestinoSearch({ 
+  location, 
+  onSelect, 
+  placeholder = "Para onde vamos?", 
+  autoFocus = false 
+}: { 
+  location: { lat: number; lng: number } | null, 
+  onSelect: (dest: any) => void,
+  placeholder?: string,
+  autoFocus?: boolean
+}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
