@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getUploadUrl, registrarDocumento, salvarDadosCNH, criarVeiculo, enviarParaAnalise } from "@/lib/motorista.functions";
 import { toast } from "sonner";
-import { Bike, Loader2, CheckCircle2, FileText, CreditCard, Upload, AlertCircle, FileText as DocIcon } from "lucide-react";
+import { Bike, Loader2, CheckCircle2, FileText, CreditCard, Upload, AlertCircle, FileText as DocIcon, Camera } from "lucide-react";
 
 type UploadState = {
   status: 'idle' | 'uploading' | 'success' | 'error';
@@ -121,39 +121,67 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                   <span>Enviado</span>
                   <CheckCircle2 className="w-3 h-3" />
                 </div>
-                <label className="cursor-pointer text-[9px] text-white/30 hover:text-white/60 underline mt-1">
-                  Alterar
+                <div className="flex gap-2 mt-1">
+                  <label className="cursor-pointer text-[9px] text-white/30 hover:text-white/60 underline">
+                    Galeria
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*,application/pdf"
+                      onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
+                    />
+                  </label>
+                  <label className="cursor-pointer text-[9px] text-white/30 hover:text-white/60 underline">
+                    Câmera
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      capture="environment"
+                      onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <label className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer ${
+                  isUploading ? 'opacity-50 cursor-not-allowed' : 'bg-white/5 hover:bg-white/10'
+                }`}>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Enviando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3 h-3" />
+                      <span>Selecionar</span>
+                    </>
+                  )}
                   <input 
                     type="file" 
                     className="hidden" 
                     accept="image/*,application/pdf"
+                    disabled={isUploading}
                     onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
                   />
                 </label>
-              </div>
-            ) : (
-              <label className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer ${
-                isUploading ? 'opacity-50 cursor-not-allowed' : 'bg-white/5 hover:bg-white/10'
-              }`}>
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Enviando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-3 h-3" />
-                    <span>Selecionar</span>
-                  </>
+
+                {!isUploading && (
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer bg-white/5 hover:bg-white/10 border border-white/5">
+                    <Camera className="w-3 h-3" />
+                    <span>Tirar Foto</span>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      capture="environment"
+                      onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
+                    />
+                  </label>
                 )}
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  accept="image/*,application/pdf"
-                  disabled={isUploading}
-                  onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
-                />
-              </label>
+              </div>
             )}
           </div>
         </div>
