@@ -255,3 +255,46 @@ export const getReverseGeocoding = createServerFn({ method: "POST" })
       return { address: "Sua localização" };
     }
   });
+
+export const cancelarCorrida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const userId = context.userId;
+
+    // 1. Obter o ID do perfil do usuário logado
+    const { data: usuario } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (!usuario) {
+      throw new Error("Perfil de usuário não encontrado.");
+    }
+
+    // 2. Tentar atualizar a corrida se pertencer ao passageiro
+    const { data: corrida, error } = await supabaseAdmin
+      .from("corridas")
+      .update({
+        status: 'cancelada',
+        cancelado_por: 'passageiro',
+        data_cancelamento: new Date().toISOString()
+      } as any)
+      .eq("id", data.rideId)
+      .eq("passageiro_id", usuario.id)
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.error("Erro ao cancelar corrida:", error);
+      throw new Error("Falha ao cancelar a corrida no banco de dados.");
+    }
+
+    if (!corrida) {
+      throw new Error("Corrida não encontrada ou você não tem permissão para cancelá-la.");
+    }
+
+    return { success: true };
+  });

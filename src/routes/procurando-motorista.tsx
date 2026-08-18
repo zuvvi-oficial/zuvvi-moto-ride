@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
-import { getCorrida } from '@/lib/user.functions';
+import { getCorrida, cancelarCorrida } from '@/lib/user.functions';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Bike, 
@@ -14,10 +14,21 @@ import {
   ChevronLeft,
   Navigation,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 const searchSchema = z.object({
   rideId: z.string(),
@@ -34,8 +45,11 @@ function ProcurandoMotorista() {
   const [corrida, setCorrida] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [motoristaEncontrado, setMotoristaEncontrado] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   
   const getCorridaFn = useServerFn(getCorrida);
+  const cancelarCorridaFn = useServerFn(cancelarCorrida);
 
   useEffect(() => {
     async function fetchInitialData() {
@@ -204,13 +218,64 @@ function ProcurandoMotorista() {
         {/* Ações */}
         <div className="space-y-4 pt-4">
           <button 
-            onClick={() => toast.info("Funcionalidade de cancelamento será implementada em breve.")}
-            className="w-full bg-white/5 text-white/60 py-5 rounded-[1.5rem] font-bold uppercase tracking-[0.2em] text-xs border border-white/5 transition-all hover:bg-white/10 active:scale-[0.98] flex items-center justify-center gap-3"
+            onClick={() => setShowCancelDialog(true)}
+            disabled={isCancelling}
+            className="w-full bg-white/5 text-white/60 py-5 rounded-[1.5rem] font-bold uppercase tracking-[0.2em] text-xs border border-white/5 transition-all hover:bg-white/10 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
           >
-            <X className="w-4 h-4" />
-            CANCELAR CORRIDA
+            {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+            {isCancelling ? "CANCELANDO..." : "CANCELAR CORRIDA"}
           </button>
         </div>
+
+        {/* Modal de Confirmação de Cancelamento */}
+        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <DialogContent className="bg-zuvvi-indigo border-white/10 text-white rounded-[2rem] sm:max-w-[400px]">
+            <DialogHeader className="items-center text-center space-y-4 pt-4">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">
+                  Cancelar Corrida?
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground pt-2">
+                  Deseja realmente cancelar esta solicitação? Seus pilotos próximos deixarão de ver seu pedido.
+                </DialogDescription>
+              </div>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col gap-3 sm:flex-col sm:space-x-0 pt-6">
+              <Button 
+                onClick={async () => {
+                  try {
+                    setIsCancelling(true);
+                    await cancelarCorridaFn({ data: { rideId } });
+                    toast.success("Corrida cancelada com sucesso.");
+                    navigate({ to: '/' });
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Erro ao cancelar a corrida. Tente novamente.");
+                    setShowCancelDialog(false);
+                  } finally {
+                    setIsCancelling(false);
+                  }
+                }}
+                disabled={isCancelling}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest py-6 rounded-2xl border-none"
+              >
+                {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Cancelar Corrida
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setShowCancelDialog(false)}
+                disabled={isCancelling}
+                className="w-full bg-transparent border-white/10 hover:bg-white/5 text-white font-bold uppercase tracking-widest py-6 rounded-2xl"
+              >
+                Continuar buscando
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
 
       {/* Footer Info */}
