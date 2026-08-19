@@ -26,9 +26,9 @@ import { ChevronLeft, ChevronRight, Search, MapPin } from 'lucide-react';
 
 const cidadesQueryOptions = (params: { 
   pagina: number; 
-  uf?: string; 
-  status?: string; 
-  busca?: string; 
+  uf: string | undefined; 
+  status: string | undefined; 
+  busca: string; 
 }) => queryOptions({
   queryKey: ['admin-cidades', params],
   queryFn: () => getCidadesAdmin({ data: params }),
