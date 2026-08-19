@@ -358,7 +358,7 @@ function AdminVeiculos() {
                                 variant="outline" 
                                 size="sm" 
                                 className="border-white/20 hover:bg-white/10"
-                                onClick={() => window.open(doc.publicUrl, '_blank')}
+                                onClick={() => doc.publicUrl && window.open(doc.publicUrl, '_blank')}
                               >
                                 <ExternalLink className="h-4 w-4 mr-2" />
                                 Ver
