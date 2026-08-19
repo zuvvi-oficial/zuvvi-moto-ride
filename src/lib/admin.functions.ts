@@ -241,22 +241,14 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
       .eq("motorista_id", data.motoristaId)
       .maybeSingle();
 
-    // 3. Documentos com URLs assinadas
+    // 3. Documentos
     const { data: documentos } = await supabaseAdmin
       .from("documentos_motorista")
       .select("*")
       .eq("motorista_id", data.motoristaId);
-
-    const docsComUrl = await Promise.all((documentos || []).map(async (doc) => {
-      let publicUrl = null;
-      if (doc.storage_path) {
-        const { data: signed } = await supabaseAdmin.storage
-          .from("documentos-motorista")
-          .createSignedUrl(doc.storage_path, 3600); // 1 hora
-        publicUrl = signed?.signedUrl;
-      }
-      return { ...doc, publicUrl };
-    }));
+    
+    // As URLs assinadas serão geradas sob demanda no frontend para maior segurança e performance
+    const docsSimplificados = documentos || [];
 
     // 4. Auditoria
     const { data: logs } = await supabaseAdmin
@@ -274,8 +266,102 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
     return {
       motorista,
       veiculo,
-      documentos: docsComUrl,
+      documentos: docsSimplificados,
       logs
+    };
+  });
+
+/**
+ * Atualizar status de um documento individual
+ */
+export const updateStatusDocumento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      documentoId: z.string(),
+      novoStatus: z.enum(["aprovado", "recusado", "pendente"]),
+      justificativa: z.string().optional(),
+    }).parse(data)
+  )
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const adminId = context.userId;
+
+    // 1. Obter documento e motorista vinculado
+    const { data: doc, error: docError } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("*, motoristas(id, usuarios(nome))")
+      .eq("id", data.documentoId)
+      .single();
+
+    if (docError || !doc) throw new Error("Documento não encontrado.");
+
+    if (data.novoStatus === "recusado" && !data.justificativa) {
+      throw new Error("Justificativa é obrigatória para recusar um documento.");
+    }
+
+    // 2. Atualizar status
+    const { error: updateError } = await supabaseAdmin
+      .from("documentos_motorista")
+      .update({
+        status_analise: data.novoStatus,
+        motivo_recusa: data.justificativa || null,
+        data_analise: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", data.documentoId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    // 3. Registrar Auditoria
+    await createAuditLog({
+      adminId,
+      acao: `doc_status_${data.novoStatus}`,
+      entidade: "documentos_motorista",
+      entidadeId: data.documentoId,
+      estadoAnterior: { status: doc.status_analise, motivo: doc.motivo_recusa },
+      estadoNovo: { status: data.novoStatus, motivo: data.justificativa },
+      justificativa: `Alteração de status do documento ${doc.tipo_documento} do motorista ${doc.motoristas?.usuarios?.nome}. ${data.justificativa || ""}`,
+    });
+
+    return { success: true };
+  });
+
+/**
+ * Gerar URL assinada para visualização de documento (Server-only)
+ */
+export const getDocumentoUrlSigned = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ documentoId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Validar documento e obter path
+    const { data: doc, error } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("storage_path, tipo_documento")
+      .eq("id", data.documentoId)
+      .single();
+
+    if (error || !doc || !doc.storage_path) {
+      throw new Error("Arquivo não encontrado ou inacessível.");
+    }
+
+    // 2. Gerar URL temporária (15 minutos para visualização imediata)
+    const { data: signed, error: signedError } = await supabaseAdmin.storage
+      .from("documentos-motorista")
+      .createSignedUrl(doc.storage_path, 900);
+
+    if (signedError || !signed) {
+      throw new Error("Erro ao gerar acesso ao arquivo.");
+    }
+
+    return { 
+      url: signed.signedUrl,
+      tipo: doc.tipo_documento,
+      isPdf: doc.storage_path.toLowerCase().endsWith('.pdf')
     };
   });
 
