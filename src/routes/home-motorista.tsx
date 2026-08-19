@@ -21,7 +21,9 @@ function HomeMotorista() {
   const { data: status, isLoading, isError } = useQuery({
     queryKey: ['motorista-status'],
     queryFn: () => getStatusFn(),
-    refetchInterval: 10000, // Atualiza a cada 10s para refletir mudanças externas
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const mutation = useMutation({
