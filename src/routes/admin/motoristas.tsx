@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 
-import { getMotoristasAdmin, updateStatusMotorista, getMotoristaDetalheAdmin } from '@/lib/admin.functions';
+import { getMotoristasAdmin, updateStatusMotorista, getMotoristaDetalheAdmin, updateStatusDocumento, getDocumentoUrlSigned } from '@/lib/admin.functions';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink, AlertTriangle, ChevronRight, Maximize2 } from 'lucide-react';
 
 
 const motoristasOptions = (filters: { status?: string; busca?: string }) => queryOptions({
@@ -62,6 +62,10 @@ function AdminMotoristas() {
   const [justificativa, setJustificativa] = useState('');
   const [actionType, setActionType] = useState<'aprovado' | 'recusado' | 'suspenso' | null>(null);
   const [viewingMotoristaId, setViewingMotoristaId] = useState<string | null>(null);
+  const [reviewingDoc, setReviewingDoc] = useState<any>(null);
+  const [justificativaDoc, setJustificativaDoc] = useState('');
+  const [isViewingFile, setIsViewingFile] = useState<{url: string, type: string, isPdf: boolean} | null>(null);
+  const [loadingFile, setLoadingFile] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusMotorista);
