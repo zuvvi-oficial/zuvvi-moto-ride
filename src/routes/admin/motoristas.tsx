@@ -135,6 +135,7 @@ function AdminMotoristas() {
               <TableHead className="text-gray-400">Cidade</TableHead>
               <TableHead className="text-gray-400">Status</TableHead>
               <TableHead className="text-gray-400">Online</TableHead>
+              <TableHead className="text-gray-400 text-center">Detalhes</TableHead>
               <TableHead className="text-gray-400 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
