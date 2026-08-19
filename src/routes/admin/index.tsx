@@ -125,7 +125,9 @@ function AdminDashboard() {
         <Button asChild className="bg-zuvvi-violet hover:bg-zuvvi-violet/80">
           <Link to="/admin/veiculos">Gerenciar Veículos</Link>
         </Button>
-
+        <Button asChild className="bg-zuvvi-violet hover:bg-zuvvi-violet/80">
+          <Link to="/admin/cidades">Gerenciar Cidades</Link>
+        </Button>
       </div>
     </div>
   );
