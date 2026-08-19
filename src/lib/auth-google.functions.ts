@@ -28,7 +28,24 @@ export const updateUserInfo = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    const { error } = await supabaseAdmin
+    if (!userId) {
+      throw new Error("Não encontramos seu cadastro autenticado. Saia e entre novamente.");
+    }
+
+    // 1. Verificar se o registro em public.usuarios existe
+    const { data: userRecord, error: fetchError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (fetchError || !userRecord) {
+      console.error("[updateUserInfo] User record not found for auth_user_id:", userId);
+      throw new Error("Não encontramos seu cadastro autenticado. Saia e entre novamente.");
+    }
+
+    // 2. Executar o UPDATE
+    const { data: updatedData, error: updateError } = await supabaseAdmin
       .from("usuarios")
       .update({
         cpf: data.cpf,
@@ -36,23 +53,27 @@ export const updateUserInfo = createServerFn({ method: "POST" })
         data_nascimento: data.data_nascimento,
         cidade_id: data.cidade_id
       })
-      .eq("auth_user_id", userId);
+      .eq("auth_user_id", userId)
+      .select("id");
 
-    if (error) {
-      console.error("[updateUserInfo] Error updating user info:", error);
+    if (updateError) {
+      console.error("[updateUserInfo] Error updating user info:", updateError);
       
-      // Capture PostgreSQL unique violation (code 23505)
-      if (error.code === '23505') {
-        if (error.message?.includes('usuarios_cpf_key')) {
+      if (updateError.code === '23505') {
+        if (updateError.message?.includes('usuarios_cpf_key')) {
           throw new Error("Este CPF já está cadastrado em outra conta.");
         }
-        if (error.message?.includes('usuarios_celular_key')) {
+        if (updateError.message?.includes('usuarios_celular_key')) {
           throw new Error("Este número de celular já está cadastrado em outra conta.");
         }
       }
       
-      throw new Error("Erro ao salvar informações. Verifique os dados.");
+      throw new Error("Erro ao salvar informações. Tente novamente.");
     }
 
-    return { success: true };
+    if (!updatedData || updatedData.length === 0) {
+      throw new Error("Não foi possível atualizar seu cadastro. Tente sair e entrar novamente.");
+    }
+
+    return { success: true, updated: true };
   });

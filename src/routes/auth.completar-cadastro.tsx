@@ -93,6 +93,7 @@ function CompletarCadastroPage() {
   const [isLoadingUfs, setIsLoadingUfs] = useState(true);
   const [isLoadingCities, setIsLoadingCities] = useState(false);
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Estados locais para os seletores de data e UF (agora manuais)
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
@@ -214,20 +215,26 @@ function CompletarCadastroPage() {
     }
 
     setIsLoading(true);
+    setErrorMsg(null);
     try {
-      // Passar para executeUpdate: { cpf, celular, data_nascimento, cidade_id }
-      await executeUpdate({ 
+      const response = await executeUpdate({ 
         data: {
           ...formData,
           data_nascimento
         } 
       });
       
+      if (!response.success) {
+        throw new Error("Resposta inesperada do servidor.");
+      }
+
       toast.success("Informações atualizadas!");
       
       const status = await checkStatus();
+      
       if (status.isAdmin || (status as any).redirectTo) {
-        navigate({ to: (status as any).redirectTo || "/admin" });
+        const dest = (status as any).redirectTo || (status.isAdmin ? "/admin" : "/");
+        navigate({ to: dest });
       } else if (status.hasProfile) {
         navigate({ to: "/" });
       } else {
@@ -235,8 +242,8 @@ function CompletarCadastroPage() {
       }
     } catch (error: any) {
       const message = error.message || "Erro ao salvar informações. Verifique os dados.";
+      setErrorMsg(message);
       toast.error(message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -261,6 +268,11 @@ function CompletarCadastroPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4">
+        {errorMsg && (
+          <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-md mb-4">
+            <p className="text-red-500 text-sm font-poppins text-center">{errorMsg}</p>
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="cpf" className="text-white/80 font-poppins text-sm">CPF</Label>
           <Controller
