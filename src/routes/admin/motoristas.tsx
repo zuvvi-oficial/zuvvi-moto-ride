@@ -108,7 +108,7 @@ function AdminMotoristas() {
     if (!reviewingDoc) return;
     
     try {
-      await updateStatusDocFn({
+      const result = await updateStatusDocFn({
         data: {
           documentoId: reviewingDoc.id,
           novoStatus: status,
@@ -116,8 +116,16 @@ function AdminMotoristas() {
         }
       });
       
+      if (!result.success) {
+        throw new Error("O servidor retornou sucesso mas a operação falhou internamente.");
+      }
+
       toast.success(`Documento ${status === 'aprovado' ? 'aprovado' : 'recusado'} com sucesso!`);
-      queryClient.invalidateQueries({ queryKey: ['admin-motorista-detalhe', viewingMotoristaId] });
+      
+      // Invalidação rigorosa e refetch para garantir dados reais do banco
+      await queryClient.invalidateQueries({ queryKey: ['admin-motorista-detalhe', viewingMotoristaId] });
+      await queryClient.refetchQueries({ queryKey: ['admin-motorista-detalhe', viewingMotoristaId] });
+      
       setReviewingDoc(null);
       setJustificativaDoc('');
     } catch (error: any) {
