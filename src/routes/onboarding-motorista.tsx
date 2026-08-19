@@ -364,9 +364,14 @@ function HomeMotoristaPage() {
             <Clock className="w-6 h-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Ganhos</span>
           </button>
-          <button className="flex flex-col items-center gap-1 text-muted-foreground opacity-50">
+          <button 
+            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"
+            onClick={() => {
+              supabase.auth.signOut().then(() => navigate({ to: '/auth/login' }));
+            }}
+          >
             <User className="w-6 h-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Conta</span>
+            <span className="text-[8px] font-black uppercase tracking-widest">Sair</span>
           </button>
         </div>
       </nav>
