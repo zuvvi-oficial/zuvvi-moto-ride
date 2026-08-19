@@ -2,9 +2,12 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 
-import { getVeiculosAdmin, updateStatusVeiculo, getVeiculoDetalheAdmin } from '@/lib/admin.functions';
-import { useState } from 'react';
+import { getVeiculosAdmin, updateStatusVeiculo, getVeiculoDetalheAdmin, updateDadosVeiculo } from '@/lib/admin.functions';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Save } from 'lucide-react';
 import { 
   Table, 
   TableBody, 
@@ -35,7 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle, AlertTriangle, Settings2 } from 'lucide-react';
 
 
 const veiculosOptions = queryOptions({
@@ -63,6 +66,16 @@ function AdminVeiculos() {
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusVeiculo);
   const getDetalheFn = useServerFn(getVeiculoDetalheAdmin);
+  const updateDadosFn = useServerFn(updateDadosVeiculo);
+
+  // Estados locais para edição no Sheet
+  const [editData, setEditData] = useState<any>({
+    placa: '',
+    marca: '',
+    modelo: '',
+    ano: '',
+    cor: '',
+  });
 
   const { data: veiculos } = useSuspenseQuery(veiculosOptions);
 
@@ -71,6 +84,38 @@ function AdminVeiculos() {
     queryFn: () => getDetalheFn({ data: { veiculoId: viewingVeiculoId! } }),
     enabled: !!viewingVeiculoId,
   });
+
+  // Sincronizar dados de edição quando o detalhe carregar
+  useEffect(() => {
+    if (detalhe?.veiculo) {
+      setEditData({
+        placa: detalhe.veiculo.placa || '',
+        marca: detalhe.veiculo.marca || '',
+        modelo: detalhe.veiculo.modelo || '',
+        ano: detalhe.veiculo.ano || '',
+        cor: detalhe.veiculo.cor || '',
+      });
+    }
+  }, [detalhe]);
+
+  const handleUpdateCampo = async (campo: string) => {
+    if (!viewingVeiculoId) return;
+    
+    try {
+      const valor = campo === 'ano' ? Number(editData[campo]) : editData[campo];
+      await updateDadosFn({
+        data: {
+          veiculoId: viewingVeiculoId,
+          [campo]: valor,
+        }
+      });
+      toast.success(`Campo ${campo} atualizado com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ['admin-veiculos'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-veiculo-detalhe', viewingVeiculoId] });
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
 
   const handleAction = async () => {
     if (!selectedVeiculo || !actionType) return;
@@ -132,6 +177,8 @@ function AdminVeiculos() {
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                     veiculo.status_aprovacao === 'aprovado' ? 'bg-green-500/20 text-green-500' :
                     veiculo.status_aprovacao === 'em_preenchimento' ? 'bg-amber-500/20 text-amber-500' :
+                    veiculo.status_aprovacao === 'em_analise' ? 'bg-sky-400/20 text-sky-400' :
+                    veiculo.status_aprovacao === 'suspenso' ? 'bg-orange-500/20 text-orange-500' :
                     'bg-red-500/20 text-red-500'
                   }`}>
                     {veiculo.status_aprovacao}
@@ -179,6 +226,19 @@ function AdminVeiculos() {
                   >
                     Recusar
                   </Button>
+                  {veiculo.status_aprovacao === 'aprovado' && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="border-orange-500 text-orange-500 hover:bg-orange-500/10"
+                      onClick={() => {
+                        setSelectedVeiculo(veiculo);
+                        setActionType('suspenso');
+                      }}
+                    >
+                      Suspender
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -189,7 +249,7 @@ function AdminVeiculos() {
       <Dialog open={!!selectedVeiculo} onOpenChange={() => setSelectedVeiculo(null)}>
         <DialogContent className="bg-zuvvi-indigo border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Confirmar Ação: {actionType === 'aprovado' ? 'Aprovar' : 'Recusar'}</DialogTitle>
+            <DialogTitle>Confirmar Ação: {actionType === 'aprovado' ? 'Aprovar' : actionType === 'suspenso' ? 'Suspender' : 'Recusar'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-gray-400">
@@ -202,7 +262,7 @@ function AdminVeiculos() {
                   className="bg-white/5 border-white/10 text-white"
                   value={justificativa}
                   onChange={(e) => setJustificativa(e.target.value)}
-                  placeholder="Informe o motivo da recusa..."
+                  placeholder={actionType === 'suspenso' ? "Informe o motivo da suspensão..." : "Informe o motivo da recusa..."}
                 />
               </div>
             )}
@@ -210,7 +270,7 @@ function AdminVeiculos() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setSelectedVeiculo(null)}>Cancelar</Button>
             <Button 
-              className={actionType === 'aprovado' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+              className={actionType === 'aprovado' ? "bg-green-600 hover:bg-green-700" : actionType === 'suspenso' ? "bg-orange-600 hover:bg-orange-700" : "bg-red-600 hover:bg-red-700"}
               disabled={actionType !== 'aprovado' && !justificativa}
               onClick={handleAction}
             >
@@ -259,7 +319,8 @@ function AdminVeiculos() {
                         <div className="mt-1">
                           <Badge className={
                             detalhe.veiculo.status_aprovacao === 'aprovado' ? 'bg-green-500/20 text-green-500 border-green-500/50' :
-                            detalhe.veiculo.status_aprovacao === 'em_analise' ? 'bg-blue-500/20 text-blue-500 border-blue-500/50' :
+                            detalhe.veiculo.status_aprovacao === 'em_analise' ? 'bg-sky-400/20 text-sky-400 border-sky-400/50' :
+                            detalhe.veiculo.status_aprovacao === 'suspenso' ? 'bg-orange-500/20 text-orange-500 border-orange-500/50' :
                             'bg-amber-500/20 text-amber-500 border-amber-500/50'
                           }>
                             {detalhe.veiculo.status_aprovacao.toUpperCase()}
@@ -281,6 +342,56 @@ function AdminVeiculos() {
                         <div className="font-medium">{detalhe.veiculo.ano} • {detalhe.veiculo.cor}</div>
                       </div>
                     </div>
+                  </div>
+                </section>
+
+                <Separator className="bg-white/10" />
+
+                {/* Edição de Dados do Veículo */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <Settings2 className="h-4 w-4" />
+                    <span>Editar Dados do Veículo</span>
+                  </div>
+                  
+                  {['recusado', 'suspenso'].includes(detalhe.veiculo.status_aprovacao) && (
+                    <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-md flex gap-2 items-center text-orange-500 text-xs">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      Edição desabilitada pois o veículo está {detalhe.veiculo.status_aprovacao}.
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {[
+                      { id: 'placa', label: 'Placa', type: 'text' },
+                      { id: 'marca', label: 'Marca', type: 'text' },
+                      { id: 'modelo', label: 'Modelo', type: 'text' },
+                      { id: 'ano', label: 'Ano', type: 'number' },
+                      { id: 'cor', label: 'Cor', type: 'text' },
+                    ].map((field) => (
+                      <div key={field.id} className="space-y-1.5">
+                        <Label htmlFor={field.id} className="text-xs text-gray-400 uppercase">{field.label}</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id={field.id}
+                            type={field.type}
+                            className="bg-white/5 border-white/10 text-white flex-1"
+                            value={editData[field.id]}
+                            onChange={(e) => setEditData({ ...editData, [field.id]: e.target.value })}
+                            disabled={['recusado', 'suspenso'].includes(detalhe.veiculo.status_aprovacao)}
+                          />
+                          <Button 
+                            size="icon" 
+                            variant="secondary"
+                            className="bg-volt text-black hover:bg-volt/80 shrink-0"
+                            onClick={() => handleUpdateCampo(field.id)}
+                            disabled={['recusado', 'suspenso'].includes(detalhe.veiculo.status_aprovacao) || editData[field.id] === (detalhe.veiculo as any)[field.id]}
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </section>
 

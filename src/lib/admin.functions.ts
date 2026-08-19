@@ -748,5 +748,58 @@ export const updateTarifasCidade = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+export const updateDadosVeiculo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z.object({
+      veiculoId: z.string(),
+      placa: z.string().optional(),
+      marca: z.string().optional(),
+      modelo: z.string().optional(),
+      ano: z.number().optional(),
+      cor: z.string().optional(),
+    }).parse(data)
+  )
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const adminId = context.userId;
+
+    // 1. Obter estado anterior
+    const { data: anterior, error: fetchError } = await supabaseAdmin
+      .from("veiculos")
+      .select("*")
+      .eq("id", data.veiculoId)
+      .single();
+
+    if (fetchError || !anterior) throw new Error("Veículo não encontrado.");
+
+    const { veiculoId, ...camposUpdate } = data;
+
+    // 2. Executar update
+    const { data: atualizado, error: updateError } = await supabaseAdmin
+      .from("veiculos")
+      .update(camposUpdate as any)
+      .eq("id", veiculoId)
+      .select()
+      .single();
+
+    if (updateError) throw new Error(updateError.message);
+
+    // 3. Registrar auditoria
+    await createAuditLog({
+      adminId,
+      acao: "veiculo_dados_editados",
+      entidade: "veiculos",
+      entidadeId: veiculoId,
+      estadoAnterior: anterior,
+      estadoNovo: atualizado,
+      justificativa: "Edição de dados técnicos via painel administrativo.",
+    });
+
+    return atualizado;
+  });
+
+
 
 
