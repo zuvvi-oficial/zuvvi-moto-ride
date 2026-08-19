@@ -468,6 +468,7 @@ export type Database = {
           is_disponivel: boolean
           nota_media: number
           status_aprovacao: Database["public"]["Enums"]["motorista_status_aprovacao"]
+          tipo_chave_pix: Database["public"]["Enums"]["tipo_chave_pix"] | null
           ultima_lat: number | null
           ultima_lng: number | null
           ultima_localizacao_at: string | null
@@ -484,6 +485,7 @@ export type Database = {
           is_disponivel?: boolean
           nota_media?: number
           status_aprovacao?: Database["public"]["Enums"]["motorista_status_aprovacao"]
+          tipo_chave_pix?: Database["public"]["Enums"]["tipo_chave_pix"] | null
           ultima_lat?: number | null
           ultima_lng?: number | null
           ultima_localizacao_at?: string | null
@@ -500,6 +502,7 @@ export type Database = {
           is_disponivel?: boolean
           nota_media?: number
           status_aprovacao?: Database["public"]["Enums"]["motorista_status_aprovacao"]
+          tipo_chave_pix?: Database["public"]["Enums"]["tipo_chave_pix"] | null
           ultima_lat?: number | null
           ultima_lng?: number | null
           ultima_localizacao_at?: string | null
@@ -752,6 +755,7 @@ export type Database = {
         | "resolvido"
         | "fechado"
       tipo_chamado_suporte: "duvida" | "sos" | "reclamacao"
+      tipo_chave_pix: "cpf" | "telefone" | "email" | "aleatoria"
       tipo_documento:
         | "identidade"
         | "cnh"
@@ -931,6 +935,7 @@ export const Constants = {
         "fechado",
       ],
       tipo_chamado_suporte: ["duvida", "sos", "reclamacao"],
+      tipo_chave_pix: ["cpf", "telefone", "email", "aleatoria"],
       tipo_documento: [
         "identidade",
         "cnh",
