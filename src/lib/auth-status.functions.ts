@@ -35,14 +35,34 @@ export async function resolveDestinationInternal(userId: string) {
   }
 
   // 3. Verificar status para usuários comuns
-  const { data: userRecord } = await supabaseAdmin
+  let { data: userRecord } = await supabaseAdmin
     .from("usuarios")
     .select("is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
     .eq("auth_user_id", userId)
     .maybeSingle();
 
+  // 4. Se não existir, criar registro inicial idempotente
   if (!userRecord) {
-    return { isAdmin: false, redirectTo: "/auth/completar-cadastro" };
+    console.log("[AuthInternal] Criando registro inicial para usuário Google:", userId);
+    
+    const { data: newUser, error: insertError } = await supabaseAdmin
+      .from("usuarios")
+      .upsert({
+        auth_user_id: userId,
+        email: email || '',
+        nome: user.user_metadata?.full_name || user.user_metadata?.name || email?.split('@')[0] || 'Usuário Zuvvi',
+        is_passageiro: false,
+        is_motorista: false
+      }, { onConflict: 'auth_user_id' })
+      .select("is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
+      .single();
+
+    if (insertError) {
+      console.error("[AuthInternal] Erro ao criar registro inicial:", insertError);
+      return { redirectTo: "/auth/login", error: "Erro na sincronização de perfil. Tente novamente." };
+    }
+    
+    userRecord = newUser;
   }
 
   const isRegistrationComplete = !!(
