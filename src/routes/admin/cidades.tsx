@@ -31,7 +31,7 @@ const cidadesQueryOptions = (params: {
   busca?: string; 
 }) => queryOptions({
   queryKey: ['admin-cidades', params],
-  queryFn: () => getCidadesAdmin(params),
+  queryFn: () => getCidadesAdmin({ data: params }),
 });
 
 const ufsQueryOptions = queryOptions({
