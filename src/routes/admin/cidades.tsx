@@ -105,6 +105,33 @@ function CidadesAdmin() {
     }
   };
 
+  const handleUpdateTarifas = async () => {
+    if (!selectedCidadeTarifas || !justificativaTarifa) return;
+    
+    setIsSubmitting(true);
+    try {
+      const res = await updateTarifasFn({
+        data: {
+          cidadeId: selectedCidadeTarifas.id,
+          ...tarifasForm,
+          justificativa: justificativaTarifa,
+        }
+      });
+
+      if (res.success) {
+        toast.success(`Tarifas de ${selectedCidadeTarifas.nome} atualizadas!`);
+        queryClient.invalidateQueries({ queryKey: ['admin-cidades'] });
+        setSelectedCidadeTarifas(null);
+        setJustificativaTarifa('');
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao atualizar tarifas da cidade");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -221,7 +248,27 @@ function CidadesAdmin() {
                 <TableCell className="text-right">R$ {Number(cidade.valor_min).toFixed(2)}</TableCell>
                 <TableCell className="text-right">R$ {Number(cidade.tarifa_minima).toFixed(2)}</TableCell>
                 <TableCell className="text-right">{cidade.comissao_pct}%</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right flex items-center justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2"
+                    aria-label={`Editar tarifas de ${cidade.nome}`}
+                    onClick={() => {
+                      setSelectedCidadeTarifas(cidade);
+                      setTarifasForm({
+                        bandeirada: Number(cidade.bandeirada),
+                        valor_km: Number(cidade.valor_km),
+                        valor_min: Number(cidade.valor_min),
+                        tarifa_minima: Number(cidade.tarifa_minima),
+                        comissao_pct: Number(cidade.comissao_pct),
+                        raio_atuacao_km: Number(cidade.raio_atuacao_km || 0)
+                      });
+                    }}
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </Button>
+
                   {cidade.status === 'em_breve' && (
                     <Button 
                       size="sm" 
@@ -373,6 +420,111 @@ function CidadesAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!selectedCidadeTarifas} onOpenChange={(open) => !open && setSelectedCidadeTarifas(null)}>
+        <DialogContent className="bg-zuvvi-indigo border-white/10 text-white max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="w-5 h-5 text-volt" />
+              Editar Tarifas da Cidade
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Ajuste os valores operacionais para <span className="text-white font-bold">{selectedCidadeTarifas?.nome} - {selectedCidadeTarifas?.estado_uf}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-400 uppercase">Bandeirada (R$)</label>
+              <Input 
+                type="number"
+                step="0.01"
+                value={tarifasForm.bandeirada}
+                onChange={(e) => setTarifasForm({...tarifasForm, bandeirada: Number(e.target.value)})}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-400 uppercase">Valor por KM (R$)</label>
+              <Input 
+                type="number"
+                step="0.01"
+                value={tarifasForm.valor_km}
+                onChange={(e) => setTarifasForm({...tarifasForm, valor_km: Number(e.target.value)})}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-400 uppercase">Valor por Minuto (R$)</label>
+              <Input 
+                type="number"
+                step="0.01"
+                value={tarifasForm.valor_min}
+                onChange={(e) => setTarifasForm({...tarifasForm, valor_min: Number(e.target.value)})}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-400 uppercase">Tarifa Mínima (R$)</label>
+              <Input 
+                type="number"
+                step="0.01"
+                value={tarifasForm.tarifa_minima}
+                onChange={(e) => setTarifasForm({...tarifasForm, tarifa_minima: Number(e.target.value)})}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-400 uppercase">Comissão (%)</label>
+              <Input 
+                type="number"
+                step="0.1"
+                value={tarifasForm.comissao_pct}
+                onChange={(e) => setTarifasForm({...tarifasForm, comissao_pct: Number(e.target.value)})}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-400 uppercase">Raio de Atuação (KM)</label>
+              <Input 
+                type="number"
+                value={tarifasForm.raio_atuacao_km}
+                onChange={(e) => setTarifasForm({...tarifasForm, raio_atuacao_km: Number(e.target.value)})}
+                className="bg-white/5 border-white/10 text-white"
+              />
+            </div>
+            
+            <div className="col-span-2 space-y-2 pt-2">
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Justificativa Obrigatória</label>
+              <Textarea 
+                placeholder="Descreva o motivo desta alteração de tarifas..."
+                value={justificativaTarifa}
+                onChange={(e) => setJustificativaTarifa(e.target.value)}
+                className="bg-white/5 border-white/10 text-white min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="ghost" 
+              onClick={() => setSelectedCidadeTarifas(null)}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleUpdateTarifas}
+              disabled={!justificativaTarifa || isSubmitting}
+              className="bg-volt text-black hover:bg-volt/80"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar Tarifas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
