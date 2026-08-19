@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
 import { queryOptions } from '@tanstack/react-query';
-import { getCidadesAdmin, updateStatusCidade } from '@/lib/admin.functions';
+import { getCidadesAdmin, updateStatusCidade, updateTarifasCidade } from '@/lib/admin.functions';
 import { getUFs } from '@/lib/locations.functions';
 import { useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
@@ -33,7 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronLeft, ChevronRight, Search, MapPin, Rocket, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, MapPin, Rocket, CheckCircle, AlertTriangle, Loader2, Settings2 } from 'lucide-react';
 
 
 const cidadesQueryOptions = (params: { 
@@ -61,12 +61,23 @@ function CidadesAdmin() {
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [busca, setBusca] = useState('');
   const [selectedCidade, setSelectedCidade] = useState<any>(null);
+  const [selectedCidadeTarifas, setSelectedCidadeTarifas] = useState<any>(null);
+  const [tarifasForm, setTarifasForm] = useState({
+    bandeirada: 0,
+    valor_km: 0,
+    valor_min: 0,
+    tarifa_minima: 0,
+    comissao_pct: 0,
+    raio_atuacao_km: 0,
+  });
   const [novoStatus, setNovoStatus] = useState<'piloto' | 'ativa' | 'em_breve' | null>(null);
   const [justificativa, setJustificativa] = useState('');
+  const [justificativaTarifa, setJustificativaTarifa] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusCidade);
+  const updateTarifasFn = useServerFn(updateTarifasCidade);
 
   const { data: result } = useSuspenseQuery(cidadesQueryOptions({ 
     pagina, 
