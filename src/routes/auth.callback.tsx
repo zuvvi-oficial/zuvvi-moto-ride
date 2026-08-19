@@ -32,7 +32,7 @@ function AuthCallbackPage() {
       try {
         console.log("[GoogleAuth] callback_started");
         
-        const session = await waitForSession();
+        let session = await waitForSession();
         if (cancelled) return;
         
         if (!session) {
@@ -45,15 +45,15 @@ function AuthCallbackPage() {
             return;
           }
           
+          session = refreshData.session;
           console.log("[GoogleAuth] session_recovered_via_refresh");
         }
 
         console.log("[GoogleAuth] session_found=true");
-        console.log("[GoogleAuth] session_found=true");
         console.log("[GoogleAuth] calling_redirect_logic");
         // We pass the token manually and ensure getSession() is stable
         const currentSession = await supabase.auth.getSession();
-        const activeToken = currentSession.data.session?.access_token || session.access_token;
+        const activeToken = currentSession.data.session?.access_token || session?.access_token;
         console.log("[GoogleAuth] access_token_present=" + !!activeToken);
         
         const result = await executeRedirectLogic({
