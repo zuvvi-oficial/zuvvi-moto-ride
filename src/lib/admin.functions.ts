@@ -241,22 +241,14 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
       .eq("motorista_id", data.motoristaId)
       .maybeSingle();
 
-    // 3. Documentos com URLs assinadas
+    // 3. Documentos
     const { data: documentos } = await supabaseAdmin
       .from("documentos_motorista")
       .select("*")
       .eq("motorista_id", data.motoristaId);
-
-    const docsComUrl = await Promise.all((documentos || []).map(async (doc) => {
-      let publicUrl = null;
-      if (doc.storage_path) {
-        const { data: signed } = await supabaseAdmin.storage
-          .from("documentos-motorista")
-          .createSignedUrl(doc.storage_path, 3600); // 1 hora
-        publicUrl = signed?.signedUrl;
-      }
-      return { ...doc, publicUrl };
-    }));
+    
+    // As URLs assinadas serão geradas sob demanda no frontend para maior segurança e performance
+    const docsSimplificados = documentos || [];
 
     // 4. Auditoria
     const { data: logs } = await supabaseAdmin
@@ -274,7 +266,7 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
     return {
       motorista,
       veiculo,
-      documentos: docsComUrl,
+      documentos: docsSimplificados,
       logs
     };
   });
