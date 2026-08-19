@@ -185,7 +185,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
     // 2.1 Validar se a cidade está liberada (praça piloto ou ativa)
     const { data: cidade } = await supabaseAdmin
       .from("cidades")
-      .select("status, nome")
+      .select("status, nome, comissao_pct")
       .eq("id", usuario.cidade_id)
       .single();
 
@@ -216,6 +216,35 @@ export const criarCorrida = createServerFn({ method: "POST" })
     if (insertError) {
       console.error("Erro ao inserir corrida:", insertError);
       throw new Error("Falha ao registrar a corrida no sistema.");
+    }
+
+    // 4. Registrar o pagamento pendente (Fase de Operação)
+    try {
+      const valorEstimado = Number(data.valorEstimado);
+      const comissaoPct = Number(cidade.comissao_pct || 0);
+      
+      // valor_comissao = valor estimado × (comissao_pct ÷ 100), arredondado para 2 casas decimais
+      const valorComissao = Math.round((valorEstimado * (comissaoPct / 100)) * 100) / 100;
+      
+      // valor_motorista = valor estimado − valor_comissao
+      const valorMotorista = Math.round((valorEstimado - valorComissao) * 100) / 100;
+
+      const { error: paymentError } = await supabaseAdmin
+        .from("pagamentos")
+        .insert({
+          corrida_id: corrida.id,
+          meio: data.formaPagamento,
+          valor_total: valorEstimado,
+          valor_motorista: valorMotorista,
+          valor_comissao: valorComissao,
+          status: 'pendente'
+        } as any);
+
+      if (paymentError) {
+        console.error("Erro ao registrar pagamento (corrida criada):", paymentError);
+      }
+    } catch (err) {
+      console.error("Erro inesperado no cálculo/registro de pagamento:", err);
     }
 
     return { success: true, rideId: corrida.id };
