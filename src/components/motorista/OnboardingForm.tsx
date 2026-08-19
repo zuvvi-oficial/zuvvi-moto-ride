@@ -336,7 +336,11 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
       console.log("Resultado do envio:", result);
 
       toast.success("Cadastro enviado para análise com sucesso!");
-      onSubmitted();
+      
+      // Forçar atualização do estado global de autenticação/usuário para refletir o novo status
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (e: any) {
       console.error("ERRO CRÍTICO NO SUBMIT DO ONBOARDING:", e);
       const errorMessage = e.message || "Ocorreu um erro inesperado ao enviar seu cadastro.";
