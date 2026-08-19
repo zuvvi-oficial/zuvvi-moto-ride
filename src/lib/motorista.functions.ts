@@ -426,60 +426,35 @@ export const enviarParaAnalise = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
-    const { data: user, error: userError } = await supabaseAdmin
-      .from("usuarios")
-      .select("id, motoristas!inner(*)")
-      .eq("auth_user_id", context.userId)
-      .maybeSingle();
+    const userId = context.userId;
 
-    if (userError) throw new Error("Erro ao buscar usuário: " + userError.message);
-    if (!user) throw new Error("Usuário motorista não encontrado no sistema.");
-    
-    const motorista = user.motoristas as any;
+    console.log(`[ONBOARDING] Iniciando submissão RPC para usuário: ${userId}`);
 
-    const { data: docs, error: docsError } = await supabaseAdmin
-      .from("documentos_motorista")
-      .select("tipo_documento")
-      .eq("motorista_id", user.id);
+    // Chamada atômica da RPC no servidor
+    const { data, error } = await supabaseAdmin.rpc('submit_motorista_for_analysis', {
+      p_auth_user_id: userId
+    });
 
-    if (docsError) throw new Error("Erro ao validar documentos: " + docsError.message);
-
-    const tiposEnviados = docs?.map(d => d.tipo_documento) || [];
-    const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
-    const faltantes = tiposObrigatorios.filter(t => !tiposEnviados.includes(t as any));
-
-    if (faltantes.length > 0) {
-      throw new Error(`Documentos obrigatórios pendentes: ${faltantes.join(', ')}`);
+    if (error) {
+      console.error(`[ONBOARDING] Erro na RPC submit_motorista_for_analysis:`, error);
+      throw new Error(`Erro técnico ao processar submissão: ${error.message}`);
     }
 
-    if (!motorista.cnh_numero) throw new Error("Número da CNH não informado.");
-    if (!motorista.cnh_categoria) throw new Error("Categoria da CNH não informada.");
-    if (!motorista.cnh_validade) throw new Error("Validade da CNH não informada.");
-    if (!motorista.chave_pix) throw new Error("Chave Pix para recebimento não informada.");
+    const result = data as any;
+    if (!result.success) {
+      console.warn(`[ONBOARDING] Falha na validação da RPC: ${result.error} (etapa: ${result.step})`);
+      
+      const mensagensErro: Record<string, string> = {
+        'motorista_nao_encontrado': 'Perfil de motorista não localizado.',
+        'usuario_nao_encontrado': 'Usuário não localizado.',
+        'dados_cnh_pix_incompletos': 'Dados de CNH ou Pix estão incompletos.',
+        'documentos_incompletos': 'Você precisa enviar os 6 documentos obrigatórios.',
+        'veiculo_nao_encontrado': 'Nenhum veículo cadastrado encontrado.'
+      };
 
-    const { data: veiculo, error: veiculoError } = await supabaseAdmin
-      .from("veiculos")
-      .select("id")
-      .eq("motorista_id", user.id)
-      .maybeSingle();
+      throw new Error(mensagensErro[result.error] || `Falha no cadastro (${result.step}).`);
+    }
 
-    if (veiculoError) throw new Error("Erro ao validar veículo: " + veiculoError.message);
-    if (!veiculo) throw new Error("Dados do veículo não encontrados. Por favor, preencha a seção do veículo.");
-
-    const { error: mErr } = await supabaseAdmin
-      .from("motoristas")
-      .update({ status_aprovacao: 'em_analise' } as any)
-      .eq("id", user.id);
-
-    if (mErr) throw new Error("Erro ao atualizar status do motorista: " + mErr.message);
-
-    const { error: vErr } = await supabaseAdmin
-      .from("veiculos")
-      .update({ status_aprovacao: 'em_analise' } as any)
-      .eq("motorista_id", user.id);
-
-    if (vErr) throw new Error("Erro ao atualizar status do veículo: " + vErr.message);
-
-    return { success: true };
+    console.log(`[ONBOARDING] Submissão concluída com sucesso para: ${userId}`);
+    return { success: true, status: result.status };
   });
