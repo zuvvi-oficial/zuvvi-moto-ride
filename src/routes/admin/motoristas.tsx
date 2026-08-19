@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 
-import { getMotoristasAdmin, updateStatusMotorista } from '@/lib/admin.functions';
+import { getMotoristasAdmin, updateStatusMotorista, getMotoristaDetalheAdmin } from '@/lib/admin.functions';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,9 +21,23 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { 
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink } from 'lucide-react';
+
 
 const motoristasOptions = (filters: { status?: string; busca?: string }) => queryOptions({
   queryKey: ['admin-motoristas', filters],
@@ -47,11 +61,19 @@ function AdminMotoristas() {
   const [selectedMotorista, setSelectedMotorista] = useState<any>(null);
   const [justificativa, setJustificativa] = useState('');
   const [actionType, setActionType] = useState<'aprovado' | 'recusado' | 'suspenso' | null>(null);
+  const [viewingMotoristaId, setViewingMotoristaId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusMotorista);
+  const getDetalheFn = useServerFn(getMotoristaDetalheAdmin);
 
   const { data: motoristas } = useSuspenseQuery(motoristasOptions({ status, busca }));
+
+  const { data: detalhe, isLoading: loadingDetalhe } = useQuery({
+    queryKey: ['admin-motorista-detalhe', viewingMotoristaId],
+    queryFn: () => getDetalheFn({ data: { motoristaId: viewingMotoristaId! } }),
+    enabled: !!viewingMotoristaId,
+  });
 
   const handleAction = async () => {
     if (!selectedMotorista || !actionType) return;
@@ -113,6 +135,7 @@ function AdminMotoristas() {
               <TableHead className="text-gray-400">Cidade</TableHead>
               <TableHead className="text-gray-400">Status</TableHead>
               <TableHead className="text-gray-400">Online</TableHead>
+              <TableHead className="text-gray-400 text-center">Detalhes</TableHead>
               <TableHead className="text-gray-400 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -136,6 +159,25 @@ function AdminMotoristas() {
                 </TableCell>
                 <TableCell>
                   <div className={`h-2 w-2 rounded-full ${user.motoristas.is_disponivel ? 'bg-volt' : 'bg-gray-500'}`} />
+                </TableCell>
+                <TableCell className="text-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="hover:bg-white/10 text-volt"
+                          onClick={() => setViewingMotoristaId(user.motoristas.id)}
+                        >
+                          <Eye className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ver detalhes</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                   {user.motoristas.status_aprovacao !== 'aprovado' && (
@@ -202,6 +244,296 @@ function AdminMotoristas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!viewingMotoristaId} onOpenChange={(open) => !open && setViewingMotoristaId(null)}>
+        <SheetContent side="right" className="sm:max-w-2xl bg-zuvvi-indigo border-white/10 text-white p-0">
+          <SheetHeader className="p-6 border-b border-white/10">
+            <SheetTitle className="text-white flex items-center gap-2">
+              <User className="h-5 w-5 text-volt" />
+              Ficha do Motorista
+            </SheetTitle>
+            <SheetDescription className="text-gray-400">
+              Dossiê completo para análise administrativa.
+            </SheetDescription>
+          </SheetHeader>
+
+          <ScrollArea className="h-[calc(100vh-8rem)] p-6">
+            {loadingDetalhe ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <Clock className="h-8 w-8 text-volt animate-spin" />
+                <p>Carregando dados...</p>
+              </div>
+            ) : detalhe ? (
+              <div className="space-y-8 pb-12">
+                {/* Resumo do Cadastro */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <Clock className="h-4 w-4" />
+                    <span>Resumo do Cadastro</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card className="bg-white/5 border-white/10 text-white">
+                      <CardContent className="pt-6">
+                        <div className="text-xs text-gray-400">Status de Aprovação</div>
+                        <div className="mt-1">
+                          <Badge className={
+                            detalhe.motorista.status_aprovacao === 'aprovado' ? 'bg-green-500/20 text-green-500 border-green-500/50' :
+                            detalhe.motorista.status_aprovacao === 'em_analise' ? 'bg-blue-500/20 text-blue-500 border-blue-500/50' :
+                            'bg-amber-500/20 text-amber-500 border-amber-500/50'
+                          }>
+                            {detalhe.motorista.status_aprovacao.toUpperCase()}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-white/5 border-white/10 text-white">
+                      <CardContent className="pt-6">
+                        <div className="text-xs text-gray-400">Cidade de Operação</div>
+                        <div className="mt-1 font-medium flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {detalhe.motorista.usuarios.cidades?.nome}/{detalhe.motorista.usuarios.cidades?.estado_uf}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-white/5 border-white/10 text-white">
+                      <CardContent className="pt-6">
+                        <div className="text-xs text-gray-400">Criado em</div>
+                        <div className="mt-1 font-medium">{new Date(detalhe.motorista.created_at).toLocaleDateString('pt-BR')}</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-white/5 border-white/10 text-white">
+                      <CardContent className="pt-6">
+                        <div className="text-xs text-gray-400">ID Interno</div>
+                        <div className="mt-1 font-mono text-[10px] break-all">{detalhe.motorista.id}</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator className="bg-white/10" />
+
+                {/* Dados Pessoais */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <User className="h-4 w-4" />
+                    <span>Dados Pessoais</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    <div>
+                      <div className="text-gray-400">Nome Completo</div>
+                      <div className="font-medium">{detalhe.motorista.usuarios.nome}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">E-mail</div>
+                      <div className="font-medium">{detalhe.motorista.usuarios.email}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Celular</div>
+                      <div className="font-medium">{detalhe.motorista.usuarios.celular}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">CPF</div>
+                      <div className="font-medium">
+                        {detalhe.motorista.usuarios.cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.***-$4") || "Não informado"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Data de Nascimento</div>
+                      <div className="font-medium">
+                        {detalhe.motorista.usuarios.data_nascimento ? new Date(detalhe.motorista.usuarios.data_nascimento).toLocaleDateString('pt-BR') : "Não informado"}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <Separator className="bg-white/10" />
+
+                {/* Dados da CNH */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <FileText className="h-4 w-4" />
+                    <span>Dados da CNH</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    <div>
+                      <div className="text-gray-400">Número da CNH</div>
+                      <div className="font-medium">{detalhe.motorista.cnh_numero || "Não informado"}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Categoria</div>
+                      <div className="font-medium">{detalhe.motorista.cnh_categoria || "Não informado"}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Validade</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {detalhe.motorista.cnh_validade ? new Date(detalhe.motorista.cnh_validade).toLocaleDateString('pt-BR') : "Não informado"}
+                        {detalhe.motorista.cnh_validade && new Date(detalhe.motorista.cnh_validade) < new Date() && (
+                          <Badge variant="destructive" className="h-5 text-[10px]">VENCIDA</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <Separator className="bg-white/10" />
+
+                {/* Dados de Recebimento */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Dados de Recebimento</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    <div>
+                      <div className="text-gray-400">Tipo de Chave Pix</div>
+                      <div className="font-medium capitalize">{detalhe.motorista.tipo_chave_pix || "Não informado"}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Chave Pix</div>
+                      <div className="font-medium">
+                        {detalhe.motorista.chave_pix ? 
+                          (detalhe.motorista.tipo_chave_pix === 'cpf' ? 
+                            detalhe.motorista.chave_pix.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.***-$4") : 
+                            detalhe.motorista.chave_pix.substring(0, 4) + "****" + detalhe.motorista.chave_pix.substring(detalhe.motorista.chave_pix.length - 2)
+                          ) : "Não informado"}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <Separator className="bg-white/10" />
+
+                {/* Veículo Vinculado */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <Bike className="h-4 w-4" />
+                    <span>Veículo Vinculado</span>
+                  </div>
+                  {detalhe.veiculo ? (
+                    <Card className="bg-white/5 border-white/10 text-white">
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-bold text-lg">{detalhe.veiculo.marca} {detalhe.veiculo.modelo}</div>
+                            <div className="text-sm text-gray-400">{detalhe.veiculo.ano} • {detalhe.veiculo.cor}</div>
+                            <div className="mt-2 font-mono text-volt">{detalhe.veiculo.placa}</div>
+                          </div>
+                          <Badge className={
+                            detalhe.veiculo.status_aprovacao === 'aprovado' ? 'bg-green-500/20 text-green-500 border-green-500/50' :
+                            detalhe.veiculo.status_aprovacao === 'em_analise' ? 'bg-blue-500/20 text-blue-500 border-blue-500/50' :
+                            'bg-amber-500/20 text-amber-500 border-amber-500/50'
+                          }>
+                            {detalhe.veiculo.status_aprovacao.toUpperCase()}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="text-sm text-gray-400 italic">Nenhum veículo vinculado.</div>
+                  )}
+                </section>
+
+                <Separator className="bg-white/10" />
+
+                {/* Documentos Enviados */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <FileText className="h-4 w-4" />
+                    <span>Documentos Enviados</span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'].map((tipo) => {
+                      const doc = detalhe.documentos.find((d: any) => d.tipo_documento === tipo);
+                      return (
+                        <Card key={tipo} className="bg-white/5 border-white/10 text-white">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                              <div className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                                {tipo.replace('_', ' ')}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {doc ? (
+                                  <>
+                                    <Badge variant="outline" className={
+                                      doc.status_analise === 'aprovado' ? 'text-green-500 border-green-500/30' :
+                                      doc.status_analise === 'recusado' ? 'text-red-500 border-red-500/30' :
+                                      'text-amber-500 border-amber-500/30'
+                                    }>
+                                      {doc.status_analise.toUpperCase()}
+                                    </Badge>
+                                    <span className="text-[10px] text-gray-500 italic">
+                                      Enviado em {new Date(doc.data_envio).toLocaleDateString('pt-BR')}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-gray-500 italic">Não enviado</span>
+                                )}
+                              </div>
+                              {doc?.motivo_recusa && (
+                                <div className="text-xs text-red-400 bg-red-400/10 p-2 rounded mt-2 border border-red-400/20">
+                                  <strong>Recusa:</strong> {doc.motivo_recusa}
+                                </div>
+                              )}
+                            </div>
+                            {doc?.publicUrl && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-white/20 hover:bg-white/10"
+                                onClick={() => doc.publicUrl && window.open(doc.publicUrl, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Ver
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <Separator className="bg-white/10" />
+
+                {/* Histórico */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <History className="h-4 w-4" />
+                    <span>Histórico de Auditoria</span>
+                  </div>
+                  <div className="space-y-3">
+                    {detalhe.logs && detalhe.logs.length > 0 ? detalhe.logs.map((log: any) => (
+                      <div key={log.id} className="text-xs bg-white/5 p-3 rounded border border-white/5 space-y-1">
+                        <div className="flex justify-between">
+                          <span className="font-bold text-volt uppercase">{log.acao.replace('_', ' ')}</span>
+                          <span className="text-gray-500">{new Date(log.created_at).toLocaleString('pt-BR')}</span>
+                        </div>
+                        {log.justificativa && (
+                          <div className="text-gray-400 italic">"{log.justificativa}"</div>
+                        )}
+                        {log.estado_anterior && log.estado_novo && (
+                          <div className="flex items-center gap-1 text-[10px]">
+                            <span className="text-gray-500">{JSON.stringify(log.estado_anterior)}</span>
+                            <span className="text-gray-400">→</span>
+                            <span className="text-volt">{JSON.stringify(log.estado_novo)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )) : (
+                      <div className="text-sm text-gray-400 italic">Nenhum evento registrado.</div>
+                    )}
+                  </div>
+                </section>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4 text-red-400">
+                <XCircle className="h-8 w-8" />
+                <p>Erro ao carregar os dados ou motorista não encontrado.</p>
+              </div>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
