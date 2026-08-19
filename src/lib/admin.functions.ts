@@ -314,14 +314,26 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
     // As URLs assinadas são geradas sob demanda no frontend via getDocumentoUrlSigned
     const docsSimplificados = documentos || [];
 
-    // 4. Auditoria
+    // 4. Auditoria (Logs do motorista, de seus documentos e de seu veículo)
+    const logFilter = [`entidade.eq.motoristas,entidade_id.eq.${data.motoristaId}`];
+    
+    // Incluir logs dos documentos do motorista
+    if (documentos && documentos.length > 0) {
+      const docIds = documentos.map(d => d.id).join(',');
+      logFilter.push(`entidade.eq.documentos_motorista,entidade_id.in.(${docIds})`);
+    }
+    
+    // Incluir logs do veículo
+    if (veiculo?.id) {
+      logFilter.push(`entidade.eq.veiculos,entidade_id.eq.${veiculo.id}`);
+    }
+
     const { data: logs } = await supabaseAdmin
       .from("admin_audit_logs")
       .select("*")
-      .eq("entidade", "motoristas")
-      .eq("entidade_id", data.motoristaId)
+      .or(logFilter.join(','))
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
 
     // Mascaramento básico (Admin vê, mas para segurança de log/transmissão básica)
     // No projeto Zuvvi, o admin autorizado VÊ o dado real na ficha, mas aplicamos 
@@ -377,6 +389,21 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
       .eq("id", data.documentoId);
 
     if (updateError) throw new Error(updateError.message);
+
+    // 2.1 Confirmação server-side da persistência
+    const { data: confirmedDoc, error: confirmError } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("status_analise")
+      .eq("id", data.documentoId)
+      .single();
+
+    if (confirmError || !confirmedDoc) {
+      throw new Error("Erro crítico: Não foi possível confirmar a persistência do status.");
+    }
+
+    if (confirmedDoc.status_analise !== data.novoStatus) {
+      throw new Error(`Falha de persistência: O status no banco (${confirmedDoc.status_analise}) não corresponde ao solicitado (${data.novoStatus}).`);
+    }
 
     // 3. Registrar Auditoria
     await createAuditLog({
