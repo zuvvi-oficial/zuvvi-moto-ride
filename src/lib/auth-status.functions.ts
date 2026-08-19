@@ -172,13 +172,25 @@ export const getAuthStatus = createServerFn({ method: "GET" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: userRecord } = await supabaseAdmin
-      .from("usuarios")
-      .select("nome, is_passageiro, is_motorista, cpf, celular, data_nascimento, city:cidade_id")
-      .eq("auth_user_id", auth.userId)
-      .maybeSingle();
+    const [userResult, adminResult] = await Promise.all([
+      supabaseAdmin
+        .from("usuarios")
+        .select("nome, is_passageiro, is_motorista, cpf, celular, data_nascimento, city:cidade_id")
+        .eq("auth_user_id", auth.userId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("admin_users")
+        .select("role, ativo")
+        .eq("auth_user_id", auth.userId)
+        .eq("role", "admin")
+        .eq("ativo", true)
+        .maybeSingle()
+    ]);
 
-    const isRegistrationComplete = !!(
+    const userRecord = userResult.data;
+    const isAdmin = !!adminResult.data;
+
+    const isRegistrationComplete = isAdmin || !!(
       userRecord?.cpf && 
       userRecord?.celular && 
       userRecord?.data_nascimento && 
