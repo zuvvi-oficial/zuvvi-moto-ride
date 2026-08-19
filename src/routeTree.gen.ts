@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcompanhamentoRouteImport } from './routes/acompanhamento'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
+import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -43,6 +44,11 @@ const AuthRoute = AuthRouteImport.update({
 const ConfirmarCorridaRoute = ConfirmarCorridaRouteImport.update({
   id: '/confirmar-corrida',
   path: '/confirmar-corrida',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeMotoristaRoute = HomeMotoristaRouteImport.update({
+  id: '/home-motorista',
+  path: '/home-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingMotoristaRoute = OnboardingMotoristaRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
+    | '/home-motorista'
     | '/onboarding-motorista'
     | '/procurando-motorista'
     | '/admin/cidades'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
+    | '/home-motorista'
     | '/onboarding-motorista'
     | '/procurando-motorista'
     | '/admin/cidades'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
+    | '/home-motorista'
     | '/onboarding-motorista'
     | '/procurando-motorista'
     | '/admin/cidades'
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   AcompanhamentoRoute: typeof AcompanhamentoRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
+  HomeMotoristaRoute: typeof HomeMotoristaRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
@@ -248,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/confirmar-corrida'
       fullPath: '/confirmar-corrida'
       preLoaderRoute: typeof ConfirmarCorridaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home-motorista': {
+      id: '/home-motorista'
+      path: '/home-motorista'
+      fullPath: '/home-motorista'
+      preLoaderRoute: typeof HomeMotoristaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding-motorista': {
@@ -353,6 +373,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcompanhamentoRoute: AcompanhamentoRoute,
   AuthRoute: AuthRouteWithChildren,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
+  HomeMotoristaRoute: HomeMotoristaRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
