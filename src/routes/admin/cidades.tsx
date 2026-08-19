@@ -293,7 +293,7 @@ function CidadesAdmin() {
           </Button>
         </div>
       </div>
-      </div>
+
 
       <Dialog open={!!selectedCidade} onOpenChange={(open) => !open && setSelectedCidade(null)}>
         <DialogContent className="bg-zuvvi-indigo border-white/10 text-white max-w-md">
