@@ -280,6 +280,63 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
   });
 
 /**
+ * Atualizar status de um documento individual
+ */
+export const updateStatusDocumento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      documentoId: z.string(),
+      novoStatus: z.enum(["aprovado", "recusado", "pendente"]),
+      justificativa: z.string().optional(),
+    }).parse(data)
+  )
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const adminId = context.userId;
+
+    // 1. Obter documento e motorista vinculado
+    const { data: doc, error: docError } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("*, motoristas(id, usuarios(nome))")
+      .eq("id", data.documentoId)
+      .single();
+
+    if (docError || !doc) throw new Error("Documento não encontrado.");
+
+    if (data.novoStatus === "recusado" && !data.justificativa) {
+      throw new Error("Justificativa é obrigatória para recusar um documento.");
+    }
+
+    // 2. Atualizar status
+    const { error: updateError } = await supabaseAdmin
+      .from("documentos_motorista")
+      .update({
+        status_analise: data.novoStatus,
+        motivo_recusa: data.justificativa || null,
+        data_analise: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", data.documentoId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    // 3. Registrar Auditoria
+    await createAuditLog({
+      adminId,
+      acao: `doc_status_${data.novoStatus}`,
+      entidade: "documentos_motorista",
+      entidadeId: data.documentoId,
+      estadoAnterior: { status: doc.status_analise, motivo: doc.motivo_recusa },
+      estadoNovo: { status: data.novoStatus, motivo: data.justificativa },
+      justificativa: `Alteração de status do documento ${doc.tipo_documento} do motorista ${doc.motoristas?.usuarios?.nome}. ${data.justificativa || ""}`,
+    });
+
+    return { success: true };
+  });
+
+/**
  * Detalhes do Veículo para Admin
  */
 export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
