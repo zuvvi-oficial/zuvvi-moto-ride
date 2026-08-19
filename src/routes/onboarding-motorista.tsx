@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import OnboardingForm from '@/components/motorista/OnboardingForm';
-import { checkUserProfileStatus } from '@/lib/auth-status.functions';
+import { resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { getSessionUser } from '@/lib/user.functions';
 import { Loader2, User, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,10 +10,17 @@ import { useServerFn } from '@tanstack/react-start';
 
 export const Route = createFileRoute('/onboarding-motorista')({
   loader: async () => {
-    const status = await checkUserProfileStatus();
-    if (!status.isMotorista) {
+    const status = await resolveDestinationForLoader();
+    
+    // Se não estiver autenticado ou não for motorista, redireciona
+    if (status.redirectTo && status.redirectTo !== '/onboarding-motorista') {
+      throw redirect({ to: status.redirectTo });
+    }
+
+    if (!status.isMotorista && !status.isAdmin) {
       throw redirect({ to: '/' });
     }
+    
     return {};
   },
   component: OnboardingMotorista,
