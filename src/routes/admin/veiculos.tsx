@@ -66,7 +66,13 @@ function AdminVeiculos() {
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusVeiculo);
   const getDetalheFn = useServerFn(getVeiculoDetalheAdmin);
-  // Removed: updateDadosFn, editData, handleUpdateCampo (obsoletos)
+  const { data: veiculos } = useSuspenseQuery(veiculosOptions);
+
+  const { data: detalhe, isLoading: loadingDetalhe } = useQuery({
+    queryKey: ['admin-veiculo-detalhe', viewingVeiculoId],
+    queryFn: () => getDetalheFn({ data: { veiculoId: viewingVeiculoId! } }),
+    enabled: !!viewingVeiculoId,
+  });
 
   const handleAction = async () => {
     if (!selectedVeiculo || !actionType) return;
