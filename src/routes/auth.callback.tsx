@@ -37,7 +37,9 @@ function AuthCallbackPage() {
         
         if (!session) {
           console.log("[GoogleAuth] session_found=false");
-          setError('Não conseguimos confirmar seu login com o Google. Tente novamente.');
+          // Em vez de travar no erro, tentamos um redirecionamento seguro para a Home 
+          // onde o onAuthStateChange pode assumir, ou volta para login se falhar.
+          navigate({ to: "/" });
           return;
         }
 
@@ -62,8 +64,10 @@ function AuthCallbackPage() {
         
         console.log("[GoogleAuth] redirect_logic_success to=" + result.redirectTo);
         
-        // Final redirection (navigation duplication fixed by removing the extra call that was here)
-        navigate({ to: result.redirectTo as any });
+        // Final redirection
+        const dest = result.redirectTo || "/";
+        console.log("[GoogleAuth] navigating_to=" + dest);
+        navigate({ to: dest as any });
       } catch (err: any) {
         console.error("[GoogleAuth] unexpected_error:", err);
         if (cancelled) return;
