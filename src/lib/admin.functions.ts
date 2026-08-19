@@ -106,14 +106,66 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const adminId = context.userId;
 
-    // Obter estado anterior
-    const { data: motorista } = await supabaseAdmin
+    // 1. Obter dados atuais do motorista, CNH e usuário (cidade)
+    const { data: motorista, error: mError } = await supabaseAdmin
       .from("motoristas")
-      .select("status_aprovacao")
+      .select("status_aprovacao, cnh_validade")
       .eq("id", data.motoristaId)
       .single();
 
-    if (!motorista) throw new Error("Motorista não encontrado.");
+    if (mError || !motorista) throw new Error("Motorista não encontrado.");
+
+    // 2. Validação para Aprovação Final
+    if (data.novoStatus === "aprovado") {
+      // A. Verificar Veículo
+      const { data: veiculo, error: vError } = await supabaseAdmin
+        .from("veiculos")
+        .select("id, status_aprovacao")
+        .eq("motorista_id", data.motoristaId)
+        .maybeSingle();
+
+      if (vError) throw new Error("Erro ao validar veículo.");
+      if (!veiculo) throw new Error("Bloqueado: Nenhum veículo vinculado.");
+      if (veiculo.status_aprovacao !== "aprovado") {
+        throw new Error("Bloqueado: Veículo ainda não está aprovado.");
+      }
+
+      // B. Verificar CNH
+      if (!motorista.cnh_validade) {
+        throw new Error("Bloqueado: Validade da CNH não informada.");
+      }
+      if (new Date(motorista.cnh_validade) < new Date()) {
+        throw new Error("Bloqueado: CNH vencida.");
+      }
+
+      // C. Verificar Documentos (Motorista + Veículo)
+      const { data: documentos, error: dError } = await supabaseAdmin
+        .from("documentos_motorista")
+        .select("tipo_documento, status_analise")
+        .or(`motorista_id.eq.${data.motoristaId},veiculo_id.eq.${veiculo.id}`);
+
+      if (dError) throw new Error("Erro ao validar documentos.");
+      
+      const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
+      const docsEnviados = documentos || [];
+      
+      const tiposEnviados = docsEnviados.map(d => d.tipo_documento);
+      const faltantes = tiposObrigatorios.filter(t => !tiposEnviados.includes(t as any));
+      
+      if (faltantes.length > 0) {
+        throw new Error(`Bloqueado: Faltam documentos (${faltantes.join(", ")}).`);
+      }
+
+      const pendentes = docsEnviados.filter(d => d.status_analise === "pendente");
+      if (pendentes.length > 0) {
+        throw new Error("Bloqueado: Existem documentos aguardando análise.");
+      }
+
+      const recusados = docsEnviados.filter(d => d.status_analise === "recusado");
+      if (recusados.length > 0) {
+        throw new Error("Bloqueado: Existem documentos recusados.");
+      }
+    }
 
     if ((data.novoStatus === "recusado" || data.novoStatus === "suspenso") && !data.justificativa) {
       throw new Error("Justificativa é obrigatória para recusa ou suspensão.");
@@ -123,6 +175,7 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
     if (data.novoStatus !== "aprovado") {
       updateData.is_disponivel = false;
     }
+
 
     const { error } = await supabaseAdmin
       .from("motoristas")
