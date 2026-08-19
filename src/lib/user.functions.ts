@@ -153,7 +153,6 @@ const createRideSchema = z.object({
   destinoLat: z.number(),
   destinoLng: z.number(),
   destinoNome: z.string().optional(),
-  valorEstimado: z.number(),
   formaPagamento: z.enum(["pix", "cartao", "dinheiro"]),
 });
 
@@ -182,18 +181,49 @@ export const criarCorrida = createServerFn({ method: "POST" })
     // 2. Gerar código de embarque (4 dígitos numéricos conforme CHAR(4))
     const codigoEmbarque = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // 2.1 Validar se a cidade está liberada (praça piloto ou ativa)
-    const { data: cidade } = await supabaseAdmin
+    // 2.1 Validar se a cidade está liberada (praça piloto ou ativa) e obter tarifas
+    const { data: cidade, error: cityError } = await supabaseAdmin
       .from("cidades")
-      .select("status, nome, comissao_pct")
+      .select("status, nome, comissao_pct, bandeirada, valor_km, valor_min, tarifa_minima")
       .eq("id", usuario.cidade_id)
       .single();
 
-    if (!cidade || (cidade.status !== 'piloto' && cidade.status !== 'ativa')) {
-        throw new Error("Desculpe, o Zuvvi ainda não opera corridas nesta cidade.");
+    if (cityError || !cidade || (cidade.status !== 'piloto' && cidade.status !== 'ativa')) {
+        throw new Error("Desculpe, o Zuvvi ainda não opera corridas nesta cidade ou as tarifas não foram encontradas.");
     }
 
-    // 3. Inserir a corrida
+    // 2.2 Calcular Rota Oficial no Servidor (Mapbox Directions)
+    const token = process.env['MAPBOX_TOKEN'];
+    if (!token) throw new Error("Erro de configuração: Serviço de rotas indisponível.");
+
+    const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${data.origemLng},${data.origemLat};${data.destinoLng},${data.destinoLat}?geometries=geojson&access_token=${token}`;
+    
+    let rotaOficial;
+    try {
+      const resp = await fetch(directionsUrl);
+      const routeData = await resp.json();
+      if (routeData.code !== 'Ok' || !routeData.routes?.[0]) {
+        throw new Error("Não foi possível calcular o trajeto oficial.");
+      }
+      rotaOficial = routeData.routes[0];
+    } catch (err) {
+      console.error("Erro Mapbox Server:", err);
+      throw new Error("Falha ao comunicar com o serviço de rotas. Tente novamente.");
+    }
+
+    const oficialDistanciaKm = rotaOficial.distance / 1000;
+    const oficialTempoMin = rotaOficial.duration / 60;
+
+    // 2.3 Cálculo do Preço Oficial
+    const { bandeirada, valor_km, valor_min, tarifa_minima } = cidade;
+    let valorOficial = Number(bandeirada) + (oficialDistanciaKm * Number(valor_km)) + (oficialTempoMin * Number(valor_min));
+    
+    if (valorOficial < Number(tarifa_minima)) {
+      valorOficial = Number(tarifa_minima);
+    }
+    valorOficial = Math.round(valorOficial * 100) / 100;
+
+    // 3. Inserir a corrida com o valor calculado no servidor
     const { data: corrida, error: insertError } = await supabaseAdmin
       .from("corridas")
       .insert({
@@ -203,7 +233,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
         origem_lng: data.origemLng,
         destino_lat: data.destinoLat,
         destino_lng: data.destinoLng,
-        valor_estimado: data.valorEstimado,
+        valor_estimado: valorOficial, // Valor oficial calculado no servidor
         forma_pagamento: data.formaPagamento,
         codigo_embarque: codigoEmbarque,
         status: 'solicitada',
@@ -220,21 +250,20 @@ export const criarCorrida = createServerFn({ method: "POST" })
 
     // 4. Registrar o pagamento pendente (Fase de Operação)
     try {
-      const valorEstimado = Number(data.valorEstimado);
       const comissaoPct = Number(cidade.comissao_pct || 0);
       
-      // valor_comissao = valor estimado × (comissao_pct ÷ 100), arredondado para 2 casas decimais
-      const valorComissao = Math.round((valorEstimado * (comissaoPct / 100)) * 100) / 100;
+      // valor_comissao = valor oficial × (comissao_pct ÷ 100), arredondado para 2 casas decimais
+      const valorComissao = Math.round((valorOficial * (comissaoPct / 100)) * 100) / 100;
       
-      // valor_motorista = valor estimado − valor_comissao
-      const valorMotorista = Math.round((valorEstimado - valorComissao) * 100) / 100;
+      // valor_motorista = valor oficial − valor_comissao
+      const valorMotorista = Math.round((valorOficial - valorComissao) * 100) / 100;
 
       const { error: paymentError } = await supabaseAdmin
         .from("pagamentos")
         .insert({
           corrida_id: corrida.id,
           meio: data.formaPagamento,
-          valor_total: valorEstimado,
+          valor_total: valorOficial,
           valor_motorista: valorMotorista,
           valor_comissao: valorComissao,
           status: 'pendente'
