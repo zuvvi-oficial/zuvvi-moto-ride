@@ -66,6 +66,15 @@ function AuthCallbackPage() {
         if (cancelled) return;
         
         console.log("[GoogleAuth] redirect_logic_result_received");
+
+        if ((result as any)?.error) {
+          const serverError = String((result as any).error);
+          console.error("[GoogleAuth] server_error:", serverError);
+          setError(serverError);
+          toast.error("Erro na autenticação social.");
+          return;
+        }
+        
         
         console.log("[GoogleAuth] redirect_logic_success to=" + result.redirectTo);
         
