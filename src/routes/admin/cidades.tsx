@@ -225,31 +225,37 @@ function CidadesAdmin() {
                   {cidade.status === 'em_breve' && (
                     <Button 
                       size="sm" 
-                      className="bg-volt text-black hover:bg-volt/80 text-[10px] font-bold h-7 px-2"
+                      className="bg-volt text-black hover:bg-volt/90 text-xs font-bold h-8 px-3 shadow-lg shadow-volt/20"
+                      aria-label={`Liberar ${cidade.nome} para piloto`}
                       onClick={() => {
                         setSelectedCidade(cidade);
                         setNovoStatus('piloto');
                       }}
                     >
-                      <Rocket className="w-3 h-3 mr-1" />
-                      PILOTO
+                      <Rocket className="w-4 h-4 mr-2" />
+                      Liberar para piloto
                     </Button>
                   )}
                   {cidade.status === 'piloto' && (
                     <Button 
                       size="sm" 
-                      className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold h-7 px-2"
+                      variant="default"
+                      className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold h-8 px-3 shadow-lg shadow-green-500/20"
+                      aria-label={`Promover ${cidade.nome} para ativa`}
                       onClick={() => {
                         setSelectedCidade(cidade);
                         setNovoStatus('ativa');
                       }}
                     >
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      ATIVAR
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Promover para ativa
                     </Button>
                   )}
                   {cidade.status === 'ativa' && (
-                    <Badge variant="secondary" className="text-green-500 bg-green-500/10 border-green-500/20 text-[10px]">OPERANTE</Badge>
+                    <div className="flex items-center justify-end gap-1.5 text-green-400 font-semibold text-xs py-1 px-2 rounded-full bg-green-400/10 border border-green-400/20">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>Cidade Ativa</span>
+                    </div>
                   )}
 
                 </TableCell>
