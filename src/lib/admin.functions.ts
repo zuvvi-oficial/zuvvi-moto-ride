@@ -237,17 +237,28 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
     // 2. Veículo vinculado
     const { data: veiculo } = await supabaseAdmin
       .from("veiculos")
-      .select("*")
+      .select("id, marca, modelo, placa, ano, cor, status_aprovacao")
       .eq("motorista_id", data.motoristaId)
       .maybeSingle();
 
-    // 3. Documentos
-    const { data: documentos } = await supabaseAdmin
+    // 3. Documentos (do motorista OU do veículo vinculado a ele)
+    let queryDocs = supabaseAdmin
       .from("documentos_motorista")
       .select("*")
       .eq("motorista_id", data.motoristaId);
+
+    // Se houver um veículo, busca também documentos vinculados a este veículo específico
+    if (veiculo?.id) {
+      queryDocs = supabaseAdmin
+        .from("documentos_motorista")
+        .select("*")
+        .or(`motorista_id.eq.${data.motoristaId},veiculo_id.eq.${veiculo.id}`);
+    }
+
+    const { data: documentos, error: dError } = await queryDocs;
+    if (dError) console.error("Erro ao buscar documentos:", dError);
     
-    // As URLs assinadas serão geradas sob demanda no frontend para maior segurança e performance
+    // As URLs assinadas são geradas sob demanda no frontend via getDocumentoUrlSigned
     const docsSimplificados = documentos || [];
 
     // 4. Auditoria
