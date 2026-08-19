@@ -55,7 +55,6 @@ function ConfirmarCorrida() {
           destinoLat: destLat,
           destinoLng: destLng,
           destinoNome: destName,
-          valorEstimado: estimatedFare,
           formaPagamento: metodoPagamento,
         }
       });
