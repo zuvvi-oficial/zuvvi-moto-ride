@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS usuarios_auth_user_id_key ON public.usuarios (auth_user_id) WHERE auth_user_id IS NOT NULL;
