@@ -45,12 +45,13 @@ export async function resolveDestinationInternal(userId: string) {
   if (!userRecord) {
     console.log("[AuthInternal] Criando registro inicial para usuário Google:", userId);
     
+    const userMetadata = user.user_metadata || {};
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from("usuarios")
       .upsert({
         auth_user_id: userId,
         email: email || '',
-        nome: user.user_metadata?.full_name || user.user_metadata?.name || email?.split('@')[0] || 'Usuário Zuvvi',
+        nome: String(userMetadata['full_name'] || userMetadata['name'] || email?.split('@')[0] || 'Usuário Zuvvi'),
         is_passageiro: false,
         is_motorista: false
       }, { onConflict: 'auth_user_id' })
