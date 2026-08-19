@@ -779,7 +779,7 @@ export const updateDadosVeiculo = createServerFn({ method: "POST" })
     // 2. Executar update
     const { data: atualizado, error: updateError } = await supabaseAdmin
       .from("veiculos")
-      .update(camposUpdate)
+      .update(camposUpdate as any)
       .eq("id", veiculoId)
       .select()
       .single();
