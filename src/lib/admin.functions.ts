@@ -750,7 +750,7 @@ export const updateTarifasCidade = createServerFn({ method: "POST" })
 
 export const updateDadosVeiculo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) =>
+  .inputValidator((data: unknown) =>
     z.object({
       veiculoId: z.string(),
       placa: z.string().optional(),
