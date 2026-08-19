@@ -224,8 +224,8 @@ function CidadesAdmin() {
                 <TableCell className="text-right">
                   {cidade.status === 'em_breve' && (
                     <Button 
-                      size="xs" 
-                      className="bg-volt text-black hover:bg-volt/80 text-[10px] font-bold h-7"
+                      size="sm" 
+                      className="bg-volt text-black hover:bg-volt/80 text-[10px] font-bold h-7 px-2"
                       onClick={() => {
                         setSelectedCidade(cidade);
                         setNovoStatus('piloto');
@@ -237,8 +237,8 @@ function CidadesAdmin() {
                   )}
                   {cidade.status === 'piloto' && (
                     <Button 
-                      size="xs" 
-                      className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold h-7"
+                      size="sm" 
+                      className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold h-7 px-2"
                       onClick={() => {
                         setSelectedCidade(cidade);
                         setNovoStatus('ativa');
@@ -249,8 +249,9 @@ function CidadesAdmin() {
                     </Button>
                   )}
                   {cidade.status === 'ativa' && (
-                    <Badge variant="ghost" className="text-green-500 text-[10px]">OPERANTE</Badge>
+                    <Badge variant="secondary" className="text-green-500 bg-green-500/10 border-green-500/20 text-[10px]">OPERANTE</Badge>
                   )}
+
                 </TableCell>
               </TableRow>
 
