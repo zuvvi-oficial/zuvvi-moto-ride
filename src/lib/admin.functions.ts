@@ -567,3 +567,97 @@ export const getCidadesAdmin = createServerFn({ method: "GET" })
     };
   });
 
+export const updateStatusCidade = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z.object({
+      cidadeId: z.string(),
+      novoStatus: z.enum(["em_breve", "piloto", "ativa"]),
+      justificativa: z.string().min(3, "Justificativa muito curta"),
+    }).parse(data)
+  )
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const adminId = context.userId;
+
+    // 5. Buscar a cidade pelo ID recebido
+    const { data: cidade, error: fetchError } = await supabaseAdmin
+      .from("cidades")
+      .select("*")
+      .eq("id", data.cidadeId)
+      .single();
+
+    if (fetchError || !cidade) throw new Error("Cidade não encontrada.");
+
+    // Validar se o status já é o solicitado
+    if (cidade.status === data.novoStatus) {
+      return { success: true, message: "Nenhuma alteração era necessária." };
+    }
+
+    // VALIDAÇÃO DE TARIFAS (Somente leitura para conferência no servidor)
+    const tarifasObrigatorias = [
+      "bandeirada",
+      "valor_km",
+      "valor_min",
+      "tarifa_minima",
+      "comissao_pct",
+      "raio_atuacao_km"
+    ];
+
+    for (const campo of tarifasObrigatorias) {
+      const valor = (cidade as any)[campo];
+      if (valor === null || valor === undefined || Number(valor) < 0) {
+        throw new Error(`Bloqueado: Campo de tarifa '${campo}' está nulo ou inválido.`);
+      }
+      // Se for comissão, validar se está entre 0 e 100
+      if (campo === "comissao_pct" && (Number(valor) > 100)) {
+        throw new Error("Bloqueado: Comissão percentual inválida.");
+      }
+    }
+
+    // 11. Executar o UPDATE
+    const { error: updateError } = await supabaseAdmin
+      .from("cidades")
+      .update({ 
+        status: data.novoStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", data.cidadeId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    // 12. Confirmar a gravação lendo o status novamente
+    const { data: confirmedCidade, error: confirmError } = await supabaseAdmin
+      .from("cidades")
+      .select("status, updated_at")
+      .eq("id", data.cidadeId)
+      .single();
+
+    if (confirmError || !confirmedCidade) {
+      throw new Error("Erro crítico: Não foi possível confirmar a persistência do status.");
+    }
+
+    if (confirmedCidade.status !== data.novoStatus) {
+      throw new Error(`Falha de persistência: O status no banco (${confirmedCidade.status}) não corresponde ao solicitado (${data.novoStatus}).`);
+    }
+
+    // 14. Registrar auditoria
+    await createAuditLog({
+      adminId,
+      acao: `cidade_status_${data.novoStatus}`,
+      entidade: "cidades",
+      entidadeId: data.cidadeId,
+      estadoAnterior: { status: cidade.status },
+      estadoNovo: { status: data.novoStatus },
+      justificativa: `Alteração de status da cidade ${cidade.nome}/${cidade.estado_uf}: ${data.justificativa}`,
+    });
+
+    return { 
+      success: true, 
+      novoStatus: confirmedCidade.status,
+      updatedAt: confirmedCidade.updated_at
+    };
+  });
+
+
