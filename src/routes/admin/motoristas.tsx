@@ -61,11 +61,19 @@ function AdminMotoristas() {
   const [selectedMotorista, setSelectedMotorista] = useState<any>(null);
   const [justificativa, setJustificativa] = useState('');
   const [actionType, setActionType] = useState<'aprovado' | 'recusado' | 'suspenso' | null>(null);
+  const [viewingMotoristaId, setViewingMotoristaId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusMotorista);
+  const getDetalheFn = useServerFn(getMotoristaDetalheAdmin);
 
   const { data: motoristas } = useSuspenseQuery(motoristasOptions({ status, busca }));
+
+  const { data: detalhe, isLoading: loadingDetalhe } = useQuery({
+    queryKey: ['admin-motorista-detalhe', viewingMotoristaId],
+    queryFn: () => getDetalheFn({ data: { motoristaId: viewingMotoristaId! } }),
+    enabled: !!viewingMotoristaId,
+  });
 
   const handleAction = async () => {
     if (!selectedMotorista || !actionType) return;
