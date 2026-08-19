@@ -32,23 +32,28 @@ function AuthCallbackPage() {
       try {
         console.log("[GoogleAuth] callback_started");
         
-        const session = await waitForSession();
+        let session = await waitForSession();
         if (cancelled) return;
         
         if (!session) {
-          console.log("[GoogleAuth] session_found=false");
-          // Em vez de travar no erro, tentamos um redirecionamento seguro para a Home 
-          // onde o onAuthStateChange pode assumir, ou volta para login se falhar.
-          navigate({ to: "/" });
-          return;
+          console.log("[GoogleAuth] session_found=false - trying refresh");
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshData.session) {
+            console.log("[GoogleAuth] refresh_failed, falling back to home");
+            navigate({ to: "/" });
+            return;
+          }
+          
+          session = refreshData.session;
+          console.log("[GoogleAuth] session_recovered_via_refresh");
         }
 
-        console.log("[GoogleAuth] session_found=true");
         console.log("[GoogleAuth] session_found=true");
         console.log("[GoogleAuth] calling_redirect_logic");
         // We pass the token manually and ensure getSession() is stable
         const currentSession = await supabase.auth.getSession();
-        const activeToken = currentSession.data.session?.access_token || session.access_token;
+        const activeToken = currentSession.data.session?.access_token || session?.access_token;
         console.log("[GoogleAuth] access_token_present=" + !!activeToken);
         
         const result = await executeRedirectLogic({
