@@ -36,11 +36,16 @@ function AuthCallbackPage() {
         if (cancelled) return;
         
         if (!session) {
-          console.log("[GoogleAuth] session_found=false");
-          // Em vez de travar no erro, tentamos um redirecionamento seguro para a Home 
-          // onde o onAuthStateChange pode assumir, ou volta para login se falhar.
-          navigate({ to: "/" });
-          return;
+          console.log("[GoogleAuth] session_found=false - trying refresh");
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshData.session) {
+            console.log("[GoogleAuth] refresh_failed, falling back to home");
+            navigate({ to: "/" });
+            return;
+          }
+          
+          console.log("[GoogleAuth] session_recovered_via_refresh");
         }
 
         console.log("[GoogleAuth] session_found=true");
