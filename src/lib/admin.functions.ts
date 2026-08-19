@@ -520,7 +520,7 @@ export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
  */
 export const getCidadesAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({
       pagina: z.number().default(0),
       limite: z.number().default(20),

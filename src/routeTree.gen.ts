@@ -16,6 +16,7 @@ import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
 import { Route as AdminMotoristasRouteImport } from './routes/admin/motoristas'
 import { Route as AdminVeiculosRouteImport } from './routes/admin/veiculos'
 import { Route as AuthCadastroRouteImport } from './routes/auth.cadastro'
@@ -57,6 +58,11 @@ const ProcurandoMotoristaRoute = ProcurandoMotoristaRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCidadesRoute = AdminCidadesRouteImport.update({
+  id: '/admin/cidades',
+  path: '/admin/cidades',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminMotoristasRoute = AdminMotoristasRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/confirmar-corrida'
     | '/onboarding-motorista'
     | '/procurando-motorista'
+    | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/veiculos'
     | '/auth/cadastro'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/confirmar-corrida'
     | '/onboarding-motorista'
     | '/procurando-motorista'
+    | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/veiculos'
     | '/auth/cadastro'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/confirmar-corrida'
     | '/onboarding-motorista'
     | '/procurando-motorista'
+    | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/veiculos'
     | '/auth/cadastro'
@@ -202,6 +214,7 @@ export interface RootRouteChildren {
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
+  AdminCidadesRoute: typeof AdminCidadesRoute
   AdminMotoristasRoute: typeof AdminMotoristasRoute
   AdminVeiculosRoute: typeof AdminVeiculosRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -256,6 +269,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/cidades': {
+      id: '/admin/cidades'
+      path: '/admin/cidades'
+      fullPath: '/admin/cidades'
+      preLoaderRoute: typeof AdminCidadesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/motoristas': {
@@ -335,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
+  AdminCidadesRoute: AdminCidadesRoute,
   AdminMotoristasRoute: AdminMotoristasRoute,
   AdminVeiculosRoute: AdminVeiculosRoute,
   AdminIndexRoute: AdminIndexRoute,

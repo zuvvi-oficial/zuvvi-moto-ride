@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { queryOptions } from '@tanstack/react-query';
-import { getCidadesAdmin, getUFs } from '@/lib/admin.functions';
+import { getCidadesAdmin } from '@/lib/admin.functions';
+import { getUFs } from '@/lib/locations.functions';
 import { useState } from 'react';
 import {
   Table,
