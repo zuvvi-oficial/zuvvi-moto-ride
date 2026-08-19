@@ -539,7 +539,7 @@ export const getCidadesAdmin = createServerFn({ method: "GET" })
       .from("cidades")
       .select(`
         id, nome, estado_uf, status,
-        bandeirada, valor_km, valor_min, tarifa_minima, comissao_pct
+        bandeirada, valor_km, valor_min, tarifa_minima, comissao_pct, raio_atuacao_km
       `, { count: "exact" });
 
     if (data.uf) {
