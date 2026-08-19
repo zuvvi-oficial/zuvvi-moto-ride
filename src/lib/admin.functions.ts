@@ -329,6 +329,43 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
   });
 
 /**
+ * Gerar URL assinada para visualização de documento (Server-only)
+ */
+export const getDocumentoUrlSigned = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ documentoId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Validar documento e obter path
+    const { data: doc, error } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("storage_path, tipo_documento")
+      .eq("id", data.documentoId)
+      .single();
+
+    if (error || !doc || !doc.storage_path) {
+      throw new Error("Arquivo não encontrado ou inacessível.");
+    }
+
+    // 2. Gerar URL temporária (15 minutos para visualização imediata)
+    const { data: signed, error: signedError } = await supabaseAdmin.storage
+      .from("documentos-motorista")
+      .createSignedUrl(doc.storage_path, 900);
+
+    if (signedError || !signed) {
+      throw new Error("Erro ao gerar acesso ao arquivo.");
+    }
+
+    return { 
+      url: signed.signedUrl,
+      tipo: doc.tipo_documento,
+      isPdf: doc.storage_path.toLowerCase().endsWith('.pdf')
+    };
+  });
+
+/**
  * Detalhes do Veículo para Admin
  */
 export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
