@@ -449,7 +449,9 @@ export const enviarParaAnalise = createServerFn({ method: "POST" })
         'usuario_nao_encontrado': 'Usuário não localizado.',
         'dados_cnh_pix_incompletos': 'Dados de CNH ou Pix estão incompletos.',
         'documentos_incompletos': 'Você precisa enviar os 6 documentos obrigatórios.',
-        'veiculo_nao_encontrado': 'Nenhum veículo cadastrado encontrado.'
+        'veiculo_nao_encontrado': 'Nenhum veículo cadastrado encontrado.',
+        'perfil_motorista_invalido': 'Perfil de motorista inválido.',
+        'estado_bloqueado': 'Este perfil já está aprovado ou suspenso e não pode ser alterado.'
       };
 
       throw new Error(mensagensErro[result.error] || `Falha no cadastro (${result.step}).`);
