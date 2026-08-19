@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
@@ -120,11 +120,12 @@ function AdminDashboard() {
 
       <div className="flex gap-4">
         <Button asChild className="bg-zuvvi-violet hover:bg-zuvvi-violet/80">
-          <a href="/admin/motoristas">Gerenciar Motoristas</a>
+          <Link to="/admin/motoristas">Gerenciar Motoristas</Link>
         </Button>
         <Button asChild className="bg-zuvvi-violet hover:bg-zuvvi-violet/80">
-          <a href="/admin/veiculos">Gerenciar Veículos</a>
+          <Link to="/admin/veiculos">Gerenciar Veículos</Link>
         </Button>
+
       </div>
     </div>
   );
