@@ -48,7 +48,7 @@ export const toggleDisponibilidade = createServerFn({ method: "POST" })
       .from("veiculos")
       .select("id")
       .eq("motorista_id", motoristaInfo.id)
-      .eq("status_aprovacao", "aprovado")
+      .in("status_aprovacao", ["aprovado", "em_analise"])
       .eq("ativo", true)
       .maybeSingle();
 
