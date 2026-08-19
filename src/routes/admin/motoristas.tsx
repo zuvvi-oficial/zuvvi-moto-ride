@@ -160,6 +160,25 @@ function AdminMotoristas() {
                 <TableCell>
                   <div className={`h-2 w-2 rounded-full ${user.motoristas.is_disponivel ? 'bg-volt' : 'bg-gray-500'}`} />
                 </TableCell>
+                <TableCell className="text-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="hover:bg-white/10 text-volt"
+                          onClick={() => setViewingMotoristaId(user.motoristas.id)}
+                        >
+                          <Eye className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ver detalhes</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
                 <TableCell className="text-right space-x-2">
                   {user.motoristas.status_aprovacao !== 'aprovado' && (
                     <Button 
