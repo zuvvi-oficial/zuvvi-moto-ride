@@ -499,6 +499,7 @@ function AdminMotoristas() {
                       Nenhum documento encontrado
                     </div>
                   )}
+                </section>
 
                 <Separator className="bg-white/10" />
 
