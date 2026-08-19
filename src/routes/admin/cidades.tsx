@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
 import { queryOptions } from '@tanstack/react-query';
-import { getCidadesAdmin } from '@/lib/admin.functions';
+import { getCidadesAdmin, updateStatusCidade } from '@/lib/admin.functions';
 import { getUFs } from '@/lib/locations.functions';
 import { useState } from 'react';
+import { useServerFn } from '@tanstack/react-start';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -19,10 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Search, MapPin } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ChevronLeft, ChevronRight, Search, MapPin, Rocket, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+
 
 const cidadesQueryOptions = (params: { 
   pagina: number; 
@@ -48,6 +60,13 @@ function CidadesAdmin() {
   const [uf, setUf] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [busca, setBusca] = useState('');
+  const [selectedCidade, setSelectedCidade] = useState<any>(null);
+  const [novoStatus, setNovoStatus] = useState<'piloto' | 'ativa' | 'em_breve' | null>(null);
+  const [justificativa, setJustificativa] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const queryClient = useQueryClient();
+  const updateStatusFn = useServerFn(updateStatusCidade);
 
   const { data: result } = useSuspenseQuery(cidadesQueryOptions({ 
     pagina, 
@@ -58,6 +77,34 @@ function CidadesAdmin() {
   const { data: ufs } = useSuspenseQuery(ufsQueryOptions);
 
   const totalPaginas = Math.ceil(result.total / result.limite);
+
+  const handleUpdateStatus = async () => {
+    if (!selectedCidade || !novoStatus || !justificativa) return;
+    
+    setIsSubmitting(true);
+    try {
+      const res = await updateStatusFn({
+        data: {
+          cidadeId: selectedCidade.id,
+          novoStatus: novoStatus,
+          justificativa: justificativa,
+        }
+      });
+
+      if (res.success) {
+        toast.success(`Cidade ${selectedCidade.nome} atualizada para ${res.novoStatus}!`);
+        queryClient.invalidateQueries({ queryKey: ['admin-cidades'] });
+        setSelectedCidade(null);
+        setNovoStatus(null);
+        setJustificativa('');
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao atualizar status da cidade");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -143,7 +190,7 @@ function CidadesAdmin() {
         </div>
         
         <div className="flex items-end pb-1">
-           <p className="text-[10px] text-amber-500 italic">Fase 1: Somente Leitura</p>
+           <p className="text-[10px] text-volt italic">Fase 2: Liberação Individual</p>
         </div>
       </div>
 
@@ -159,8 +206,10 @@ function CidadesAdmin() {
               <TableHead className="text-gray-400 text-right">Minuto</TableHead>
               <TableHead className="text-gray-400 text-right">Mínima</TableHead>
               <TableHead className="text-gray-400 text-right">Comissão %</TableHead>
+              <TableHead className="text-gray-400 text-right">Ação</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {result.cidades.map((cidade: any) => (
               <TableRow key={cidade.id} className="border-white/10 hover:bg-white/5 transition-colors">
@@ -172,11 +221,43 @@ function CidadesAdmin() {
                 <TableCell className="text-right">R$ {Number(cidade.valor_min).toFixed(2)}</TableCell>
                 <TableCell className="text-right">R$ {Number(cidade.tarifa_minima).toFixed(2)}</TableCell>
                 <TableCell className="text-right">{cidade.comissao_pct}%</TableCell>
+                <TableCell className="text-right">
+                  {cidade.status === 'em_breve' && (
+                    <Button 
+                      size="xs" 
+                      className="bg-volt text-black hover:bg-volt/80 text-[10px] font-bold h-7"
+                      onClick={() => {
+                        setSelectedCidade(cidade);
+                        setNovoStatus('piloto');
+                      }}
+                    >
+                      <Rocket className="w-3 h-3 mr-1" />
+                      PILOTO
+                    </Button>
+                  )}
+                  {cidade.status === 'piloto' && (
+                    <Button 
+                      size="xs" 
+                      className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold h-7"
+                      onClick={() => {
+                        setSelectedCidade(cidade);
+                        setNovoStatus('ativa');
+                      }}
+                    >
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      ATIVAR
+                    </Button>
+                  )}
+                  {cidade.status === 'ativa' && (
+                    <Badge variant="ghost" className="text-green-500 text-[10px]">OPERANTE</Badge>
+                  )}
+                </TableCell>
               </TableRow>
+
             ))}
             {result.cidades.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-gray-500">
+                <TableCell colSpan={9} className="text-center py-10 text-gray-500">
                   Nenhuma cidade encontrada com os filtros selecionados.
                 </TableCell>
               </TableRow>
@@ -212,6 +293,80 @@ function CidadesAdmin() {
           </Button>
         </div>
       </div>
+      </div>
+
+      <Dialog open={!!selectedCidade} onOpenChange={(open) => !open && setSelectedCidade(null)}>
+        <DialogContent className="bg-zuvvi-indigo border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {novoStatus === 'piloto' ? <Rocket className="w-5 h-5 text-volt" /> : <CheckCircle className="w-5 h-5 text-green-500" />}
+              {novoStatus === 'piloto' ? 'Liberar para Piloto' : 'Promover para Ativa'}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Cidade: <span className="text-white font-bold">{selectedCidade?.nome} - {selectedCidade?.estado_uf}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-white/5 p-3 rounded border border-white/5 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Status Atual:</span>
+                <span className="font-bold uppercase">{selectedCidade?.status}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Novo Status:</span>
+                <span className="font-bold uppercase text-volt">{novoStatus}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-[10px] bg-black/20 p-2 rounded">
+              <div><span className="text-gray-500">Bandeirada:</span> R$ {Number(selectedCidade?.bandeirada).toFixed(2)}</div>
+              <div><span className="text-gray-500">KM:</span> R$ {Number(selectedCidade?.valor_km).toFixed(2)}</div>
+              <div><span className="text-gray-500">Minuto:</span> R$ {Number(selectedCidade?.valor_min).toFixed(2)}</div>
+              <div><span className="text-gray-500">Mínima:</span> R$ {Number(selectedCidade?.tarifa_minima).toFixed(2)}</div>
+              <div className="col-span-2"><span className="text-gray-500">Comissão:</span> {selectedCidade?.comissao_pct}%</div>
+            </div>
+
+            <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded flex gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+              <p className="text-[11px] text-amber-200">
+                {novoStatus === 'piloto' 
+                  ? "A liberação em modo piloto permite que motoristas aprovados fiquem online, mas pode haver restrições de visibilidade pública."
+                  : "Promover para ativa torna a cidade totalmente operacional para todos os usuários."}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Justificativa Obrigatória</label>
+              <Textarea 
+                placeholder="Descreva o motivo desta alteração..."
+                value={justificativa}
+                onChange={(e) => setJustificativa(e.target.value)}
+                className="bg-white/5 border-white/10 text-white min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="ghost" 
+              onClick={() => setSelectedCidade(null)}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleUpdateStatus}
+              disabled={!justificativa || isSubmitting}
+              className={novoStatus === 'piloto' ? 'bg-volt text-black hover:bg-volt/80' : 'bg-green-600 hover:bg-green-700 text-white'}
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Confirmar Liberação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
