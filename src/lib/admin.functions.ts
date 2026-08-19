@@ -546,7 +546,7 @@ export const getCidadesAdmin = createServerFn({ method: "GET" })
       query = query.eq("estado_uf", data.uf);
     }
     if (data.status) {
-      query = query.eq("status", data.status);
+      query = query.eq("status", data.status as any);
     }
     if (data.busca) {
       query = query.ilike("nome", `%${data.busca}%`);
