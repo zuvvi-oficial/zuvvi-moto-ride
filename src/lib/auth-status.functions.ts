@@ -86,7 +86,7 @@ export async function resolveDestinationInternal(userId: string) {
     isAdmin: false,
     isPassageiro: userRecord.is_passageiro,
     isMotorista: userRecord.is_motorista,
-    redirectTo: userRecord.is_motorista ? "/onboarding-motorista" : "/"
+    redirectTo: userRecord.is_motorista ? "/home-motorista" : "/"
   };
 }
 
