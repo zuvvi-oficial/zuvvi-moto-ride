@@ -210,3 +210,130 @@ export const updateStatusVeiculo = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+/**
+ * Detalhes do Motorista para Admin
+ */
+export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ motoristaId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Dados do Motorista e Usuário
+    const { data: motorista, error: mError } = await supabaseAdmin
+      .from("motoristas")
+      .select(`
+        *,
+        usuarios(id, nome, email, celular, cpf, data_nascimento, cidade_id, cidades(nome, estado_uf))
+      `)
+      .eq("id", data.motoristaId)
+      .maybeSingle();
+
+    if (mError) throw new Error(mError.message);
+    if (!motorista) throw new Error("Motorista não encontrado.");
+
+    // 2. Veículo vinculado
+    const { data: veiculo } = await supabaseAdmin
+      .from("veiculos")
+      .select("*")
+      .eq("motorista_id", data.motoristaId)
+      .maybeSingle();
+
+    // 3. Documentos com URLs assinadas
+    const { data: documentos } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("*")
+      .eq("motorista_id", data.motoristaId);
+
+    const docsComUrl = await Promise.all((documentos || []).map(async (doc) => {
+      let publicUrl = null;
+      if (doc.storage_path) {
+        const { data: signed } = await supabaseAdmin.storage
+          .from("documentos-motorista")
+          .createSignedUrl(doc.storage_path, 3600); // 1 hora
+        publicUrl = signed?.signedUrl;
+      }
+      return { ...doc, publicUrl };
+    }));
+
+    // 4. Auditoria
+    const { data: logs } = await supabaseAdmin
+      .from("admin_audit_logs")
+      .select("*")
+      .eq("entidade", "motoristas")
+      .eq("entidade_id", data.motoristaId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    // Mascaramento básico (Admin vê, mas para segurança de log/transmissão básica)
+    // No projeto Zuvvi, o admin autorizado VÊ o dado real na ficha, mas aplicamos 
+    // um padrão visual no front. Aqui retornamos o dado real conforme solicitado.
+
+    return {
+      motorista,
+      veiculo,
+      documentos: docsComUrl,
+      logs
+    };
+  });
+
+/**
+ * Detalhes do Veículo para Admin
+ */
+export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ veiculoId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Dados do Veículo e Proprietário
+    const { data: veiculo, error: vError } = await supabaseAdmin
+      .from("veiculos")
+      .select(`
+        *,
+        motoristas(
+          id, status_aprovacao,
+          usuarios(nome, email, celular, cidades(nome, estado_uf))
+        )
+      `)
+      .eq("id", data.veiculoId)
+      .maybeSingle();
+
+    if (vError) throw new Error(vError.message);
+    if (!veiculo) throw new Error("Veículo não encontrado.");
+
+    // 2. Documentos do Veículo (CRLV, foto_veiculo, foto_placa)
+    const { data: documentos } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("*")
+      .eq("veiculo_id", data.veiculoId);
+
+    const docsComUrl = await Promise.all((documentos || []).map(async (doc) => {
+      let publicUrl = null;
+      if (doc.storage_path) {
+        const { data: signed } = await supabaseAdmin.storage
+          .from("documentos-motorista")
+          .createSignedUrl(doc.storage_path, 3600);
+        publicUrl = signed?.signedUrl;
+      }
+      return { ...doc, publicUrl };
+    }));
+
+    // 3. Auditoria
+    const { data: logs } = await supabaseAdmin
+      .from("admin_audit_logs")
+      .select("*")
+      .eq("entidade", "veiculos")
+      .eq("entidade_id", data.veiculoId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    return {
+      veiculo,
+      documentos: docsComUrl,
+      logs
+    };
+  });
