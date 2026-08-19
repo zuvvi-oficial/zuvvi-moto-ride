@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 
-import { getVeiculosAdmin, updateStatusVeiculo, getVeiculoDetalheAdmin } from '@/lib/admin.functions';
+import { getVeiculosAdmin, updateStatusVeiculo, getVeiculoDetalheAdmin, updateDadosVeiculo } from '@/lib/admin.functions';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +66,17 @@ function AdminVeiculos() {
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusVeiculo);
   const getDetalheFn = useServerFn(getVeiculoDetalheAdmin);
+  const updateDadosFn = useServerFn(updateDadosVeiculo);
+
+  // Estados locais para edição no Sheet
+  const [editData, setEditData] = useState<any>({
+    placa: '',
+    marca: '',
+    modelo: '',
+    ano: '',
+    cor: '',
+  });
+
   const { data: veiculos } = useSuspenseQuery(veiculosOptions);
 
   const { data: detalhe, isLoading: loadingDetalhe } = useQuery({
@@ -73,6 +84,38 @@ function AdminVeiculos() {
     queryFn: () => getDetalheFn({ data: { veiculoId: viewingVeiculoId! } }),
     enabled: !!viewingVeiculoId,
   });
+
+  // Sincronizar dados de edição quando o detalhe carregar
+  useEffect(() => {
+    if (detalhe?.veiculo) {
+      setEditData({
+        placa: detalhe.veiculo.placa || '',
+        marca: detalhe.veiculo.marca || '',
+        modelo: detalhe.veiculo.modelo || '',
+        ano: detalhe.veiculo.ano || '',
+        cor: detalhe.veiculo.cor || '',
+      });
+    }
+  }, [detalhe]);
+
+  const handleUpdateCampo = async (campo: string) => {
+    if (!viewingVeiculoId) return;
+    
+    try {
+      const valor = campo === 'ano' ? Number(editData[campo]) : editData[campo];
+      await updateDadosFn({
+        data: {
+          veiculoId: viewingVeiculoId,
+          [campo]: valor,
+        }
+      });
+      toast.success(`Campo ${campo} atualizado com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ['admin-veiculos'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-veiculo-detalhe', viewingVeiculoId] });
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
 
   const handleAction = async () => {
     if (!selectedVeiculo || !actionType) return;
@@ -304,6 +347,55 @@ function AdminVeiculos() {
 
                 <Separator className="bg-white/10" />
 
+                {/* Edição de Dados do Veículo */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <Settings2 className="h-4 w-4" />
+                    <span>Editar Dados do Veículo</span>
+                  </div>
+                  
+                  {['recusado', 'suspenso'].includes(detalhe.veiculo.status_aprovacao) && (
+                    <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-md flex gap-2 items-center text-orange-500 text-xs">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      Edição desabilitada pois o veículo está {detalhe.veiculo.status_aprovacao}.
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {[
+                      { id: 'placa', label: 'Placa', type: 'text' },
+                      { id: 'marca', label: 'Marca', type: 'text' },
+                      { id: 'modelo', label: 'Modelo', type: 'text' },
+                      { id: 'ano', label: 'Ano', type: 'number' },
+                      { id: 'cor', label: 'Cor', type: 'text' },
+                    ].map((field) => (
+                      <div key={field.id} className="space-y-1.5">
+                        <Label htmlFor={field.id} className="text-xs text-gray-400 uppercase">{field.label}</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id={field.id}
+                            type={field.type}
+                            className="bg-white/5 border-white/10 text-white flex-1"
+                            value={editData[field.id]}
+                            onChange={(e) => setEditData({ ...editData, [field.id]: e.target.value })}
+                            disabled={['recusado', 'suspenso'].includes(detalhe.veiculo.status_aprovacao)}
+                          />
+                          <Button 
+                            size="icon" 
+                            variant="secondary"
+                            className="bg-volt text-black hover:bg-volt/80 shrink-0"
+                            onClick={() => handleUpdateCampo(field.id)}
+                            disabled={['recusado', 'suspenso'].includes(detalhe.veiculo.status_aprovacao) || editData[field.id] === (detalhe.veiculo as any)[field.id]}
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <Separator className="bg-white/10" />
 
                 {/* Proprietário */}
                 <section className="space-y-4">
