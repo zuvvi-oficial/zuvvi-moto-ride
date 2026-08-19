@@ -164,15 +164,15 @@ function AdminVeiculos() {
             {veiculos?.map((veiculo: any) => (
               <TableRow key={veiculo.id} className="border-white/10 hover:bg-white/5">
                 <TableCell className="font-medium">
-                  {veiculo.usuarios?.nome}
-                  <div className="text-xs text-gray-400">{veiculo.usuarios?.email}</div>
+                  {veiculo.motoristas?.usuarios?.nome}
+                  <div className="text-xs text-gray-400">{veiculo.motoristas?.usuarios?.email}</div>
                 </TableCell>
                 <TableCell>
                   {veiculo.marca} {veiculo.modelo}
                   <div className="text-xs text-gray-400">{veiculo.ano} • {veiculo.cor}</div>
                 </TableCell>
                 <TableCell>{veiculo.placa}</TableCell>
-                <TableCell>{veiculo.usuarios?.cidades?.nome}</TableCell>
+                <TableCell>{veiculo.motoristas?.usuarios?.cidades?.nome}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                     veiculo.status_aprovacao === 'aprovado' ? 'bg-green-500/20 text-green-500' :

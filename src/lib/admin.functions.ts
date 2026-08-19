@@ -210,7 +210,9 @@ export const getVeiculosAdmin = createServerFn({ method: "GET" })
       .from("veiculos")
       .select(`
         *,
-        usuarios(nome, email, cidades(nome))
+        motoristas(
+          usuarios(nome, email, cidades(nome))
+        )
       `)
       .order("created_at", { ascending: false });
 
