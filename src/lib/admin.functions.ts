@@ -514,3 +514,56 @@ export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
       logs
     };
   });
+
+/**
+ * Gestão de Cidades (Somente Leitura - Fase 1)
+ */
+export const getCidadesAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      pagina: z.number().default(0),
+      limite: z.number().default(20),
+      uf: z.string().optional(),
+      status: z.string().optional(),
+      busca: z.string().optional(),
+    }).parse(data)
+  )
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const offset = data.pagina * data.limite;
+
+    let query = supabaseAdmin
+      .from("cidades")
+      .select(`
+        id, nome, estado_uf, status,
+        bandeirada, valor_km, valor_min, tarifa_minima, comissao_pct
+      `, { count: "exact" });
+
+    if (data.uf) {
+      query = query.eq("estado_uf", data.uf);
+    }
+    if (data.status) {
+      query = query.eq("status", data.status);
+    }
+    if (data.busca) {
+      query = query.ilike("nome", `%${data.busca}%`);
+    }
+
+    const { data: cidades, count, error } = await query
+      .order("estado_uf", { ascending: true })
+      .order("nome", { ascending: true })
+      .range(offset, offset + data.limite - 1);
+
+    if (error) throw new Error(error.message);
+
+    return {
+      cidades: cidades || [],
+      total: count || 0,
+      pagina: data.pagina,
+      limite: data.limite
+    };
+  });
+
