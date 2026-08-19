@@ -660,4 +660,93 @@ export const updateStatusCidade = createServerFn({ method: "POST" })
     };
   });
 
+export const updateTarifasCidade = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z.object({
+      cidadeId: z.string(),
+      bandeirada: z.number().min(0),
+      valor_km: z.number().min(0),
+      valor_min: z.number().min(0),
+      tarifa_minima: z.number().min(0),
+      raio_atuacao_km: z.number().min(0),
+      comissao_pct: z.number().min(0).max(100),
+      justificativa: z.string().min(3, "Justificativa obrigatória (mín. 3 caracteres)"),
+    }).parse(data)
+  )
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const adminId = context.userId;
+
+    // 1. Buscar a cidade atual
+    const { data: cidade, error: fetchError } = await supabaseAdmin
+      .from("cidades")
+      .select("*")
+      .eq("id", data.cidadeId)
+      .single();
+
+    if (fetchError || !cidade) throw new Error("Cidade não encontrada.");
+
+    const estadoAnterior = {
+      bandeirada: cidade.bandeirada,
+      valor_km: cidade.valor_km,
+      valor_min: cidade.valor_min,
+      tarifa_minima: cidade.tarifa_minima,
+      comissao_pct: cidade.comissao_pct,
+      raio_atuacao_km: cidade.raio_atuacao_km
+    };
+
+    const estadoNovo = {
+      bandeirada: data.bandeirada,
+      valor_km: data.valor_km,
+      valor_min: data.valor_min,
+      tarifa_minima: data.tarifa_minima,
+      comissao_pct: data.comissao_pct,
+      raio_atuacao_km: data.raio_atuacao_km
+    };
+
+    // 2. Executar UPDATE
+    const { error: updateError } = await supabaseAdmin
+      .from("cidades")
+      .update({
+        ...estadoNovo,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", data.cidadeId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    // 3. Confirmar gravação
+    const { data: confirmed, error: confirmError } = await supabaseAdmin
+      .from("cidades")
+      .select("bandeirada, valor_km, valor_min, tarifa_minima, comissao_pct, raio_atuacao_km")
+      .eq("id", data.cidadeId)
+      .single();
+
+    if (confirmError || !confirmed) throw new Error("Erro ao confirmar persistência das tarifas.");
+
+    // Comparar valores
+    const campos = ["bandeirada", "valor_km", "valor_min", "tarifa_minima", "comissao_pct", "raio_atuacao_km"];
+    for (const campo of campos) {
+      if (Number((confirmed as any)[campo]) !== Number((data as any)[campo])) {
+        throw new Error(`Falha de persistência no campo ${campo}.`);
+      }
+    }
+
+    // 4. Registrar auditoria
+    await createAuditLog({
+      adminId,
+      acao: "cidade_tarifas_atualizadas",
+      entidade: "cidades",
+      entidadeId: data.cidadeId,
+      estadoAnterior,
+      estadoNovo,
+      justificativa: data.justificativa,
+    });
+
+    return { success: true };
+  });
+
+
 
