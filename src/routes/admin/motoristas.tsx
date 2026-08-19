@@ -132,7 +132,11 @@ function AdminMotoristas() {
       if (result.isPdf) {
         window.open(result.url, '_blank');
       } else {
-        setIsViewingFile(result);
+        setIsViewingFile({
+          url: result.url,
+          type: result.tipo,
+          isPdf: result.isPdf
+        });
       }
     } catch (error: any) {
       toast.error(error.message);
