@@ -33,17 +33,17 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
       throw new Error("Seu perfil ainda não foi aprovado para ficar online.");
     }
 
-    // 2. Validar se existe um veículo aprovado (opcional mas recomendado por segurança)
+    // 2. Validar se existe um veículo aprovado ou em análise (permitindo operação enquanto o veículo é revisado se o motorista já estiver OK)
     const { data: veiculo } = await supabaseAdmin
       .from("veiculos")
-      .select("id")
+      .select("id, status_aprovacao")
       .eq("motorista_id", usuario.id)
-      .eq("status_aprovacao", "aprovado")
+      .in("status_aprovacao", ["aprovado", "em_analise"])
       .eq("ativo", true)
       .maybeSingle();
 
     if (!veiculo && data.disponivel) {
-      throw new Error("Você precisa de um veículo aprovado para ficar online.");
+      throw new Error("Você precisa de um veículo (aprovado ou em análise) para ficar online.");
     }
 
     // 3. Atualizar a disponibilidade
