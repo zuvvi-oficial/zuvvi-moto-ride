@@ -424,6 +424,85 @@ function AdminMotoristas() {
 
                 <Separator className="bg-white/10" />
 
+                {/* Documentos Enviados */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <FileText className="h-4 w-4" />
+                    <span>Documentos Enviados</span>
+                  </div>
+                  
+                  {detalhe.documentos && detalhe.documentos.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3">
+                      {detalhe.documentos.map((doc: any) => (
+                        <Card key={doc.id} className="bg-white/5 border-white/10 text-white">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                              <div className="text-sm font-medium capitalize">
+                                {doc.tipo_documento.replace(/_/g, ' ')}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={`text-[10px] py-0 h-4 border-white/20 ${
+                                  doc.status_analise === 'aprovado' ? 'text-green-500 border-green-500/30' :
+                                  doc.status_analise === 'recusado' ? 'text-red-500 border-red-500/30' :
+                                  'text-amber-500 border-amber-500/30'
+                                }`}>
+                                  {doc.status_analise.toUpperCase()}
+                                </Badge>
+                                {doc.motivo_recusa && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <AlertTriangle className="h-3 w-3 text-red-500" />
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-red-950 border-red-500 text-white max-w-xs">
+                                        <p className="text-xs">{doc.motivo_recusa}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {doc.status_analise === 'pendente' && (
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-8 text-volt hover:bg-volt/10"
+                                  onClick={() => setReviewingDoc(doc)}
+                                >
+                                  Avaliar
+                                </Button>
+                              )}
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-8 border-white/10 bg-white/5 hover:bg-white/10"
+                                disabled={loadingFile === doc.id}
+                                onClick={() => handleViewDoc(doc.id)}
+                              >
+                                {loadingFile === doc.id ? (
+                                  <Clock className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Maximize2 className="h-4 w-4 mr-2" />
+                                    Ver
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 border border-dashed border-white/10 rounded-lg text-gray-500 text-sm">
+                      Nenhum documento encontrado
+                    </div>
+                  )}
+                </section>
+
+                <Separator className="bg-white/10" />
+
                 {/* Dados de Recebimento */}
                 <section className="space-y-4">
                   <div className="flex items-center gap-2 text-volt font-semibold">
