@@ -65,7 +65,9 @@ function AdminMotoristas() {
 
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusMotorista);
+  const updateStatusDocFn = useServerFn(updateStatusDocumento);
   const getDetalheFn = useServerFn(getMotoristaDetalheAdmin);
+  const getDocUrlFn = useServerFn(getDocumentoUrlSigned);
 
   const { data: motoristas } = useSuspenseQuery(motoristasOptions({ status, busca }));
 
@@ -95,6 +97,43 @@ function AdminMotoristas() {
       setActionType(null);
     } catch (error: any) {
       toast.error(error.message);
+    }
+  };
+
+  const handleDocAction = async (status: 'aprovado' | 'recusado') => {
+    if (!reviewingDoc) return;
+    
+    try {
+      await updateStatusDocFn({
+        data: {
+          documentoId: reviewingDoc.id,
+          novoStatus: status,
+          justificativa: status === 'recusado' ? justificativaDoc : undefined,
+        }
+      });
+      
+      toast.success(`Documento ${status === 'aprovado' ? 'aprovado' : 'recusado'} com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ['admin-motorista-detalhe', viewingMotoristaId] });
+      setReviewingDoc(null);
+      setJustificativaDoc('');
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleViewDoc = async (docId: string) => {
+    try {
+      setLoadingFile(docId);
+      const result = await getDocUrlFn({ data: { documentoId: docId } });
+      if (result.isPdf) {
+        window.open(result.url, '_blank');
+      } else {
+        setIsViewingFile(result);
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoadingFile(null);
     }
   };
 
@@ -435,56 +474,165 @@ function AdminMotoristas() {
 
                 <Separator className="bg-white/10" />
 
+                {/* Alertas de Prontidão */}
+                {detalhe && (
+                  <section className="space-y-3">
+                    {(() => {
+                      const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
+                      const docsEnviados = detalhe.documentos.filter((d: any) => tiposObrigatorios.includes(d.tipo_documento));
+                      const docsPendentes = docsEnviados.filter((d: any) => d.status_analise === 'pendente');
+                      const docsRecusados = docsEnviados.filter((d: any) => d.status_analise === 'recusado');
+                      const cnhVencida = detalhe.motorista.cnh_validade && new Date(detalhe.motorista.cnh_validade) < new Date();
+                      
+                      const alertas = [];
+                      if (docsEnviados.length < tiposObrigatorios.length) alertas.push(`Faltam ${tiposObrigatorios.length - docsEnviados.length} documentos obrigatórios.`);
+                      if (docsPendentes.length > 0) alertas.push(`${docsPendentes.length} documento(s) aguardando análise.`);
+                      if (docsRecusados.length > 0) alertas.push(`${docsRecusados.length} documento(s) recusado(s).`);
+                      if (cnhVencida) alertas.push("CNH do motorista está vencida.");
+                      if (!detalhe.veiculo) alertas.push("Nenhum veículo vinculado ao motorista.");
+                      else if (detalhe.veiculo.status_aprovacao !== 'aprovado') alertas.push("O veículo vinculado ainda não está aprovado.");
+
+                      if (alertas.length === 0) return null;
+
+                      return (
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-2">
+                          <div className="flex items-center gap-2 text-amber-500 font-bold text-sm uppercase tracking-wider">
+                            <AlertTriangle className="h-4 w-4" />
+                            Atenção para Aprovação Final
+                          </div>
+                          <ul className="text-xs text-amber-200/70 space-y-1 list-disc list-inside">
+                            {alertas.map((a, i) => <li key={i}>{a}</li>)}
+                          </ul>
+                        </div>
+                      );
+                    })()}
+                  </section>
+                )}
+
+                <Separator className="bg-white/10" />
+
                 {/* Documentos Enviados */}
                 <section className="space-y-4">
-                  <div className="flex items-center gap-2 text-volt font-semibold">
-                    <FileText className="h-4 w-4" />
-                    <span>Documentos Enviados</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-volt font-semibold">
+                      <FileText className="h-4 w-4" />
+                      <span>Documentos Enviados</span>
+                    </div>
+                    {detalhe && (
+                      <span className="text-[10px] text-gray-500 uppercase tracking-widest">
+                        {detalhe.documentos.length} de 6 Enviados
+                      </span>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 gap-3">
                     {['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'].map((tipo) => {
                       const doc = detalhe.documentos.find((d: any) => d.tipo_documento === tipo);
                       return (
-                        <Card key={tipo} className="bg-white/5 border-white/10 text-white">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div className="space-y-1">
-                              <div className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                                {tipo.replace('_', ' ')}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {doc ? (
-                                  <>
-                                    <Badge variant="outline" className={
-                                      doc.status_analise === 'aprovado' ? 'text-green-500 border-green-500/30' :
-                                      doc.status_analise === 'recusado' ? 'text-red-500 border-red-500/30' :
-                                      'text-amber-500 border-amber-500/30'
-                                    }>
-                                      {doc.status_analise.toUpperCase()}
-                                    </Badge>
-                                    <span className="text-[10px] text-gray-500 italic">
-                                      Enviado em {new Date(doc.data_envio).toLocaleDateString('pt-BR')}
+                        <Card key={tipo} className="bg-white/5 border-white/10 text-white overflow-hidden">
+                          <CardContent className="p-0">
+                            <div className="p-4 flex items-center justify-between">
+                              <div className="space-y-1">
+                                <div className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                                  {tipo.replace('_', ' ')}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {doc ? (
+                                    <>
+                                      <Badge variant="outline" className={
+                                        doc.status_analise === 'aprovado' ? 'text-green-400 border-green-400/30' :
+                                        doc.status_analise === 'recusado' ? 'text-red-400 border-red-400/30' :
+                                        'text-amber-400 border-amber-400/30'
+                                      }>
+                                        {doc.status_analise.toUpperCase()}
+                                      </Badge>
+                                      <span className="text-[10px] text-gray-500 italic">
+                                        {new Date(doc.data_envio).toLocaleDateString('pt-BR')}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs text-gray-500 italic flex items-center gap-1">
+                                      <XCircle className="h-3 w-3" /> Não enviado
                                     </span>
-                                  </>
-                                ) : (
-                                  <span className="text-xs text-gray-500 italic">Não enviado</span>
-                                )}
+                                  )}
+                                </div>
                               </div>
-                              {doc?.motivo_recusa && (
-                                <div className="text-xs text-red-400 bg-red-400/10 p-2 rounded mt-2 border border-red-400/20">
-                                  <strong>Recusa:</strong> {doc.motivo_recusa}
+                              {doc && (
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="border-white/10 hover:bg-volt hover:text-black transition-colors"
+                                    disabled={loadingFile === doc.id}
+                                    onClick={() => handleViewDoc(doc.id)}
+                                  >
+                                    {loadingFile === doc.id ? (
+                                      <Clock className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <Eye className="h-4 w-4 mr-1" />
+                                        Ver
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-gray-400 hover:text-white"
+                                    onClick={() => setReviewingDoc(doc)}
+                                  >
+                                    <ChevronRight className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               )}
                             </div>
-                            {doc?.publicUrl && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="border-white/20 hover:bg-white/10"
-                                onClick={() => doc.publicUrl && window.open(doc.publicUrl, '_blank')}
-                              >
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Ver
-                              </Button>
+                            
+                            {doc?.motivo_recusa && (
+                              <div className="px-4 pb-4">
+                                <div className="text-[10px] text-red-400 bg-red-400/5 p-2 rounded border border-red-400/10">
+                                  <strong>RECUSA:</strong> {doc.motivo_recusa}
+                                </div>
+                              </div>
+                            )}
+
+                            {reviewingDoc?.id === doc?.id && (
+                              <div className="bg-black/20 p-4 border-t border-white/5 space-y-4">
+                                <div className="text-xs font-semibold uppercase text-volt">Revisar Documento</div>
+                                <div className="space-y-2">
+                                  <label className="text-[10px] text-gray-400 uppercase">Justificativa para recusa (opcional se aprovar):</label>
+                                  <Textarea 
+                                    className="bg-white/5 border-white/10 text-white text-xs min-h-[60px]"
+                                    value={justificativaDoc}
+                                    onChange={(e) => setJustificativaDoc(e.target.value)}
+                                    placeholder="Ex: Imagem ilegível, documento vencido..."
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    className="flex-1 bg-green-600 hover:bg-green-700 h-8 text-xs"
+                                    onClick={() => handleDocAction('aprovado')}
+                                  >
+                                    Aprovar
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="destructive" 
+                                    className="flex-1 h-8 text-xs"
+                                    disabled={!justificativaDoc}
+                                    onClick={() => handleDocAction('recusado')}
+                                  >
+                                    Recusar
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="h-8 text-xs" 
+                                    onClick={() => setReviewingDoc(null)}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              </div>
                             )}
                           </CardContent>
                         </Card>
@@ -534,6 +682,46 @@ function AdminMotoristas() {
           </ScrollArea>
         </SheetContent>
       </Sheet>
+
+      {/* Visualizador de Arquivos (Imagens) */}
+      <Dialog open={!!isViewingFile} onOpenChange={() => setIsViewingFile(null)}>
+        <DialogContent className="bg-black/95 border-white/10 text-white max-w-4xl p-0 overflow-hidden">
+          <div className="relative w-full h-[80vh] flex items-center justify-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/80 rounded-full"
+              onClick={() => setIsViewingFile(null)}
+            >
+              <XCircle className="h-6 w-6" />
+            </Button>
+            
+            <div className="absolute top-4 left-4 z-50 bg-black/50 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-volt">
+              {isViewingFile?.type.replace('_', ' ')}
+            </div>
+
+            {isViewingFile?.url && (
+              <img 
+                src={isViewingFile.url} 
+                alt="Documento" 
+                className="max-w-full max-h-full object-contain"
+              />
+            )}
+
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-black/50 border-white/10"
+                onClick={() => window.open(isViewingFile?.url, '_blank')}
+              >
+                <Maximize2 className="h-4 w-4 mr-2" />
+                Abrir em nova aba
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
