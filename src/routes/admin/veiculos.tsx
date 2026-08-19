@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 
-import { getVeiculosAdmin, updateStatusVeiculo } from '@/lib/admin.functions';
+import { getVeiculosAdmin, updateStatusVeiculo, getVeiculoDetalheAdmin } from '@/lib/admin.functions';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -20,9 +20,23 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { 
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle } from 'lucide-react';
+
 
 const veiculosOptions = queryOptions({
   queryKey: ['admin-veiculos'],
