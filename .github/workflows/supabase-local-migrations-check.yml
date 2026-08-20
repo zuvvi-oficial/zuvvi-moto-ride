@@ -10,6 +10,9 @@ on:
 jobs:
   check-migrations:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,3 +34,32 @@ jobs:
       - name: Stop Supabase
         if: always()
         run: npx supabase@2.111.0 stop --no-backup || true
+
+      - name: Publish workflow run locator
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          STATE="$JOB_STATUS"
+          if [ "$STATE" = "cancelled" ]; then
+            STATE="error"
+          fi
+
+
+          curl -fsS \
+            -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "$(jq -n \
+              --arg state "$STATE" \
+              --arg url "$RUN_URL" \
+              '{
+                state: $state,
+                target_url: $url,
+                description: "Supabase local migrations check",
+                context: "zuvvi/supabase-local-migrations"
+              }')"
