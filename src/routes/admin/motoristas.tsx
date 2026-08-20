@@ -570,28 +570,48 @@ function AdminMotoristas() {
                       const docsPendentes = docsEnviados.filter((d: any) => d.status_analise === 'pendente');
                       const docsRecusados = docsEnviados.filter((d: any) => d.status_analise === 'recusado');
                       const docsCorrecao = docsEnviados.filter((d: any) => d.status_analise === 'correcao_solicitada');
-                      const cnhVencida = detalhe.motorista.cnh_validade && new Date(detalhe.motorista.cnh_validade) < new Date();
+                      const hoje = getHojeBR();
+                      const cnhVencida = detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < hoje;
                       
                       const alertas = [];
+                      const alertasCriticos = [];
+
+                      if (cnhVencida) alertasCriticos.push("CNH vencida — bloqueio operacional automático.");
+                      
                       if (docsEnviados.length < tiposObrigatorios.length) alertas.push(`Faltam ${tiposObrigatorios.length - docsEnviados.length} documentos obrigatórios.`);
                       if (docsPendentes.length > 0) alertas.push(`${docsPendentes.length} documento(s) aguardando análise.`);
                       if (docsRecusados.length > 0) alertas.push(`${docsRecusados.length} documento(s) recusado(s).`);
                       if (docsCorrecao.length > 0) alertas.push(`${docsCorrecao.length} documento(s) aguardando correção.`);
-                      if (cnhVencida) alertas.push("CNH do motorista está vencida.");
                       if (!detalhe.veiculo) alertas.push("Nenhum veículo vinculado ao motorista.");
                       else if (detalhe.veiculo.status_aprovacao !== 'aprovado') alertas.push("O veículo vinculado ainda não está aprovado.");
 
-                      if (alertas.length === 0) return null;
+                      if (alertas.length === 0 && alertasCriticos.length === 0) return null;
 
                       return (
-                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-2">
-                          <div className="flex items-center gap-2 text-amber-500 font-bold text-sm uppercase tracking-wider">
-                            <AlertTriangle className="h-4 w-4" />
-                            Atenção para Aprovação Final
-                          </div>
-                          <ul className="text-xs text-amber-200/70 space-y-1 list-disc list-inside">
-                            {alertas.map((a, i) => <li key={i}>{a}</li>)}
-                          </ul>
+                        <div className="space-y-3">
+                          {alertasCriticos.length > 0 && (
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 space-y-2">
+                              <div className="flex items-center gap-2 text-red-500 font-bold text-sm uppercase tracking-wider">
+                                <AlertTriangle className="h-4 w-4" />
+                                Bloqueio Operacional
+                              </div>
+                              <ul className="text-xs text-red-200/70 space-y-1 list-disc list-inside">
+                                {alertasCriticos.map((a, i) => <li key={i}>{a}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {alertas.length > 0 && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-2">
+                              <div className="flex items-center gap-2 text-amber-500 font-bold text-sm uppercase tracking-wider">
+                                <AlertTriangle className="h-4 w-4" />
+                                Atenção para Aprovação Final
+                              </div>
+                              <ul className="text-xs text-amber-200/70 space-y-1 list-disc list-inside">
+                                {alertas.map((a, i) => <li key={i}>{a}</li>)}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
