@@ -57,6 +57,12 @@
   - Passageiro solicita → Mototaxista recebe → Mototaxista aceita → acompanhamento/mapa
 - **Observação:** A regressão visual da 0.6 deverá ser executada obrigatoriamente quando o fluxo de aceite do Mototaxista estiver disponível.
 
+### 0.7 — Atualização da Base de Contra-Prova — ✅ FECHADA
+- ZUVVI-FECHAMENTO-CONTROLE.md atualizado para registrar as microetapas 0.4, 0.5 e 0.6;
+- regressão visual pendente da 0.6 registrada;
+- nenhuma alteração em código ou Supabase;
+- auditoria independente aprovada.
+
 ### 0.8 — Fechamento de leitura pública prematura — ✅ FECHADA
 - removida a policy de SELECT público direto de public.viagens_compartilhadas;
 - migration aplicada: 20260820015148_58d2469a-32bb-4691-a7d1-65942e051ae8.sql;
