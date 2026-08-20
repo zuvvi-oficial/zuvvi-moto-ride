@@ -224,7 +224,7 @@ function HomeMotorista() {
     );
   }
 
-  const isOnline = status.is_disponivel;
+  
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
