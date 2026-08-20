@@ -393,7 +393,7 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const authUserId = context.userId;
 
-    // 1. Resolver o perfil public.usuarios correspondente a esse auth_user_id
+    // 1. Resolver o perfil public.usuarios (ownership)
     const { data: usuarioAuth, error: userAuthError } = await supabaseAdmin
       .from("usuarios")
       .select("id")
@@ -401,10 +401,10 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
       .maybeSingle();
 
     if (userAuthError || !usuarioAuth) {
-      throw new Error("Usuário não encontrado");
+      throw new Error("Corrida não encontrada.");
     }
 
-    // 2. Buscar a corrida e validar ownership do Passageiro
+    // 2. Buscar a corrida
     const { data: corrida, error: rideError } = await supabaseAdmin
       .from("corridas")
       .select(`
@@ -428,7 +428,7 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
       throw new Error("Corrida não encontrada.");
     }
 
-    // Validação de ownership (SERVER-SIDE)
+    // Validação de ownership
     if (corrida.passageiro_id !== usuarioAuth.id) {
       throw new Error("Corrida não encontrada.");
     }
@@ -440,53 +440,88 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
       "em_andamento"
     ];
 
-    const isAssigned = corrida.motorista_id && assignedStatuses.includes(corrida.status);
-
-    let driverInfo = null;
-    let vehicleInfo = null;
-
-    if (isAssigned) {
-      // 3. Buscar Mototaxista (projeção mínima e segura)
-      const { data: driver } = await supabaseAdmin
-        .from("usuarios")
-        .select(`
-          nome,
-          motoristas (
-            nota_media
-          )
-        `)
-        .eq("id", corrida.motorista_id!)
-        .maybeSingle();
-
-      if (driver) {
-        const motoristaData = Array.isArray(driver.motoristas) ? driver.motoristas[0] : driver.motoristas;
-        driverInfo = {
-          nome: driver.nome,
-          nota_media: (motoristaData as any)?.nota_media
-        };
-
-        // 4. Buscar Veículo aprovado e ativo
-        const { data: vehicle } = await supabaseAdmin
-          .from("veiculos")
-          .select("marca, modelo, cor, placa")
-          .eq("motorista_id", corrida.motorista_id!)
-          .eq("ativo", true)
-          .eq("status_aprovacao", "aprovado")
-          .maybeSingle();
-
-        if (vehicle) {
-          vehicleInfo = vehicle;
-        }
-      }
+    // Status deve estar entre os autorizados
+    if (!assignedStatuses.includes(corrida.status)) {
+      return {
+        ride: null,
+        driver: null,
+        vehicle: null,
+        handoffAvailable: false
+      };
     }
 
-    // 5. Retornar estrutura mínima
-    const { passageiro_id, motorista_id, ...safeRide } = corrida;
-    
+    // Fail-closed: motorista_id deve existir
+    if (!corrida.motorista_id) {
+      throw new Error("Não foi possível carregar os dados do Mototaxista desta corrida.");
+    }
+
+    // 3. Buscar Mototaxista (FAIL-CLOSED)
+    const { data: driver, error: driverError } = await supabaseAdmin
+      .from("usuarios")
+      .select(`
+        nome,
+        motoristas!inner (
+          nota_media
+        )
+      `)
+      .eq("id", corrida.motorista_id)
+      .maybeSingle();
+
+    // Fail-closed: consulta sem erro e nome não vazio
+    if (driverError || !driver || !driver.nome || driver.nome.trim() === "") {
+      throw new Error("Não foi possível carregar os dados do Mototaxista desta corrida.");
+    }
+
+    const motoristaData = Array.isArray(driver.motoristas) ? driver.motoristas[0] : driver.motoristas;
+    const driverInfo = {
+      nome: driver.nome,
+      nota_media: motoristaData?.nota_media ?? null
+    };
+
+    // 4. Buscar Veículo (FAIL-CLOSED: EXATAMENTE UM)
+    const { data: vehicles, error: vehicleError } = await supabaseAdmin
+      .from("veiculos")
+      .select("marca, modelo, cor, placa")
+      .eq("motorista_id", corrida.motorista_id)
+      .eq("ativo", true)
+      .eq("status_aprovacao", "aprovado");
+
+    // Fail-closed: consulta sem erro e exatamente um registro
+    if (vehicleError || !vehicles || vehicles.length !== 1) {
+      throw new Error("Não foi possível carregar os dados do Mototaxista desta corrida.");
+    }
+
+    const vehicle = vehicles[0];
+
+    // Fail-closed: marca, modelo e placa não podem estar vazios
+    if (!vehicle.marca || !vehicle.modelo || !vehicle.placa || 
+        vehicle.marca.trim() === "" || vehicle.modelo.trim() === "" || vehicle.placa.trim() === "") {
+      throw new Error("Não foi possível carregar os dados do Mototaxista desta corrida.");
+    }
+
+    const vehicleInfo = {
+      marca: vehicle.marca,
+      modelo: vehicle.modelo,
+      cor: vehicle.cor ?? null,
+      placa: vehicle.placa
+    };
+
+    // 5. Retorno Final Seguro
     return {
-      ride: safeRide,
+      ride: {
+        id: corrida.id,
+        status: corrida.status,
+        origem_lat: corrida.origem_lat,
+        origem_lng: corrida.origem_lng,
+        origem_nome: corrida.origem_nome,
+        destino_lat: corrida.destino_lat,
+        destino_lng: corrida.destino_lng,
+        destino_nome: corrida.destino_nome,
+        valor_estimado: corrida.valor_estimado,
+        forma_pagamento: corrida.forma_pagamento
+      },
       driver: driverInfo,
       vehicle: vehicleInfo,
-      handoffAvailable: !!isAssigned
+      handoffAvailable: true
     };
   });
