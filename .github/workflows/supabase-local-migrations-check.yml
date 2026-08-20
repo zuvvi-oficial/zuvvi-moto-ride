@@ -1,0 +1,32 @@
+name: Supabase Local Migrations Check
+
+on:
+  push:
+    paths:
+      - '.github/workflows/supabase-local-migrations-check.yml'
+  workflow_dispatch:
+
+jobs:
+  check-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Supabase CLI version
+        run: npx supabase@2.111.0 --version
+
+      - name: Start Supabase Local Environment
+        run: npx supabase@2.111.0 start
+
+      - name: Run Full Database Reset (Local Only)
+        run: npx supabase@2.111.0 db reset --local
+
+      - name: Stop Supabase
+        if: always()
+        run: npx supabase@2.111.0 stop --no-backup || true
