@@ -109,7 +109,7 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
     // 1. Obter dados atuais do motorista, CNH e usuário (cidade)
     const { data: motorista, error: mError } = await supabaseAdmin
       .from("motoristas")
-      .select("status_aprovacao, cnh_validade")
+      .select("status_aprovacao, cnh_validade, cnh_numero, cnh_categoria")
       .eq("id", data.motoristaId)
       .single();
 
@@ -131,6 +131,15 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       }
 
       // B. Verificar CNH
+      if (!motorista.cnh_numero) {
+        throw new Error("Bloqueado: Número da CNH não informado.");
+      }
+      if (!motorista.cnh_categoria) {
+        throw new Error("Bloqueado: Categoria da CNH não informada.");
+      }
+      if (motorista.cnh_categoria !== "A" && motorista.cnh_categoria !== "AB") {
+        throw new Error("Bloqueado: Categoria da CNH deve ser A ou AB.");
+      }
       if (!motorista.cnh_validade) {
         throw new Error("Bloqueado: Validade da CNH não informada.");
       }
