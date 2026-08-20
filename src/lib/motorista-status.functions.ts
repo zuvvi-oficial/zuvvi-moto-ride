@@ -15,18 +15,25 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
 
     // REGRA 1: Sempre permitir ficar OFFLINE
     if (!data.disponivel) {
-      const { data: motoristaId } = await supabaseAdmin
+      const { data: usuario, error: uError } = await supabaseAdmin
         .from("usuarios")
-        .select("id")
+        .select("id, is_motorista")
         .eq("auth_user_id", userId)
         .single();
       
-      if (motoristaId) {
-        await supabaseAdmin
-          .from("motoristas")
-          .update({ is_disponivel: false })
-          .eq("id", motoristaId.id);
+      if (uError || !usuario || !usuario.is_motorista) {
+        throw new Error("Perfil de motorista não encontrado.");
       }
+      
+      const { error: updateError } = await supabaseAdmin
+        .from("motoristas")
+        .update({ is_disponivel: false })
+        .eq("id", usuario.id);
+
+      if (updateError) {
+        throw new Error("Erro ao salvar status offline: " + updateError.message);
+      }
+      
       return { success: true, is_disponivel: false };
     }
 
