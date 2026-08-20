@@ -232,7 +232,7 @@ function HomeMotorista() {
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
-      <header className={`p-6 flex items-center justify-between border-b border-white/5 sticky top-0 z-50 backdrop-blur-xl ${isOnline ? 'bg-zuvvi-volt/5' : 'bg-zuvvi-indigo/90'}`}>
+      <header className={`p-6 flex items-center justify-between border-b border-white/5 sticky top-0 z-50 backdrop-blur-xl ${(isOnline || activeRide) ? 'bg-zuvvi-volt/5' : 'bg-zuvvi-indigo/90'}`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
             <User className="w-5 h-5 text-zuvvi-volt" />
