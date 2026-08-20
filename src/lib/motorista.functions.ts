@@ -16,12 +16,11 @@ export const getOnboardingData = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const authUserId = context.userId;
 
-    // 1. Obter o usuário e confirmar que é motorista
     const { data: userData, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select(`
         id,
-        tipo,
+        is_motorista,
         motoristas (
           cnh_numero,
           cnh_categoria,
@@ -37,21 +36,20 @@ export const getOnboardingData = createServerFn({ method: "GET" })
       throw new Error("Usuário não encontrado.");
     }
 
-    if (userData.tipo !== 'motorista') {
+    if (!userData.is_motorista) {
       throw new Error("Acesso restrito a motoristas.");
     }
 
-    const motorista = (userData.motoristas as any);
+    const motoristasArr = userData.motoristas as any[];
+    const motorista = motoristasArr && motoristasArr.length > 0 ? motoristasArr[0] : null;
     const motoristaId = userData.id;
 
-    // 2. Obter veículo (um motorista_id possui um único veículo por restrição UNIQUE)
     const { data: veiculoData } = await supabaseAdmin
       .from("veiculos")
       .select("id, placa, ano, marca, modelo, cor, status_aprovacao, ativo")
       .eq("motorista_id", motoristaId)
       .maybeSingle();
 
-    // 3. Obter documentos
     const { data: docsData } = await supabaseAdmin
       .from("documentos_motorista")
       .select("tipo_documento, status_analise, motivo_recusa")
@@ -76,6 +74,7 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
     lat: z.number(), 
     lng: z.number() 
   }).parse(data))
+
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
