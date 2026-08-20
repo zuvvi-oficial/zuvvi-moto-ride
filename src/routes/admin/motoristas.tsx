@@ -86,6 +86,9 @@ function AdminMotoristas() {
   const handleAction = async () => {
     if (!selectedMotorista || !actionType) return;
     
+    setActionError(null);
+    setIsActionSubmitting(true);
+    
     try {
       await updateStatusFn({
         data: {
@@ -102,7 +105,11 @@ function AdminMotoristas() {
       setJustificativa('');
       setActionType(null);
     } catch (error: any) {
-      toast.error(error.message);
+      const message = error instanceof Error ? error.message : "Não foi possível concluir esta ação.";
+      setActionError(message);
+      toast.error(message);
+    } finally {
+      setIsActionSubmitting(false);
     }
   };
 
