@@ -246,6 +246,36 @@ export const updateStatusVeiculo = createServerFn({ method: "POST" })
       throw new Error("Justificativa é obrigatória.");
     }
 
+    // MICROETAPA 1.5: FORÇAR OFFLINE QUANDO VEÍCULO PERDE APROVAÇÃO
+    if (data.novoStatus !== "aprovado") {
+      // 1. Verificar motorista vinculado
+      const { data: motoristaCheck, error: checkError } = await supabaseAdmin
+        .from("motoristas")
+        .select("id, is_disponivel")
+        .eq("id", veiculo.motorista_id)
+        .single();
+
+      if (checkError || !motoristaCheck) {
+        throw new Error("Erro de integridade: Motorista vinculado ao veículo não encontrado.");
+      }
+
+      // 2. Definir is_disponivel = false
+      const { data: updatedMotorista, error: mUpdateError } = await supabaseAdmin
+        .from("motoristas")
+        .update({ is_disponivel: false })
+        .eq("id", veiculo.motorista_id)
+        .select("is_disponivel")
+        .single();
+
+      if (mUpdateError || !updatedMotorista) {
+        throw new Error("Falha ao retirar motorista de ONLINE. Operação abortada.");
+      }
+      
+      if (updatedMotorista.is_disponivel !== false) {
+        throw new Error("Falha crítica ao confirmar status OFFLINE do motorista.");
+      }
+    }
+
     const { error } = await supabaseAdmin
       .from("veiculos")
       .update({ status_aprovacao: data.novoStatus })
