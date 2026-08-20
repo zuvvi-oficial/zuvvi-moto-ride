@@ -385,3 +385,108 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    // 1. Resolver o perfil public.usuarios correspondente a esse auth_user_id
+    const { data: usuarioAuth, error: userAuthError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle();
+
+    if (userAuthError || !usuarioAuth) {
+      throw new Error("Usuário não encontrado");
+    }
+
+    // 2. Buscar a corrida e validar ownership do Passageiro
+    const { data: corrida, error: rideError } = await supabaseAdmin
+      .from("corridas")
+      .select(`
+        id,
+        status,
+        origem_lat,
+        origem_lng,
+        origem_nome,
+        destino_lat,
+        destino_lng,
+        destino_nome,
+        valor_estimado,
+        forma_pagamento,
+        passageiro_id,
+        motorista_id
+      `)
+      .eq("id", data.rideId)
+      .maybeSingle();
+
+    if (rideError || !corrida) {
+      throw new Error("Corrida não encontrada.");
+    }
+
+    // Validação de ownership (SERVER-SIDE)
+    if (corrida.passageiro_id !== usuarioAuth.id) {
+      throw new Error("Corrida não encontrada.");
+    }
+
+    const assignedStatuses: Database["public"]["Enums"]["corrida_status"][] = [
+      "aceita",
+      "motorista_a_caminho",
+      "motorista_chegou",
+      "em_andamento"
+    ];
+
+    const isAssigned = corrida.motorista_id && assignedStatuses.includes(corrida.status);
+
+    let driverInfo = null;
+    let vehicleInfo = null;
+
+    if (isAssigned) {
+      // 3. Buscar Mototaxista (projeção mínima e segura)
+      const { data: driver } = await supabaseAdmin
+        .from("usuarios")
+        .select(`
+          nome,
+          motoristas (
+            nota_media
+          )
+        `)
+        .eq("id", corrida.motorista_id!)
+        .maybeSingle();
+
+      if (driver) {
+        const motoristaData = Array.isArray(driver.motoristas) ? driver.motoristas[0] : driver.motoristas;
+        driverInfo = {
+          nome: driver.nome,
+          nota_media: (motoristaData as any)?.nota_media
+        };
+
+        // 4. Buscar Veículo aprovado e ativo
+        const { data: vehicle } = await supabaseAdmin
+          .from("veiculos")
+          .select("marca, modelo, cor, placa")
+          .eq("motorista_id", corrida.motorista_id!)
+          .eq("ativo", true)
+          .eq("status_aprovacao", "aprovado")
+          .maybeSingle();
+
+        if (vehicle) {
+          vehicleInfo = vehicle;
+        }
+      }
+    }
+
+    // 5. Retornar estrutura mínima
+    const { passageiro_id, motorista_id, ...safeRide } = corrida;
+    
+    return {
+      ride: safeRide,
+      driver: driverInfo,
+      vehicle: vehicleInfo,
+      handoffAvailable: !!isAssigned
+    };
+  });

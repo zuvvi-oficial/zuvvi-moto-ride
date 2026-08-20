@@ -1,12 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
-import { getCorrida, getMapboxToken } from '@/lib/user.functions';
+import { getMapboxToken, getAcompanhamentoPassageiro } from '@/lib/user.functions';
 import { Bike, Loader2, ChevronLeft, User, Star } from 'lucide-react';
 import { z } from 'zod';
 import { MapView } from '@/components/MapView';
-import { supabase } from '@/integrations/supabase/client';
-
+import { toast } from 'sonner';
 
 const searchSchema = z.object({
   rideId: z.string(),
@@ -26,46 +25,36 @@ function AcompanhamentoCorrida() {
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
 
-  const getCorridaFn = useServerFn(getCorrida);
+  const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
   useEffect(() => {
     async function init() {
       try {
-        const [rideData, token] = await Promise.all([
-          getCorridaFn({ data: { rideId } }),
+        const [data, token] = await Promise.all([
+          getAcompanhamentoFn({ data: { rideId } }),
           getMapboxTokenFn()
         ]);
-        setCorrida(rideData);
+        
+        setCorrida(data.ride);
+        setMotorista(data.driver);
+        setVeiculo(data.vehicle);
         setMapboxToken(token);
 
-        if (rideData.motorista_id) {
-          // Buscar dados reais do motorista e veículo
-          const { data: mData } = await supabase
-            .from("usuarios")
-            .select("*, motoristas(*)")
-            .eq("id", rideData.motorista_id)
-            .single();
-          
-          setMotorista(mData);
-
-          const { data: vData } = await supabase
-            .from("veiculos")
-            .select("*")
-            .eq("motorista_id", rideData.motorista_id)
-            .eq("ativo", true)
-            .maybeSingle();
-          
-          setVeiculo(vData);
+        if (!data.handoffAvailable) {
+          toast.error("Acompanhamento ainda não disponível para esta corrida.");
+          navigate({ to: '/' });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
+        toast.error(err.message || "Não foi possível carregar os dados do acompanhamento.");
+        navigate({ to: '/' });
       } finally {
         setIsLoading(false);
       }
     }
     init();
-  }, [rideId, getCorridaFn, getMapboxTokenFn]);
+  }, [rideId, getAcompanhamentoFn, getMapboxTokenFn, navigate]);
 
   if (isLoading || !corrida) {
     return (
@@ -114,7 +103,7 @@ function AcompanhamentoCorrida() {
                 <div className="flex items-center gap-1">
                   <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
                   <span className="text-xs text-zuvvi-volt font-bold">
-                    {motorista?.motoristas?.nota_media?.toFixed(1) || '5.0'}
+                    {motorista?.nota_media ? motorista.nota_media.toFixed(1) : 'Novo na Zuvvi'}
                   </span>
                 </div>
               </div>
