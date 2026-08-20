@@ -66,6 +66,8 @@ function AdminMotoristas() {
   const [justificativaDoc, setJustificativaDoc] = useState('');
   const [isViewingFile, setIsViewingFile] = useState<{url: string, type: string, isPdf: boolean} | null>(null);
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
 
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusMotorista);
@@ -84,6 +86,9 @@ function AdminMotoristas() {
   const handleAction = async () => {
     if (!selectedMotorista || !actionType) return;
     
+    setActionError(null);
+    setIsActionSubmitting(true);
+    
     try {
       await updateStatusFn({
         data: {
@@ -100,7 +105,11 @@ function AdminMotoristas() {
       setJustificativa('');
       setActionType(null);
     } catch (error: any) {
-      toast.error(error.message);
+      const message = error instanceof Error ? error.message : "Não foi possível concluir esta ação.";
+      setActionError(message);
+      toast.error(message);
+    } finally {
+      setIsActionSubmitting(false);
     }
   };
 
@@ -240,6 +249,7 @@ function AdminMotoristas() {
                       size="sm" 
                       className="bg-green-600 hover:bg-green-700"
                       onClick={() => {
+                        setActionError(null);
                         setSelectedMotorista(user);
                         setActionType('aprovado');
                       }}
@@ -252,6 +262,7 @@ function AdminMotoristas() {
                       size="sm" 
                       className="bg-amber-600 hover:bg-amber-700 text-white"
                       onClick={() => {
+                        setActionError(null);
                         setSelectedMotorista(user);
                         setActionType('suspenso');
                       }}
@@ -264,6 +275,7 @@ function AdminMotoristas() {
                       size="sm" 
                       variant="destructive"
                       onClick={() => {
+                        setActionError(null);
                         setSelectedMotorista(user);
                         setActionType('recusado');
                       }}
@@ -278,7 +290,12 @@ function AdminMotoristas() {
         </Table>
       </div>
 
-      <Dialog open={!!selectedMotorista} onOpenChange={() => setSelectedMotorista(null)}>
+      <Dialog open={!!selectedMotorista} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedMotorista(null);
+          setActionError(null);
+        }
+      }}>
         <DialogContent className="bg-zuvvi-indigo border-white/10 text-white">
           <DialogHeader>
             <DialogTitle>
@@ -308,15 +325,24 @@ function AdminMotoristas() {
                 />
               </div>
             )}
+
+            {actionError && (
+              <div className="p-3 rounded border border-red-500/50 bg-red-500/10 text-red-200 text-sm" role="alert" aria-live="assertive">
+                {actionError}
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSelectedMotorista(null)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => {
+              setSelectedMotorista(null);
+              setActionError(null);
+            }} disabled={isActionSubmitting}>Cancelar</Button>
             <Button 
               className={actionType === 'aprovado' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
-              disabled={actionType !== 'aprovado' && !justificativa}
+              disabled={(actionType !== 'aprovado' && !justificativa) || isActionSubmitting}
               onClick={handleAction}
             >
-              Confirmar
+              {isActionSubmitting ? "Processando..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
