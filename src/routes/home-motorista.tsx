@@ -199,7 +199,7 @@ function HomeMotorista() {
   }, [status?.is_disponivel]);
 
   const handleToggleOnline = () => {
-    if (isToggling) return;
+    if (isToggling || activeRide) return;
     setIsToggling(true);
     mutation.mutate(!status?.is_disponivel);
   };
