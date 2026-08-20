@@ -646,19 +646,32 @@ function AdminMotoristas() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {doc ? (
-                                    <>
-                                      <Badge variant="outline" className={
-                                        doc.status_analise === 'aprovado' ? 'text-green-400 border-green-400/30' :
-                                        doc.status_analise === 'recusado' ? 'text-red-400 border-red-400/30' :
-                                        doc.status_analise === 'correcao_solicitada' ? 'text-amber-500 border-amber-500/30' :
-                                        'text-amber-400 border-amber-400/30'
-                                      }>
-                                        {doc.status_analise === 'correcao_solicitada' ? 'CORREÇÃO SOLICITADA' : doc.status_analise.toUpperCase()}
-                                      </Badge>
-                                      <span className="text-[10px] text-gray-500 italic">
-                                        {new Date(doc.data_envio).toLocaleDateString('pt-BR')}
-                                      </span>
-                                    </>
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex items-center gap-2">
+                                        {tipo === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() ? (
+                                          <Badge variant="destructive" className="bg-red-600 text-white border-red-500/50">
+                                            VENCIDA — BLOQUEIO AUTOMÁTICO
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="outline" className={
+                                            doc.status_analise === 'aprovado' ? 'text-green-400 border-green-400/30' :
+                                            doc.status_analise === 'recusado' ? 'text-red-400 border-red-400/30' :
+                                            doc.status_analise === 'correcao_solicitada' ? 'text-amber-500 border-amber-500/30' :
+                                            'text-amber-400 border-amber-400/30'
+                                          }>
+                                            {doc.status_analise === 'correcao_solicitada' ? 'CORREÇÃO SOLICITADA' : doc.status_analise.toUpperCase()}
+                                          </Badge>
+                                        )}
+                                        <span className="text-[10px] text-gray-500 italic">
+                                          {new Date(doc.data_envio).toLocaleDateString('pt-BR')}
+                                        </span>
+                                      </div>
+                                      {tipo === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() && doc.status_analise === 'aprovado' && (
+                                        <div className="text-[9px] text-gray-500 italic">
+                                          Foto analisada anteriormente: APROVADA
+                                        </div>
+                                      )}
+                                    </div>
                                   ) : (
                                     <span className="text-xs text-gray-500 italic flex items-center gap-1">
                                       <XCircle className="h-3 w-3" /> Não enviado
