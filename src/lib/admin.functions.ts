@@ -120,7 +120,7 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       // A. Verificar Veículo
       const { data: veiculo, error: vError } = await supabaseAdmin
         .from("veiculos")
-        .select("id, status_aprovacao")
+        .select("id, status_aprovacao, ativo")
         .eq("motorista_id", data.motoristaId)
         .maybeSingle();
 
@@ -128,6 +128,9 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       if (!veiculo) throw new Error("Bloqueado: Nenhum veículo vinculado.");
       if (veiculo.status_aprovacao !== "aprovado") {
         throw new Error("Bloqueado: Veículo ainda não está aprovado.");
+      }
+      if (veiculo.ativo !== true) {
+        throw new Error("Bloqueado: Veículo não está ativo.");
       }
 
       // B. Verificar CNH
