@@ -4,7 +4,9 @@ import OnboardingForm from '@/components/motorista/OnboardingForm';
 import { resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { getSessionUser } from '@/lib/user.functions';
 import { getMotoristaStatusFeedback, getCnhCorrectionState } from '@/lib/motorista.functions';
+import CnhCorrectionForm from '@/components/motorista/CnhCorrectionForm';
 import { Loader2, User, Clock, AlertOctagon, ShieldAlert, AlertTriangle, Info, Calendar } from 'lucide-react';
+
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useServerFn } from '@tanstack/react-start';
@@ -51,12 +53,14 @@ function OnboardingMotorista() {
   const {
     data: cnhCorrection,
     isLoading: isCnhLoading,
-    isError: isCnhError
+    isError: isCnhError,
+    refetch: refetchCnhCorrection
   } = useQuery({
     queryKey: ['cnh-correction-state', user?.id],
     queryFn: () => getCnhCorrectionStateFn(),
     enabled: !!user && (user as any).motorista?.status_aprovacao === 'em_analise',
   });
+
 
   if (isUserLoading || !user) {
     return (
@@ -179,17 +183,15 @@ function OnboardingMotorista() {
                   </div>
                 </div>
 
-                <div className="bg-zuvvi-volt/5 border border-zuvvi-volt/10 rounded-xl p-4 flex gap-3 text-left">
-                  <Info className="w-5 h-5 text-zuvvi-volt shrink-0" />
-                  <div className="space-y-1">
-                    <p className="text-[11px] leading-tight text-white/80">
-                      Na próxima etapa você poderá informar os novos dados e enviar uma nova foto da CNH.
-                    </p>
-                    <p className="text-[10px] text-white/40">
-                      Seu veículo, Pix e demais documentos permanecem preservados.
-                    </p>
-                  </div>
-                </div>
+                <CnhCorrectionForm 
+                  cnhNumero={cnhCorrection.cnh_numero || ''}
+                  cnhCategoria={cnhCorrection.cnh_categoria || ''}
+                  cnhValidade={cnhCorrection.cnh_validade || ''}
+                  onSubmitted={async () => {
+                    await refetchCnhCorrection();
+                  }}
+                />
+
               </div>
             ) : (
               <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">
