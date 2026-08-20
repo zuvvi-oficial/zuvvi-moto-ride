@@ -708,6 +708,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_corrida_atomic: {
+        Args: { p_corrida_id: string; p_motorista_id: string }
+        Returns: undefined
+      }
       get_distinct_ufs: {
         Args: never
         Returns: {
