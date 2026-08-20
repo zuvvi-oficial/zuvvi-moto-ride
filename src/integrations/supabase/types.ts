@@ -719,6 +719,10 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      set_motorista_online_atomic: {
+        Args: { p_motorista_id: string }
+        Returns: string
+      }
       submit_motorista_for_analysis: {
         Args: { p_auth_user_id: string }
         Returns: Json
