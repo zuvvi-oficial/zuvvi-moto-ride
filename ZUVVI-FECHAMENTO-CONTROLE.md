@@ -337,12 +337,90 @@ Estes itens NÃO estão marcados como concluídos.
 **Próxima etapa oficial:**
 Sprint 2 — Mototaxista recebe corridas.
 
-SPRINT 2 AINDA NÃO INICIADO. Antes da primeira alteração do Sprint 2 é obrigatória:
-- nova auditoria GitHub;
-- nova auditoria Supabase;
-- leitura do Documento Mestre;
-- leitura do Plano de Fechamento;
-- leitura desta Base de Contra-Prova;
-- definição de novo baseline;
-- primeira microetapa isolada;
-- TRAVA MÁXIMA.
+## Reconciliação oficial do Sprint 2 — Baseline 20/08/2026
+
+### Auditoria
+- Microetapa 2.0-R — auditoria de reconciliação realizada.
+- Microcorreção 2.0-R-A — divergências da auditoria corrigidas.
+- Contra-prova independente GitHub/Supabase concluída.
+- baseline oficial atual: 6a6717e9d48b7b04988c879fe3a119bc4c697e86.
+
+### Funcionalidades tecnicamente existentes (SEM DECLARAR O SPRINT 2 CONCLUÍDO)
+- motorista online/offline;
+- GPS antes do aceite;
+- recebimento real de ofertas;
+- filtro por cidade;
+- filtro por elegibilidade operacional;
+- ordenação por proximidade;
+- recusa de corrida;
+- aceite de corrida;
+- aceite atômico;
+- proteção contra aceite concorrente;
+- proteção contra duas corridas ativas para o mesmo motorista;
+- recuperação/exibição de corrida ativa na Home Motorista;
+- Realtime de public.corridas;
+- passageiro detecta aceite;
+- passageiro é redirecionado para /acompanhamento;
+- handoff seguro de dados da corrida, motorista e veículo;
+- mapa do passageiro já existente.
+
+### MICROETAPAS COMPROVADAS POR MIGRATION
+- **20260820164016**: accept_corrida_atomic + índice único de corrida ativa.
+- **20260820175105**: set_motorista_online_atomic.
+- **20260820183150**: Microetapa 2.5 — Realtime de public.corridas.
+
+*Nota: Existe implementação posterior à 2.5 relacionada ao handoff do passageiro, porém ela ainda não possui fechamento documental oficial. A numeração 2.6-A NÃO é oficial.*
+
+### BLOQUEADOR CRÍTICO — GPS PÓS-ACEITE
+**GPS DURANTE CORRIDA ATIVA: NÃO FUNCIONA ATUALMENTE.**
+
+**Motivo comprovado:**
+1. `accept_corrida_atomic` grava `motoristas.is_disponivel = false` após o aceite;
+2. `home-motorista.tsx` mantém `watchPosition` somente enquanto `status.is_disponivel = true`;
+3. Quando `is_disponivel = false`, o frontend executa `stopGps()`;
+4. `updateLocalizacaoMotorista` também rejeita server-side o envio de GPS se `is_disponivel = false`.
+
+**Consequência:** O motorista deixa de transmitir localização após aceitar a corrida.
+
+### MAPAS E RASTREAMENTO
+- Mapa do passageiro: **IMPLEMENTADO**.
+- Rastreamento ao vivo do motorista pelo passageiro: **NÃO IMPLEMENTADO**.
+- Mapa operacional do motorista após aceite: **NÃO IMPLEMENTADO**.
+- Rota do motorista até o passageiro: **NÃO IMPLEMENTADA**.
+
+### ESTADOS POSTERIORES DA CORRIDA (NÃO FECHADOS)
+- `motorista_a_caminho`;
+- `motorista_chegou`;
+- início real da corrida;
+- `em_andamento`;
+- conclusão real da corrida.
+
+### DRIFT DE MIGRATIONS
+**STATUS: DRIFT DE HISTÓRICO DE MIGRATIONS PENDENTE DE RECONCILIAÇÃO.**
+
+O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo, que não possuem arquivos correspondentes na branch `main`:
+- `20260819113539` — fix_usuarios_auth_user_id_unique_constraint
+- `20260819114735` — complete_tipo_chave_pix_migration
+
+**REGRA:** Nenhuma nova alteração de banco deverá ser executada até que esse drift seja tratado em microetapa própria.
+
+---
+
+## Status final consolidado
+
+**SPRINT 0 — ✅ CONCLUÍDO**
+
+**SPRINT 1 — ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA**
+
+**SPRINT 2 — ⚠️ EM ANDAMENTO / RECONCILIADO**
+
+**Última microetapa numerada tecnicamente comprovada:** 2.5
+
+**Bloqueadores atuais:**
+- drift do histórico de migrations;
+- GPS pós-aceite (rastreamento vivo interrompido);
+- ausência de mapa operacional do motorista;
+- estados posteriores da corrida ainda não fechados.
+
+**Próxima ação obrigatória:** reconciliar o drift de migrations em microetapa isolada antes de qualquer nova alteração de banco.
+
