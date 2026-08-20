@@ -25,13 +25,19 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
         throw new Error("Perfil de motorista não encontrado.");
       }
       
-      const { error: updateError } = await supabaseAdmin
+      const { data: motorista, error: updateError } = await supabaseAdmin
         .from("motoristas")
         .update({ is_disponivel: false })
-        .eq("id", usuario.id);
+        .eq("id", usuario.id)
+        .select("id, is_disponivel")
+        .maybeSingle();
 
       if (updateError) {
         throw new Error("Erro ao salvar status offline: " + updateError.message);
+      }
+
+      if (!motorista) {
+        throw new Error("Perfil de motorista não encontrado.");
       }
       
       return { success: true, is_disponivel: false };
