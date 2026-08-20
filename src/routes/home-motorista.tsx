@@ -65,13 +65,16 @@ function HomeMotorista() {
 
   const isOnline = !!status?.is_disponivel;
 
-  const { data: ofertas = [] } = useQuery({
+  const { data: rawOfertas = [] } = useQuery({
     queryKey: ['motorista-ofertas'],
     queryFn: () => getOfertasFn(),
     enabled: isOnline && isGpsActive,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
+
+  // Lista visual segura: só exibe se ONLINE e GPS ativo
+  const ofertas = (isOnline && isGpsActive) ? rawOfertas : [];
 
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
