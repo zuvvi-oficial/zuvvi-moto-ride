@@ -243,18 +243,78 @@ function HomeMotorista() {
           </div>
         </div>
 
-        <button 
-          onClick={handleToggleOnline}
-          disabled={isToggling}
-          className={`flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all active:scale-95 ${isOnline ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo' : 'bg-white/5 border-white/10 text-white'}`}
-        >
-          {isToggling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
-          <span className="text-[10px] font-black uppercase tracking-widest">{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
-        </button>
+        {activeRide ? (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo">
+            <Bike className="w-4 h-4" />
+            <span className="text-[10px] font-black uppercase tracking-widest">EM CORRIDA</span>
+          </div>
+        ) : (
+          <button 
+            onClick={handleToggleOnline}
+            disabled={isToggling}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all active:scale-95 ${isOnline ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo' : 'bg-white/5 border-white/10 text-white'}`}
+          >
+            {isToggling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+            <span className="text-[10px] font-black uppercase tracking-widest">{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+          </button>
+        )}
       </header>
 
       <main className="p-6 max-w-md mx-auto">
-        {!isOnline ? (
+        {activeRide ? (
+          <div className="bg-white/5 border border-zuvvi-volt/30 rounded-[2rem] p-6 space-y-6 animate-in fade-in duration-500">
+            <div className="flex items-center gap-2 text-zuvvi-volt">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Corrida aceita</span>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center gap-1 mt-1">
+                <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
+                <div className="w-0.5 h-8 bg-white/10" />
+                <MapPin className="w-4 h-4 text-white/40" />
+              </div>
+              <div className="flex-1 space-y-4">
+                <div className="space-y-0.5">
+                  <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">Origem</p>
+                  <p className="text-sm font-medium">{activeRide.origem_nome || 'Local de embarque'}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">Destino</p>
+                  <p className="text-sm font-medium">{activeRide.destino_nome || 'Local de destino'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                <CircleDollarSign className="w-4 h-4 text-zuvvi-volt" />
+                <div>
+                  <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">Valor</p>
+                  <p className="text-xs font-bold text-zuvvi-volt">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(activeRide.valor_estimado))}
+                  </p>
+                </div>
+              </div>
+              <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                <Wallet className="w-4 h-4 text-white/60" />
+                <div>
+                  <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">Pagamento</p>
+                  <p className="text-xs font-bold uppercase tracking-tight truncate">{activeRide.forma_pagamento}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-4 text-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt">
+                {activeRide.status === 'aceita' && 'MOTORISTA A CAMINHO DO EMBARQUE'}
+                {activeRide.status === 'motorista_a_caminho' && 'A CAMINHO DO EMBARQUE'}
+                {activeRide.status === 'motorista_chegou' && 'NO LOCAL DE EMBARQUE'}
+                {activeRide.status === 'em_andamento' && 'CORRIDA EM ANDAMENTO'}
+              </p>
+            </div>
+          </div>
+        ) : !isOnline ? (
           <div className="py-20 text-center space-y-4 animate-in fade-in duration-700">
             <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto border border-white/5">
               <Bike className="w-10 h-10 text-white/20" />
