@@ -111,6 +111,11 @@ function AdminMotoristas() {
       toast.success(`Motorista ${actionType === 'aprovado' ? 'aprovado' : 'atualizado'} com sucesso!`);
       queryClient.invalidateQueries({ queryKey: ['admin-motoristas'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      
+      if (viewingMotoristaId && viewingMotoristaId === selectedMotorista.motoristas.id) {
+        queryClient.invalidateQueries({ queryKey: ['admin-motorista-detalhe', viewingMotoristaId] });
+      }
+
       setSelectedMotorista(null);
       setJustificativa('');
       setActionType(null);
