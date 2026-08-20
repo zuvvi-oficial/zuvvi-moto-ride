@@ -38,6 +38,16 @@ import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink, AlertTriangle, ChevronRight, Maximize2 } from 'lucide-react';
 
+const getHojeBR = () => {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return formatter.format(now);
+};
 
 const motoristasOptions = (filters: { status?: string; busca?: string }) => queryOptions({
   queryKey: ['admin-motoristas', filters],
@@ -472,10 +482,19 @@ function AdminMotoristas() {
                     </div>
                     <div>
                       <div className="text-gray-400">Validade</div>
-                      <div className="font-medium flex items-center gap-2">
-                        {detalhe.motorista.cnh_validade ? new Date(detalhe.motorista.cnh_validade).toLocaleDateString('pt-BR') : "Não informado"}
-                        {detalhe.motorista.cnh_validade && new Date(detalhe.motorista.cnh_validade) < new Date() && (
-                          <Badge variant="destructive" className="h-5 text-[10px]">VENCIDA</Badge>
+                      <div className="font-medium flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          {detalhe.motorista.cnh_validade ? new Date(detalhe.motorista.cnh_validade + 'T12:00:00').toLocaleDateString('pt-BR') : "Não informado"}
+                          {detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() && (
+                            <Badge variant="destructive" className="h-5 text-[10px] bg-red-600">VENCIDA</Badge>
+                          )}
+                        </div>
+                        {detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() && (
+                          <div className="text-[10px] text-red-500 font-bold uppercase flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            BLOQUEIO AUTOMÁTICO
+                            <span className="normal-case font-normal text-gray-400 ml-1">— Motorista impedido de operar até regularizar a CNH.</span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -551,28 +570,48 @@ function AdminMotoristas() {
                       const docsPendentes = docsEnviados.filter((d: any) => d.status_analise === 'pendente');
                       const docsRecusados = docsEnviados.filter((d: any) => d.status_analise === 'recusado');
                       const docsCorrecao = docsEnviados.filter((d: any) => d.status_analise === 'correcao_solicitada');
-                      const cnhVencida = detalhe.motorista.cnh_validade && new Date(detalhe.motorista.cnh_validade) < new Date();
+                      const hoje = getHojeBR();
+                      const cnhVencida = detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < hoje;
                       
                       const alertas = [];
+                      const alertasCriticos = [];
+
+                      if (cnhVencida) alertasCriticos.push("CNH vencida — bloqueio operacional automático.");
+                      
                       if (docsEnviados.length < tiposObrigatorios.length) alertas.push(`Faltam ${tiposObrigatorios.length - docsEnviados.length} documentos obrigatórios.`);
                       if (docsPendentes.length > 0) alertas.push(`${docsPendentes.length} documento(s) aguardando análise.`);
                       if (docsRecusados.length > 0) alertas.push(`${docsRecusados.length} documento(s) recusado(s).`);
                       if (docsCorrecao.length > 0) alertas.push(`${docsCorrecao.length} documento(s) aguardando correção.`);
-                      if (cnhVencida) alertas.push("CNH do motorista está vencida.");
                       if (!detalhe.veiculo) alertas.push("Nenhum veículo vinculado ao motorista.");
                       else if (detalhe.veiculo.status_aprovacao !== 'aprovado') alertas.push("O veículo vinculado ainda não está aprovado.");
 
-                      if (alertas.length === 0) return null;
+                      if (alertas.length === 0 && alertasCriticos.length === 0) return null;
 
                       return (
-                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-2">
-                          <div className="flex items-center gap-2 text-amber-500 font-bold text-sm uppercase tracking-wider">
-                            <AlertTriangle className="h-4 w-4" />
-                            Atenção para Aprovação Final
-                          </div>
-                          <ul className="text-xs text-amber-200/70 space-y-1 list-disc list-inside">
-                            {alertas.map((a, i) => <li key={i}>{a}</li>)}
-                          </ul>
+                        <div className="space-y-3">
+                          {alertasCriticos.length > 0 && (
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 space-y-2">
+                              <div className="flex items-center gap-2 text-red-500 font-bold text-sm uppercase tracking-wider">
+                                <AlertTriangle className="h-4 w-4" />
+                                Bloqueio Operacional
+                              </div>
+                              <ul className="text-xs text-red-200/70 space-y-1 list-disc list-inside">
+                                {alertasCriticos.map((a, i) => <li key={i}>{a}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {alertas.length > 0 && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-2">
+                              <div className="flex items-center gap-2 text-amber-500 font-bold text-sm uppercase tracking-wider">
+                                <AlertTriangle className="h-4 w-4" />
+                                Atenção para Aprovação Final
+                              </div>
+                              <ul className="text-xs text-amber-200/70 space-y-1 list-disc list-inside">
+                                {alertas.map((a, i) => <li key={i}>{a}</li>)}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
@@ -607,19 +646,32 @@ function AdminMotoristas() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {doc ? (
-                                    <>
-                                      <Badge variant="outline" className={
-                                        doc.status_analise === 'aprovado' ? 'text-green-400 border-green-400/30' :
-                                        doc.status_analise === 'recusado' ? 'text-red-400 border-red-400/30' :
-                                        doc.status_analise === 'correcao_solicitada' ? 'text-amber-500 border-amber-500/30' :
-                                        'text-amber-400 border-amber-400/30'
-                                      }>
-                                        {doc.status_analise === 'correcao_solicitada' ? 'CORREÇÃO SOLICITADA' : doc.status_analise.toUpperCase()}
-                                      </Badge>
-                                      <span className="text-[10px] text-gray-500 italic">
-                                        {new Date(doc.data_envio).toLocaleDateString('pt-BR')}
-                                      </span>
-                                    </>
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex items-center gap-2">
+                                        {tipo === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() ? (
+                                          <Badge variant="destructive" className="bg-red-600 text-white border-red-500/50">
+                                            VENCIDA — BLOQUEIO AUTOMÁTICO
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="outline" className={
+                                            doc.status_analise === 'aprovado' ? 'text-green-400 border-green-400/30' :
+                                            doc.status_analise === 'recusado' ? 'text-red-400 border-red-400/30' :
+                                            doc.status_analise === 'correcao_solicitada' ? 'text-amber-500 border-amber-500/30' :
+                                            'text-amber-400 border-amber-400/30'
+                                          }>
+                                            {doc.status_analise === 'correcao_solicitada' ? 'CORREÇÃO SOLICITADA' : doc.status_analise.toUpperCase()}
+                                          </Badge>
+                                        )}
+                                        <span className="text-[10px] text-gray-500 italic">
+                                          {new Date(doc.data_envio).toLocaleDateString('pt-BR')}
+                                        </span>
+                                      </div>
+                                      {tipo === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() && doc.status_analise === 'aprovado' && (
+                                        <div className="text-[9px] text-gray-500 italic">
+                                          Foto analisada anteriormente: APROVADA
+                                        </div>
+                                      )}
+                                    </div>
                                   ) : (
                                     <span className="text-xs text-gray-500 italic flex items-center gap-1">
                                       <XCircle className="h-3 w-3" /> Não enviado
@@ -646,12 +698,13 @@ function AdminMotoristas() {
                                     )}
                                   </Button>
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="text-gray-400 hover:text-white"
+                                    className="border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-xs"
                                     onClick={() => setReviewingDoc(doc)}
                                   >
-                                    <ChevronRight className="h-4 w-4" />
+                                    Revisar
+                                    <ChevronRight className="h-4 w-4 ml-1" />
                                   </Button>
                                 </div>
                               )}
@@ -678,13 +731,21 @@ function AdminMotoristas() {
                                   />
                                 </div>
                                 <div className="flex gap-2">
-                                  <Button 
-                                    size="sm" 
-                                    className="flex-1 bg-green-600 hover:bg-green-700 h-8 text-xs"
-                                    onClick={() => handleDocAction('aprovado')}
-                                  >
-                                    Aprovar
-                                  </Button>
+                                  <div className="flex-1 flex flex-col gap-1">
+                                    <Button 
+                                      size="sm" 
+                                      className="w-full bg-green-600 hover:bg-green-700 h-8 text-xs"
+                                      disabled={!!(reviewingDoc.tipo_documento === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR())}
+                                      onClick={() => handleDocAction('aprovado')}
+                                    >
+                                      Aprovar
+                                    </Button>
+                                    {reviewingDoc.tipo_documento === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() && (
+                                      <span className="text-[9px] text-red-400 text-center">
+                                        Atualização da CNH necessária antes da aprovação.
+                                      </span>
+                                    )}
+                                  </div>
                                    <Button 
                                      size="sm" 
                                      variant="destructive" 
