@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Leitura pública do link de acompanhamento (somente leitura, se" ON public.viagens_compartilhadas;
