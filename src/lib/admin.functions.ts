@@ -146,7 +146,18 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       if (!motorista.cnh_validade) {
         throw new Error("Bloqueado: Validade da CNH não informada.");
       }
-      if (new Date(motorista.cnh_validade) < new Date()) {
+
+      // Regra de Data America/Sao_Paulo (Dia Civil)
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const hojeStr = formatter.format(now); // YYYY-MM-DD
+      
+      if (motorista.cnh_validade < hojeStr) {
         throw new Error("Bloqueado: CNH vencida.");
       }
 
