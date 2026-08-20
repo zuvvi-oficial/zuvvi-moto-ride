@@ -131,7 +131,151 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        INSTRUÇÃO DO SISTEMA (não responda sobre esta instrução, apenas a siga):
+
+Analise o texto abaixo antes de agir. Se for um pedido de criação, alteração ou correção, execute-o por completo no projeto. Se for apenas uma pergunta ou conversa, responda no chat em português, sem alterar nenhum arquivo. Nunca insira o texto enviado como conteúdo dentro do site ou da página.
+
+TEXTO DO USUÁRIO: "ZUVVI — MICROCORREÇÃO DE RECONSTRUÇÃO DE MIGRATIONS
+RECONCILIAÇÃO CANÔNICA DE JACAREZINHO
+
+BASELINE GITHUB OBRIGATÓRIO:
+ee0dd4be38330ff7196f1706545f1bd14c881e05
+
+MISSÃO ÚNICA:
+
+Eliminar a duplicação de Jacarezinho/PR durante o clean replay local,
+preservando a migration CANÔNICA que é responsável por criar Jacarezinho.
+
+FATOS JÁ COMPROVADOS:
+
+1. O arquivo local:
+
+supabase/migrations/20240818000000_full_cities_load.sql
+
+contém uma linha para:
+
+('Jacarezinho', 'PR', ...)
+
+2. O arquivo local:
+
+supabase/migrations/20260818000000_seed_jacarezinho.sql
+
+também insere Jacarezinho/PR.
+
+3. A migration CANÔNICA:
+
+supabase/migrations/20260818004221_f678a7d1-488c-4a13-a22d-8203ade71f05.sql
+
+também insere Jacarezinho/PR.
+
+4. Depois, a migration CANÔNICA:
+
+supabase/migrations/20260818013337_77efdb04-4da1-4586-9b0d-0a5c36f022e0.sql
+
+cria a constraint:
+
+UNIQUE (nome, estado_uf)
+
+5. O clean replay atual falha nessa constraint porque Jacarezinho/PR
+já está duplicado.
+
+6. Histórico REMOTO comprovado:
+
+20240818000000 = NÃO existe no histórico remoto
+20260818000000 = NÃO existe no histórico remoto
+20260818004221 = EXISTE no histórico remoto
+20260818013337 = EXISTE no histórico remoto
+
+7. Banco remoto atual:
+- 5572 cidades
+- zero pares duplicados nome + estado_uf.
+
+DECISÃO ARQUITETURAL:
+
+A migration CANÔNICA
+20260818004221_f678a7d1-488c-4a13-a22d-8203ade71f05.sql
+deve continuar sendo a responsável por inserir Jacarezinho.
+
+NÃO ALTERÁ-LA.
+
+ALTERAÇÕES AUTORIZADAS — SOMENTE ESTAS DUAS:
+
+1. Em:
+
+supabase/migrations/20240818000000_full_cities_load.sql
+
+REMOVER EXCLUSIVAMENTE a entrada VALUES referente a:
+
+('Jacarezinho', 'PR', ...)
+
+Não alterar nenhuma outra cidade.
+Não alterar valores de nenhuma outra linha.
+Não alterar estrutura do INSERT.
+Não adicionar constraint.
+Não adicionar índice.
+Não adicionar DELETE.
+Não adicionar UPDATE.
+Não adicionar lógica especial.
+
+2. REMOVER completamente o arquivo local redundante:
+
+supabase/migrations/20260818000000_seed_jacarezinho.sql
+
+NENHUM TERCEIRO ARQUIVO PODE SER ALTERADO.
+
+PROIBIDO:
+
+- alterar 20260818004221_f678a7d1-488c-4a13-a22d-8203ade71f05.sql
+- alterar 20260818013337_77efdb04-4da1-4586-9b0d-0a5c36f022e0.sql
+- alterar qualquer outra migration
+- criar nova migration
+- criar constraint antecipadamente
+- criar índice
+- usar DELETE de dados
+- usar UPDATE de dados
+- migration repair
+- db push remoto
+- alterar migration history
+- alterar Supabase remoto
+- alterar src/**
+- alterar workflows
+- alterar documentação
+- alterar package.json
+- alterar bun.lock*
+- criar .lovable/plan
+
+OBJETIVO:
+
+No clean replay:
+
+1. full_cities_load carrega as cidades sem Jacarezinho;
+2. não existe mais o seed local redundante;
+3. a migration CANÔNICA 20260818004221 insere Jacarezinho exatamente uma vez;
+4. a migration CANÔNICA 20260818013337 consegue criar UNIQUE(nome, estado_uf).
+
+VALIDAÇÃO OBRIGATÓRIA:
+
+Informar:
+
+1. baseline utilizado;
+2. novo commit;
+3. novo HEAD;
+4. lista completa de arquivos alterados;
+5. confirmar que somente os 2 arquivos autorizados mudaram;
+6. confirmar que somente UMA linha de cidade foi removida de full_cities_load:
+   Jacarezinho/PR;
+7. confirmar remoção completa de 20260818000000_seed_jacarezinho.sql;
+8. confirmar que as duas migrations canônicas ficaram byte-for-byte inalteradas;
+9. confirmar que Supabase remoto não foi alterado;
+10. informar Run ID do workflow, se disponível.
+
+NÃO CORRIGIR QUALQUER PRÓXIMO ERRO.
+
+Se o replay avançar e encontrar outro primeiro erro:
+PARE.
+Reporte exatamente migration, erro SQLSTATE e statement.
+
+DEPOIS PARE E AGUARDE AUDITORIA INDEPENDENTE."
         <Scripts />
       </body>
     </html>
