@@ -47,7 +47,7 @@ function AcompanhamentoCorrida() {
         }
       } catch (err: any) {
         console.error(err);
-        toast.error(err.message || "Não foi possível carregar os dados do acompanhamento.");
+        toast.error("Não foi possível carregar os dados do acompanhamento.");
         navigate({ to: '/' });
       } finally {
         setIsLoading(false);
@@ -90,48 +90,50 @@ function AcompanhamentoCorrida() {
         <div className="w-12" />
       </div>
 
-      {/* Card do Motorista Real */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 z-10 pointer-events-none">
-        <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl pointer-events-auto animate-rise space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
-                <User className="w-8 h-8 text-zuvvi-volt" />
-              </div>
-              <div>
-                <h3 className="text-white font-bold">{motorista?.nome || 'Motorista Zuvvi'}</h3>
-                <div className="flex items-center gap-1">
-                  <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
-                  <span className="text-xs text-zuvvi-volt font-bold">
-                    {motorista?.nota_media ? motorista.nota_media.toFixed(1) : 'Novo na Zuvvi'}
-                  </span>
+      {/* Card do Motorista Real - Só exibe se houver motorista e veículo válidos */}
+      {motorista && veiculo && (
+        <div className="absolute bottom-0 left-0 right-0 p-6 z-10 pointer-events-none">
+          <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl pointer-events-auto animate-rise space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
+                  <User className="w-8 h-8 text-zuvvi-volt" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold">{motorista.nome}</h3>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
+                    <span className="text-xs text-zuvvi-volt font-bold">
+                      {motorista.nota_media !== null ? motorista.nota_media.toFixed(1) : 'Novo na Zuvvi'}
+                    </span>
+                  </div>
                 </div>
               </div>
+              <div className="text-right">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Placa</p>
+                <p className="text-sm font-black text-white">{veiculo.placa}</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Placa</p>
-              <p className="text-sm font-black text-white">{veiculo?.placa || '---'}</p>
-            </div>
-          </div>
 
-          <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-zuvvi-volt/10 flex items-center justify-center">
-                <Bike className="w-5 h-5 text-zuvvi-volt" />
+            <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-zuvvi-volt/10 flex items-center justify-center">
+                  <Bike className="w-5 h-5 text-zuvvi-volt" />
+                </div>
+                <div>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Veículo</p>
+                  <p className="text-xs font-bold text-white">
+                    {veiculo.marca} {veiculo.modelo}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Veículo</p>
-                <p className="text-xs font-bold text-white">
-                  {veiculo ? `${veiculo.marca} ${veiculo.modelo}` : 'Moto Cadastrada'}
-                </p>
+              <div className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl">
+                 <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">Em breve: Chat</p>
               </div>
-            </div>
-            <div className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl">
-               <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">Em breve: Chat</p>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
     </div>
   );
