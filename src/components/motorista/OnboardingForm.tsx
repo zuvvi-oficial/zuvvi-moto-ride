@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getUploadUrl, registrarDocumento, salvarDadosCNH, criarVeiculo, enviarParaAnalise } from "@/lib/motorista.functions";
+import { getUploadUrl, registrarDocumento, salvarDadosCNH, criarVeiculo, enviarParaAnalise, getOnboardingData } from "@/lib/motorista.functions";
 import { toast } from "sonner";
 import { Bike, Loader2, CheckCircle2, FileText, CreditCard, Upload, AlertCircle, FileText as DocIcon, Camera } from "lucide-react";
 import { 
@@ -12,10 +12,11 @@ import {
 } from '@/components/ui/select';
 
 type UploadState = {
-  status: 'idle' | 'uploading' | 'success' | 'error';
+  status: 'idle' | 'uploading' | 'success' | 'error' | 'aprovado' | 'pendente' | 'recusado';
   fileName?: string;
   previewUrl?: string | undefined;
   errorMessage?: string | undefined;
+  motivo_recusa?: string | null;
 };
 
 export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => void }) {
@@ -29,6 +30,11 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
   const [pixType, setPixType] = useState<'cpf' | 'telefone' | 'email' | 'aleatoria' | null>(null);
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+  
+  const hasHydrated = useRef(false);
+  const veiculoDirty = useRef(false);
+
 
   const meses = [
     { value: '01', label: 'Janeiro' },
