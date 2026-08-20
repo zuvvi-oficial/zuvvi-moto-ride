@@ -312,8 +312,8 @@ export const getCorrida = createServerFn({ method: "GET" })
     const isMotorista = motoristaAuthId && authUserId === motoristaAuthId;
 
     if (!isPassageiro && !isMotorista) {
-      // Erro genérico por segurança
-      throw new Error("Acesso negado: você não tem permissão para visualizar esta corrida.");
+      // Erro genérico para não confirmar a existência da corrida a terceiros
+      throw new Error("Corrida não encontrada");
     }
 
     // 3. Remover dados de join usados apenas para validação antes de retornar
