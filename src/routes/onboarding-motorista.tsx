@@ -32,18 +32,22 @@ function OnboardingMotorista() {
   const getSessionUserFn = useServerFn(getSessionUser);
   const getStatusFeedbackFn = useServerFn(getMotoristaStatusFeedback);
   
-  const { data: user, isLoading, refetch } = useQuery({
+  const { data: user, isLoading: isUserLoading } = useQuery({
     queryKey: ['session-user'],
     queryFn: () => getSessionUserFn(),
   });
 
-  const { data: feedback } = useQuery({
-    queryKey: ['motorista-status-feedback'],
+  const { 
+    data: feedback, 
+    isLoading: isFeedbackLoading, 
+    isError: isFeedbackError 
+  } = useQuery({
+    queryKey: ['motorista-status-feedback', user?.id],
     queryFn: () => getStatusFeedbackFn(),
     enabled: !!user,
   });
 
-  if (isLoading || !user) {
+  if (isUserLoading || !user) {
     return (
       <div className="min-h-screen bg-zuvvi-indigo flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-zuvvi-volt animate-spin" />
@@ -104,12 +108,30 @@ function OnboardingMotorista() {
             <p className="text-sm text-muted-foreground">
               Seu cadastro não foi aprovado.
             </p>
-            {feedback?.justificativa && (
+            
+            {isFeedbackLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="w-5 h-5 text-zuvvi-volt animate-spin" />
+              </div>
+            ) : isFeedbackError ? (
+              <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-center">
+                <p className="text-xs text-white/80 mb-3">Não foi possível carregar os detalhes do seu cadastro.</p>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-8 text-[10px] uppercase font-bold"
+                  onClick={() => window.location.reload()}
+                >
+                  Tentar novamente
+                </Button>
+              </div>
+            ) : feedback?.justificativa && (
               <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-left">
                 <p className="text-[10px] text-red-500 uppercase font-black tracking-widest mb-1">Motivo</p>
                 <p className="text-sm text-white/80">{feedback.justificativa}</p>
               </div>
             )}
+            
             <p className="text-xs text-white/40 pt-2">
               Revise a informação apresentada e aguarde orientação da equipe Zuvvi.
             </p>
@@ -123,12 +145,30 @@ function OnboardingMotorista() {
             <p className="text-sm text-muted-foreground">
               Seu acesso como mototaxista está temporariamente suspenso.
             </p>
-            {feedback?.justificativa && (
+            
+            {isFeedbackLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="w-5 h-5 text-zuvvi-volt animate-spin" />
+              </div>
+            ) : isFeedbackError ? (
+              <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4 text-center">
+                <p className="text-xs text-white/80 mb-3">Não foi possível carregar os detalhes do seu cadastro.</p>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-8 text-[10px] uppercase font-bold"
+                  onClick={() => window.location.reload()}
+                >
+                  Tentar novamente
+                </Button>
+              </div>
+            ) : feedback?.justificativa && (
               <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4 text-left">
                 <p className="text-[10px] text-amber-500 uppercase font-black tracking-widest mb-1">Motivo</p>
                 <p className="text-sm text-white/80">{feedback.justificativa}</p>
               </div>
             )}
+
             <p className="text-xs text-white/40 pt-2">
               Entre em contato com o suporte Zuvvi para mais informações.
             </p>
@@ -143,7 +183,7 @@ function OnboardingMotorista() {
                 Envie seus documentos para começar a lucrar com a Zuvvi.
               </p>
             </div>
-            <OnboardingForm onSubmitted={() => refetch()} />
+            <OnboardingForm onSubmitted={() => window.location.reload()} />
           </div>
         ) : (
           <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">
