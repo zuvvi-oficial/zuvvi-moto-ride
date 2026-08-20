@@ -2,8 +2,8 @@
 
 **Projeto:** Zuvvi  
 **Processo:** Fechamento controlado  
-**Etapa atual:** Sprint 0 — Organização, segurança e estabilização  
-**Último commit de referência:** a21492eef00a5640f3c286a5c61da6ef057e9dd6
+**Etapa atual:** Sprint 0 — Organização, segurança e estabilização — ✅ CONCLUÍDO  
+**Último commit de referência:** 0290a6d62dd349789cb60145df447d3650aaeda5
 
 ## Regras obrigatórias
 1. Uma microetapa por vez.
@@ -57,6 +57,16 @@
   - Passageiro solicita → Mototaxista recebe → Mototaxista aceita → acompanhamento/mapa
 - **Observação:** A regressão visual da 0.6 deverá ser executada obrigatoriamente quando o fluxo de aceite do Mototaxista estiver disponível.
 
+### 0.8 — Fechamento de leitura pública prematura — ✅ FECHADA
+- removida a policy de SELECT público direto de public.viagens_compartilhadas;
+- migration aplicada: 20260820015148_58d2469a-32bb-4691-a7d1-65942e051ae8.sql;
+- RLS permaneceu ativo;
+- policy de participantes autorizados foi preservada;
+- tabela permaneceu com 0 registros;
+- nenhuma funcionalidade de compartilhamento foi criada;
+- invasão documental ocorrida durante a execução foi revertida pela Microcorreção 0.8-A;
+- auditoria independente final aprovada.
+
 ## Pendências conhecidas — NÃO executar
 *Registradas somente como pendências, sem correção:*
 - Proteção contra senhas vazadas depende de avaliação/plano do Supabase;
@@ -69,7 +79,8 @@
 - Piloto real ainda não autorizado.
 
 ## Status
-**SPRINT 0 EM ANDAMENTO**
+**SPRINT 0 CONCLUÍDO**
 
-**Próxima microetapa:**
-A definir após auditoria técnica de encerramento do Sprint 0.
+**Próxima etapa oficial:**
+Sprint 1 — Mototaxista aprovado
+“Sprint 1 ainda não iniciado. Exige auditoria técnica antes da primeira alteração.”
