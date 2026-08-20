@@ -100,8 +100,82 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
   const salvarCNHFn = useServerFn(salvarDadosCNH);
   const criarVeiculoFn = useServerFn(criarVeiculo);
   const enviarAnaliseFn = useServerFn(enviarParaAnalise);
+  const getOnboardingDataFn = useServerFn(getOnboardingData);
+
+  // Hidratação de dados existentes
+  useEffect(() => {
+    async function loadInitialData() {
+      if (hasHydrated.current) return;
+      
+      try {
+        const data = await getOnboardingDataFn();
+        
+        if (data.motorista) {
+          const { cnh_numero, cnh_categoria, cnh_validade, chave_pix, tipo_chave_pix } = data.motorista;
+          
+          if (cnh_numero) setCnhData(prev => ({ ...prev, numero: cnh_numero }));
+          if (cnh_categoria) setCnhData(prev => ({ ...prev, categoria: cnh_categoria }));
+          
+          if (cnh_validade) {
+            // Formato YYYY-MM-DD - separar sem timezone
+            const parts = cnh_validade.split('-');
+            if (parts.length === 3) {
+              setValidadeYear(parts[0]);
+              setValidadeMonth(parts[1]);
+              setValidadeDay(parseInt(parts[2]).toString());
+            }
+          }
+          
+          if (chave_pix) setPix(chave_pix);
+          if (tipo_chave_pix) setPixType(tipo_chave_pix as any);
+        }
+
+        if (data.veiculo) {
+          setVeiculoData({
+            placa: data.veiculo.placa,
+            marca: data.veiculo.marca,
+            modelo: data.veiculo.modelo,
+            ano: data.veiculo.ano.toString(),
+            cor: data.veiculo.cor
+          });
+          if (data.veiculo.status_aprovacao === 'aprovado') {
+             setVeiculoStatus('success');
+          } else if (data.veiculo.status_aprovacao === 'em_preenchimento' && data.veiculo.placa) {
+             // Considerar sucesso visual se já existe no banco
+             setVeiculoStatus('success');
+          }
+          veiculoDirty.current = false;
+        }
+
+        if (data.documentos && data.documentos.length > 0) {
+          const docsMap: Record<string, UploadState> = {};
+          data.documentos.forEach((doc: any) => {
+            let status: UploadState['status'] = 'idle';
+            if (doc.status_analise === 'aprovado') status = 'success';
+            else if (doc.status_analise === 'pendente') status = 'success'; // Tratado como enviado
+            else if (doc.status_analise === 'recusado') status = 'recusado';
+            
+            docsMap[doc.tipo_documento] = {
+              status,
+              motivo_recusa: doc.motivo_recusa
+            };
+          });
+          setUploads(docsMap);
+        }
+
+        hasHydrated.current = true;
+      } catch (error) {
+        console.error("Erro ao carregar dados de onboarding:", error);
+      } finally {
+        setIsLoadingInitialData(false);
+      }
+    }
+    
+    loadInitialData();
+  }, []);
 
   const handleFileUpload = async (tipo: string, file: File) => {
+
     // 1. Iniciar estado visual "uploading" e gerar preview local
     const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
     
@@ -153,14 +227,16 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
     const isUploading = state.status === 'uploading';
     const isSuccess = state.status === 'success';
     const isError = state.status === 'error';
+    const isRecusado = state.status === 'recusado';
 
     return (
       <div className="space-y-2">
         <div className={`relative flex items-center justify-between p-4 bg-white/5 rounded-2xl border transition-all ${
           isSuccess ? 'border-zuvvi-volt bg-zuvvi-volt/5' : 
-          isError ? 'border-red-500/50 bg-red-500/5' : 
+          isError || isRecusado ? 'border-red-500/50 bg-red-500/5' : 
           'border-white/10 hover:border-white/20'
         }`}>
+
           <div className="flex items-center gap-3">
             {/* Preview ou Ícone */}
             <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -170,8 +246,9 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                 <DocIcon className="w-5 h-5 text-zuvvi-volt" />
               ) : isUploading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-zuvvi-volt" />
-              ) : isError ? (
+              ) : isError || isRecusado ? (
                 <AlertCircle className="w-5 h-5 text-red-500" />
+
               ) : (
                 <Upload className="w-5 h-5 text-white/20" />
               )}
@@ -267,12 +344,29 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
             {state.errorMessage || "Falha ao enviar, tente novamente"}
           </p>
         )}
+        
+        {isRecusado && (
+          <p className="text-[10px] text-red-500 ml-1 flex flex-col gap-0.5">
+            <span className="flex items-center gap-1 font-bold uppercase">
+              <AlertCircle className="w-3 h-3" />
+              Documento recusado. Envie uma nova versão.
+            </span>
+            {state.motivo_recusa && (
+              <span className="text-[9px] opacity-70 italic ml-4">
+                Motivo: {state.motivo_recusa}
+              </span>
+            )}
+          </p>
+        )}
       </div>
     );
   };
 
+
   const handleSaveVeiculo = async (data: typeof veiculoData) => {
+    if (!veiculoDirty.current) return;
     if (!data.placa || !data.marca || !data.modelo || !data.ano || !data.cor) return;
+
     
     setVeiculoStatus('saving');
     try {
@@ -281,7 +375,9 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         ano: parseInt(data.ano) 
       } });
       setVeiculoStatus('success');
+      veiculoDirty.current = false;
       toast.success("Veículo salvo com sucesso!");
+
     } catch (e: any) {
       console.error("Erro ao salvar veículo:", e);
       setVeiculoStatus('error');
@@ -455,8 +551,10 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
               if (val.length > 3) {
                 val = val.slice(0, 3) + "-" + val.slice(3, 7);
               }
+              veiculoDirty.current = true;
               setVeiculoData({...veiculoData, placa: val});
             }}
+
             onBlur={() => handleSaveVeiculo(veiculoData)}
           />
           <input 
@@ -464,7 +562,11 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
             type="number"
             className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
             value={veiculoData.ano}
-            onChange={e => setVeiculoData({...veiculoData, ano: e.target.value})}
+            onChange={e => {
+              veiculoDirty.current = true;
+              setVeiculoData({...veiculoData, ano: e.target.value});
+            }}
+
             onBlur={() => handleSaveVeiculo(veiculoData)}
           />
         </div>
@@ -472,21 +574,33 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           placeholder="Marca (ex: Honda)" 
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.marca}
-          onChange={e => setVeiculoData({...veiculoData, marca: e.target.value.toUpperCase()})}
+          onChange={e => {
+            veiculoDirty.current = true;
+            setVeiculoData({...veiculoData, marca: e.target.value.toUpperCase()});
+          }}
+
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
         <input 
           placeholder="Modelo (ex: CG 160)" 
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.modelo}
-          onChange={e => setVeiculoData({...veiculoData, modelo: e.target.value.toUpperCase()})}
+          onChange={e => {
+            veiculoDirty.current = true;
+            setVeiculoData({...veiculoData, modelo: e.target.value.toUpperCase()});
+          }}
+
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
         <input 
           placeholder="Cor" 
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.cor}
-          onChange={e => setVeiculoData({...veiculoData, cor: e.target.value.toUpperCase()})}
+          onChange={e => {
+            veiculoDirty.current = true;
+            setVeiculoData({...veiculoData, cor: e.target.value.toUpperCase()});
+          }}
+
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
 
@@ -527,9 +641,11 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
               key={type}
               type="button"
               onClick={() => {
+                if (pixType === type) return;
                 setPixType(type);
-                setPix(""); // Limpa ao trocar tipo
+                setPix(""); // Limpa somente ao efetivamente trocar tipo
               }}
+
               className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all uppercase ${pixType === type ? 'bg-zuvvi-volt text-zuvvi-indigo' : 'bg-white/5 text-white/40 border border-white/10'}`}
             >
               {type === 'aleatoria' ? 'Aleatória' : type}
