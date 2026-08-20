@@ -77,9 +77,12 @@ export default function CnhCorrectionForm({
     try {
       // 1. Obter URL de upload
       const { uploadUrl, storagePath } = await getUploadUrlFn({
-        mimeType: file.type as any,
-        fileSize: file.size
+        data: {
+          mimeType: file.type as any,
+          fileSize: file.size
+        }
       });
+
 
       // 2. Upload real (PUT)
       const uploadRes = await fetch(uploadUrl, {
@@ -96,11 +99,14 @@ export default function CnhCorrectionForm({
 
       // 3. Submeter dados
       await submitCorrectionFn({
-        cnh_numero: cnhNumero,
-        cnh_categoria: cnhCategoria.toUpperCase() as any,
-        cnh_validade: cnhValidade,
-        storagePath
+        data: {
+          cnh_numero: cnhNumero,
+          cnh_categoria: cnhCategoria.toUpperCase() as any,
+          cnh_validade: cnhValidade,
+          storagePath
+        }
       });
+
 
       toast.success('CNH enviada para análise!');
       await onSubmitted();

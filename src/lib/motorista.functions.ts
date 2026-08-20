@@ -745,7 +745,8 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
 
     const { data: fileExists } = await supabaseAdmin.storage
       .from('documentos-motorista')
-      .list(user.id, { search: data.storagePath.split('/').pop() });
+      .list(user.id, { search: data.storagePath.split('/').pop() || '' });
+
 
     if (!fileExists || fileExists.length === 0) {
       throw new Error("Arquivo não encontrado no servidor.");
