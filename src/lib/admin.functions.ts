@@ -109,7 +109,7 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
     // 1. Obter dados atuais do motorista, CNH e usuário (cidade)
     const { data: motorista, error: mError } = await supabaseAdmin
       .from("motoristas")
-      .select("status_aprovacao, cnh_validade")
+      .select("status_aprovacao, cnh_validade, cnh_numero, cnh_categoria")
       .eq("id", data.motoristaId)
       .single();
 
