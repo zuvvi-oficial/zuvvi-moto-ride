@@ -456,8 +456,18 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
     }
   };
 
+  if (isLoadingInitialData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <Loader2 className="w-10 h-10 animate-spin text-zuvvi-volt" />
+        <p className="text-white/40 text-xs font-bold uppercase tracking-widest">Carregando seus dados...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-10">
+
       <section className="space-y-4">
         <h3 className="text-xs font-black text-zuvvi-volt uppercase tracking-widest flex items-center gap-2">
           <FileText className="w-4 h-4" /> 1. Documentos Pessoais
