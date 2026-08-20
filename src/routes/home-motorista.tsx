@@ -40,6 +40,7 @@ function HomeMotorista() {
   
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
+  const locationUpdateInFlightRef = useRef(false);
 
   const { data: status, isLoading, error } = useQuery({
     queryKey: ['motorista-status'],
@@ -75,6 +76,8 @@ function HomeMotorista() {
     }
     setIsGpsActive(false);
     setGpsError(null);
+    lastUpdateRef.current = 0;
+    locationUpdateInFlightRef.current = false;
   };
 
   const handleGpsError = (msg: string) => {
@@ -101,8 +104,13 @@ function HomeMotorista() {
           if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
 
           const now = Date.now();
-          // NO MÁXIMO uma atualização a cada 10 segundos, exceto a primeira
-          if (!isGpsActive || now - lastUpdateRef.current >= 10000) {
+          // Lógica de Throttle: primeira imediata, depois 10s, sem concorrência
+          const isFirstUpdate = lastUpdateRef.current === 0;
+          const isTimeElapsed = now - lastUpdateRef.current >= 10000;
+          const canUpdate = (isFirstUpdate || isTimeElapsed) && !locationUpdateInFlightRef.current;
+
+          if (canUpdate) {
+            locationUpdateInFlightRef.current = true;
             try {
               await updateLocationFn({ data: { lat: latitude, lng: longitude } });
               setIsGpsActive(true);
@@ -110,6 +118,8 @@ function HomeMotorista() {
               lastUpdateRef.current = now;
             } catch (err: any) {
               handleGpsError("Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.");
+            } finally {
+              locationUpdateInFlightRef.current = false;
             }
           }
         },
