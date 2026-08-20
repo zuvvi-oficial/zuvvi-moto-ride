@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { queryOptions } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 
-export const adminStatsOptions = queryOptions({
+const adminStatsOptions = queryOptions({
   queryKey: ['admin-stats'],
   queryFn: () => getAdminStats(),
 });
