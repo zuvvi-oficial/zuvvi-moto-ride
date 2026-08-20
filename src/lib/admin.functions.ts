@@ -146,7 +146,18 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       if (!motorista.cnh_validade) {
         throw new Error("Bloqueado: Validade da CNH não informada.");
       }
-      if (new Date(motorista.cnh_validade) < new Date()) {
+
+      // Regra de Data America/Sao_Paulo (Dia Civil)
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const hojeStr = formatter.format(now); // YYYY-MM-DD
+      
+      if (motorista.cnh_validade < hojeStr) {
         throw new Error("Bloqueado: CNH vencida.");
       }
 
@@ -168,14 +179,14 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
         throw new Error(`Bloqueado: Faltam documentos (${faltantes.join(", ")}).`);
       }
 
-      const pendentes = docsEnviados.filter(d => d.status_analise === "pendente");
-      if (pendentes.length > 0) {
-        throw new Error("Bloqueado: Existem documentos aguardando análise.");
-      }
+      // Filtro Fail-Closed: Qualquer documento obrigatório que não esteja "aprovado" bloqueia a aprovação final.
+      const obrigatoriosNaoAprovados = docsEnviados.filter(d => 
+        tiposObrigatorios.includes(d.tipo_documento as string) && 
+        d.status_analise !== "aprovado"
+      );
 
-      const recusados = docsEnviados.filter(d => d.status_analise === "recusado");
-      if (recusados.length > 0) {
-        throw new Error("Bloqueado: Existem documentos recusados.");
+      if (obrigatoriosNaoAprovados.length > 0) {
+        throw new Error("Bloqueado: Todos os documentos obrigatórios precisam estar aprovados.");
       }
     }
 
@@ -183,18 +194,21 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       throw new Error("Justificativa é obrigatória para recusa ou suspensão.");
     }
 
-    const updateData: any = { status_aprovacao: data.novoStatus };
-    if (data.novoStatus !== "aprovado") {
-      updateData.is_disponivel = false;
-    }
+    const updateData: any = { status_aprovacao: data.novoStatus, is_disponivel: false };
 
-
-    const { error } = await supabaseAdmin
+    const { data: updatedMotorista, error } = await supabaseAdmin
       .from("motoristas")
       .update(updateData)
-      .eq("id", data.motoristaId);
+      .eq("id", data.motoristaId)
+      .select("status_aprovacao, is_disponivel")
+      .maybeSingle();
 
     if (error) throw new Error(error.message);
+    if (!updatedMotorista) throw new Error("Erro ao atualizar motorista: registro não retornado.");
+
+    if (updatedMotorista.status_aprovacao !== data.novoStatus || updatedMotorista.is_disponivel !== false) {
+      throw new Error("Erro de integridade: a gravação final do status ou disponibilidade falhou.");
+    }
 
     await createAuditLog({
       adminId,
