@@ -20,14 +20,7 @@ export const getOnboardingData = createServerFn({ method: "GET" })
       .from("usuarios")
       .select(`
         id,
-        is_motorista,
-        motoristas (
-          cnh_numero,
-          cnh_categoria,
-          cnh_validade,
-          chave_pix,
-          tipo_chave_pix
-        )
+        is_motorista
       `)
       .eq("auth_user_id", authUserId)
       .single();
@@ -40,29 +33,30 @@ export const getOnboardingData = createServerFn({ method: "GET" })
       throw new Error("Acesso restrito a motoristas.");
     }
 
-    const motoristasArr = userData.motoristas as any[];
-    const motorista = motoristasArr && motoristasArr.length > 0 ? motoristasArr[0] : null;
     const motoristaId = userData.id;
 
+    // Buscar motorista
+    const { data: motorista } = await supabaseAdmin
+      .from("motoristas")
+      .select("cnh_numero, cnh_categoria, cnh_validade, chave_pix, tipo_chave_pix")
+      .eq("id", motoristaId)
+      .maybeSingle();
+
+    // Buscar veículo
     const { data: veiculoData } = await supabaseAdmin
       .from("veiculos")
       .select("id, placa, ano, marca, modelo, cor, status_aprovacao, ativo")
       .eq("motorista_id", motoristaId)
       .maybeSingle();
 
+    // Buscar documentos
     const { data: docsData } = await supabaseAdmin
       .from("documentos_motorista")
       .select("tipo_documento, status_analise, motivo_recusa")
       .eq("motorista_id", motoristaId);
 
     return {
-      motorista: motorista ? {
-        cnh_numero: motorista.cnh_numero,
-        cnh_categoria: motorista.cnh_categoria,
-        cnh_validade: motorista.cnh_validade,
-        chave_pix: motorista.chave_pix,
-        tipo_chave_pix: motorista.tipo_chave_pix
-      } : null,
+      motorista: motorista || null,
       veiculo: veiculoData || null,
       documentos: docsData || []
     };
@@ -74,6 +68,7 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
     lat: z.number(), 
     lng: z.number() 
   }).parse(data))
+
 
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
