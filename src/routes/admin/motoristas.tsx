@@ -698,12 +698,13 @@ function AdminMotoristas() {
                                     )}
                                   </Button>
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="text-gray-400 hover:text-white"
+                                    className="border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-xs"
                                     onClick={() => setReviewingDoc(doc)}
                                   >
-                                    <ChevronRight className="h-4 w-4" />
+                                    Revisar
+                                    <ChevronRight className="h-4 w-4 ml-1" />
                                   </Button>
                                 </div>
                               )}
