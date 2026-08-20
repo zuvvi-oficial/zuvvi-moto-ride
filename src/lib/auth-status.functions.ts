@@ -38,7 +38,7 @@ export async function resolveDestinationInternal(userId: string) {
   // 3. Verificar status para usuários comuns
   let { data: userRecord } = await supabaseAdmin
     .from("usuarios")
-    .select("is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
+    .select("id, is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
     .eq("auth_user_id", userId)
     .maybeSingle();
 
@@ -56,7 +56,7 @@ export async function resolveDestinationInternal(userId: string) {
         is_passageiro: false,
         is_motorista: false
       }, { onConflict: 'auth_user_id' })
-      .select("is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
+      .select("id, is_passageiro, is_motorista, cpf, celular, data_nascimento, cidade_id")
       .single();
 
     if (insertError) {
@@ -83,11 +83,27 @@ export async function resolveDestinationInternal(userId: string) {
     return { isAdmin: false, redirectTo: "/auth/perfil" };
   }
 
+  let finalRedirect = "/";
+  if (userRecord.is_motorista) {
+    // Buscar status de aprovação do motorista
+    const { data: motoristaRecord } = await supabaseAdmin
+      .from("motoristas")
+      .select("status_aprovacao")
+      .eq("usuario_id", userRecord.id)
+      .maybeSingle();
+
+    if (motoristaRecord?.status_aprovacao === "aprovado") {
+      finalRedirect = "/home-motorista";
+    } else {
+      finalRedirect = "/onboarding-motorista";
+    }
+  }
+
   return { 
     isAdmin: false,
     isPassageiro: userRecord.is_passageiro,
     isMotorista: userRecord.is_motorista,
-    redirectTo: userRecord.is_motorista ? "/home-motorista" : "/"
+    redirectTo: finalRedirect
   };
 }
 
