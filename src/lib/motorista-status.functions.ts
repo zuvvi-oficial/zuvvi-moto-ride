@@ -91,7 +91,7 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
       .select("tipo_documento, status_analise")
       .or(`motorista_id.eq.${usuario.id},veiculo_id.eq.${veiculo.id}`);
 
-    const tiposObrigatorios = [
+    const tiposObrigatorios: string[] = [
       'identidade', 
       'cnh', 
       'comprovante_residencia', 
@@ -102,7 +102,7 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
 
     const docsAprovados = (documentos || [])
       .filter(d => d.status_analise === 'aprovado')
-      .map(d => d.tipo_documento);
+      .map(d => String(d.tipo_documento));
 
     const temTodos = tiposObrigatorios.every(t => docsAprovados.includes(t));
 
