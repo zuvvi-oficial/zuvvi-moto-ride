@@ -87,20 +87,18 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
       throw new Error("Erro ao identificar perfil de motorista.");
     }
 
-    // REGRA 3: Bloqueio server-side de ONLINE com corrida ativa
-    const activeRide = await fetchActiveRide(supabaseAdmin, usuarioFinal.id);
-    if (activeRide) {
-      throw new Error("Você já possui uma corrida ativa.");
+    // REGRA 3: Bloqueio server-side de ONLINE com corrida ativa (ATÔMICO)
+    const { data: result, error: rpcError } = await supabaseAdmin.rpc(
+      "set_motorista_online_atomic",
+      { p_motorista_id: usuarioFinal.id }
+    );
+
+    if (rpcError) {
+      throw new Error("Erro ao atualizar status de disponibilidade. Tente novamente.");
     }
 
-
-    const { error: finalError } = await supabaseAdmin
-      .from("motoristas")
-      .update({ is_disponivel: true })
-      .eq("id", usuarioFinal.id);
-
-    if (finalError) {
-      throw new Error("Erro ao atualizar status de disponibilidade: " + finalError.message);
+    if (result === "ACTIVE_RIDE_EXISTS") {
+      throw new Error("Você já possui uma corrida ativa.");
     }
 
     return { success: true, is_disponivel: true };
