@@ -10,6 +10,65 @@ type TipoDocumento = Database["public"]["Enums"]["tipo_documento"];
  * Foco: Brasília/DF e Jacarezinho/PR (Pilotos)
  */
 
+export const getOnboardingData = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    // 1. Obter o usuário e confirmar que é motorista
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select(`
+        id,
+        tipo,
+        motoristas (
+          cnh_numero,
+          cnh_categoria,
+          cnh_validade,
+          chave_pix,
+          tipo_chave_pix
+        )
+      `)
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !userData) {
+      throw new Error("Usuário não encontrado.");
+    }
+
+    if (userData.tipo !== 'motorista') {
+      throw new Error("Acesso restrito a motoristas.");
+    }
+
+    const motorista = (userData.motoristas as any);
+    const motoristaId = userData.id;
+
+    // 2. Obter veículo (um motorista_id possui um único veículo por restrição UNIQUE)
+    const { data: veiculoData } = await supabaseAdmin
+      .from("veiculos")
+      .select("id, placa, ano, marca, modelo, cor, status_aprovacao, ativo")
+      .eq("motorista_id", motoristaId)
+      .maybeSingle();
+
+    // 3. Obter documentos
+    const { data: docsData } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("tipo_documento, status_analise, motivo_recusa")
+      .eq("motorista_id", motoristaId);
+
+    return {
+      motorista: motorista ? {
+        cnh_numero: motorista.cnh_numero,
+        cnh_categoria: motorista.cnh_categoria,
+        cnh_validade: motorista.cnh_validade,
+        chave_pix: motorista.chave_pix,
+        tipo_chave_pix: motorista.tipo_chave_pix
+      } : null,
+      veiculo: veiculoData || null,
+      documentos: docsData || []
+    };
+  });
 
 export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
