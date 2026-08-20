@@ -502,6 +502,78 @@ export const criarVeiculo = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+export const getCnhCorrectionState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    // Resolver context.userId -> usuarios.auth_user_id -> usuarios.id
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, is_motorista")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !userData) {
+      throw new Error("Usuário não encontrado.");
+    }
+
+    if (!userData.is_motorista) {
+      throw new Error("Acesso restrito a motoristas.");
+    }
+
+    const motoristaId = userData.id;
+
+    // Buscar motorista
+    const { data: motorista, error: motoristaError } = await supabaseAdmin
+      .from("motoristas")
+      .select("status_aprovacao, cnh_numero, cnh_categoria, cnh_validade")
+      .eq("id", motoristaId)
+      .single();
+
+    if (motoristaError || !motorista) {
+      throw new Error("Perfil de motorista não encontrado.");
+    }
+
+    // Buscar documento CNH
+    const { data: doc, error: docError } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("status_analise, motivo_recusa")
+      .eq("motorista_id", motoristaId)
+      .eq("tipo_documento", "cnh")
+      .maybeSingle();
+
+    if (docError) {
+      throw new Error("Erro ao consultar documentos.");
+    }
+
+    // Regra de Data America/Sao_Paulo (Dia Civil)
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const hojeStr = formatter.format(now); // YYYY-MM-DD
+    
+    const isExpired = !!motorista.cnh_validade && motorista.cnh_validade < hojeStr;
+    const documentStatus = doc?.status_analise || null;
+    const needsCorrection = isExpired || documentStatus === 'correcao_solicitada';
+    
+    return {
+      status_aprovacao: motorista.status_aprovacao,
+      cnh_numero: motorista.cnh_numero,
+      cnh_categoria: motorista.cnh_categoria,
+      cnh_validade: motorista.cnh_validade,
+      document_status: documentStatus,
+      motivo_correcao: documentStatus === 'correcao_solicitada' ? doc?.motivo_recusa : null,
+      is_expired: isExpired,
+      needs_correction: needsCorrection
+    };
+  });
+
 export const enviarParaAnalise = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
