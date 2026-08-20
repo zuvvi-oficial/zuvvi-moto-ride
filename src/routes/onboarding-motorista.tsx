@@ -32,7 +32,7 @@ function OnboardingMotorista() {
   const getSessionUserFn = useServerFn(getSessionUser);
   const getStatusFeedbackFn = useServerFn(getMotoristaStatusFeedback);
   
-  const { data: user, isLoading: isUserLoading } = useQuery({
+  const { data: user, isLoading: isUserLoading, refetch } = useQuery({
     queryKey: ['session-user'],
     queryFn: () => getSessionUserFn(),
   });
@@ -183,7 +183,7 @@ function OnboardingMotorista() {
                 Envie seus documentos para começar a lucrar com a Zuvvi.
               </p>
             </div>
-            <OnboardingForm onSubmitted={() => window.location.reload()} />
+            <OnboardingForm onSubmitted={() => refetch()} />
           </div>
         ) : (
           <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">
