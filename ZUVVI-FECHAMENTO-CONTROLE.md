@@ -2,8 +2,10 @@
 
 **Projeto:** Zuvvi  
 **Processo:** Fechamento controlado  
-**Etapa atual:** Sprint 0 — Organização, segurança e estabilização — ✅ CONCLUÍDO  
-**Último commit de referência:** 0290a6d62dd349789cb60145df447d3650aaeda5
+**Sprint 0:** ✅ CONCLUÍDO  
+**Sprint 1:** ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA  
+**Data do fechamento funcional do Sprint 1:** 20/08/2026  
+**Último commit funcional de referência:** e52a679aaa474d798003c906a6b01260454cbbd4
 
 ## Regras obrigatórias
 1. Uma microetapa por vez.
@@ -16,6 +18,10 @@
 8. Não avançar enquanto a etapa atual não estiver aprovada.
 9. Registrar divergências entre GitHub e Supabase.
 10. Não confiar apenas no relatório do agente executor.
+11. **Processo oficial:** ALTEROU → AUDITORIA INDEPENDENTE → TESTE → CONTRA-PROVA → SOMENTE ENTÃO FECHAMENTO.
+12. Todo prompt funcional deve possuir TRAVA MÁXIMA.
+13. Tudo não autorizado é proibido.
+14. Se a solução exigir alteração fora do escopo ou colocar em risco fluxo já aprovado: ABORTAR A MISSÃO E REPORTAR O CONFLITO SEM IMPLEMENTAR.
 
 ## Microetapas concluídas
 
