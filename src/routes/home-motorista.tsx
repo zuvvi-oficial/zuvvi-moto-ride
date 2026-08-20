@@ -10,7 +10,10 @@ import {
   Clock, 
   CheckCircle2, 
   Loader2,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  CircleDollarSign,
+  Wallet
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,7 +21,12 @@ import {
   getMotoristaStatusHome, 
   updateMotoristaDisponibilidade 
 } from '@/lib/motorista-status.functions';
-import { updateLocalizacaoMotorista } from '@/lib/motorista.functions';
+import { 
+  updateLocalizacaoMotorista,
+  getOfertasDisponiveis,
+  aceitarCorrida,
+  recusarCorrida
+} from '@/lib/motorista.functions';
 import { resolveDestinationForLoader } from '@/lib/auth-status.functions';
 
 export const Route = createFileRoute('/home-motorista')({
