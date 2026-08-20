@@ -264,7 +264,7 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    // 1. Validações completas do motorista e veículo via regra central
+    // 1. Validações server-side completas via regra central
     const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
     const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, userId);
 
@@ -272,62 +272,51 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
       throw new Error(eligibility.message || "Motorista não elegível para aceitar corrida.");
     }
 
-    const { data: motoristaInfo, error: mError } = await supabaseAdmin
+    const { data: user, error: uError } = await supabaseAdmin
       .from("usuarios")
-      .select(`
-        id, 
-        cidade_id,
-        motoristas!inner(is_disponivel, ultima_localizacao_at)
-      `)
+      .select("id")
       .eq("auth_user_id", userId)
       .single();
 
-    if (mError || !motoristaInfo) throw new Error("Motorista não identificado.");
-    
-    const motorista = (motoristaInfo.motoristas as any);
-    if (!motorista.is_disponivel) throw new Error("Você precisa estar online.");
+    if (uError || !user) throw new Error("Motorista não identificado.");
+    const motoristaId = user.id;
 
-    // Proteção contra duas corridas simultâneas para o mesmo motorista
-    const { data: corridaAtiva } = await supabaseAdmin
-      .from("corridas")
-      .select("id")
-      .eq("motorista_id", motoristaInfo.id)
-      .in("status", ["aceita", "em_andamento"])
-      .maybeSingle();
+    // GPS recente (5 minutos) - Mantido conforme exigência
+    const { data: motoristaLoc } = await supabaseAdmin
+      .from("motoristas")
+      .select("ultima_localizacao_at, is_disponivel")
+      .eq("id", motoristaId)
+      .single();
 
-    if (corridaAtiva) throw new Error("Você já possui uma corrida ativa em andamento.");
+    if (!motoristaLoc?.is_disponivel) {
+      throw new Error("Você precisa estar online.");
+    }
 
     const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
-    if (!motorista.ultima_localizacao_at || new Date(motorista.ultima_localizacao_at) < cincoMinutosAtras) {
+    if (!motoristaLoc?.ultima_localizacao_at || new Date(motoristaLoc.ultima_localizacao_at) < cincoMinutosAtras) {
       throw new Error("Sinal de GPS desatualizado. Por favor, aguarde a atualização da localização.");
     }
 
-    // 2. Aceite Transacional (Atomic Update)
-    const { data: corrida, error: uError } = await supabaseAdmin
-      .from("corridas")
-      .update({ 
-        motorista_id: motoristaInfo.id, 
-        status: 'aceita', 
-        data_aceite: new Date().toISOString() 
-      })
-      .eq("id", data.rideId)
-      .eq("status", 'solicitada')
-      .eq("cidade_id", motoristaInfo.cidade_id as string)
-      .is("motorista_id", null)
-      .select()
-      .maybeSingle();
+    // 2. Aceite Atômico via RPC
+    const { error: rpcError } = await supabaseAdmin.rpc("accept_corrida_atomic", {
+      p_corrida_id: data.rideId,
+      p_motorista_id: motoristaId
+    });
 
-    if (uError) throw new Error("Falha ao processar o aceite.");
-    
-    if (!corrida) {
-      throw new Error("Esta corrida já foi aceita por outro piloto ou não é mais elegível.");
+    if (rpcError) {
+      // Mapear erros controlados para mensagens humanas
+      if (rpcError.message.includes("já possui uma corrida ativa")) {
+        throw new Error("Você já possui uma corrida ativa em andamento.");
+      }
+      if (rpcError.message.includes("indisponível ou cidade incompatível")) {
+        throw new Error("Esta corrida já foi aceita por outro piloto ou não é mais elegível.");
+      }
+      if (rpcError.message.includes("não está disponível")) {
+        throw new Error("Você precisa estar online.");
+      }
+      
+      throw new Error("Falha ao processar o aceite. Tente novamente.");
     }
-
-    // 3. Marcar motorista como indisponível
-    await supabaseAdmin
-      .from("motoristas")
-      .update({ is_disponivel: false })
-      .eq("id", motoristaInfo.id);
 
     return { success: true };
   });
