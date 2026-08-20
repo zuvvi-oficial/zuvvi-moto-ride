@@ -10,7 +10,10 @@ import {
   Clock, 
   CheckCircle2, 
   Loader2,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  CircleDollarSign,
+  Wallet
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,7 +21,12 @@ import {
   getMotoristaStatusHome, 
   updateMotoristaDisponibilidade 
 } from '@/lib/motorista-status.functions';
-import { updateLocalizacaoMotorista } from '@/lib/motorista.functions';
+import { 
+  updateLocalizacaoMotorista,
+  getOfertasDisponiveis,
+  aceitarCorrida,
+  recusarCorrida
+} from '@/lib/motorista.functions';
 import { resolveDestinationForLoader } from '@/lib/auth-status.functions';
 
 export const Route = createFileRoute('/home-motorista')({
@@ -37,10 +45,15 @@ function HomeMotorista() {
   const [isToggling, setIsToggling] = useState(false);
   const [isGpsActive, setIsGpsActive] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [processingRideId, setProcessingRideId] = useState<string | null>(null);
   
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
   const locationUpdateInFlightRef = useRef(false);
+
+  const getOfertasFn = useServerFn(getOfertasDisponiveis);
+  const aceitarCorridaFn = useServerFn(aceitarCorrida);
+  const recusarCorridaFn = useServerFn(recusarCorrida);
 
   const { data: status, isLoading, error } = useQuery({
     queryKey: ['motorista-status'],
@@ -50,6 +63,16 @@ function HomeMotorista() {
     refetchOnMount: true,
   });
 
+  const isOnline = !!status?.is_disponivel;
+
+  const { data: ofertas = [] } = useQuery({
+    queryKey: ['motorista-ofertas'],
+    queryFn: () => getOfertasFn(),
+    enabled: isOnline && isGpsActive,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+  });
+
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
     onSuccess: (data) => {
@@ -57,6 +80,9 @@ function HomeMotorista() {
         ...old,
         is_disponivel: data.is_disponivel
       }));
+      if (!data.is_disponivel) {
+        queryClient.setQueryData(['motorista-ofertas'], []);
+      }
       toast.success(data.is_disponivel ? "Você está Online" : "Você está Offline");
     },
     onError: (err: any) => {
@@ -66,6 +92,35 @@ function HomeMotorista() {
       setIsToggling(false);
     }
   });
+
+  const handleAceitar = async (rideId: string) => {
+    if (processingRideId) return;
+    setProcessingRideId(rideId);
+    try {
+      await aceitarCorridaFn({ data: { rideId } });
+      toast.success("Corrida aceita com sucesso.");
+      queryClient.invalidateQueries({ queryKey: ['motorista-ofertas'] });
+      queryClient.invalidateQueries({ queryKey: ['motorista-status'] });
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao aceitar corrida.");
+      queryClient.invalidateQueries({ queryKey: ['motorista-ofertas'] });
+    } finally {
+      setProcessingRideId(null);
+    }
+  };
+
+  const handleRecusar = async (rideId: string) => {
+    if (processingRideId) return;
+    setProcessingRideId(rideId);
+    try {
+      await recusarCorridaFn({ data: { rideId } });
+      queryClient.invalidateQueries({ queryKey: ['motorista-ofertas'] });
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao recusar corrida.");
+    } finally {
+      setProcessingRideId(null);
+    }
+  };
 
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
 
@@ -169,7 +224,7 @@ function HomeMotorista() {
     );
   }
 
-  const isOnline = status.is_disponivel;
+  
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
@@ -206,21 +261,100 @@ function HomeMotorista() {
             </div>
           </div>
         ) : (
-          <div className="py-20 text-center space-y-6 animate-pulse">
-            <div className="relative w-32 h-32 mx-auto">
-              <div className="absolute inset-0 bg-zuvvi-volt/20 rounded-full animate-ping" />
-              <div className="relative z-10 w-full h-full bg-zuvvi-volt/10 rounded-full flex items-center justify-center border border-zuvvi-volt/20">
-                <Navigation className="w-10 h-10 text-zuvvi-volt" />
+          <div className="space-y-4">
+            {ofertas.length === 0 ? (
+              <div className="py-20 text-center space-y-6 animate-pulse">
+                <div className="relative w-32 h-32 mx-auto">
+                  <div className="absolute inset-0 bg-zuvvi-volt/20 rounded-full animate-ping" />
+                  <div className="relative z-10 w-full h-full bg-zuvvi-volt/10 rounded-full flex items-center justify-center border border-zuvvi-volt/20">
+                    <Navigation className="w-10 h-10 text-zuvvi-volt" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-lg font-bold text-zuvvi-volt uppercase tracking-widest">
+                    {isGpsActive ? 'Aguardando corridas' : 'ATIVANDO LOCALIZAÇÃO...'}
+                  </h2>
+                  <p className="text-xs text-muted-foreground uppercase">
+                    {isGpsActive ? 'LOCALIZAÇÃO ATIVA' : 'Obtendo sinal de GPS'}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-lg font-bold text-zuvvi-volt uppercase tracking-widest">
-                {isGpsActive ? 'Aguardando corridas' : 'ATIVANDO LOCALIZAÇÃO...'}
-              </h2>
-              <p className="text-xs text-muted-foreground uppercase">
-                {isGpsActive ? 'LOCALIZAÇÃO ATIVA' : 'Obtendo sinal de GPS'}
-              </p>
-            </div>
+            ) : (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {ofertas.map((oferta: any) => (
+                  <div key={oferta.id} className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-zuvvi-volt">
+                        <Bike className="w-5 h-5" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Novo pedido de corrida</span>
+                      </div>
+                      <span className="bg-zuvvi-volt/10 text-zuvvi-volt px-3 py-1 rounded-full text-[9px] font-bold">
+                        {oferta.distancia_aprox_m >= 1000 
+                          ? `${(oferta.distancia_aprox_m / 1000).toFixed(1)}km` 
+                          : `${oferta.distancia_aprox_m}m`}
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex gap-4">
+                        <div className="flex flex-col items-center gap-1 mt-1">
+                          <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
+                          <div className="w-0.5 h-8 bg-white/10" />
+                          <MapPin className="w-4 h-4 text-white/40" />
+                        </div>
+                        <div className="flex-1 space-y-4">
+                          <div className="space-y-0.5">
+                            <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">Embarque</p>
+                            <p className="text-sm font-medium line-clamp-1">{oferta.origem_nome || 'Local de embarque'}</p>
+                          </div>
+                          <div className="space-y-0.5">
+                            <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">Destino</p>
+                            <p className="text-sm font-medium line-clamp-1">{oferta.destino_nome || 'Local de destino'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                          <CircleDollarSign className="w-4 h-4 text-zuvvi-volt" />
+                          <div>
+                            <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">Valor</p>
+                            <p className="text-xs font-bold text-zuvvi-volt">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(oferta.valor_estimado)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                          <Wallet className="w-4 h-4 text-white/60" />
+                          <div>
+                            <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">Pagamento</p>
+                            <p className="text-xs font-bold uppercase tracking-tight truncate">{oferta.forma_pagamento}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => handleRecusar(oferta.id)}
+                        disabled={!!processingRideId}
+                        className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors disabled:opacity-50"
+                      >
+                        Recusar
+                      </button>
+                      <button 
+                        onClick={() => handleAceitar(oferta.id)}
+                        disabled={!!processingRideId}
+                        className="flex-[2] py-4 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {processingRideId === oferta.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                        {processingRideId === oferta.id ? 'Aceitando...' : 'Aceitar Corrida'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
