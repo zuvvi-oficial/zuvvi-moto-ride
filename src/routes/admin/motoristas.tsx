@@ -113,7 +113,7 @@ function AdminMotoristas() {
     }
   };
 
-  const handleDocAction = async (status: 'aprovado' | 'recusado') => {
+  const handleDocAction = async (status: 'aprovado' | 'recusado' | 'correcao_solicitada') => {
     if (!reviewingDoc) return;
     
     try {
@@ -121,7 +121,7 @@ function AdminMotoristas() {
         data: {
           documentoId: reviewingDoc.id,
           novoStatus: status,
-          justificativa: status === 'recusado' ? justificativaDoc : undefined,
+          justificativa: (status === 'recusado' || status === 'correcao_solicitada') ? justificativaDoc : undefined,
         }
       });
       
@@ -129,7 +129,11 @@ function AdminMotoristas() {
         throw new Error("O servidor retornou sucesso mas a operação falhou internamente.");
       }
 
-      toast.success(`Documento ${status === 'aprovado' ? 'aprovado' : 'recusado'} com sucesso!`);
+      toast.success(
+        status === 'aprovado' ? 'Documento aprovado com sucesso!' :
+        status === 'recusado' ? 'Documento recusado com sucesso!' :
+        'Correção da CNH solicitada com sucesso!'
+      );
       
       // Invalidação rigorosa e refetch para garantir dados reais do banco
       await queryClient.invalidateQueries({ queryKey: ['admin-motorista-detalhe', viewingMotoristaId] });
