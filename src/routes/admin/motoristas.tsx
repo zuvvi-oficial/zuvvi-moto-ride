@@ -38,6 +38,16 @@ import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink, AlertTriangle, ChevronRight, Maximize2 } from 'lucide-react';
 
+const getHojeBR = () => {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return formatter.format(now);
+};
 
 const motoristasOptions = (filters: { status?: string; busca?: string }) => queryOptions({
   queryKey: ['admin-motoristas', filters],
