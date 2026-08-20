@@ -612,3 +612,176 @@ export const enviarParaAnalise = createServerFn({ method: "POST" })
     console.log(`[ONBOARDING] Submissão concluída com sucesso para: ${userId}`);
     return { success: true, status: result.status };
   });
+
+export const getCnhCorrectionUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+    fileSize: z.number().max(10 * 1024 * 1024) // 10MB
+  }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    const { data: user, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, is_motorista")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !user) throw new Error("Usuário não encontrado.");
+    if (!user.is_motorista) throw new Error("Acesso restrito a motoristas.");
+
+    const { data: motorista, error: motoristaError } = await supabaseAdmin
+      .from("motoristas")
+      .select("status_aprovacao, cnh_validade")
+      .eq("id", user.id)
+      .single();
+
+    if (motoristaError || !motorista) throw new Error("Motorista não encontrado.");
+
+    if (motorista.status_aprovacao !== 'em_analise') {
+      throw new Error("Envio permitido somente em análise.");
+    }
+
+    const { data: cnhDoc } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("status_analise")
+      .eq("motorista_id", user.id)
+      .eq("tipo_documento", "cnh")
+      .single();
+
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const hojeStr = formatter.format(now);
+    const isExpired = motorista.cnh_validade ? motorista.cnh_validade < hojeStr : false;
+    const needsCorrection = cnhDoc?.status_analise === 'correcao_solicitada';
+
+    if (!isExpired && !needsCorrection) {
+      throw new Error("Não há necessidade de correção da CNH.");
+    }
+
+    const ext = data.mimeType.split('/')[1];
+    const fileName = `${user.id}/cnh_correction_${Date.now()}.${ext}`;
+
+    const { data: uploadData, error } = await supabaseAdmin.storage
+      .from('documentos-motorista')
+      .createSignedUploadUrl(fileName);
+
+    if (error) throw new Error("Erro ao gerar URL de upload.");
+
+    return { 
+      uploadUrl: uploadData.signedUrl, 
+      storagePath: uploadData.path
+    };
+  });
+
+export const submitCnhCorrection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    cnh_numero: z.string().regex(/^\d{11}$/),
+    cnh_categoria: z.enum(['A', 'AB', 'a', 'ab']),
+    cnh_validade: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    storagePath: z.string()
+  }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    const { data: user, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, is_motorista")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !user) throw new Error("Usuário não encontrado.");
+    if (!user.is_motorista) throw new Error("Acesso restrito a motoristas.");
+
+    const { data: motorista, error: motoristaError } = await supabaseAdmin
+      .from("motoristas")
+      .select("id, status_aprovacao, cnh_validade")
+      .eq("id", user.id)
+      .single();
+
+    if (motoristaError || !motorista) throw new Error("Motorista não encontrado.");
+    if (motorista.status_aprovacao !== 'em_analise') throw new Error("Submissão permitida somente em análise.");
+
+    const { data: cnhDoc } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("status_analise")
+      .eq("motorista_id", user.id)
+      .eq("tipo_documento", "cnh")
+      .single();
+
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const hojeStr = formatter.format(now);
+    
+    if (data.cnh_validade < hojeStr) {
+      throw new Error("A nova validade deve ser igual ou superior a hoje.");
+    }
+
+    const isExpired = motorista.cnh_validade ? motorista.cnh_validade < hojeStr : false;
+    const needsCorrection = cnhDoc?.status_analise === 'correcao_solicitada';
+
+    if (!isExpired && !needsCorrection) {
+      throw new Error("A correção já foi processada ou não é necessária.");
+    }
+
+    const expectedPrefix = `${user.id}/cnh_correction_`;
+    if (!data.storagePath.startsWith(expectedPrefix) || data.storagePath.includes('..')) {
+      throw new Error("Caminho de arquivo inválido.");
+    }
+
+    const { data: fileExists } = await supabaseAdmin.storage
+      .from('documentos-motorista')
+      .list(user.id, { search: data.storagePath.split('/').pop() });
+
+    if (!fileExists || fileExists.length === 0) {
+      throw new Error("Arquivo não encontrado no servidor.");
+    }
+
+    // PASSO 1 - DOCUMENTO CNH
+    const { data: updatedDoc, error: updateDocError } = await supabaseAdmin
+      .from("documentos_motorista")
+      .update({
+        storage_path: data.storagePath,
+        status_analise: 'pendente',
+        motivo_recusa: null,
+        data_envio: new Date().toISOString(),
+        data_analise: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("motorista_id", user.id)
+      .eq("tipo_documento", "cnh")
+      .select()
+      .maybeSingle();
+
+    if (updateDocError || !updatedDoc) throw new Error("Erro ao atualizar registro da CNH.");
+
+    // PASSO 2 - DADOS ESTRUTURADOS
+    const { error: updateMotoristaError } = await supabaseAdmin
+      .from("motoristas")
+      .update({
+        cnh_numero: data.cnh_numero,
+        cnh_categoria: data.cnh_categoria.toUpperCase(),
+        cnh_validade: data.cnh_validade,
+        is_disponivel: false
+      })
+      .eq("id", user.id);
+
+    if (updateMotoristaError) throw new Error("Erro ao atualizar dados estruturados da CNH.");
+
+    return { success: true };
+  });
+
