@@ -2,6 +2,35 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+const ACTIVE_RIDE_STATUSES = [
+  "aceita",
+  "motorista_a_caminho",
+  "motorista_chegou",
+  "em_andamento",
+] as const;
+
+/**
+ * Busca a corrida ativa vinculada ao motorista (ID derivado server-side).
+ * FAIL CLOSED se houver mais de uma corrida ativa.
+ */
+async function fetchActiveRide(supabaseAdmin: any, motoristaId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("corridas")
+    .select("id, status, origem_nome, destino_nome, valor_estimado, forma_pagamento")
+    .eq("motorista_id", motoristaId)
+    .in("status", ACTIVE_RIDE_STATUSES as unknown as string[]);
+
+  if (error) {
+    throw new Error("Não foi possível verificar sua corrida atual.");
+  }
+
+  if ((data?.length ?? 0) > 1) {
+    throw new Error("Inconsistência operacional detectada. Contate o suporte.");
+  }
+
+  return data?.[0] ?? null;
+}
+
 /**
  * Função para atualizar a disponibilidade do motorista.
  * Localizada em src/lib/motorista-status.functions.ts para evitar conflitos com admin.functions.ts
@@ -58,6 +87,13 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
       throw new Error("Erro ao identificar perfil de motorista.");
     }
 
+    // REGRA 3: Bloqueio server-side de ONLINE com corrida ativa
+    const activeRide = await fetchActiveRide(supabaseAdmin, usuarioFinal.id);
+    if (activeRide) {
+      throw new Error("Você já possui uma corrida ativa.");
+    }
+
+
     const { error: finalError } = await supabaseAdmin
       .from("motoristas")
       .update({ is_disponivel: true })
@@ -91,9 +127,21 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
       .single();
 
     if (error || !usuario) throw new Error("Usuário não encontrado.");
-    
+
+    const activeRide = await fetchActiveRide(supabaseAdmin, usuario.id);
+
     return {
       id: usuario.id,
+      active_ride: activeRide
+        ? {
+            id: activeRide.id,
+            status: activeRide.status,
+            origem_nome: activeRide.origem_nome,
+            destino_nome: activeRide.destino_nome,
+            valor_estimado: activeRide.valor_estimado,
+            forma_pagamento: activeRide.forma_pagamento,
+          }
+        : null,
       nome: usuario.nome,
       is_motorista: usuario.is_motorista,
       status_aprovacao: (usuario.motoristas as any).status_aprovacao,
