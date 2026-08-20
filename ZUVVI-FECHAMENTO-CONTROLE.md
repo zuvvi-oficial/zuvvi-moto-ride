@@ -3,7 +3,7 @@
 **Projeto:** Zuvvi  
 **Processo:** Fechamento controlado  
 **Etapa atual:** Sprint 0 — Organização, segurança e estabilização  
-**Último commit de referência:** 3319f6efcf8e1ecfa645dd13ea0e9d376386ab6d
+**Último commit de referência:** a21492eef00a5640f3c286a5c61da6ef057e9dd6
 
 ## Regras obrigatórias
 1. Uma microetapa por vez.
@@ -56,16 +56,6 @@
 - teste visual do mapa/acompanhamento ficou ADIADO, pois depende da implementação futura do fluxo:
   - Passageiro solicita → Mototaxista recebe → Mototaxista aceita → acompanhamento/mapa
 - **Observação:** A regressão visual da 0.6 deverá ser executada obrigatoriamente quando o fluxo de aceite do Mototaxista estiver disponível.
-
-### 0.7 — Atualização da Base de Contra-Prova — ✅ FECHADA
-- Registro das microetapas 0.4, 0.5 e 0.6 concluído no arquivo de controle.
-
-### 0.8 — Fechamento de leitura pública prematura — ✅ FECHADA
-- Removida policy de SELECT pública da tabela `public.viagens_compartilhadas`.
-- Condição removida: `expira_em > now()`.
-- Policy de gerenciamento dos participantes (ALL) preservada intacta.
-- RLS permanece ativo na tabela.
-- Migration aplicada: `20260820015148_58d2469a-32bb-4691-a7d1-65942e051ae8.sql`.
 
 ## Pendências conhecidas — NÃO executar
 *Registradas somente como pendências, sem correção:*
