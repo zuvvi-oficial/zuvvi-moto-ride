@@ -731,13 +731,21 @@ function AdminMotoristas() {
                                   />
                                 </div>
                                 <div className="flex gap-2">
-                                  <Button 
-                                    size="sm" 
-                                    className="flex-1 bg-green-600 hover:bg-green-700 h-8 text-xs"
-                                    onClick={() => handleDocAction('aprovado')}
-                                  >
-                                    Aprovar
-                                  </Button>
+                                  <div className="flex-1 flex flex-col gap-1">
+                                    <Button 
+                                      size="sm" 
+                                      className="w-full bg-green-600 hover:bg-green-700 h-8 text-xs"
+                                      disabled={reviewingDoc.tipo_documento === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR()}
+                                      onClick={() => handleDocAction('aprovado')}
+                                    >
+                                      Aprovar
+                                    </Button>
+                                    {reviewingDoc.tipo_documento === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() && (
+                                      <span className="text-[9px] text-red-400 text-center">
+                                        Atualização da CNH necessária antes da aprovação.
+                                      </span>
+                                    )}
+                                  </div>
                                    <Button 
                                      size="sm" 
                                      variant="destructive" 
