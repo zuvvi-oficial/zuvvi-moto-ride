@@ -179,14 +179,14 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
         throw new Error(`Bloqueado: Faltam documentos (${faltantes.join(", ")}).`);
       }
 
-      const pendentes = docsEnviados.filter(d => d.status_analise === "pendente");
-      if (pendentes.length > 0) {
-        throw new Error("Bloqueado: Existem documentos aguardando análise.");
-      }
+      // Filtro Fail-Closed: Qualquer documento obrigatório que não esteja "aprovado" bloqueia a aprovação final.
+      const obrigatoriosNaoAprovados = docsEnviados.filter(d => 
+        tiposObrigatorios.includes(d.tipo_documento as string) && 
+        d.status_analise !== "aprovado"
+      );
 
-      const recusados = docsEnviados.filter(d => d.status_analise === "recusado");
-      if (recusados.length > 0) {
-        throw new Error("Bloqueado: Existem documentos recusados.");
+      if (obrigatoriosNaoAprovados.length > 0) {
+        throw new Error("Bloqueado: Todos os documentos obrigatórios precisam estar aprovados.");
       }
     }
 
