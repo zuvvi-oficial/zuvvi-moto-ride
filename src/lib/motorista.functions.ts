@@ -617,7 +617,7 @@ export const getCnhCorrectionUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({
     mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
-    fileSize: z.number().max(10 * 1024 * 1024) // 10MB
+    fileSize: z.number().int().positive().min(1).max(10 * 1024 * 1024) // 10MB
   }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -644,12 +644,15 @@ export const getCnhCorrectionUploadUrl = createServerFn({ method: "POST" })
       throw new Error("Envio permitido somente em análise.");
     }
 
-    const { data: cnhDoc } = await supabaseAdmin
+    const { data: cnhDoc, error: cnhDocError } = await supabaseAdmin
       .from("documentos_motorista")
       .select("status_analise")
       .eq("motorista_id", user.id)
       .eq("tipo_documento", "cnh")
-      .single();
+      .maybeSingle();
+
+    if (cnhDocError) throw new Error("Erro ao verificar o documento da CNH.");
+    if (!cnhDoc) throw new Error("Documento da CNH não encontrado.");
 
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -660,14 +663,14 @@ export const getCnhCorrectionUploadUrl = createServerFn({ method: "POST" })
     });
     const hojeStr = formatter.format(now);
     const isExpired = motorista.cnh_validade ? motorista.cnh_validade < hojeStr : false;
-    const needsCorrection = cnhDoc?.status_analise === 'correcao_solicitada';
+    const needsCorrection = cnhDoc.status_analise === 'correcao_solicitada';
 
     if (!isExpired && !needsCorrection) {
       throw new Error("Não há necessidade de correção da CNH.");
     }
 
     const ext = data.mimeType.split('/')[1];
-    const fileName = `${user.id}/cnh_correction_${Date.now()}.${ext}`;
+    const fileName = `${authUserId}/cnh_correction_${Date.now()}.${ext}`;
 
     const { data: uploadData, error } = await supabaseAdmin.storage
       .from('documentos-motorista')
@@ -711,12 +714,15 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
     if (motoristaError || !motorista) throw new Error("Motorista não encontrado.");
     if (motorista.status_aprovacao !== 'em_analise') throw new Error("Submissão permitida somente em análise.");
 
-    const { data: cnhDoc } = await supabaseAdmin
+    const { data: cnhDoc, error: cnhDocError } = await supabaseAdmin
       .from("documentos_motorista")
       .select("status_analise")
       .eq("motorista_id", user.id)
       .eq("tipo_documento", "cnh")
-      .single();
+      .maybeSingle();
+
+    if (cnhDocError) throw new Error("Erro ao verificar o documento da CNH.");
+    if (!cnhDoc) throw new Error("Documento da CNH não encontrado.");
 
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -726,30 +732,91 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
       day: '2-digit'
     });
     const hojeStr = formatter.format(now);
-    
+
+    // Validação de data real (YYYY-MM-DD existente no calendário)
+    const dateParts = data.cnh_validade.split('-');
+    const yearNum = Number(dateParts[0]);
+    const monthNum = Number(dateParts[1]);
+    const dayNum = Number(dateParts[2]);
+    const composed = new Date(Date.UTC(yearNum, monthNum - 1, dayNum));
+    if (
+      composed.getUTCFullYear() !== yearNum ||
+      composed.getUTCMonth() + 1 !== monthNum ||
+      composed.getUTCDate() !== dayNum
+    ) {
+      throw new Error("Data de validade da CNH inválida.");
+    }
+
     if (data.cnh_validade < hojeStr) {
       throw new Error("A nova validade deve ser igual ou superior a hoje.");
     }
 
     const isExpired = motorista.cnh_validade ? motorista.cnh_validade < hojeStr : false;
-    const needsCorrection = cnhDoc?.status_analise === 'correcao_solicitada';
+    const needsCorrection = cnhDoc.status_analise === 'correcao_solicitada';
 
     if (!isExpired && !needsCorrection) {
       throw new Error("A correção já foi processada ou não é necessária.");
     }
 
-    const expectedPrefix = `${user.id}/cnh_correction_`;
-    if (!data.storagePath.startsWith(expectedPrefix) || data.storagePath.includes('..')) {
+    // Validação estrita do path: {authUserId}/cnh_correction_{timestamp}.{ext}
+    const pathRegex = new RegExp(
+      `^${authUserId}/cnh_correction_(\\d+)\\.(jpeg|png|webp)$`
+    );
+    const pathMatch = pathRegex.exec(data.storagePath);
+    if (
+      !pathMatch ||
+      data.storagePath.includes('..') ||
+      data.storagePath.includes('\\') ||
+      data.storagePath.includes('?') ||
+      data.storagePath.includes('#')
+    ) {
       throw new Error("Caminho de arquivo inválido.");
     }
+    const expectedExt = pathMatch[2] as 'jpeg' | 'png' | 'webp';
+    const expectedBasename = `cnh_correction_${pathMatch[1]}.${expectedExt}`;
 
-    const { data: fileExists } = await supabaseAdmin.storage
+    // Localizar o objeto exato no bucket privado
+    const { data: files, error: listError } = await supabaseAdmin.storage
       .from('documentos-motorista')
-      .list(user.id, { search: data.storagePath.split('/').pop() || '' });
+      .list(authUserId, { search: expectedBasename });
 
+    if (listError) throw new Error("Erro ao verificar o arquivo da CNH no servidor.");
 
-    if (!fileExists || fileExists.length === 0) {
-      throw new Error("Arquivo não encontrado no servidor.");
+    const objeto = (files || []).find((f) => f.name === expectedBasename);
+    if (!objeto) throw new Error("Arquivo da CNH não encontrado no servidor.");
+
+    const realSize = (objeto.metadata as { size?: unknown } | null)?.size;
+    if (
+      typeof realSize !== 'number' ||
+      !Number.isFinite(realSize) ||
+      realSize <= 0 ||
+      realSize > 10 * 1024 * 1024
+    ) {
+      throw new Error("Arquivo da CNH possui tamanho inválido.");
+    }
+
+    // Validar assinatura binária real do arquivo
+    const { data: blob, error: downloadError } = await supabaseAdmin.storage
+      .from('documentos-motorista')
+      .download(data.storagePath);
+
+    if (downloadError || !blob) throw new Error("Erro ao validar o arquivo da CNH.");
+
+    const head = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
+    const isJpeg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
+    const pngSig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    const isPng = pngSig.every((b, i) => head[i] === b);
+    const ascii = (start: number, end: number) =>
+      String.fromCharCode(...Array.from(head.slice(start, end)));
+    const isWebp = ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+
+    const matchesExt =
+      (expectedExt === 'jpeg' && isJpeg) ||
+      (expectedExt === 'png' && isPng) ||
+      (expectedExt === 'webp' && isWebp);
+
+    if (!matchesExt) {
+      throw new Error("O arquivo enviado não é uma imagem de CNH válida.");
     }
 
     // PASSO 1 - DOCUMENTO CNH
@@ -771,17 +838,30 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
     if (updateDocError || !updatedDoc) throw new Error("Erro ao atualizar registro da CNH.");
 
     // PASSO 2 - DADOS ESTRUTURADOS
-    const { error: updateMotoristaError } = await supabaseAdmin
+    const categoriaNormalizada = data.cnh_categoria.toUpperCase();
+    const { data: updatedMotorista, error: updateMotoristaError } = await supabaseAdmin
       .from("motoristas")
       .update({
         cnh_numero: data.cnh_numero,
-        cnh_categoria: data.cnh_categoria.toUpperCase(),
+        cnh_categoria: categoriaNormalizada,
         cnh_validade: data.cnh_validade,
         is_disponivel: false
       })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select("cnh_numero, cnh_categoria, cnh_validade, is_disponivel")
+      .maybeSingle();
 
     if (updateMotoristaError) throw new Error("Erro ao atualizar dados estruturados da CNH.");
+    if (!updatedMotorista) throw new Error("Erro ao atualizar dados estruturados da CNH.");
+
+    if (
+      updatedMotorista.cnh_numero !== data.cnh_numero ||
+      updatedMotorista.cnh_categoria !== categoriaNormalizada ||
+      updatedMotorista.cnh_validade !== data.cnh_validade ||
+      updatedMotorista.is_disponivel !== false
+    ) {
+      throw new Error("Falha de integridade ao gravar os dados da CNH.");
+    }
 
     return { success: true };
   });
