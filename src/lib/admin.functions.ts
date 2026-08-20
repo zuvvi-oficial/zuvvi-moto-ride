@@ -399,7 +399,7 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z.object({
       documentoId: z.string(),
-      novoStatus: z.enum(["aprovado", "recusado", "pendente"]),
+      novoStatus: z.enum(["aprovado", "recusado", "pendente", "correcao_solicitada"]),
       justificativa: z.string().optional(),
     }).parse(data)
   )
@@ -419,6 +419,15 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
 
     if (data.novoStatus === "recusado" && !data.justificativa) {
       throw new Error("Justificativa é obrigatória para recusar um documento.");
+    }
+
+    if (data.novoStatus === "correcao_solicitada") {
+      if (!data.justificativa) {
+        throw new Error("Justificativa é obrigatória para solicitar correção.");
+      }
+      if (doc.tipo_documento !== "cnh") {
+        throw new Error("Correção individual está habilitada somente para CNH nesta etapa.");
+      }
     }
 
     // MICROETAPA 1.6: FORÇAR OFFLINE QUANDO DOCUMENTO OBRIGATÓRIO PERDE APROVAÇÃO
