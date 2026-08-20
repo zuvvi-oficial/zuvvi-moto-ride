@@ -494,16 +494,20 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
     const vehicle = vehicles[0];
 
     // Fail-closed: marca, modelo e placa não podem estar vazios
-    if (!vehicle.marca || !vehicle.modelo || !vehicle.placa || 
-        vehicle.marca.trim() === "" || vehicle.modelo.trim() === "" || vehicle.placa.trim() === "") {
+    const vMarca = vehicle.marca;
+    const vModelo = vehicle.modelo;
+    const vPlaca = vehicle.placa;
+
+    if (!vMarca || !vModelo || !vPlaca || 
+        vMarca.trim() === "" || vModelo.trim() === "" || vPlaca.trim() === "") {
       throw new Error("Não foi possível carregar os dados do Mototaxista desta corrida.");
     }
 
     const vehicleInfo = {
-      marca: vehicle.marca,
-      modelo: vehicle.modelo,
+      marca: vMarca,
+      modelo: vModelo,
       cor: vehicle.cor ?? null,
-      placa: vehicle.placa
+      placa: vPlaca
     };
 
     // 5. Retorno Final Seguro
