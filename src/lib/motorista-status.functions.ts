@@ -88,7 +88,7 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
     // REGRA 5: DOCUMENTOS OBRIGATÓRIOS (6 tipos aprovados)
     const { data: documentos } = await supabaseAdmin
       .from("documentos_motorista")
-      .select("tipo, status_analise")
+      .select("tipo_documento, status_analise")
       .or(`motorista_id.eq.${usuario.id},veiculo_id.eq.${veiculo.id}`);
 
     const tiposObrigatorios = [
@@ -102,7 +102,7 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
 
     const docsAprovados = (documentos || [])
       .filter(d => d.status_analise === 'aprovado')
-      .map(d => d.tipo);
+      .map(d => d.tipo_documento);
 
     const temTodos = tiposObrigatorios.every(t => docsAprovados.includes(t));
 
