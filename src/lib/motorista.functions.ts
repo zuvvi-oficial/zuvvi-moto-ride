@@ -157,12 +157,20 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
-    // Validar motorista aprovado e ONLINE antes de gravar GPS
+    const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
+    
+    // Validar elegibilidade central (garante offline se necessário)
+    const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, context.userId);
+    
+    if (!eligibility.eligible) {
+      throw new Error(eligibility.message || "Motorista não elegível.");
+    }
+
     const { data: motoristaInfo, error: mError } = await supabaseAdmin
       .from("usuarios")
       .select(`
         id, 
-        motoristas!inner(status_aprovacao, is_disponivel)
+        motoristas!inner(is_disponivel)
       `)
       .eq("auth_user_id", context.userId)
       .single();
@@ -170,7 +178,6 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
     if (mError || !motoristaInfo) throw new Error("Usuário não encontrado.");
     
     const motorista = (motoristaInfo.motoristas as any);
-    if (motorista.status_aprovacao !== 'aprovado') throw new Error("Motorista não aprovado.");
     if (!motorista.is_disponivel) throw new Error("Motorista deve estar online para enviar GPS.");
 
     const { error } = await supabaseAdmin
@@ -191,13 +198,19 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
+    const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
+
+    // Validar elegibilidade central
+    const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, context.userId);
+    if (!eligibility.eligible) return [];
+
     const { data: user, error: uError } = await supabaseAdmin
       .from("usuarios")
       .select(`
         id, 
         cidade_id, 
         cidades!inner(status),
-        motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at)
+        motoristas!inner(is_disponivel, ultima_localizacao_at)
       `)
       .eq("auth_user_id", context.userId)
       .single();
@@ -207,20 +220,9 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
     const motorista = (user.motoristas as any);
     const cidade = (user.cidades as any);
 
-    // Filtros de elegibilidade básicos
-    if (!motorista.is_disponivel || motorista.status_aprovacao !== 'aprovado') return [];
+    // Filtros de elegibilidade básicos (a regra central já verificou aprovação, docs, CNH e veículo)
+    if (!motorista.is_disponivel) return [];
     if (cidade.status !== 'piloto' && cidade.status !== 'ativa') return [];
-
-    // Exigir veículo aprovado/ativo
-    const { data: veiculo } = await supabaseAdmin
-      .from("veiculos")
-      .select("id")
-      .eq("motorista_id", user.id)
-      .eq("status_aprovacao", "aprovado")
-      .eq("ativo", true)
-      .maybeSingle();
-
-    if (!veiculo) return [];
 
     // GPS recente (5 minutos)
     const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
@@ -262,13 +264,20 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    // 1. Validações completas do motorista e veículo
+    // 1. Validações completas do motorista e veículo via regra central
+    const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
+    const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, userId);
+
+    if (!eligibility.eligible) {
+      throw new Error(eligibility.message || "Motorista não elegível para aceitar corrida.");
+    }
+
     const { data: motoristaInfo, error: mError } = await supabaseAdmin
       .from("usuarios")
       .select(`
         id, 
         cidade_id,
-        motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at)
+        motoristas!inner(is_disponivel, ultima_localizacao_at)
       `)
       .eq("auth_user_id", userId)
       .single();
@@ -276,8 +285,6 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
     if (mError || !motoristaInfo) throw new Error("Motorista não identificado.");
     
     const motorista = (motoristaInfo.motoristas as any);
-
-    if (motorista.status_aprovacao !== 'aprovado') throw new Error("Perfil não aprovado.");
     if (!motorista.is_disponivel) throw new Error("Você precisa estar online.");
 
     // Proteção contra duas corridas simultâneas para o mesmo motorista
@@ -294,16 +301,6 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
     if (!motorista.ultima_localizacao_at || new Date(motorista.ultima_localizacao_at) < cincoMinutosAtras) {
       throw new Error("Sinal de GPS desatualizado. Por favor, aguarde a atualização da localização.");
     }
-
-    const { data: veiculo } = await supabaseAdmin
-      .from("veiculos")
-      .select("id")
-      .eq("motorista_id", motoristaInfo.id)
-      .eq("status_aprovacao", "aprovado")
-      .eq("ativo", true)
-      .maybeSingle();
-
-    if (!veiculo) throw new Error("Veículo não disponível ou não aprovado.");
 
     // 2. Aceite Transacional (Atomic Update)
     const { data: corrida, error: uError } = await supabaseAdmin
