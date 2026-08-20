@@ -290,7 +290,12 @@ function AdminMotoristas() {
         </Table>
       </div>
 
-      <Dialog open={!!selectedMotorista} onOpenChange={() => setSelectedMotorista(null)}>
+      <Dialog open={!!selectedMotorista} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedMotorista(null);
+          setActionError(null);
+        }
+      }}>
         <DialogContent className="bg-zuvvi-indigo border-white/10 text-white">
           <DialogHeader>
             <DialogTitle>
@@ -320,15 +325,24 @@ function AdminMotoristas() {
                 />
               </div>
             )}
+
+            {actionError && (
+              <div className="p-3 rounded border border-red-500/50 bg-red-500/10 text-red-200 text-sm" role="alert" aria-live="assertive">
+                {actionError}
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSelectedMotorista(null)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => {
+              setSelectedMotorista(null);
+              setActionError(null);
+            }} disabled={isActionSubmitting}>Cancelar</Button>
             <Button 
               className={actionType === 'aprovado' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
-              disabled={actionType !== 'aprovado' && !justificativa}
+              disabled={(actionType !== 'aprovado' && !justificativa) || isActionSubmitting}
               onClick={handleAction}
             >
-              Confirmar
+              {isActionSubmitting ? "Processando..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
