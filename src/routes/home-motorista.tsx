@@ -13,8 +13,11 @@ import {
   AlertCircle,
   MapPin,
   CircleDollarSign,
-  Wallet
+  Wallet,
+  X,
+  AlertTriangle
 } from 'lucide-react';
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -48,6 +51,8 @@ function HomeMotorista() {
   const [isGpsActive, setIsGpsActive] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [processingRideId, setProcessingRideId] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
   
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -133,13 +138,11 @@ function HomeMotorista() {
   const handleCancelarCorrida = async (rideId: string) => {
     if (processingRideId) return;
     
-    const confirmacao = window.confirm("Deseja realmente cancelar esta corrida? Isso pode afetar seu desempenho.");
-    if (!confirmacao) return;
-
     setProcessingRideId(rideId);
     try {
       await cancelarCorridaFn({ data: { rideId } });
       toast.success("Corrida cancelada com sucesso.");
+      setShowCancelModal(false);
       queryClient.invalidateQueries({ queryKey: ['motorista-status'] });
     } catch (err: any) {
       toast.error(err.message || "Erro ao cancelar corrida.");
@@ -147,6 +150,7 @@ function HomeMotorista() {
       setProcessingRideId(null);
     }
   };
+
 
 
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
@@ -338,20 +342,14 @@ function HomeMotorista() {
             </div>
 
             <button
-              onClick={() => handleCancelarCorrida(activeRide.id)}
+              onClick={() => setShowCancelModal(true)}
               disabled={!!processingRideId}
               className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all disabled:opacity-50 active:scale-[0.98]"
             >
-              {processingRideId === activeRide.id ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>PROCESSANDO...</span>
-                </div>
-              ) : (
-                'CANCELAR CORRIDA'
-              )}
+              CANCELAR CORRIDA
             </button>
           </div>
+
 
         ) : !isOnline ? (
           <div className="py-20 text-center space-y-4 animate-in fade-in duration-700">
@@ -484,6 +482,50 @@ function HomeMotorista() {
           </button>
         </div>
       </nav>
+      {/* Modal de Confirmação de Cancelamento Profissional */}
+      {showCancelModal && activeRide && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zuvvi-indigo/95 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-sm bg-zuvvi-indigo border border-white/10 rounded-[2.5rem] p-8 space-y-8 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-20 h-20 rounded-[2rem] bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                <AlertTriangle className="w-10 h-10 text-red-500" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-white uppercase tracking-tight">Cancelar Corrida?</h2>
+                <p className="text-xs text-white/40 leading-relaxed">
+                  O cancelamento frequente pode afetar sua nota e prioridade no recebimento de novas ofertas.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => handleCancelarCorrida(activeRide.id)}
+                disabled={!!processingRideId}
+                className="w-full py-5 rounded-2xl bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {processingRideId ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>CANCELANDO...</span>
+                  </>
+                ) : (
+                  'CONFIRMAR CANCELAMENTO'
+                )}
+              </button>
+              
+              <button
+                onClick={() => setShowCancelModal(false)}
+                disabled={!!processingRideId}
+                className="w-full py-5 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                VOLTAR PARA CORRIDA
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

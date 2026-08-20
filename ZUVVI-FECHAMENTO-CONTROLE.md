@@ -432,4 +432,10 @@ O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo,
 - Design alinhado com a identidade visual Zuvvi.
 - Nenhuma alteração no core ou no banco de dados necessária (aproveitamento de estrutura existente).
 
+#### 2.7-A — Modal Profissional de Cancelamento — ✅ FECHADA
+- Substituído `window.confirm` nativo (branco/básico) por modal personalizado Zuvvi.
+- Design alinhado: Fundo indigo, bordas 2.5rem, tipografia Poppins e ícones Lucide.
+- Feedback de processamento integrado no botão de confirmação.
+- Travas de segurança preservadas (não altera o core do cancelamento).
+- Experiência profissional de confirmação/desistência.
 
