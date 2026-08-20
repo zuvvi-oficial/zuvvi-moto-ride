@@ -36,24 +36,40 @@ export const getOnboardingData = createServerFn({ method: "GET" })
     const motoristaId = userData.id;
 
     // Buscar motorista
-    const { data: motorista } = await supabaseAdmin
+    const { data: motorista, error: motoristaError } = await supabaseAdmin
       .from("motoristas")
       .select("cnh_numero, cnh_categoria, cnh_validade, chave_pix, tipo_chave_pix")
       .eq("id", motoristaId)
       .maybeSingle();
 
+    if (motoristaError) {
+      throw new Error("Erro ao carregar dados do motorista.");
+    }
+
+    if (userData.is_motorista && !motorista) {
+      throw new Error("Perfil de motorista não encontrado.");
+    }
+
     // Buscar veículo
-    const { data: veiculoData } = await supabaseAdmin
+    const { data: veiculoData, error: veiculoError } = await supabaseAdmin
       .from("veiculos")
       .select("id, placa, ano, marca, modelo, cor, status_aprovacao, ativo")
       .eq("motorista_id", motoristaId)
       .maybeSingle();
 
+    if (veiculoError) {
+      throw new Error("Erro ao carregar dados do veículo.");
+    }
+
     // Buscar documentos
-    const { data: docsData } = await supabaseAdmin
+    const { data: docsData, error: docsError } = await supabaseAdmin
       .from("documentos_motorista")
       .select("tipo_documento, status_analise, motivo_recusa")
       .eq("motorista_id", motoristaId);
+
+    if (docsError) {
+      throw new Error("Erro ao carregar documentos.");
+    }
 
     return {
       motorista: motorista || null,

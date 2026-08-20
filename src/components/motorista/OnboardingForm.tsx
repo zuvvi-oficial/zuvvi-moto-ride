@@ -31,6 +31,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+  const [initialLoadError, setInitialLoadError] = useState(false);
   
   const hasHydrated = useRef(false);
   const veiculoDirty = useRef(false);
@@ -168,6 +169,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         hasHydrated.current = true;
       } catch (error) {
         console.error("Erro ao carregar dados de onboarding:", error);
+        setInitialLoadError(true);
       } finally {
         setIsLoadingInitialData(false);
       }
@@ -461,6 +463,26 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-zuvvi-volt" />
         <p className="text-white/40 text-xs font-bold uppercase tracking-widest">Carregando seus dados...</p>
+      </div>
+    );
+  }
+
+  if (initialLoadError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-6 text-center space-y-6 bg-white/5 rounded-3xl border border-red-500/20">
+        <AlertCircle className="w-12 h-12 text-red-500" />
+        <div className="space-y-2">
+          <h3 className="text-white font-black uppercase tracking-tight">Não foi possível carregar seus dados.</h3>
+          <p className="text-white/40 text-xs leading-relaxed">
+            Nenhuma alteração foi feita. Atualize a página e tente novamente.
+          </p>
+        </div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
