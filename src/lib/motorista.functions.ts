@@ -10,60 +10,6 @@ type TipoDocumento = Database["public"]["Enums"]["tipo_documento"];
  * Foco: Brasília/DF e Jacarezinho/PR (Pilotos)
  */
 
-export const toggleDisponibilidade = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ disponivel: z.boolean() }).parse(data))
-  .handler(async ({ context, data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const userId = context.userId;
-
-    const { data: motoristaInfo, error: mError } = await supabaseAdmin
-      .from("usuarios")
-      .select(`
-        id, 
-        is_motorista, 
-        cidade_id,
-        cidades!inner(status, nome),
-        motoristas!inner(status_aprovacao)
-      `)
-      .eq("auth_user_id", userId)
-      .single();
-
-    if (mError || !motoristaInfo?.is_motorista) {
-      throw new Error("Perfil de motorista não encontrado ou não autorizado.");
-    }
-
-    const motorista = (motoristaInfo.motoristas as any);
-    const cidade = (motoristaInfo.cidades as any);
-
-    if (motorista.status_aprovacao !== 'aprovado') {
-      throw new Error("Seu perfil ainda não foi aprovado pela administração.");
-    }
-
-    if (cidade.status !== 'piloto' && cidade.status !== 'ativa') {
-      throw new Error(`Zuvvi ainda não opera em ${cidade.nome}.`);
-    }
-
-    const { data: veiculo, error: vError } = await supabaseAdmin
-      .from("veiculos")
-      .select("id")
-      .eq("motorista_id", motoristaInfo.id)
-      .in("status_aprovacao", ["aprovado", "em_analise"])
-      .eq("ativo", true)
-      .maybeSingle();
-
-    if (vError || !veiculo) {
-      throw new Error("Você precisa de um veículo aprovado e ativo para ficar online.");
-    }
-
-    const { error } = await supabaseAdmin
-      .from("motoristas")
-      .update({ is_disponivel: data.disponivel })
-      .eq("id", motoristaInfo.id);
-
-    if (error) throw new Error("Erro ao atualizar status de disponibilidade.");
-    return { success: true };
-  });
 
 export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
