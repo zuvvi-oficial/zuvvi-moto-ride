@@ -424,3 +424,12 @@ O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo,
 
 **Próxima ação obrigatória:** reconciliar o drift de migrations em microetapa isolada antes de qualquer nova alteração de banco.
 
+### 2.7 — Cancelamento de Corrida pelo Motorista — ✅ FECHADA
+- Implementado botão "CANCELAR CORRIDA" na Home do Motorista.
+- Server function `cancelarCorridaMotorista` valida ownership e status da corrida.
+- Corrida é marcada como `cancelada` com `cancelado_por = 'motorista'`.
+- Motorista é mantido offline após o cancelamento por segurança.
+- Design alinhado com a identidade visual Zuvvi.
+- Nenhuma alteração no core ou no banco de dados necessária (aproveitamento de estrutura existente).
+
+
