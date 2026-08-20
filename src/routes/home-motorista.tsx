@@ -63,18 +63,19 @@ function HomeMotorista() {
     refetchOnMount: true,
   });
 
+  const activeRide = status?.active_ride ?? null;
   const isOnline = !!status?.is_disponivel;
 
   const { data: rawOfertas = [] } = useQuery({
     queryKey: ['motorista-ofertas'],
     queryFn: () => getOfertasFn(),
-    enabled: isOnline && isGpsActive,
+    enabled: isOnline && isGpsActive && !activeRide,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
 
-  // Lista visual segura: só exibe se ONLINE e GPS ativo
-  const ofertas = (isOnline && isGpsActive) ? rawOfertas : [];
+  // Lista visual segura: só exibe se ONLINE, GPS ativo e sem corrida ativa
+  const ofertas = (isOnline && isGpsActive && !activeRide) ? rawOfertas : [];
 
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
