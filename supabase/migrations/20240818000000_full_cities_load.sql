@@ -5572,4 +5572,4 @@ VALUES
     ('Tupiratins', 'TO', 'em_breve', 30, 5.00, 2.00, 1.00, 7.00, 20),
     ('Wanderlândia', 'TO', 'em_breve', 30, 5.00, 2.00, 1.00, 7.00, 20),
     ('Xambioá', 'TO', 'em_breve', 30, 5.00, 2.00, 1.00, 7.00, 20)
-ON CONFLICT (nome, estado_uf) DO NOTHING;
+ON CONFLICT DO NOTHING;
