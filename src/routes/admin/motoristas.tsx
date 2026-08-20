@@ -66,6 +66,8 @@ function AdminMotoristas() {
   const [justificativaDoc, setJustificativaDoc] = useState('');
   const [isViewingFile, setIsViewingFile] = useState<{url: string, type: string, isPdf: boolean} | null>(null);
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
 
   const queryClient = useQueryClient();
   const updateStatusFn = useServerFn(updateStatusMotorista);
