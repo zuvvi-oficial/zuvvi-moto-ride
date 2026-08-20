@@ -120,10 +120,12 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
             // Formato YYYY-MM-DD - separar sem timezone
             const parts = cnh_validade.split('-');
             if (parts.length === 3) {
-              setValidadeYear(parts[0]);
-              setValidadeMonth(parts[1]);
-              setValidadeDay(parseInt(parts[2]).toString());
+              setValidadeYear(parts[0] || '');
+              setValidadeMonth(parts[1] || '');
+              const day = parts[2] ? parseInt(parts[2]).toString() : '';
+              setValidadeDay(day);
             }
+
           }
           
           if (chave_pix) setPix(chave_pix);
