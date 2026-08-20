@@ -492,6 +492,9 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
     }
 
     const vehicle = vehicles[0];
+    if (!vehicle) {
+      throw new Error("Não foi possível carregar os dados do Mototaxista desta corrida.");
+    }
 
     // Fail-closed: marca, modelo e placa não podem estar vazios
     const vMarca = vehicle.marca;
