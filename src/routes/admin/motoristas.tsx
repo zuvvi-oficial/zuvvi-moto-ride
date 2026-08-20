@@ -735,7 +735,7 @@ function AdminMotoristas() {
                                     <Button 
                                       size="sm" 
                                       className="w-full bg-green-600 hover:bg-green-700 h-8 text-xs"
-                                      disabled={reviewingDoc.tipo_documento === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR()}
+                                      disabled={!!(reviewingDoc.tipo_documento === 'cnh' && detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR())}
                                       onClick={() => handleDocAction('aprovado')}
                                     >
                                       Aprovar
