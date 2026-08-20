@@ -103,7 +103,7 @@ function AcompanhamentoCorrida() {
                 <div className="flex items-center gap-1">
                   <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
                   <span className="text-xs text-zuvvi-volt font-bold">
-                    {motorista?.motoristas?.nota_media?.toFixed(1) || '5.0'}
+                    {motorista?.nota_media ? motorista.nota_media.toFixed(1) : 'Novo na Zuvvi'}
                   </span>
                 </div>
               </div>
