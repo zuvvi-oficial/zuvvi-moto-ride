@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import OnboardingForm from '@/components/motorista/OnboardingForm';
 import { resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { getSessionUser } from '@/lib/user.functions';
-import { Loader2, User, Clock } from 'lucide-react';
+import { getMotoristaStatusFeedback } from '@/lib/motorista.functions';
+import { Loader2, User, Clock, AlertOctagon, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useServerFn } from '@tanstack/react-start';
@@ -29,10 +30,17 @@ export const Route = createFileRoute('/onboarding-motorista')({
 function OnboardingMotorista() {
   const navigate = useNavigate();
   const getSessionUserFn = useServerFn(getSessionUser);
+  const getStatusFeedbackFn = useServerFn(getMotoristaStatusFeedback);
   
   const { data: user, isLoading, refetch } = useQuery({
     queryKey: ['session-user'],
     queryFn: () => getSessionUserFn(),
+  });
+
+  const { data: feedback } = useQuery({
+    queryKey: ['motorista-status-feedback'],
+    queryFn: () => getStatusFeedbackFn(),
+    enabled: !!user,
   });
 
   if (isLoading || !user) {
@@ -82,12 +90,50 @@ function OnboardingMotorista() {
             <div className="w-16 h-16 bg-zuvvi-volt/10 rounded-full flex items-center justify-center mx-auto">
               <Clock className="w-8 h-8 text-zuvvi-volt" />
             </div>
-            <h2 className="text-xl font-bold">Perfil em análise</h2>
+            <h2 className="text-xl font-bold italic uppercase">Perfil em análise</h2>
             <p className="text-sm text-muted-foreground">
               Estamos verificando seus documentos. Você receberá um aviso assim que for aprovado para pilotar.
             </p>
           </div>
-        ) : (
+        ) : statusAprovacao === 'recusado' ? (
+          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+              <AlertOctagon className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-xl font-bold italic uppercase">Cadastro recusado</h2>
+            <p className="text-sm text-muted-foreground">
+              Seu cadastro não foi aprovado.
+            </p>
+            {feedback?.justificativa && (
+              <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-left">
+                <p className="text-[10px] text-red-500 uppercase font-black tracking-widest mb-1">Motivo</p>
+                <p className="text-sm text-white/80">{feedback.justificativa}</p>
+              </div>
+            )}
+            <p className="text-xs text-white/40 pt-2">
+              Revise a informação apresentada e aguarde orientação da equipe Zuvvi.
+            </p>
+          </div>
+        ) : statusAprovacao === 'suspenso' ? (
+          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">
+            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+              <ShieldAlert className="w-8 h-8 text-amber-500" />
+            </div>
+            <h2 className="text-xl font-bold italic uppercase">Cadastro suspenso</h2>
+            <p className="text-sm text-muted-foreground">
+              Seu acesso como mototaxista está temporariamente suspenso.
+            </p>
+            {feedback?.justificativa && (
+              <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4 text-left">
+                <p className="text-[10px] text-amber-500 uppercase font-black tracking-widest mb-1">Motivo</p>
+                <p className="text-sm text-white/80">{feedback.justificativa}</p>
+              </div>
+            )}
+            <p className="text-xs text-white/40 pt-2">
+              Entre em contato com o suporte Zuvvi para mais informações.
+            </p>
+          </div>
+        ) : statusAprovacao === 'em_preenchimento' ? (
           <div className="space-y-6">
             <div className="space-y-2">
               <h2 className="text-2xl font-black text-white uppercase italic">
@@ -98,6 +144,16 @@ function OnboardingMotorista() {
               </p>
             </div>
             <OnboardingForm onSubmitted={() => refetch()} />
+          </div>
+        ) : (
+          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center space-y-4">
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto">
+              <AlertOctagon className="w-8 h-8 text-white/40" />
+            </div>
+            <h2 className="text-xl font-bold italic uppercase">Aguardando</h2>
+            <p className="text-sm text-muted-foreground">
+              Não foi possível determinar a situação do seu cadastro.
+            </p>
           </div>
         )}
       </main>

@@ -247,7 +247,19 @@ function AdminMotoristas() {
                       Aprovar
                     </Button>
                   )}
-                  {user.motoristas.status_aprovacao !== 'recusado' && (
+                  {user.motoristas.status_aprovacao === 'aprovado' && (
+                    <Button 
+                      size="sm" 
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                      onClick={() => {
+                        setSelectedMotorista(user);
+                        setActionType('suspenso');
+                      }}
+                    >
+                      Suspender
+                    </Button>
+                  )}
+                  {user.motoristas.status_aprovacao !== 'recusado' && user.motoristas.status_aprovacao !== 'suspenso' && (
                     <Button 
                       size="sm" 
                       variant="destructive"
@@ -269,11 +281,21 @@ function AdminMotoristas() {
       <Dialog open={!!selectedMotorista} onOpenChange={() => setSelectedMotorista(null)}>
         <DialogContent className="bg-zuvvi-indigo border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Confirmar Ação: {actionType === 'aprovado' ? 'Aprovar' : 'Recusar/Suspender'}</DialogTitle>
+            <DialogTitle>
+              Confirmar Ação: {
+                actionType === 'aprovado' ? 'Aprovar' : 
+                actionType === 'recusado' ? 'Recusar' : 
+                'Suspender'
+              }
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-gray-400">
-              Deseja realmente {actionType} o motorista <strong>{selectedMotorista?.nome}</strong>?
+              Deseja realmente {
+                actionType === 'aprovado' ? 'aprovar' : 
+                actionType === 'recusado' ? 'recusar' : 
+                'suspender'
+              } o motorista <strong>{selectedMotorista?.nome}</strong>?
             </p>
             {actionType !== 'aprovado' && (
               <div className="space-y-2">
