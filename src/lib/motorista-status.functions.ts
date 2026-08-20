@@ -51,19 +51,17 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
       throw new Error(eligibility.message || "Você não é elegível para ficar online.");
     }
 
-    // Atualização final - Somente se eligible === true
-    const { error: updateError } = await supabaseAdmin
-      .from("motoristas")
-      .update({ is_disponivel: true })
-      .eq("id", eligibility.reasonCode === null ? (await supabaseAdmin.from("usuarios").select("id").eq("auth_user_id", userId).single()).data?.id : null); // Apenas garantia extra, mas o status é verificado na central
-
     // Recalcular ID para o update correto
-    const { data: usuarioFinal } = await supabaseAdmin.from("usuarios").select("id").eq("auth_user_id", userId).single();
+    const { data: usuarioFinal, error: fError } = await supabaseAdmin.from("usuarios").select("id").eq("auth_user_id", userId).single();
     
+    if (fError || !usuarioFinal) {
+      throw new Error("Erro ao identificar perfil de motorista.");
+    }
+
     const { error: finalError } = await supabaseAdmin
       .from("motoristas")
       .update({ is_disponivel: true })
-      .eq("id", usuarioFinal!.id);
+      .eq("id", usuarioFinal.id);
 
     if (finalError) {
       throw new Error("Erro ao atualizar status de disponibilidade: " + finalError.message);
