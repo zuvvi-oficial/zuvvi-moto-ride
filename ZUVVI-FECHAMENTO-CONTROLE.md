@@ -201,8 +201,7 @@
 #### 1.11-K — Aprovação final explícita na ficha — ✅ FECHADA
 - Ficha do Motorista passou a possuir seção "APROVAÇÃO FINAL".
 - Estados: PRONTO PARA APROVAÇÃO FINAL; CADASTRO APROVADO.
-- A ação reutiliza o mesmo fluxo administrativo existente.
-- Não cria segunda lógica de aprovação.
+- Ação administrativa mostra falha real do backend.
 - Confirmação manual permanece obrigatória.
 
 ### Regressão em_preenchimento — ✅ APROVADA
@@ -333,36 +332,3 @@ Estes itens NÃO estão marcados como concluídos.
 
 **FECHAMENTO FUNCIONAL:** 20/08/2026  
 **COMMIT DE REFERÊNCIA:** e52a679aaa474d798003c906a6b01260454cbbd4
-
-## Sprint 2 — Mototaxista recebe corridas — 🚧 EM ANDAMENTO
-
-### 2.1 — Aceite atômico e seguro de corrida — ✅ FECHADA
-- Criada RPC `accept_corrida_atomic` com transação única e `FOR UPDATE`.
-- Atribuição de motorista e mudança para OFFLINE ocorrem em um único efeito atômico.
-- Índice `UNIQUE` parcial impede múltiplas corridas ativas por motorista.
-
-### 2.2 — GPS real na Home do Mototaxista — ✅ FECHADA
-- Implementado monitoramento de GPS com `navigator.geolocation.watchPosition`.
-- Throttle de 10 segundos para persistência no servidor via `updateLocalizacaoMotorista`.
-- Fail-safe: erro de GPS ou permissão negada força motorista OFFLINE.
-
-### 2.3 — Oferta real e segura na Home do Mototaxista — ✅ FECHADA
-- Hardening de `getOfertasDisponiveis`:
-  - Filtro de obsolescência (apenas a mais recente por passageiro).
-  - Cálculo de distância Haversine no servidor.
-  - Limite de 10 ofertas ordenadas por proximidade e recência.
-  - Omissão de dados sensíveis na resposta ao cliente.
-- Interface de cartões integrada com polling de 5s.
-- Aceite e Recusa conectados às Server Functions.
-
-## Snapshots Técnicos (Sprint 2)
-- **2.3 Concluída:** `getOfertasDisponiveis` com Haversine e polling de 5s.
-- **2.2 Concluída:** Monitoramento de GPS com throttle de 10s e fail-safe offline.
-- **2.1 Concluída:** RPC `accept_corrida_atomic` e aceite transacional.
-- **Commit de Referência Atual:** `d5e016b2-330a-4198-b053-0c8a88f12045` (pós-build success)
-
----
-
-**Próxima etapa oficial:**
-MICROETAPA 2.4 — FLUXO DE NAVEGAÇÃO PÓS-ACEITE.
-

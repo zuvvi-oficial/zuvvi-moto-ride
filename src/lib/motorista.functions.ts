@@ -242,13 +242,27 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       .eq("status", 'solicitada')
       .is("motorista_id", null);
 
-    if (!allCandidates) return [];
+    if (!allCandidates || allCandidates.length === 0) return [];
 
-    const latestByPassenger: Record<string, any> = {};
-    for (const ride of allCandidates) {
-      if (idsRecusados.includes(ride.id)) continue;
-      if (!latestByPassenger[ride.passageiro_id] || new Date(ride.created_at) > new Date(latestByPassenger[ride.passageiro_id].created_at)) {
-        latestByPassenger[ride.passageiro_id] = ride;
+    // 1. Extrair passageiro_id dos candidatos
+    const uniquePassengerIds = Array.from(new Set(allCandidates.map(c => c.passageiro_id)));
+
+    // 2. Consultar a corrida MAIS RECENTE ABSOLUTA de cada um desses passageiros
+    // Sem filtrar por status, para detectar se a solicitada é obsoleta
+    const { data: latestRides } = await supabaseAdmin
+      .from("corridas")
+      .select("id, passageiro_id, created_at")
+      .in("passageiro_id", uniquePassengerIds)
+      .order("created_at", { ascending: false });
+
+    const absoluteLatestIds = new Set<string>();
+    if (latestRides) {
+      const processedPass = new Set<string>();
+      for (const r of latestRides) {
+        if (!processedPass.has(r.passageiro_id)) {
+          absoluteLatestIds.add(r.id);
+          processedPass.add(r.passageiro_id);
+        }
       }
     }
 
@@ -262,7 +276,24 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
-    const ofertas = Object.values(latestByPassenger)
+    // Validação de coordenadas do motorista (Hardening)
+    if (!Number.isFinite(motorista.ultima_lat) || !Number.isFinite(motorista.ultima_lng)) {
+      return [];
+    }
+
+    const ofertas = allCandidates
+      .filter(ride => {
+        // Filtro de recusa
+        if (idsRecusados.includes(ride.id)) return false;
+        
+        // Filtro de obsolescência: id deve ser o mais recente absoluto do passageiro
+        if (!absoluteLatestIds.has(ride.id)) return false;
+
+        // Validação de coordenadas da corrida
+        if (!Number.isFinite(ride.origem_lat) || !Number.isFinite(ride.origem_lng)) return false;
+
+        return true;
+      })
       .map((ride: any) => ({
         ...ride,
         distancia_aprox_m: Math.round(haversine(motorista.ultima_lat, motorista.ultima_lng, ride.origem_lat, ride.origem_lng))
