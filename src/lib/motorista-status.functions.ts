@@ -127,9 +127,21 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
       .single();
 
     if (error || !usuario) throw new Error("Usuário não encontrado.");
-    
+
+    const activeRide = await fetchActiveRide(supabaseAdmin, usuario.id);
+
     return {
       id: usuario.id,
+      active_ride: activeRide
+        ? {
+            id: activeRide.id,
+            status: activeRide.status,
+            origem_nome: activeRide.origem_nome,
+            destino_nome: activeRide.destino_nome,
+            valor_estimado: activeRide.valor_estimado,
+            forma_pagamento: activeRide.forma_pagamento,
+          }
+        : null,
       nome: usuario.nome,
       is_motorista: usuario.is_motorista,
       status_aprovacao: (usuario.motoristas as any).status_aprovacao,
