@@ -18,16 +18,17 @@ export async function resolveDestinationInternal(userId: string) {
   }
 
   const email = user.email;
-  const isEmailConfirmed = !!user.email_confirmed_at;
+  
+  // 2. Verificar se o usuário é um Administrador ativo no banco
+  const { data: adminRecord } = await supabaseAdmin
+    .from("admin_users")
+    .select("role")
+    .eq("auth_user_id", userId)
+    .eq("role", "admin")
+    .eq("ativo", true)
+    .maybeSingle();
 
-  // 2. Regra de segurança ADM: e-mail confirmado mokahz@gmail.com
-  if (email === 'mokahz@gmail.com' && isEmailConfirmed) {
-    // Bootstrap idempotente em admin_users
-    await supabaseAdmin.from("admin_users").upsert(
-      { auth_user_id: userId, role: 'admin', ativo: true },
-      { onConflict: 'auth_user_id' }
-    );
-    
+  if (adminRecord) {
     return { 
       isAdmin: true,
       redirectTo: "/admin"
