@@ -45,8 +45,7 @@ function AcompanhamentoCorrida() {
           toast.error("Acompanhamento ainda não disponível para esta corrida.");
           navigate({ to: '/' });
         }
-      } catch (err: any) {
-        console.error(err);
+      } catch {
         toast.error("Não foi possível carregar os dados do acompanhamento.");
         navigate({ to: '/' });
       } finally {
