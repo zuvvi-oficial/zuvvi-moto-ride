@@ -3,7 +3,7 @@
 **Projeto:** Zuvvi  
 **Processo:** Fechamento controlado  
 **Etapa atual:** Sprint 0 — Organização, segurança e estabilização  
-**Último commit de referência:** 09ca80b4a00441154c042834c27d37a4bb5293b7
+**Último commit de referência:** a21492eef00a5640f3c286a5c61da6ef057e9dd6
 
 ## Regras obrigatórias
 1. Uma microetapa por vez.
@@ -38,6 +38,25 @@
 - Migration aplicada real: `20260820012411_4cefdfa3-ced7-47f5-a92f-f1f10b629447.sql`.
 - Drift temporário de migrations identificado e reconciliado.
 
+### 0.4 — Base de Contra-Prova permanente — ✅ FECHADA
+- arquivo ZUVVI-FECHAMENTO-CONTROLE.md criado;
+- processo de microetapas e auditoria antes/depois registrado;
+- nenhuma alteração no Supabase.
+
+### 0.5 — Remoção do bootstrap automático de Admin — ✅ FECHADA
+- bootstrap por e-mail removido de src/lib/admin.server.ts;
+- autorização Admin depende de admin_users, ativo = true e role = admin;
+- banco permaneceu intacto;
+- teste manual aprovado nas telas Gestão de Motoristas, Gestão de Veículos e Gestão de Cidades.
+
+### 0.6 — Proteção de getMapboxToken — ✅ FECHADA TECNICAMENTE
+- getMapboxToken agora exige requireSupabaseAuth;
+- logs que revelavam informações sobre o token foram removidos;
+- nenhuma alteração no Supabase;
+- teste visual do mapa/acompanhamento ficou ADIADO, pois depende da implementação futura do fluxo:
+  - Passageiro solicita → Mototaxista recebe → Mototaxista aceita → acompanhamento/mapa
+- **Observação:** A regressão visual da 0.6 deverá ser executada obrigatoriamente quando o fluxo de aceite do Mototaxista estiver disponível.
+
 ## Pendências conhecidas — NÃO executar
 *Registradas somente como pendências, sem correção:*
 - Proteção contra senhas vazadas depende de avaliação/plano do Supabase;
@@ -53,4 +72,4 @@
 **SPRINT 0 EM ANDAMENTO**
 
 **Próxima microetapa:**
-A definir após auditoria técnica.
+A definir após auditoria técnica de encerramento do Sprint 0.
