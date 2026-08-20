@@ -283,12 +283,20 @@ export const criarCorrida = createServerFn({ method: "POST" })
 export const getCorrida = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+    const authUserId = context.userId;
+
+    // 1. Obter a corrida com os IDs necessários para validação
     const { data: corrida, error } = await supabaseAdmin
       .from("corridas")
-      .select("*")
+      .select(`
+        *,
+        usuarios!corridas_passageiro_id_fkey(auth_user_id),
+        motoristas!corridas_motorista_id_fkey(
+          usuarios(auth_user_id)
+        )
+      `)
       .eq("id", data.rideId)
       .maybeSingle();
 
@@ -296,7 +304,22 @@ export const getCorrida = createServerFn({ method: "GET" })
       throw new Error("Corrida não encontrada");
     }
 
-    return corrida;
+    // 2. Validação de Autorização
+    const passageiroAuthId = (corrida.usuarios as any)?.auth_user_id;
+    const motoristaAuthId = (corrida.motoristas as any)?.usuarios?.auth_user_id;
+
+    const isPassageiro = authUserId === passageiroAuthId;
+    const isMotorista = motoristaAuthId && authUserId === motoristaAuthId;
+
+    if (!isPassageiro && !isMotorista) {
+      // Erro genérico por segurança
+      throw new Error("Acesso negado: você não tem permissão para visualizar esta corrida.");
+    }
+
+    // 3. Remover dados de join usados apenas para validação antes de retornar
+    const { usuarios, motoristas, ...rideData } = corrida as any;
+    
+    return rideData;
   });
 
 export const getReverseGeocoding = createServerFn({ method: "POST" })
