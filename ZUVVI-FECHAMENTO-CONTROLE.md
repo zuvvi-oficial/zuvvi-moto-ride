@@ -19,9 +19,9 @@
 9. Registrar divergências entre GitHub e Supabase.
 10. Não confiar apenas no relatório do agente executor.
 11. **Processo oficial:** ALTEROU → AUDITORIA INDEPENDENTE → TESTE → CONTRA-PROVA → SOMENTE ENTÃO FECHAMENTO.
-12. Todo prompt funcional deve possuir TRAVA MÁXIMA.
-13. Tudo não autorizado é proibido.
-14. Se a solução exigir alteração fora do escopo ou colocar em risco fluxo já aprovado: ABORTAR A MISSÃO E REPORTAR O CONFLITO SEM IMPLEMENTAR.
+22. Todo prompt funcional deve possuir TRAVA MÁXIMA.
+23. Tudo não autorizado é proibido.
+24. Se a solução exigir alteração fora do escopo ou colocar em risco fluxo já aprovado: ABORTAR A MISSÃO E REPORTAR O CONFLITO SEM IMPLEMENTAR.
 
 ## Microetapas concluídas
 
@@ -201,7 +201,8 @@
 #### 1.11-K — Aprovação final explícita na ficha — ✅ FECHADA
 - Ficha do Motorista passou a possuir seção "APROVAÇÃO FINAL".
 - Estados: PRONTO PARA APROVAÇÃO FINAL; CADASTRO APROVADO.
-- Ação administrativa mostra falha real do backend.
+- A ação reutiliza o mesmo fluxo administrativo existente.
+- Não cria segunda lógica de aprovação.
 - Confirmação manual permanece obrigatória.
 
 ### Regressão em_preenchimento — ✅ APROVADA
@@ -332,3 +333,16 @@ Estes itens NÃO estão marcados como concluídos.
 
 **FECHAMENTO FUNCIONAL:** 20/08/2026  
 **COMMIT DE REFERÊNCIA:** e52a679aaa474d798003c906a6b01260454cbbd4
+
+**Próxima etapa oficial:**
+Sprint 2 — Mototaxista recebe corridas.
+
+SPRINT 2 AINDA NÃO INICIADO. Antes da primeira alteração do Sprint 2 é obrigatória:
+- nova auditoria GitHub;
+- nova auditoria Supabase;
+- leitura do Documento Mestre;
+- leitura do Plano de Fechamento;
+- leitura desta Base de Contra-Prova;
+- definição de novo baseline;
+- primeira microetapa isolada;
+- TRAVA MÁXIMA.
