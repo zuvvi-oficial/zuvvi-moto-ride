@@ -10,6 +10,57 @@ type TipoDocumento = Database["public"]["Enums"]["tipo_documento"];
  * Foco: Brasília/DF e Jacarezinho/PR (Pilotos)
  */
 
+export const getOnboardingData = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select(`
+        id,
+        is_motorista
+      `)
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !userData) {
+      throw new Error("Usuário não encontrado.");
+    }
+
+    if (!userData.is_motorista) {
+      throw new Error("Acesso restrito a motoristas.");
+    }
+
+    const motoristaId = userData.id;
+
+    // Buscar motorista
+    const { data: motorista } = await supabaseAdmin
+      .from("motoristas")
+      .select("cnh_numero, cnh_categoria, cnh_validade, chave_pix, tipo_chave_pix")
+      .eq("id", motoristaId)
+      .maybeSingle();
+
+    // Buscar veículo
+    const { data: veiculoData } = await supabaseAdmin
+      .from("veiculos")
+      .select("id, placa, ano, marca, modelo, cor, status_aprovacao, ativo")
+      .eq("motorista_id", motoristaId)
+      .maybeSingle();
+
+    // Buscar documentos
+    const { data: docsData } = await supabaseAdmin
+      .from("documentos_motorista")
+      .select("tipo_documento, status_analise, motivo_recusa")
+      .eq("motorista_id", motoristaId);
+
+    return {
+      motorista: motorista || null,
+      veiculo: veiculoData || null,
+      documentos: docsData || []
+    };
+  });
 
 export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -17,6 +68,8 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
     lat: z.number(), 
     lng: z.number() 
   }).parse(data))
+
+
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
