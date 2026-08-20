@@ -19,9 +19,9 @@
 9. Registrar divergências entre GitHub e Supabase.
 10. Não confiar apenas no relatório do agente executor.
 11. **Processo oficial:** ALTEROU → AUDITORIA INDEPENDENTE → TESTE → CONTRA-PROVA → SOMENTE ENTÃO FECHAMENTO.
-22. Todo prompt funcional deve possuir TRAVA MÁXIMA.
-23. Tudo não autorizado é proibido.
-24. Se a solução exigir alteração fora do escopo ou colocar em risco fluxo já aprovado: ABORTAR A MISSÃO E REPORTAR O CONFLITO SEM IMPLEMENTAR.
+12. Todo prompt funcional deve possuir TRAVA MÁXIMA.
+13. Tudo não autorizado é proibido.
+14. Se a solução exigir alteração fora do escopo ou colocar em risco fluxo já aprovado: ABORTAR A MISSÃO E REPORTAR O CONFLITO SEM IMPLEMENTAR.
 
 ## Microetapas concluídas
 
