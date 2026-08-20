@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useServerFn } from '@tanstack/react-start';
 import { 
   User, 
   Power, 
@@ -17,6 +18,7 @@ import {
   getMotoristaStatusHome, 
   updateMotoristaDisponibilidade 
 } from '@/lib/motorista-status.functions';
+import { updateLocalizacaoMotorista } from '@/lib/motorista.functions';
 import { resolveDestinationForLoader } from '@/lib/auth-status.functions';
 
 export const Route = createFileRoute('/home-motorista')({
@@ -33,6 +35,11 @@ export const Route = createFileRoute('/home-motorista')({
 function HomeMotorista() {
   const queryClient = useQueryClient();
   const [isToggling, setIsToggling] = useState(false);
+  const [isGpsActive, setIsGpsActive] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  
+  const watchIdRef = useRef<number | null>(null);
+  const lastUpdateRef = useRef<number>(0);
 
   const { data: status, isLoading, error } = useQuery({
     queryKey: ['motorista-status'],
@@ -58,6 +65,69 @@ function HomeMotorista() {
       setIsToggling(false);
     }
   });
+
+  const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
+
+  const stopGps = () => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsGpsActive(false);
+    setGpsError(null);
+  };
+
+  const handleGpsError = (msg: string) => {
+    stopGps();
+    setGpsError(msg);
+    toast.error(msg);
+    // Fail-safe: colocar offline
+    if (status?.is_disponivel) {
+      mutation.mutate(false);
+    }
+  };
+
+  useEffect(() => {
+    if (status?.is_disponivel) {
+      if (!navigator.geolocation) {
+        handleGpsError("Seu navegador não suporta geolocalização.");
+        return;
+      }
+
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+          const now = Date.now();
+          // NO MÁXIMO uma atualização a cada 10 segundos, exceto a primeira
+          if (!isGpsActive || now - lastUpdateRef.current >= 10000) {
+            try {
+              await updateLocationFn({ data: { lat: latitude, lng: longitude } });
+              setIsGpsActive(true);
+              setGpsError(null);
+              lastUpdateRef.current = now;
+            } catch (err: any) {
+              handleGpsError("Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.");
+            }
+          }
+        },
+        (err) => {
+          let msg = "Erro ao obter localização.";
+          if (err.code === err.PERMISSION_DENIED) {
+            msg = "Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.";
+          }
+          handleGpsError(msg);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    } else {
+      stopGps();
+    }
+
+    return () => stopGps();
+  }, [status?.is_disponivel]);
 
   const handleToggleOnline = () => {
     if (isToggling) return;
@@ -134,8 +204,12 @@ function HomeMotorista() {
               </div>
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-bold text-zuvvi-volt uppercase tracking-widest">Aguardando corridas</h2>
-              <p className="text-xs text-muted-foreground uppercase">Sua localização está sendo enviada</p>
+              <h2 className="text-lg font-bold text-zuvvi-volt uppercase tracking-widest">
+                {isGpsActive ? 'Aguardando corridas' : 'ATIVANDO LOCALIZAÇÃO...'}
+              </h2>
+              <p className="text-xs text-muted-foreground uppercase">
+                {isGpsActive ? 'LOCALIZAÇÃO ATIVA' : 'Obtendo sinal de GPS'}
+              </p>
             </div>
           </div>
         )}
