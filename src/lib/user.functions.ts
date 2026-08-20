@@ -36,13 +36,9 @@ export const getSessionUser = createServerFn({ method: "GET" })
   });
 
 export const getMapboxToken = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .handler(async () => {
     const token = process.env['MAPBOX_TOKEN'] || null;
-    if (token) {
-      console.log(`[MAPBOX_TOKEN] Encontrado. Comprimento: ${token.length} caracteres. Inicia com: ${token.substring(0, 3)}`);
-    } else {
-      console.log(`[MAPBOX_TOKEN] Não encontrado no process.env`);
-    }
     return token;
   });
 
