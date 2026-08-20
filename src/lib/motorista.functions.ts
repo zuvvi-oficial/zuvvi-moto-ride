@@ -78,6 +78,70 @@ export const getOnboardingData = createServerFn({ method: "GET" })
     };
   });
 
+export const getMotoristaStatusFeedback = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, is_motorista")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !userData) {
+      throw new Error("Usuário não encontrado.");
+    }
+
+    if (!userData.is_motorista) {
+      throw new Error("Acesso restrito a motoristas.");
+    }
+
+    const motoristaId = userData.id;
+
+    const { data: motorista, error: motoristaError } = await supabaseAdmin
+      .from("motoristas")
+      .select("status_aprovacao")
+      .eq("id", motoristaId)
+      .single();
+
+    if (motoristaError || !motorista) {
+      throw new Error("Perfil de motorista não encontrado.");
+    }
+
+    let acao: string | null = null;
+    if (motorista.status_aprovacao === "recusado") {
+      acao = "status_update_recusado";
+    } else if (motorista.status_aprovacao === "suspenso") {
+      acao = "status_update_suspenso";
+    }
+
+    if (acao) {
+      const { data: auditLog } = await supabaseAdmin
+        .from("admin_audit_logs")
+        .select("justificativa, created_at")
+        .eq("entidade", "motoristas")
+        .eq("entidade_id", motoristaId)
+        .eq("acao", acao)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      return {
+        status: motorista.status_aprovacao,
+        justificativa: auditLog?.justificativa || null,
+        created_at: auditLog?.created_at || null
+      };
+    }
+
+    return {
+      status: motorista.status_aprovacao,
+      justificativa: null,
+      created_at: null
+    };
+  });
+
 export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ 
