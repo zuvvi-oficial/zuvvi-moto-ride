@@ -1,0 +1,1 @@
+ALTER TYPE public.documento_status_analise ADD VALUE IF NOT EXISTS 'correcao_solicitada';

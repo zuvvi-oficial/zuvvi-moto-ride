@@ -733,7 +733,11 @@ export type Database = {
         | "concluida"
         | "cancelada"
         | "sem_motorista"
-      documento_status_analise: "pendente" | "aprovado" | "recusado"
+      documento_status_analise:
+        | "pendente"
+        | "aprovado"
+        | "recusado"
+        | "correcao_solicitada"
       forma_pagamento: "pix" | "cartao" | "dinheiro"
       motorista_status:
         | "draft"
@@ -910,7 +914,12 @@ export const Constants = {
         "cancelada",
         "sem_motorista",
       ],
-      documento_status_analise: ["pendente", "aprovado", "recusado"],
+      documento_status_analise: [
+        "pendente",
+        "aprovado",
+        "recusado",
+        "correcao_solicitada",
+      ],
       forma_pagamento: ["pix", "cartao", "dinheiro"],
       motorista_status: [
         "draft",
