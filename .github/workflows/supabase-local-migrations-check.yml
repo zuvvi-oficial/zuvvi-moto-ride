@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/supabase-local-migrations-check.yml'
+      - 'supabase/migrations/**'
   workflow_dispatch:
 
 jobs:
