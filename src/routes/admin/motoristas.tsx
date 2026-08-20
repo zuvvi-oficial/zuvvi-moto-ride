@@ -249,6 +249,7 @@ function AdminMotoristas() {
                       size="sm" 
                       className="bg-green-600 hover:bg-green-700"
                       onClick={() => {
+                        setActionError(null);
                         setSelectedMotorista(user);
                         setActionType('aprovado');
                       }}
@@ -261,6 +262,7 @@ function AdminMotoristas() {
                       size="sm" 
                       className="bg-amber-600 hover:bg-amber-700 text-white"
                       onClick={() => {
+                        setActionError(null);
                         setSelectedMotorista(user);
                         setActionType('suspenso');
                       }}
@@ -273,6 +275,7 @@ function AdminMotoristas() {
                       size="sm" 
                       variant="destructive"
                       onClick={() => {
+                        setActionError(null);
                         setSelectedMotorista(user);
                         setActionType('recusado');
                       }}
