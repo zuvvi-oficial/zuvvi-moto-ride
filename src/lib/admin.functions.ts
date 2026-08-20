@@ -194,18 +194,21 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
       throw new Error("Justificativa é obrigatória para recusa ou suspensão.");
     }
 
-    const updateData: any = { status_aprovacao: data.novoStatus };
-    if (data.novoStatus !== "aprovado") {
-      updateData.is_disponivel = false;
-    }
+    const updateData: any = { status_aprovacao: data.novoStatus, is_disponivel: false };
 
-
-    const { error } = await supabaseAdmin
+    const { data: updatedMotorista, error } = await supabaseAdmin
       .from("motoristas")
       .update(updateData)
-      .eq("id", data.motoristaId);
+      .eq("id", data.motoristaId)
+      .select("status_aprovacao, is_disponivel")
+      .maybeSingle();
 
     if (error) throw new Error(error.message);
+    if (!updatedMotorista) throw new Error("Erro ao atualizar motorista: registro não retornado.");
+
+    if (updatedMotorista.status_aprovacao !== data.novoStatus || updatedMotorista.is_disponivel !== false) {
+      throw new Error("Erro de integridade: a gravação final do status ou disponibilidade falhou.");
+    }
 
     await createAuditLog({
       adminId,
