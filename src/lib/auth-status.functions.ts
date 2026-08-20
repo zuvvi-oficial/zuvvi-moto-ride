@@ -89,7 +89,7 @@ export async function resolveDestinationInternal(userId: string) {
     const { data: motoristaRecord } = await supabaseAdmin
       .from("motoristas")
       .select("status_aprovacao")
-      .eq("usuario_id", userRecord.id)
+      .eq("id", userRecord.id)
       .maybeSingle();
 
     if (motoristaRecord?.status_aprovacao === "aprovado") {
