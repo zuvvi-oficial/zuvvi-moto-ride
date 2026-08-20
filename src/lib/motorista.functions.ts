@@ -197,10 +197,8 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
     const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
 
-    // Validar elegibilidade central
     const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, context.userId);
     if (!eligibility.eligible) return [];
 
@@ -210,7 +208,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
         id, 
         cidade_id, 
         cidades!inner(status),
-        motoristas!inner(is_disponivel, ultima_localizacao_at)
+        motoristas!inner(is_disponivel, ultima_localizacao_at, ultima_lat, ultima_lng)
       `)
       .eq("auth_user_id", context.userId)
       .single();
@@ -220,11 +218,9 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
     const motorista = (user.motoristas as any);
     const cidade = (user.cidades as any);
 
-    // Filtros de elegibilidade básicos (a regra central já verificou aprovação, docs, CNH e veículo)
     if (!motorista.is_disponivel) return [];
     if (cidade.status !== 'piloto' && cidade.status !== 'ativa') return [];
 
-    // GPS recente (5 minutos)
     const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
     if (!motorista.ultima_localizacao_at || new Date(motorista.ultima_localizacao_at) < cincoMinutosAtras) {
       return [];
@@ -239,22 +235,45 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
     
     const idsRecusados = (recusas?.map((r: any) => r.corrida_id) || []).filter((id): id is string => id !== null);
 
-    let query = supabaseAdmin
+    const { data: allCandidates } = await supabaseAdmin
       .from("corridas")
-      .select("id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at")
+      .select("id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, origem_lat, origem_lng, passageiro_id")
       .eq("cidade_id", user.cidade_id)
       .eq("status", 'solicitada')
       .is("motorista_id", null);
 
-    if (idsRecusados.length > 0) {
-      query = query.not("id", "in", `(${idsRecusados.join(',')})`);
+    if (!allCandidates) return [];
+
+    const latestByPassenger: Record<string, any> = {};
+    for (const ride of allCandidates) {
+      if (idsRecusados.includes(ride.id)) continue;
+      if (!latestByPassenger[ride.passageiro_id] || new Date(ride.created_at) > new Date(latestByPassenger[ride.passageiro_id].created_at)) {
+        latestByPassenger[ride.passageiro_id] = ride;
+      }
     }
 
-    const { data: ofertas } = await query
-      .order("created_at", { ascending: false })
-      .limit(10);
+    const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371e3;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
 
-    return ofertas || [];
+    const ofertas = Object.values(latestByPassenger)
+      .map((ride: any) => ({
+        ...ride,
+        distancia_aprox_m: Math.round(haversine(motorista.ultima_lat, motorista.ultima_lng, ride.origem_lat, ride.origem_lng))
+      }))
+      .sort((a, b) => a.distancia_aprox_m - b.distancia_aprox_m || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 10)
+      .map(({ id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, distancia_aprox_m }) => ({
+        id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, distancia_aprox_m
+      }));
+
+    return ofertas;
   });
 
 export const aceitarCorrida = createServerFn({ method: "POST" })
