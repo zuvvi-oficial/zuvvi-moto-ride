@@ -25,8 +25,10 @@ import {
   updateLocalizacaoMotorista,
   getOfertasDisponiveis,
   aceitarCorrida,
-  recusarCorrida
+  recusarCorrida,
+  cancelarCorridaMotorista
 } from '@/lib/motorista.functions';
+
 import { resolveDestinationForLoader } from '@/lib/auth-status.functions';
 
 export const Route = createFileRoute('/home-motorista')({
@@ -54,6 +56,8 @@ function HomeMotorista() {
   const getOfertasFn = useServerFn(getOfertasDisponiveis);
   const aceitarCorridaFn = useServerFn(aceitarCorrida);
   const recusarCorridaFn = useServerFn(recusarCorrida);
+  const cancelarCorridaFn = useServerFn(cancelarCorridaMotorista);
+
 
   const { data: status, isLoading, error } = useQuery({
     queryKey: ['motorista-status'],
@@ -125,6 +129,25 @@ function HomeMotorista() {
       setProcessingRideId(null);
     }
   };
+
+  const handleCancelarCorrida = async (rideId: string) => {
+    if (processingRideId) return;
+    
+    const confirmacao = window.confirm("Deseja realmente cancelar esta corrida? Isso pode afetar seu desempenho.");
+    if (!confirmacao) return;
+
+    setProcessingRideId(rideId);
+    try {
+      await cancelarCorridaFn({ data: { rideId } });
+      toast.success("Corrida cancelada com sucesso.");
+      queryClient.invalidateQueries({ queryKey: ['motorista-status'] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cancelar corrida.");
+    } finally {
+      setProcessingRideId(null);
+    }
+  };
+
 
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
 
@@ -313,7 +336,23 @@ function HomeMotorista() {
                 {activeRide.status === 'em_andamento' && 'CORRIDA EM ANDAMENTO'}
               </p>
             </div>
+
+            <button
+              onClick={() => handleCancelarCorrida(activeRide.id)}
+              disabled={!!processingRideId}
+              className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all disabled:opacity-50 active:scale-[0.98]"
+            >
+              {processingRideId === activeRide.id ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>PROCESSANDO...</span>
+                </div>
+              ) : (
+                'CANCELAR CORRIDA'
+              )}
+            </button>
           </div>
+
         ) : !isOnline ? (
           <div className="py-20 text-center space-y-4 animate-in fade-in duration-700">
             <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto border border-white/5">

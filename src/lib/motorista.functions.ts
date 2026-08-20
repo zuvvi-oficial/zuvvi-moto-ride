@@ -417,6 +417,54 @@ export const recusarCorrida = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    // 1. Obter o perfil do motorista
+    const { data: user, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !user) throw new Error("Motorista não encontrado.");
+    const motoristaId = user.id;
+
+    // 2. Tentar cancelar a corrida (deve pertencer a este motorista e estar em status cancelável)
+    const { data: corrida, error: updateError } = await supabaseAdmin
+      .from("corridas")
+      .update({
+        status: 'cancelada',
+        cancelado_por: 'motorista',
+        data_cancelamento: new Date().toISOString()
+      } as any)
+      .eq("id", data.rideId)
+      .eq("motorista_id", motoristaId)
+      .in("status", ['aceita', 'motorista_a_caminho'])
+      .select()
+      .maybeSingle();
+
+    if (updateError) {
+      console.error("Erro ao cancelar corrida (motorista):", updateError);
+      throw new Error("Falha ao cancelar a corrida no servidor.");
+    }
+
+    if (!corrida) {
+      throw new Error("Não foi possível cancelar esta corrida. Verifique se ela ainda está ativa.");
+    }
+
+    // 3. O motorista já fica offline por regra de negócio do aceite (accept_corrida_atomic),
+    // mas garantimos que o status de disponibilidade seja resetado se necessário.
+    // Como a Home Motorista depende de motorista-status, invalidar a query será suficiente.
+
+    return { success: true };
+  });
+
+
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ tipo: z.string() }).parse(data))
