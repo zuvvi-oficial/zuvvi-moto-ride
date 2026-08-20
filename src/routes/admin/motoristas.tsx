@@ -111,6 +111,11 @@ function AdminMotoristas() {
       toast.success(`Motorista ${actionType === 'aprovado' ? 'aprovado' : 'atualizado'} com sucesso!`);
       queryClient.invalidateQueries({ queryKey: ['admin-motoristas'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      
+      if (viewingMotoristaId && viewingMotoristaId === selectedMotorista.motoristas.id) {
+        queryClient.invalidateQueries({ queryKey: ['admin-motorista-detalhe', viewingMotoristaId] });
+      }
+
       setSelectedMotorista(null);
       setJustificativa('');
       setActionType(null);
@@ -382,6 +387,91 @@ function AdminMotoristas() {
               </div>
             ) : detalhe ? (
               <div className="space-y-8 pb-12">
+                {/* APROVAÇÃO FINAL */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-volt font-semibold">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Aprovação Final</span>
+                  </div>
+                  
+                  {detalhe.motorista.status_aprovacao === 'aprovado' ? (
+                    <Card className="bg-green-500/10 border-green-500/20 text-white">
+                      <CardContent className="pt-6 flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-bold text-green-500 uppercase">Cadastro Aprovado</div>
+                          <p className="text-xs text-green-200/70 mt-1">Este motorista já possui aprovação ativa no sistema.</p>
+                        </div>
+                        <CheckCircle className="h-8 w-8 text-green-500/50" />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="bg-white/5 border-white/10 text-white">
+                      <CardContent className="pt-6 space-y-4">
+                        {(() => {
+                          const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
+                          const docsAprovados = detalhe.documentos.filter((d: any) => tiposObrigatorios.includes(d.tipo_documento) && d.status_analise === 'aprovado');
+                          
+                          const hoje = getHojeBR();
+                          const cnhValida = detalhe.motorista.cnh_numero && 
+                                           (detalhe.motorista.cnh_categoria === 'A' || detalhe.motorista.cnh_categoria === 'AB') &&
+                                           detalhe.motorista.cnh_validade &&
+                                           detalhe.motorista.cnh_validade >= hoje;
+                          
+                          const veiculoAprovado = detalhe.veiculo && detalhe.veiculo.status_aprovacao === 'aprovado';
+                          const docsCompletos = docsAprovados.length === tiposObrigatorios.length;
+                          
+                          const prontoParaAprovar = detalhe.motorista.status_aprovacao === 'em_analise' && 
+                                                   veiculoAprovado && 
+                                                   cnhValida && 
+                                                   docsCompletos;
+
+                          if (prontoParaAprovar) {
+                            return (
+                              <div className="space-y-4">
+                                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded text-xs text-green-400">
+                                  <strong>PRONTO PARA APROVAÇÃO FINAL:</strong> CNH, veículo e documentos obrigatórios estão regulares.
+                                </div>
+                                <Button 
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6"
+                                  onClick={() => {
+                                    // Localizar o usuário correspondente na lista para reutilizar o fluxo de aprovação da tabela
+                                    const motoristaLista = motoristas?.find((m: any) => m.motoristas.id === viewingMotoristaId);
+                                    if (motoristaLista) {
+                                      setActionError(null);
+                                      setSelectedMotorista(motoristaLista);
+                                      setActionType('aprovado');
+                                    } else {
+                                      toast.error("Erro ao localizar motorista na lista.");
+                                    }
+                                  }}
+                                >
+                                  APROVAR MOTORISTA
+                                </Button>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-4">
+                              <Button 
+                                className="w-full bg-gray-600 cursor-not-allowed opacity-50 py-6"
+                                disabled
+                              >
+                                APROVAÇÃO FINAL BLOQUEADA
+                              </Button>
+                              <p className="text-[10px] text-gray-400 text-center italic">
+                                Verifique as pendências e alertas abaixo para habilitar a aprovação.
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  )}
+                </section>
+
+                <Separator className="bg-white/10" />
+
                 {/* Resumo do Cadastro */}
                 <section className="space-y-4">
                   <div className="flex items-center gap-2 text-volt font-semibold">
