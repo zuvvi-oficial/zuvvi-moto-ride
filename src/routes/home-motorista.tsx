@@ -104,7 +104,7 @@ function HomeMotorista() {
           // NO MÁXIMO uma atualização a cada 10 segundos, exceto a primeira
           if (!isGpsActive || now - lastUpdateRef.current >= 10000) {
             try {
-              await updateLocationFn({ lat: latitude, lng: longitude });
+              await updateLocationFn({ data: { lat: latitude, lng: longitude } });
               setIsGpsActive(true);
               setGpsError(null);
               lastUpdateRef.current = now;
