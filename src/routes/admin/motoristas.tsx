@@ -550,12 +550,14 @@ function AdminMotoristas() {
                       const docsEnviados = detalhe.documentos.filter((d: any) => tiposObrigatorios.includes(d.tipo_documento));
                       const docsPendentes = docsEnviados.filter((d: any) => d.status_analise === 'pendente');
                       const docsRecusados = docsEnviados.filter((d: any) => d.status_analise === 'recusado');
+                      const docsCorrecao = docsEnviados.filter((d: any) => d.status_analise === 'correcao_solicitada');
                       const cnhVencida = detalhe.motorista.cnh_validade && new Date(detalhe.motorista.cnh_validade) < new Date();
                       
                       const alertas = [];
                       if (docsEnviados.length < tiposObrigatorios.length) alertas.push(`Faltam ${tiposObrigatorios.length - docsEnviados.length} documentos obrigatórios.`);
                       if (docsPendentes.length > 0) alertas.push(`${docsPendentes.length} documento(s) aguardando análise.`);
                       if (docsRecusados.length > 0) alertas.push(`${docsRecusados.length} documento(s) recusado(s).`);
+                      if (docsCorrecao.length > 0) alertas.push(`${docsCorrecao.length} documento(s) aguardando correção.`);
                       if (cnhVencida) alertas.push("CNH do motorista está vencida.");
                       if (!detalhe.veiculo) alertas.push("Nenhum veículo vinculado ao motorista.");
                       else if (detalhe.veiculo.status_aprovacao !== 'aprovado') alertas.push("O veículo vinculado ainda não está aprovado.");
@@ -609,9 +611,10 @@ function AdminMotoristas() {
                                       <Badge variant="outline" className={
                                         doc.status_analise === 'aprovado' ? 'text-green-400 border-green-400/30' :
                                         doc.status_analise === 'recusado' ? 'text-red-400 border-red-400/30' :
+                                        doc.status_analise === 'correcao_solicitada' ? 'text-amber-500 border-amber-500/30' :
                                         'text-amber-400 border-amber-400/30'
                                       }>
-                                        {doc.status_analise.toUpperCase()}
+                                        {doc.status_analise === 'correcao_solicitada' ? 'CORREÇÃO SOLICITADA' : doc.status_analise.toUpperCase()}
                                       </Badge>
                                       <span className="text-[10px] text-gray-500 italic">
                                         {new Date(doc.data_envio).toLocaleDateString('pt-BR')}
@@ -654,19 +657,19 @@ function AdminMotoristas() {
                               )}
                             </div>
                             
-                            {doc?.motivo_recusa && (
-                              <div className="px-4 pb-4">
-                                <div className="text-[10px] text-red-400 bg-red-400/5 p-2 rounded border border-red-400/10">
-                                  <strong>RECUSA:</strong> {doc.motivo_recusa}
-                                </div>
-                              </div>
-                            )}
+                             {doc?.motivo_recusa && (
+                               <div className="px-4 pb-4">
+                                 <div className={`text-[10px] ${doc.status_analise === 'correcao_solicitada' ? 'text-amber-400 bg-amber-400/5 border-amber-400/10' : 'text-red-400 bg-red-400/5 border-red-400/10'} p-2 rounded border`}>
+                                   <strong>{doc.status_analise === 'correcao_solicitada' ? 'CORREÇÃO' : 'RECUSA'}:</strong> {doc.motivo_recusa}
+                                 </div>
+                               </div>
+                             )}
 
                             {reviewingDoc?.id === doc?.id && (
                               <div className="bg-black/20 p-4 border-t border-white/5 space-y-4">
                                 <div className="text-xs font-semibold uppercase text-volt">Revisar Documento</div>
                                 <div className="space-y-2">
-                                  <label className="text-[10px] text-gray-400 uppercase">Justificativa para recusa (opcional se aprovar):</label>
+                                  <label className="text-[10px] text-gray-400 uppercase">Justificativa da decisão:</label>
                                   <Textarea 
                                     className="bg-white/5 border-white/10 text-white text-xs min-h-[60px]"
                                     value={justificativaDoc}
@@ -682,15 +685,25 @@ function AdminMotoristas() {
                                   >
                                     Aprovar
                                   </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="destructive" 
-                                    className="flex-1 h-8 text-xs"
-                                    disabled={!justificativaDoc}
-                                    onClick={() => handleDocAction('recusado')}
-                                  >
-                                    Recusar
-                                  </Button>
+                                   <Button 
+                                     size="sm" 
+                                     variant="destructive" 
+                                     className="flex-1 h-8 text-xs"
+                                     disabled={!justificativaDoc}
+                                     onClick={() => handleDocAction('recusado')}
+                                   >
+                                     Recusar
+                                   </Button>
+                                   {reviewingDoc.tipo_documento === 'cnh' && (
+                                     <Button 
+                                       size="sm" 
+                                       className="flex-1 bg-amber-600 hover:bg-amber-700 h-8 text-xs"
+                                       disabled={!justificativaDoc}
+                                       onClick={() => handleDocAction('correcao_solicitada')}
+                                     >
+                                       Solicitar correção
+                                     </Button>
+                                   )}
                                   <Button 
                                     size="sm" 
                                     variant="ghost" 
