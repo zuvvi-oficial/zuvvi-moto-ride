@@ -411,11 +411,35 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
     // 1. Obter documento e motorista vinculado
     const { data: doc, error: docError } = await supabaseAdmin
       .from("documentos_motorista")
-      .select("*, motoristas(id, usuarios(nome))")
+      .select("*, motoristas(id, usuarios(nome), cnh_validade)")
       .eq("id", data.documentoId)
       .single();
 
     if (docError || !doc) throw new Error("Documento não encontrado.");
+
+    // BLOQUEIO SERVER-SIDE PARA CNH VENCIDA OU AUSENTE NA APROVAÇÃO
+    if (doc.tipo_documento === 'cnh' && data.novoStatus === 'aprovado') {
+      const motorista = (doc.motoristas as any);
+      const cnhValidade = motorista?.cnh_validade;
+
+      if (!cnhValidade) {
+        throw new Error("Bloqueado: A validade da CNH não está informada.");
+      }
+
+      // Regra de Data America/Sao_Paulo (Dia Civil)
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const hojeStr = formatter.format(now); // YYYY-MM-DD
+      
+      if (cnhValidade < hojeStr) {
+        throw new Error("Bloqueado: A validade da CNH está vencida. O motorista deve atualizar a CNH antes da aprovação.");
+      }
+    }
 
     if (data.novoStatus === "recusado" && !data.justificativa) {
       throw new Error("Justificativa é obrigatória para recusar um documento.");
