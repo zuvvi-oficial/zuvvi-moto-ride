@@ -118,7 +118,7 @@ export const getMotoristaStatusFeedback = createServerFn({ method: "GET" })
     }
 
     if (acao) {
-      const { data: auditLog } = await supabaseAdmin
+      const { data: auditLog, error: auditError } = await supabaseAdmin
         .from("admin_audit_logs")
         .select("justificativa, created_at")
         .eq("entidade", "motoristas")
@@ -127,6 +127,10 @@ export const getMotoristaStatusFeedback = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      if (auditError) {
+        throw new Error("Erro ao carregar detalhes do status do motorista.");
+      }
 
       return {
         status: motorista.status_aprovacao,
