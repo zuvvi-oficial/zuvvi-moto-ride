@@ -409,6 +409,49 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
       throw new Error("Justificativa é obrigatória para recusar um documento.");
     }
 
+    // MICROETAPA 1.6: FORÇAR OFFLINE QUANDO DOCUMENTO OBRIGATÓRIO PERDE APROVAÇÃO
+    if (data.novoStatus !== "aprovado") {
+      const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
+      
+      if (tiposObrigatorios.includes(doc.tipo_documento)) {
+        let targetMotoristaId = doc.motorista_id;
+
+        // Se o documento estiver vinculado somente por veiculo_id, localizar o veículo e seu motorista_id
+        if (!targetMotoristaId && doc.veiculo_id) {
+          const { data: veiculo, error: vError } = await supabaseAdmin
+            .from("veiculos")
+            .select("motorista_id")
+            .eq("id", doc.veiculo_id)
+            .single();
+          
+          if (vError || !veiculo) {
+            throw new Error("Erro de integridade: Não foi possível localizar o motorista através do veículo vinculado.");
+          }
+          targetMotoristaId = veiculo.motorista_id;
+        }
+
+        if (!targetMotoristaId) {
+          throw new Error("Erro de integridade: Não foi possível identificar um motorista válido para este documento obrigatório.");
+        }
+
+        // Definir is_disponivel = false
+        const { data: updatedMotorista, error: mUpdateError } = await supabaseAdmin
+          .from("motoristas")
+          .update({ is_disponivel: false })
+          .eq("id", targetMotoristaId)
+          .select("is_disponivel")
+          .single();
+
+        if (mUpdateError || !updatedMotorista) {
+          throw new Error("Falha ao retirar motorista de ONLINE. Operação abortada.");
+        }
+        
+        if (updatedMotorista.is_disponivel !== false) {
+          throw new Error("Falha crítica ao confirmar status OFFLINE do motorista vinculado ao documento.");
+        }
+      }
+    }
+
     // 2. Atualizar status
     const { error: updateError } = await supabaseAdmin
       .from("documentos_motorista")
