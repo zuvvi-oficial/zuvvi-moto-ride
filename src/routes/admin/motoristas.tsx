@@ -482,10 +482,19 @@ function AdminMotoristas() {
                     </div>
                     <div>
                       <div className="text-gray-400">Validade</div>
-                      <div className="font-medium flex items-center gap-2">
-                        {detalhe.motorista.cnh_validade ? new Date(detalhe.motorista.cnh_validade).toLocaleDateString('pt-BR') : "Não informado"}
-                        {detalhe.motorista.cnh_validade && new Date(detalhe.motorista.cnh_validade) < new Date() && (
-                          <Badge variant="destructive" className="h-5 text-[10px]">VENCIDA</Badge>
+                      <div className="font-medium flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          {detalhe.motorista.cnh_validade ? new Date(detalhe.motorista.cnh_validade + 'T12:00:00').toLocaleDateString('pt-BR') : "Não informado"}
+                          {detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() && (
+                            <Badge variant="destructive" className="h-5 text-[10px] bg-red-600">VENCIDA</Badge>
+                          )}
+                        </div>
+                        {detalhe.motorista.cnh_validade && detalhe.motorista.cnh_validade < getHojeBR() && (
+                          <div className="text-[10px] text-red-500 font-bold uppercase flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            BLOQUEIO AUTOMÁTICO
+                            <span className="normal-case font-normal text-gray-400 ml-1">— Motorista impedido de operar até regularizar a CNH.</span>
+                          </div>
                         )}
                       </div>
                     </div>
