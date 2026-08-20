@@ -31,6 +31,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+  const [initialLoadError, setInitialLoadError] = useState(false);
   
   const hasHydrated = useRef(false);
   const veiculoDirty = useRef(false);
@@ -168,6 +169,7 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         hasHydrated.current = true;
       } catch (error) {
         console.error("Erro ao carregar dados de onboarding:", error);
+        setInitialLoadError(true);
       } finally {
         setIsLoadingInitialData(false);
       }
