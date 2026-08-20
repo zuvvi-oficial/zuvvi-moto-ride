@@ -57,8 +57,10 @@ function ProcurandoMotorista() {
         const data = await getCorridaFn({ data: { rideId } });
         setCorrida(data);
         
-        if (data && 'motorista_id' in data && data['motorista_id']) {
+        const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+        if (data && data.motorista_id && assignedStatuses.includes(data.status)) {
           setMotoristaEncontrado(true);
+          navigate({ to: '/acompanhamento', search: { rideId } });
         }
       } catch (err) {
         console.error(err);
@@ -83,11 +85,11 @@ function ProcurandoMotorista() {
           filter: `id=eq.${rideId}`,
         },
         (payload) => {
-          console.log('Corrida atualizada:', payload.new);
-          const updatedRide = payload.new;
+          const updatedRide = payload.new as any;
           setCorrida(updatedRide);
           
-          if (updatedRide['motorista_id'] && !motoristaEncontrado) {
+          const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+          if (updatedRide.motorista_id && assignedStatuses.includes(updatedRide.status) && !motoristaEncontrado) {
             setMotoristaEncontrado(true);
             toast.success("Motorista encontrou você!");
             navigate({ to: '/acompanhamento', search: { rideId } });
