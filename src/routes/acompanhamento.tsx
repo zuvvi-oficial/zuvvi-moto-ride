@@ -12,7 +12,7 @@ const searchSchema = z.object({
   rideId: z.string(),
 });
 
-export const Route = createFileRoute('/acompanhamento')({
+export const Route = createFileRoute("/acompanhamento")({
   validateSearch: (search) => searchSchema.parse(search),
   component: AcompanhamentoCorrida,
 });
