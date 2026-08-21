@@ -518,7 +518,7 @@ Registrado em 21/08/2026 como PENDÊNCIA (não falha da 2.8).
 **SPRINT 2 — ⚠️ EM ANDAMENTO**
 
 **FECHAMENTO FUNCIONAL ATUAL:** 21/08/2026
-**BASELINE GITHUB:** 1897b7bb73d933d2155fc15d3263253626bee8d4 (após Microcorreção 2.8-D)
+**BASELINE GITHUB:** 10123b47cde9e8d08f96ddb0bcfaffcf00e48593 (após Microcorreção 2.8-D)
 
 **Próxima etapa oficial:**
 Auditoria e correção isolada do cancelamento no passageiro (sincronização de `/acompanhamento`).
