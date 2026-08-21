@@ -20,6 +20,8 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MapView } from "@/components/MapView";
+import { getMapboxToken } from "@/lib/user.functions";
 import {
   getMotoristaStatusHome,
   updateMotoristaDisponibilidade,
@@ -64,6 +66,7 @@ function HomeMotorista() {
   const aceitarCorridaFn = useServerFn(aceitarCorrida);
   const recusarCorridaFn = useServerFn(recusarCorrida);
   const cancelarCorridaFn = useServerFn(cancelarCorridaMotorista);
+  const getMapboxTokenFn = useServerFn(getMapboxToken);
 
   const {
     data: status,
@@ -79,6 +82,13 @@ function HomeMotorista() {
 
   const activeRide = status?.active_ride ?? null;
   const isOnline = !!status?.is_disponivel;
+
+  const { data: mapboxToken } = useQuery({
+    queryKey: ["mapbox-token-motorista"],
+    queryFn: () => getMapboxTokenFn(),
+    enabled: Boolean(activeRide),
+    staleTime: Infinity,
+  });
 
   const { data: rawOfertas = [] } = useQuery({
     queryKey: ["motorista-ofertas"],
@@ -345,6 +355,31 @@ function HomeMotorista() {
                 Corrida aceita
               </span>
             </div>
+
+            {activeRide && mapboxToken && activeRide.origem_lat && activeRide.origem_lng ? (
+              <div className="space-y-2">
+                <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
+                  Local de Embarque
+                </p>
+                <div className="h-56 rounded-2xl overflow-hidden border border-white/5 relative">
+                  <MapView
+                    center={{
+                      lat: Number(activeRide.origem_lat),
+                      lng: Number(activeRide.origem_lng),
+                    }}
+                    token={mapboxToken}
+                    zoom={15}
+                    className="w-full h-full"
+                  />
+                </div>
+              </div>
+            ) : activeRide && !mapboxToken ? (
+              <div className="h-56 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+                <p className="text-[10px] text-white/40 uppercase font-bold">
+                  Mapa temporariamente indisponível.
+                </p>
+              </div>
+            ) : null}
 
             <div className="flex gap-4">
               <div className="flex flex-col items-center gap-1 mt-1">
