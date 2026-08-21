@@ -495,7 +495,7 @@ function FavoritosDialog({
           mode === "add" 
             ? "sm:top-1/2 sm:-translate-y-1/2 p-4 sm:p-6" 
             : "p-6"
-        }`}
+        } ${isMobileAdd ? "flex flex-col" : ""}`}
         style={
           isMobileAdd
             ? (viewport ? {
@@ -518,7 +518,7 @@ function FavoritosDialog({
             : undefined
         }
       >
-        <DialogHeader className={isMobileAdd ? "mb-3" : "mb-4"}>
+        <DialogHeader className={`${isMobileAdd ? "mb-3 shrink-0" : "mb-4"}`}>
           <div className="flex items-center gap-3">
             {mode === "add" && (
               <button 
@@ -660,65 +660,69 @@ function FavoritosDialog({
             )}
           </div>
         ) : (
-          <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-            isMobileAdd ? "space-y-4" : "space-y-6"
-          }`}>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
-              <input 
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Ex.: Casa, Trabalho, Academia"
-                maxLength={40}
-                className={`w-full bg-white/5 border border-white/10 rounded-2xl px-5 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 ${
-                  isMobileAdd ? "h-12 py-0" : "py-4"
-                }`}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Endereço</label>
-              <DestinoSearch 
-                location={location}
-                placeholder="Buscar endereço..."
-                compact={!!isMobileAdd}
-                onSelect={(res) => setSelectedAddress({
-                  endereco: res.place_name,
-                  latitude: res.center[1],
-                  longitude: res.center[0]
-                })}
-              />
-            </div>
-
-            {selectedAddress && (
-              <div className={`bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
-                isMobileAdd ? "p-3" : "p-4"
-              }`}>
-                <p className="text-[8px] font-black uppercase tracking-widest text-zuvvi-volt mb-1">ENDEREÇO SELECIONADO</p>
-                <p className="text-xs font-bold leading-tight">{selectedAddress.endereco}</p>
+          <>
+            <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+              isMobileAdd ? "space-y-4" : "space-y-6"
+            }`}>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
+                <input 
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Ex.: Casa, Trabalho, Academia"
+                  maxLength={40}
+                  className={`w-full bg-white/5 border border-white/10 rounded-2xl px-5 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 ${
+                    isMobileAdd ? "h-12 py-0" : "py-4"
+                  }`}
+                />
               </div>
-            )}
 
-            <button 
-              disabled={!nome.trim() || !selectedAddress || createMutation.isPending}
-              onClick={() => createMutation.mutate({
-                nome: nome.trim(),
-                endereco: selectedAddress?.endereco,
-                latitude: selectedAddress?.latitude,
-                longitude: selectedAddress?.longitude
-              })}
-              className={`w-full bg-zuvvi-volt text-zuvvi-indigo rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 ${
-                isMobileAdd ? "h-12" : "py-4"
-              }`}
-            >
-              {createMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "SALVAR FAVORITO"
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Endereço</label>
+                <DestinoSearch 
+                  location={location}
+                  placeholder="Buscar endereço..."
+                  compact={!!isMobileAdd}
+                  onSelect={(res) => setSelectedAddress({
+                    endereco: res.place_name,
+                    latitude: res.center[1],
+                    longitude: res.center[0]
+                  })}
+                />
+              </div>
+
+              {selectedAddress && (
+                <div className={`bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
+                  isMobileAdd ? "p-3" : "p-4"
+                }`}>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-zuvvi-volt mb-1">ENDEREÇO SELECIONADO</p>
+                  <p className="text-xs font-bold leading-tight">{selectedAddress.endereco}</p>
+                </div>
               )}
-            </button>
-          </div>
+            </div>
+
+            <div className={`${isMobileAdd ? "shrink-0 pt-3" : ""}`}>
+              <button 
+                disabled={!nome.trim() || !selectedAddress || createMutation.isPending}
+                onClick={() => createMutation.mutate({
+                  nome: nome.trim(),
+                  endereco: selectedAddress?.endereco,
+                  latitude: selectedAddress?.latitude,
+                  longitude: selectedAddress?.longitude
+                })}
+                className={`w-full bg-zuvvi-volt text-zuvvi-indigo rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 ${
+                  isMobileAdd ? "h-12" : "py-4"
+                }`}
+              >
+                {createMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "SALVAR FAVORITO"
+                )}
+              </button>
+            </div>
+          </>
         )}
       </DialogContent>
     </Dialog>
