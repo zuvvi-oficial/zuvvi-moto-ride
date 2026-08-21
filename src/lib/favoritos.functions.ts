@@ -57,6 +57,18 @@ export const criarFavorito = createServerFn({ method: "POST" })
       throw new Error("Usuário não encontrado.");
     }
 
+    // PART 1: Server-side limit check (10)
+    const { count, error: countError } = await supabaseAdmin
+      .from("enderecos_favoritos")
+      .select("id", { count: "exact", head: true })
+      .eq("usuario_id", usuario.id);
+
+    if (countError) throw countError;
+    
+    if (count !== null && count >= 10) {
+      throw new Error("Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.");
+    }
+
     // Check for duplicate name (case insensitive)
     const { data: existing } = await supabaseAdmin
       .from("enderecos_favoritos")
@@ -79,7 +91,13 @@ export const criarFavorito = createServerFn({ method: "POST" })
         longitude: data.longitude,
       });
 
-    if (error) throw error;
+    if (error) {
+      // PART 3: Database error translation
+      if (error.code === '23514' || error.message?.includes('limite de 10')) {
+        throw new Error("Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.");
+      }
+      throw error;
+    }
 
     return { success: true };
   });
