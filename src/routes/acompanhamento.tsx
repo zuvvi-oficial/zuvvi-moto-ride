@@ -2,10 +2,18 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getMapboxToken, getAcompanhamentoPassageiro } from "@/lib/user.functions";
+import {
+  carregarChat,
+  enviarMensagemChat,
+  marcarMensagensEntregues,
+  marcarMensagensLidas,
+  atualizarPresencaChat,
+} from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Bike, Loader2, ChevronLeft, User, Star, XCircle } from "lucide-react";
+import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle } from "lucide-react";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
+import { ChatConversation } from "@/components/chat/ChatConversation";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
@@ -16,6 +24,30 @@ export const Route = createFileRoute("/acompanhamento")({
   validateSearch: (search) => searchSchema.parse(search),
   component: AcompanhamentoCorrida,
 });
+
+interface ChatMensagem {
+  id: string;
+  clientMessageId: string;
+  remetenteId: string;
+  conteudo: string;
+  createdAt: string;
+  entregueAt: string | null;
+  lidoAt: string | null;
+}
+
+interface ChatData {
+  meuUsuarioId: string;
+  interlocutor: {
+    id: string;
+    nome: string;
+  };
+  mensagens: ChatMensagem[];
+  presenca: {
+    ultimoVistoAt: string;
+    digitandoAte: string | null;
+  } | null;
+  podeEnviar: boolean;
+}
 
 function AcompanhamentoCorrida() {
   const { rideId } = Route.useSearch();
@@ -29,8 +61,25 @@ function AcompanhamentoCorrida() {
   const cancellationRedirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [cancellationNotice, setCancellationNotice] = useState<{ title: string; message: string } | null>(null);
 
+  // Estados do Chat
+  const [chatOpen, setChatOpen] = useState(false);
+  const chatOpenRef = useRef(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [chatData, setChatData] = useState<ChatData | null>(null);
+  const [chatSending, setChatSending] = useState(false);
+  const digitandoRef = useRef(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
+
+  // Server Functions do Chat
+  const carregarChatFn = useServerFn(carregarChat);
+  const enviarMensagemFn = useServerFn(enviarMensagemChat);
+  const marcarEntreguesFn = useServerFn(marcarMensagensEntregues);
+  const marcarLidasFn = useServerFn(marcarMensagensLidas);
+  const atualizarPresencaFn = useServerFn(atualizarPresencaChat);
 
   useEffect(() => {
     async function init() {
@@ -101,6 +150,132 @@ function AcompanhamentoCorrida() {
       }
     };
   }, [rideId, navigate]);
+
+  const refreshChat = async () => {
+    try {
+      const data = await carregarChatFn({ data: { corridaId: rideId } });
+      setChatData(data as ChatData);
+      setChatError(null);
+
+      // Após carregar, marcar como entregue e lida (server-side)
+      await Promise.all([
+        marcarEntreguesFn({ data: { corridaId: rideId } }),
+        marcarLidasFn({ data: { corridaId: rideId } }),
+      ]);
+    } catch {
+      setChatError("Não foi possível carregar o chat.");
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    chatOpenRef.current = chatOpen;
+
+    if (chatOpen) {
+      setChatLoading(true);
+      refreshChat();
+
+      // Heartbeat a cada 20 segundos
+      const heartbeatInterval = setInterval(() => {
+        atualizarPresencaFn({
+          data: {
+            corridaId: rideId,
+            digitando: digitandoRef.current,
+          },
+        }).catch(() => {
+          /* Falha silenciosa de presença */
+        });
+      }, 20000);
+
+      // Subscrever Realtime do Chat
+      const chatChannel = supabase
+        .channel(`chat-passageiro-${rideId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "chat_mensagens",
+            filter: `corrida_id=eq.${rideId}`,
+          },
+          () => {
+            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+            debounceTimeoutRef.current = setTimeout(() => {
+              if (chatOpenRef.current) refreshChat();
+            }, 200);
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "chat_presenca",
+            filter: `corrida_id=eq.${rideId}`,
+          },
+          () => {
+            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+            debounceTimeoutRef.current = setTimeout(() => {
+              if (chatOpenRef.current) refreshChat();
+            }, 200);
+          }
+        )
+        .subscribe();
+
+      // Presença inicial
+      atualizarPresencaFn({
+        data: {
+          corridaId: rideId,
+          digitando: false,
+        },
+      }).catch(() => {});
+
+      return () => {
+        clearInterval(heartbeatInterval);
+        supabase.removeChannel(chatChannel);
+        if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+
+        // Best effort: avisar que parou de digitar ao fechar
+        atualizarPresencaFn({
+          data: {
+            corridaId: rideId,
+            digitando: false,
+          },
+        }).catch(() => {});
+      };
+    }
+  }, [chatOpen, rideId]);
+
+  const handleEnviarMensagem = async (conteudo: string) => {
+    setChatSending(true);
+    try {
+      const clientMessageId = crypto.randomUUID();
+      await enviarMensagemFn({
+        data: {
+          corridaId: rideId,
+          clientMessageId,
+          conteudo,
+        },
+      });
+      await refreshChat();
+    } catch {
+      setChatError("Erro ao enviar mensagem.");
+      throw new Error("Erro ao enviar"); // ChatConversation manterá o draft
+    } finally {
+      setChatSending(false);
+    }
+  };
+
+  const handleDigitandoChange = (digitando: boolean) => {
+    digitandoRef.current = digitando;
+    atualizarPresencaFn({
+      data: {
+        corridaId: rideId,
+        digitando,
+      },
+    }).catch(() => {});
+  };
 
   if (isLoading || !corrida) {
     return (
@@ -175,9 +350,14 @@ function AcompanhamentoCorrida() {
                   </p>
                 </div>
               </div>
-              <div className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl">
-                 <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">Em breve: Chat</p>
-              </div>
+              <button 
+                onClick={() => setChatOpen(true)}
+                className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px]"
+                aria-label="Chat com motorista"
+              >
+                 <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
+                 <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">Chat</p>
+              </button>
             </div>
           </div>
         </div>
@@ -203,6 +383,23 @@ function AcompanhamentoCorrida() {
           </div>
         </div>
       )}
+
+      {/* Componente de Chat */}
+      <ChatConversation
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        meuUsuarioId={chatData?.meuUsuarioId || ""}
+        interlocutor={chatData?.interlocutor || { id: motorista?.id || "", nome: motorista?.nome || "Motorista" }}
+        mensagens={chatData?.mensagens || []}
+        presenca={chatData?.presenca || null}
+        podeEnviar={chatData?.podeEnviar ?? false}
+        loading={chatLoading}
+        error={chatError}
+        enviando={chatSending}
+        onEnviar={handleEnviarMensagem}
+        onDigitandoChange={handleDigitandoChange}
+        onRetry={refreshChat}
+      />
 
     </div>
   );
