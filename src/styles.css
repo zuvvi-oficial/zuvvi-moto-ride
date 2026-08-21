@@ -141,6 +141,10 @@
 
   html {
     scroll-behavior: smooth;
+    background-color: var(--color-background);
+    /* Avoid involuntary body scroll / 100vh jumps in installed PWA mode */
+    height: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -149,6 +153,8 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
