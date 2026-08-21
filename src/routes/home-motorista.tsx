@@ -97,10 +97,16 @@ function HomeMotorista() {
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
     onSuccess: (data) => {
-      queryClient.setQueryData(["motorista-status"], (old: any) => ({
-        ...old,
-        is_disponivel: data.is_disponivel,
-      }));
+      queryClient.setQueryData(
+        ["motorista-status"],
+        (old: MotoristaStatus | undefined) => {
+          if (!old) return undefined;
+          return {
+            ...old,
+            is_disponivel: data.is_disponivel,
+          };
+        },
+      );
       if (!data.is_disponivel) {
         queryClient.setQueryData(["motorista-ofertas"], []);
       }
