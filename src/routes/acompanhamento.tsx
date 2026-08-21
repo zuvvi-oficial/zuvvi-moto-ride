@@ -58,7 +58,7 @@ function AcompanhamentoCorrida() {
     origem_lat: number;
     origem_lng: number;
   } | null>(null);
-  const [motorista, setMotorista] = useState<any>(null);
+  const [motorista, setMotorista] = useState<{ id?: string; nome: string; nota_media: number | null } | null>(null);
   const [veiculo, setVeiculo] = useState<{
     placa: string;
     marca: string;
