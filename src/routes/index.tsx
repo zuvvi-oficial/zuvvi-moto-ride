@@ -487,15 +487,15 @@ function FavoritosDialog({
       }}
     >
       <DialogContent 
-        className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6 transition-all duration-300 ${
+        className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 shadow-2xl transition-all duration-300 ${
           mode === "add" 
-            ? "sm:top-1/2 sm:-translate-y-1/2" 
-            : ""
+            ? "sm:top-1/2 sm:-translate-y-1/2 sm:rounded-[2rem] p-4 sm:p-6" 
+            : "rounded-[2rem] p-6"
         }`}
         style={
           mode === "add"
             ? (viewport ? {
-                position: 'absolute',
+                position: 'fixed',
                 top: `${viewport.offsetTop + 88}px`,
                 left: `${viewport.offsetLeft + viewport.width / 2}px`,
                 width: `${Math.min(viewport.width - 32, 448)}px`,
@@ -504,6 +504,7 @@ function FavoritosDialog({
                 translate: 'none',
               } : {
                 // Fallback mobile mode add
+                position: 'fixed',
                 top: '88px',
                 left: '50%',
                 transform: 'translateX(-50%)',
@@ -517,7 +518,7 @@ function FavoritosDialog({
             }
         }
       >
-        <DialogHeader className="mb-4">
+        <DialogHeader className={mode === "add" && viewport && viewport.width < 640 ? "mb-3" : "mb-4"}>
           <div className="flex items-center gap-3">
             {mode === "add" && (
               <button 
@@ -529,14 +530,22 @@ function FavoritosDialog({
               </button>
             )}
 
-            <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center">
-              <Star className="text-zuvvi-volt w-5 h-5" />
+            <div className={`rounded-xl bg-zuvvi-volt/10 flex items-center justify-center shrink-0 ${
+              mode === "add" && viewport && viewport.width < 640 ? "w-9 h-9" : "w-10 h-10"
+            }`}>
+              <Star className={`text-zuvvi-volt ${
+                mode === "add" && viewport && viewport.width < 640 ? "w-[18px] h-[18px]" : "w-5 h-5"
+              }`} />
             </div>
-            <div>
-              <DialogTitle className="text-xl font-bold">
+            <div className="min-w-0">
+              <DialogTitle className={`font-bold truncate ${
+                mode === "add" && viewport && viewport.width < 640 ? "text-lg" : "text-xl"
+              }`}>
                 {mode === "list" ? "Seus favoritos" : "Novo favorito"}
               </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
+              <DialogDescription className={`text-muted-foreground leading-snug ${
+                mode === "add" && viewport && viewport.width < 640 ? "text-xs" : "text-sm"
+              }`}>
                 {mode === "list" 
                   ? "Salve lugares para chegar mais rápido." 
                   : "Adicione um nome e escolha o local."}
