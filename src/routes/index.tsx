@@ -168,8 +168,31 @@ function HomePassageiro({ nome }: { nome: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.lat, location?.lng, isLocating]);
 
+  const handleDestinationSelected = (dest: {
+    latitude: number;
+    longitude: number;
+    endereco: string;
+  }) => {
+    const currentOrigin = isManualOrigin ? manualLocation : location;
+    const currentOriginName = isManualOrigin ? manualAddress : originAddress;
+
+    if (currentOrigin && currentOriginName) {
+      navigate({
+        to: '/confirmar-corrida',
+        search: {
+          originLat: currentOrigin.lat,
+          originLng: currentOrigin.lng,
+          destLat: dest.latitude,
+          destLng: dest.longitude,
+          destName: dest.endereco.split(',')[0],
+          originName: currentOriginName.split(',')[0] + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
+        }
+      });
+    }
+  };
 
   return (
+
     <div 
       className="relative bg-zuvvi-indigo text-foreground overflow-hidden"
       style={{ height: '100dvh', width: '100vw' }}
