@@ -487,15 +487,15 @@ function FavoritosDialog({
       }}
     >
       <DialogContent 
-        className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6 transition-all duration-300 ${
+        className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 shadow-2xl transition-all duration-300 ${
           mode === "add" 
-            ? "sm:top-1/2 sm:-translate-y-1/2" 
-            : ""
+            ? "sm:top-1/2 sm:-translate-y-1/2 sm:rounded-[2rem] p-4 sm:p-6" 
+            : "rounded-[2rem] p-6"
         }`}
         style={
           mode === "add"
             ? (viewport ? {
-                position: 'absolute',
+                position: 'fixed',
                 top: `${viewport.offsetTop + 88}px`,
                 left: `${viewport.offsetLeft + viewport.width / 2}px`,
                 width: `${Math.min(viewport.width - 32, 448)}px`,
@@ -504,6 +504,7 @@ function FavoritosDialog({
                 translate: 'none',
               } : {
                 // Fallback mobile mode add
+                position: 'fixed',
                 top: '88px',
                 left: '50%',
                 transform: 'translateX(-50%)',
@@ -517,7 +518,7 @@ function FavoritosDialog({
             }
         }
       >
-        <DialogHeader className="mb-4">
+        <DialogHeader className={mode === "add" && viewport && viewport.width < 640 ? "mb-3" : "mb-4"}>
           <div className="flex items-center gap-3">
             {mode === "add" && (
               <button 
@@ -529,14 +530,22 @@ function FavoritosDialog({
               </button>
             )}
 
-            <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center">
-              <Star className="text-zuvvi-volt w-5 h-5" />
+            <div className={`rounded-xl bg-zuvvi-volt/10 flex items-center justify-center shrink-0 ${
+              mode === "add" && viewport && viewport.width < 640 ? "w-9 h-9" : "w-10 h-10"
+            }`}>
+              <Star className={`text-zuvvi-volt ${
+                mode === "add" && viewport && viewport.width < 640 ? "w-[18px] h-[18px]" : "w-5 h-5"
+              }`} />
             </div>
-            <div>
-              <DialogTitle className="text-xl font-bold">
+            <div className="min-w-0">
+              <DialogTitle className={`font-bold truncate ${
+                mode === "add" && viewport && viewport.width < 640 ? "text-lg" : "text-xl"
+              }`}>
                 {mode === "list" ? "Seus favoritos" : "Novo favorito"}
               </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
+              <DialogDescription className={`text-muted-foreground leading-snug ${
+                mode === "add" && viewport && viewport.width < 640 ? "text-xs" : "text-sm"
+              }`}>
                 {mode === "list" 
                   ? "Salve lugares para chegar mais rápido." 
                   : "Adicione um nome e escolha o local."}
@@ -651,7 +660,9 @@ function FavoritosDialog({
             )}
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar space-y-6">
+          <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar ${
+            mode === "add" && viewport && viewport.width < 640 ? "space-y-4" : "space-y-6"
+          }`}>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
               <input 
@@ -660,7 +671,9 @@ function FavoritosDialog({
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Ex.: Casa, Trabalho, Academia"
                 maxLength={40}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-5 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                className={`w-full bg-white/5 border border-white/10 rounded-2xl px-5 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 ${
+                  mode === "add" && viewport && viewport.width < 640 ? "h-12 py-0" : "py-4"
+                }`}
               />
             </div>
 
@@ -669,6 +682,7 @@ function FavoritosDialog({
               <DestinoSearch 
                 location={location}
                 placeholder="Buscar endereço..."
+                compact={!!(mode === "add" && viewport && viewport.width < 640)}
                 onSelect={(res) => setSelectedAddress({
                   endereco: res.place_name,
                   latitude: res.center[1],
@@ -678,7 +692,9 @@ function FavoritosDialog({
             </div>
 
             {selectedAddress && (
-              <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2">
+              <div className={`bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
+                mode === "add" && viewport && viewport.width < 640 ? "p-3" : "p-4"
+              }`}>
                 <p className="text-[8px] font-black uppercase tracking-widest text-zuvvi-volt mb-1">ENDEREÇO SELECIONADO</p>
                 <p className="text-xs font-bold leading-tight">{selectedAddress.endereco}</p>
               </div>
@@ -692,7 +708,9 @@ function FavoritosDialog({
                 latitude: selectedAddress?.latitude,
                 longitude: selectedAddress?.longitude
               })}
-              className="w-full bg-zuvvi-volt text-zuvvi-indigo py-4 rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+              className={`w-full bg-zuvvi-volt text-zuvvi-indigo rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 ${
+                mode === "add" && viewport && viewport.width < 640 ? "h-12" : "py-4"
+              }`}
             >
               {createMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -712,12 +730,14 @@ function DestinoSearch({
   location, 
   onSelect, 
   placeholder = "Para onde vamos?", 
-  autoFocus = false 
+  autoFocus = false,
+  compact = false
 }: { 
   location: { lat: number; lng: number } | null, 
   onSelect: (dest: any) => void,
   placeholder?: string,
-  autoFocus?: boolean
+  autoFocus?: boolean,
+  compact?: boolean
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -755,7 +775,7 @@ function DestinoSearch({
 
   return (
     <div className="relative group">
-      <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+      <div className={`absolute inset-y-0 left-6 flex items-center pointer-events-none ${compact ? 'left-5' : ''}`}>
         <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
       </div>
       <input
@@ -764,31 +784,49 @@ function DestinoSearch({
         autoFocus={autoFocus}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] py-6 pl-14 pr-4 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl text-base font-bold placeholder:text-muted-foreground/50"
+        className={`w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl font-bold placeholder:text-muted-foreground/50 ${
+          compact 
+            ? "h-12 py-0 pl-12 pr-4 rounded-2xl text-sm" 
+            : "py-6 pl-14 pr-4 rounded-[2rem] text-base"
+        }`}
       />
       
       {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-3 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className={`absolute top-full left-0 right-0 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300 ${
+          compact ? "mt-2 rounded-2xl" : "mt-3 rounded-[2rem]"
+        }`}>
           <div className="max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain custom-scrollbar">
-            {results.map((result) => (
-            <button
-              key={result.id}
-              onClick={() => {
-                onSelect(result);
-                setIsOpen(false);
-                setQuery('');
-              }}
-              className="w-full text-left px-6 py-4 flex items-start gap-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-            >
-              <div className="w-8 h-8 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0 mt-0.5">
-                <MapPin className="text-zuvvi-volt w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold truncate">{result.text}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{result.place_name}</p>
-              </div>
-            </button>
-            ))}
+            {results.map((result) => {
+              // Somente no modo compact para exibição, remover do início de place_name a repetição de result.text
+              let secondaryText = result.place_name;
+              if (compact && result.text && secondaryText.startsWith(result.text)) {
+                secondaryText = secondaryText.substring(result.text.length).replace(/^[, ]+/, '');
+              }
+
+              return (
+                <button
+                  key={result.id}
+                  onClick={() => {
+                    onSelect(result);
+                    setIsOpen(false);
+                    setQuery('');
+                  }}
+                  className={`w-full text-left flex items-start gap-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 ${
+                    compact ? "px-4 py-3 gap-3" : "px-6 py-4"
+                  }`}
+                >
+                  <div className={`rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0 mt-0.5 ${
+                    compact ? "w-7 h-7" : "w-8 h-8"
+                  }`}>
+                    <MapPin className={`text-zuvvi-volt ${compact ? "w-3.5 h-3.5" : "w-4 h-4"}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold truncate">{result.text}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{secondaryText}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
