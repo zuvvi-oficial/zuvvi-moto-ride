@@ -145,19 +145,28 @@ function HomeMotorista() {
   const digitandoRef = useRef(false);
   const chatDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const activeChatRideIdRef = useRef<string | undefined>(undefined);
+  const chatSessionRideIdRef = useRef<string | undefined>(undefined);
 
   const handleChatOpenChange = (open: boolean) => {
     if (open && !activeRide?.id) return;
-    chatOpenRef.current = open;
-    if (!open) {
+    
+    if (open && activeRide?.id) {
+      chatSessionRideIdRef.current = activeRide.id;
+      chatOpenRef.current = true;
+      setChatOpen(true);
+    } else {
+      chatSessionRideIdRef.current = undefined;
+      chatOpenRef.current = false;
       digitandoRef.current = false;
+      setChatOpen(false);
     }
-    setChatOpen(open);
   };
 
   const refreshChat = useCallback(async () => {
     if (!activeRide?.id) return;
     const currentRideId = activeRide.id;
+
+    if (chatSessionRideIdRef.current !== currentRideId) return;
 
     try {
       const inicial = await carregarChatFn({ data: { corridaId: currentRideId } });
@@ -188,6 +197,7 @@ function HomeMotorista() {
 
   useEffect(() => {
     activeChatRideIdRef.current = activeRide?.id;
+    chatSessionRideIdRef.current = undefined;
     chatOpenRef.current = false;
     digitandoRef.current = false;
     setChatOpen(false);
@@ -198,7 +208,8 @@ function HomeMotorista() {
   }, [activeRide?.id]);
 
   useEffect(() => {
-    if (!chatOpen || !activeRide?.id) return;
+    const corridaId = activeRide?.id;
+    if (!chatOpen || !corridaId || chatSessionRideIdRef.current !== corridaId) return;
 
     setChatLoading(true);
     void refreshChat();
@@ -206,21 +217,21 @@ function HomeMotorista() {
     const heartbeatInterval = setInterval(() => {
       void atualizarPresencaFn({
         data: {
-          corridaId: activeRide.id,
+          corridaId: corridaId,
           digitando: digitandoRef.current,
         },
       }).catch(() => {});
     }, 20000);
 
     const chatChannel = supabase
-      .channel(`chat-motorista-${activeRide.id}`)
+      .channel(`chat-motorista-${corridaId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "chat_mensagens",
-          filter: `corrida_id=eq.${activeRide.id}`,
+          filter: `corrida_id=eq.${corridaId}`,
         },
         () => {
           if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
@@ -235,7 +246,7 @@ function HomeMotorista() {
           event: "*",
           schema: "public",
           table: "chat_presenca",
-          filter: `corrida_id=eq.${activeRide.id}`,
+          filter: `corrida_id=eq.${corridaId}`,
         },
         () => {
           if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
@@ -248,7 +259,7 @@ function HomeMotorista() {
 
     void atualizarPresencaFn({
       data: {
-        corridaId: activeRide.id,
+        corridaId: corridaId,
         digitando: false,
       },
     }).catch(() => {});
@@ -260,7 +271,7 @@ function HomeMotorista() {
 
       void atualizarPresencaFn({
         data: {
-          corridaId: activeRide.id,
+          corridaId: corridaId,
           digitando: false,
         },
       }).catch(() => {});
@@ -268,7 +279,10 @@ function HomeMotorista() {
   }, [chatOpen, activeRide?.id, atualizarPresencaFn, refreshChat]);
 
   const handleEnviarMensagem = async (conteudo: string) => {
-    if (!activeRide?.id) return;
+    if (!activeRide?.id || chatSessionRideIdRef.current !== activeRide.id || chatOpenRef.current !== true) {
+      throw new Error("Chat não está disponível.");
+    }
+    
     setChatSending(true);
     try {
       const clientMessageId = crypto.randomUUID();
@@ -290,7 +304,7 @@ function HomeMotorista() {
 
   const handleDigitandoChange = (digitando: boolean) => {
     digitandoRef.current = digitando;
-    if (activeRide?.id) {
+    if (activeRide?.id && chatSessionRideIdRef.current === activeRide.id && chatOpenRef.current === true) {
       void atualizarPresencaFn({
         data: {
           corridaId: activeRide.id,
@@ -687,6 +701,7 @@ function HomeMotorista() {
   }
 
   const chatDataAtual = chatData?.corridaId === activeRide?.id ? chatData : null;
+  const chatOpenAtual = Boolean(chatOpen && activeRide?.id && chatSessionRideIdRef.current === activeRide.id);
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
@@ -1083,7 +1098,7 @@ function HomeMotorista() {
 
       {activeRide && (
         <ChatConversation
-          open={chatOpen}
+          open={chatOpenAtual}
           onOpenChange={handleChatOpenChange}
           meuUsuarioId={chatDataAtual?.meuUsuarioId || ""}
           interlocutor={
