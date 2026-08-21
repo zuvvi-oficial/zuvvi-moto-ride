@@ -483,6 +483,50 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
   });
 
 
+export const marcarMotoristaACaminho = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    // 1. Obter o perfil do motorista para validar ownership
+    const { data: user, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !user) throw new Error("Motorista não identificado.");
+    const motoristaId = user.id;
+
+    // 2. Atualização Atômica: status 'aceita' -> 'motorista_a_caminho'
+    const { data: updatedRide, error: updateError } = await supabaseAdmin
+      .from("corridas")
+      .update({
+        status: "motorista_a_caminho",
+      } as any)
+      .eq("id", data.rideId)
+      .eq("motorista_id", motoristaId)
+      .eq("status", "aceita")
+      .select("id, status")
+      .maybeSingle();
+
+    if (updateError) {
+      console.error("Erro ao iniciar deslocamento:", updateError);
+      throw new Error("Falha ao processar deslocamento no servidor.");
+    }
+
+    if (!updatedRide) {
+      throw new Error("Não foi possível iniciar o deslocamento. Verifique o estado atual da corrida.");
+    }
+
+    return {
+      success: true,
+      status: updatedRide.status
+    };
+  });
+
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ tipo: z.string() }).parse(data))

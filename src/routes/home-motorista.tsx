@@ -33,6 +33,7 @@ import {
   aceitarCorrida,
   recusarCorrida,
   cancelarCorridaMotorista,
+  marcarMotoristaACaminho,
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
@@ -75,6 +76,7 @@ function HomeMotorista() {
   const aceitarCorridaFn = useServerFn(aceitarCorrida);
   const recusarCorridaFn = useServerFn(recusarCorrida);
   const cancelarCorridaFn = useServerFn(cancelarCorridaMotorista);
+  const marcarACaminhoFn = useServerFn(marcarMotoristaACaminho);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
   const {
@@ -170,6 +172,20 @@ function HomeMotorista() {
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
     } catch (err: any) {
       toast.error(err.message || "Erro ao cancelar corrida.");
+    } finally {
+      setProcessingRideId(null);
+    }
+  };
+
+  const handleMarcarACaminho = async (rideId: string) => {
+    if (processingRideId) return;
+    setProcessingRideId(rideId);
+    try {
+      await marcarACaminhoFn({ data: { rideId } });
+      toast.success("Deslocamento iniciado.");
+      queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível iniciar o deslocamento.");
     } finally {
       setProcessingRideId(null);
     }
@@ -616,12 +632,25 @@ function HomeMotorista() {
             </div>
 
             <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-4 text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt">
-                {activeRide.status === "aceita" && "MOTORISTA A CAMINHO DO EMBARQUE"}
-                {activeRide.status === "motorista_a_caminho" && "A CAMINHO DO EMBARQUE"}
-                {activeRide.status === "motorista_chegou" && "NO LOCAL DE EMBARQUE"}
-                {activeRide.status === "em_andamento" && "CORRIDA EM ANDAMENTO"}
-              </p>
+              {activeRide.status === "aceita" ? (
+                <button
+                  onClick={() => handleMarcarACaminho(activeRide.id)}
+                  disabled={!!processingRideId}
+                  className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-zuvvi-volt disabled:opacity-50"
+                >
+                  {processingRideId === activeRide.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "A CAMINHO DO EMBARQUE"
+                  )}
+                </button>
+              ) : (
+                <p className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt">
+                  {activeRide.status === "motorista_a_caminho" && "A CAMINHO DO EMBARQUE"}
+                  {activeRide.status === "motorista_chegou" && "NO LOCAL DE EMBARQUE"}
+                  {activeRide.status === "em_andamento" && "CORRIDA EM ANDAMENTO"}
+                </p>
+              )}
             </div>
 
             <button
