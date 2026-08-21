@@ -331,78 +331,43 @@ Estes itens NÃO estão marcados como concluídos.
 
 **SPRINT 1 — ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA**
 
-**FECHAMENTO FUNCIONAL:** 20/08/2026  
-**COMMIT DE REFERÊNCIA:** e52a679aaa474d798003c906a6b01260454cbbd4
+**FECHAMENTO FUNCIONAL:** 21/08/2026  
+**Último commit funcional de referência:** e52a679aaa474d798003c906a6b01260454cbbd4
 
 **Próxima etapa oficial:**
-Sprint 2 — Mototaxista recebe corridas.
+Sprint 2 — GPS Pós-Aceite e Rastreamento.
 
-## Reconciliação oficial do Sprint 2 — Baseline 20/08/2026
+## Reconciliação oficial do Sprint 2 — Baseline 21/08/2026
 
-### Auditoria
-- Microetapa 2.0-R — auditoria de reconciliação realizada.
-- Microcorreção 2.0-R-A — divergências da auditoria corrigidas.
-- Contra-prova independente GitHub/Supabase concluída.
-- baseline oficial atual: 6a6717e9d48b7b04988c879fe3a119bc4c697e86.
+### Estado operacional
 
-### Funcionalidades tecnicamente existentes (SEM DECLARAR O SPRINT 2 CONCLUÍDO)
-- motorista online/offline;
-- GPS antes do aceite;
-- recebimento real de ofertas;
-- filtro por cidade;
-- filtro por elegibilidade operacional;
-- ordenação por proximidade;
-- recusa de corrida;
-- aceite de corrida;
-- aceite atômico;
-- proteção contra aceite concorrente;
-- proteção contra duas corridas ativas para o mesmo motorista;
-- recuperação/exibição de corrida ativa na Home Motorista;
-- Realtime de public.corridas;
-- passageiro detecta aceite;
-- passageiro é redirecionado para /acompanhamento;
-- handoff seguro de dados da corrida, motorista e veículo;
-- mapa do passageiro já existente.
+*   **Sprint 1:** ✅ FECHADO.
+*   **Sprint 2:** ⚠️ EM ANDAMENTO.
+*   **Implementação mais recente:** Microetapa 2.7-A — Modal Profissional de Cancelamento.
+*   **Principal bloqueador funcional:** GPS pós-aceite da corrida (o motorista deixa de transmitir localização após aceitar a corrida).
+*   **Interface:** A Home do Motorista ainda não possui mapa operacional da corrida.
+*   **Fluxo:** Os estados posteriores ao aceite (a caminho, chegou, em andamento) ainda não estão completamente fechados.
+*   **Passageiro:** O acompanhamento do passageiro existe, porém o rastreamento vivo completo (realtime GPS) ainda não está fechado.
 
-### MICROETAPAS COMPROVADAS POR MIGRATION
-- **20260820164016**: accept_corrida_atomic + índice único de corrida ativa.
-- **20260820175105**: set_motorista_online_atomic.
-- **20260820183150**: Microetapa 2.5 — Realtime de public.corridas.
+### Reconciliação do histórico de migrations
 
-*Nota: Existe implementação posterior à 2.5 relacionada ao handoff do passageiro, porém ela ainda não possui fechamento documental oficial. A numeração 2.6-A NÃO é oficial.*
+Anteriormente, este documento registrava que as migrations:
+*   `20260819113539_fix_usuarios_auth_user_id_unique_constraint.sql`
+*   `20260819114735_complete_tipo_chave_pix_migration.sql`
 
-### BLOQUEADOR CRÍTICO — GPS PÓS-ACEITE
-**GPS DURANTE CORRIDA ATIVA: NÃO FUNCIONA ATUALMENTE.**
+não existiam na branch `main`.
 
-**Motivo comprovado:**
-1. `accept_corrida_atomic` grava `motoristas.is_disponivel = false` após o aceite;
-2. `home-motorista.tsx` mantém `watchPosition` somente enquanto `status.is_disponivel = true`;
-3. Quando `is_disponivel = false`, o frontend executa `stopGps()`;
-4. `updateLocalizacaoMotorista` também rejeita server-side o envio de GPS se `is_disponivel = false`.
+**ATUALIZAÇÃO:** Esta divergência foi superada. Ambos os arquivos estão presentes em `supabase/migrations/`.
 
-**Consequência:** O motorista deixa de transmitir localização após aceitar a corrida.
+**PRÓXIMO PASSO DE INFRAESTRUTURA:** Antes de qualquer nova migration de funcionalidade, deve ser executada uma etapa final de **RECONCILIAÇÃO DO HISTÓRICO DE MIGRATIONS GitHub × Supabase** para garantir paridade total e evitar novos drifts.
 
-### MAPAS E RASTREAMENTO
-- Mapa do passageiro: **IMPLEMENTADO**.
-- Rastreamento ao vivo do motorista pelo passageiro: **NÃO IMPLEMENTADO**.
-- Mapa operacional do motorista após aceite: **NÃO IMPLEMENTADO**.
-- Rota do motorista até o passageiro: **NÃO IMPLEMENTADA**.
+### Próxima microetapa operacional (Planejada)
 
-### ESTADOS POSTERIORES DA CORRIDA (NÃO FECHADOS)
-- `motorista_a_caminho`;
-- `motorista_chegou`;
-- início real da corrida;
-- `em_andamento`;
-- conclusão real da corrida.
+**Alvo:** `/home-motorista`
 
-### DRIFT DE MIGRATIONS
-**STATUS: DRIFT DE HISTÓRICO DE MIGRATIONS PENDENTE DE RECONCILIAÇÃO.**
-
-O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo, que não possuem arquivos correspondentes na branch `main`:
-- `20260819113539` — fix_usuarios_auth_user_id_unique_constraint
-- `20260819114735` — complete_tipo_chave_pix_migration
-
-**REGRA:** Nenhuma nova alteração de banco deverá ser executada até que esse drift seja tratado em microetapa própria.
+**Objetivo:** Corrigir exclusivamente o GPS pós-aceite para permitir rastreamento durante uma corrida ativa.
+*   O motorista deve permanecer indisponível para novas corridas enquanto estiver em uma ativa.
+*   O rastreamento deve persistir mesmo com `is_disponivel = false` se houver uma `corrida_id` ativa vinculada.
 
 ---
 
@@ -412,30 +377,12 @@ O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo,
 
 **SPRINT 1 — ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA**
 
-**SPRINT 2 — ⚠️ EM ANDAMENTO / RECONCILIADO**
+**SPRINT 2 — ⚠️ EM ANDAMENTO**
 
-**Última microetapa numerada tecnicamente comprovada:** 2.5
+**FECHAMENTO FUNCIONAL ATUAL:** 21/08/2026
+**BASELINE GITHUB:** 63012c1724a9b5d1b034b0b48b90aae3ed881ca1 (conforme auditoria de Microetapa Zero)
 
-**Bloqueadores atuais:**
-- drift do histórico de migrations;
-- GPS pós-aceite (rastreamento vivo interrompido);
-- ausência de mapa operacional do motorista;
-- estados posteriores da corrida ainda não fechados.
+**Próxima etapa oficial:**
+Correção do GPS pós-aceite na Home Motorista.
 
-**Próxima ação obrigatória:** reconciliar o drift de migrations em microetapa isolada antes de qualquer nova alteração de banco.
-
-### 2.7 — Cancelamento de Corrida pelo Motorista — ✅ FECHADA
-- Implementado botão "CANCELAR CORRIDA" na Home do Motorista.
-- Server function `cancelarCorridaMotorista` valida ownership e status da corrida.
-- Corrida é marcada como `cancelada` com `cancelado_por = 'motorista'`.
-- Motorista é mantido offline após o cancelamento por segurança.
-- Design alinhado com a identidade visual Zuvvi.
-- Nenhuma alteração no core ou no banco de dados necessária (aproveitamento de estrutura existente).
-
-#### 2.7-A — Modal Profissional de Cancelamento — ✅ FECHADA
-- Substituído `window.confirm` nativo (branco/básico) por modal personalizado Zuvvi.
-- Design alinhado: Fundo indigo, bordas 2.5rem, tipografia Poppins e ícones Lucide.
-- Feedback de processamento integrado no botão de confirmação.
-- Travas de segurança preservadas (não altera o core do cancelamento).
-- Experiência profissional de confirmação/desistência.
 
