@@ -651,7 +651,7 @@ function FavoritosDialog({
             )}
           </div>
         ) : (
-          <div className="space-y-6 overflow-y-auto overscroll-contain pr-1 custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
               <input 
