@@ -1,13 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAuthStatus } from "@/lib/auth-status.functions";
 import heroMoto from "@/assets/hero-moto.jpg";
-import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2 } from "lucide-react";
+import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2, Trash2, X, ChevronLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { getMapboxToken, checkCityAvailability, getReverseGeocoding } from "@/lib/user.functions";
+import { listarFavoritos, criarFavorito, excluirFavorito } from "@/lib/favoritos.functions";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 
 export const Route = createFileRoute("/")({
