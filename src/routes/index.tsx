@@ -1037,8 +1037,8 @@ function RecentesDialog({
               <button
                 key={`${recente.latitude}-${recente.longitude}-${idx}`}
                 onClick={() => {
-                  onSelectRecente(recente);
                   onOpenChange(false);
+                  onSelectRecente(recente);
                 }}
                 className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left transition-all active:scale-[0.98] active:bg-white/10 hover:bg-white/[0.08] group min-h-[44px]"
               >
