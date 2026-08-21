@@ -835,6 +835,15 @@ function HomeMotorista() {
             </div>
 
             <button
+              onClick={() => handleChatOpenChange(true)}
+              className="w-full py-4 rounded-2xl bg-zuvvi-volt/10 border border-zuvvi-volt/20 text-zuvvi-volt text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[44px]"
+              aria-label="Chat com passageiro"
+            >
+              <MessageCircle className="w-4 h-4" />
+              CHAT COM PASSAGEIRO
+            </button>
+
+            <button
               onClick={() => setShowCancelModal(true)}
               disabled={!!processingRideId}
               className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all disabled:opacity-50 active:scale-[0.98]"
