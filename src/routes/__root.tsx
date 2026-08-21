@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { syncAuthSessionToCookies } from "@/integrations/supabase/auth-attacher";
+import { PwaShell } from "@/components/pwa/PwaShell";
 
 
 function NotFoundComponent() {
