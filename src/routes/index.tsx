@@ -360,7 +360,15 @@ function HomePassageiro({ nome }: { nome: string }) {
             open={favoritosOpen} 
             onOpenChange={setFavoritosOpen}
             location={isManualOrigin ? manualLocation : location}
+            onSelectFavorite={(fav) => {
+              handleDestinationSelected({
+                latitude: Number(fav.latitude),
+                longitude: Number(fav.longitude),
+                endereco: fav.endereco
+              });
+            }}
           />
+
         </main>
 
 
