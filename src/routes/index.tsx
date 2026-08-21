@@ -184,8 +184,9 @@ function HomePassageiro({ nome }: { nome: string }) {
           originLng: currentOrigin.lng,
           destLat: dest.latitude,
           destLng: dest.longitude,
-          destName: dest.endereco.split(',')[0],
-          originName: currentOriginName.split(',')[0] + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
+          destName: dest.endereco.split(',')[0] || '',
+          originName: (currentOriginName.split(',')[0] || '') + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
+
         }
       });
     }
