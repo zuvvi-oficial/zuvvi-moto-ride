@@ -529,6 +529,7 @@ function HomeMotorista() {
                     className="w-full h-full"
                     onMapInstance={(map) => {
                       pickupMapInstance.current = map;
+                      setIsPickupMapReady(true);
                     }}
                   />
                   {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
