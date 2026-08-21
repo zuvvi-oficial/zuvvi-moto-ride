@@ -114,7 +114,7 @@ function AcompanhamentoCorrida() {
       {/* Overlay Superior */}
       <div className="relative z-10 p-6 flex items-center justify-between pointer-events-none">
         <button 
-          onClick={() => navigate({ to: '/' })}
+          onClick={() => navigate({ to: "/" })}
           className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 pointer-events-auto active:scale-95 transition-transform"
         >
           <ChevronLeft className="w-6 h-6" />
