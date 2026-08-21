@@ -540,21 +540,24 @@ function FavoritosDialog({
                         <div className="flex items-center gap-2 shrink-0">
                           <button 
                             onClick={() => setConfirmDeleteId(null)}
-                            className="p-2 rounded-full hover:bg-white/5 transition-colors"
+                            aria-label="Cancelar exclusão"
+                            className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center"
                           >
-                            <X className="w-4 h-4 text-muted-foreground" />
+                            <X className="w-5 h-5 text-muted-foreground" />
                           </button>
                           <button 
                             onClick={() => deleteMutation.mutate(fav.id)}
                             disabled={deleteMutation.isPending}
-                            className="p-2 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center"
+                            aria-label={`Confirmar exclusão de ${fav.nome}`}
+                            className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center"
                           >
                             {deleteMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                              <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
                             ) : (
-                              <Trash2 className="w-4 h-4 text-red-500" />
+                              <Trash2 className="w-5 h-5 text-red-500" />
                             )}
                           </button>
+
                         </div>
                       ) : (
                         <button 
