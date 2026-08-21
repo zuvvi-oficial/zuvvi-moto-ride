@@ -743,7 +743,8 @@ function HomeMotorista() {
   }
 
   const chatDataAtual = chatData?.corridaId === activeRide?.id ? chatData : null;
-  const chatOpenAtual = Boolean(chatOpen && activeRide?.id && chatSessionRideIdRef.current === activeRide.id);
+  const chatOpenAtual = chatOpen && chatSessionRideIdRef.current === activeRide?.id;
+
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
