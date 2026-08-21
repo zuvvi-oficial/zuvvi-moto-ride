@@ -57,6 +57,40 @@ function AcompanhamentoCorrida() {
     init();
   }, [rideId, getAcompanhamentoFn, getMapboxTokenFn, navigate]);
 
+  useEffect(() => {
+    if (!rideId) return;
+
+    const channel = supabase
+      .channel(`acompanhamento-${rideId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'corridas',
+          filter: `id=eq.${rideId}`,
+        },
+        (payload: any) => {
+          if (payload.new?.status === 'cancelada' && !hasHandledCancellation.current) {
+            hasHandledCancellation.current = true;
+            
+            if (payload.new?.cancelado_por === 'motorista') {
+              toast.info("O motorista cancelou a corrida.");
+            } else {
+              toast.info("Esta corrida foi cancelada.");
+            }
+            
+            navigate({ to: '/' });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [rideId, navigate]);
+
   if (isLoading || !corrida) {
     return (
       <div className="min-h-[100dvh] bg-zuvvi-indigo flex items-center justify-center">
