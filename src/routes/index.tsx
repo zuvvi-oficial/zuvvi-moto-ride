@@ -349,7 +349,10 @@ function HomePassageiro({ nome }: { nome: string }) {
                   <span className="text-[10px] font-bold uppercase tracking-widest">Favoritos</span>
                 </button>
 
-                <button className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]">
+                <button 
+                  onClick={() => setRecentesOpen(true)}
+                  className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]"
+                >
                   <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center">
                     <Clock className="text-zuvvi-volt w-4 h-4" />
                   </div>
