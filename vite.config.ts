@@ -26,6 +26,8 @@ export default defineConfig({
       // The manifest is a static, same-origin file in public/.
       manifest: false,
       filename: "sw.js",
+      // The Nitro/Cloudflare build serves static files from dist/client.
+      outDir: "dist/client",
       workbox: {
         globPatterns: ["**/*.{js,css,woff,woff2,png,svg,ico,webmanifest,html}"],
         cleanupOutdatedCaches: true,
