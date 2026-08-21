@@ -1,17 +1,18 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
-import { useServerFn } from '@tanstack/react-start';
-import { getMapboxToken, getAcompanhamentoPassageiro } from '@/lib/user.functions';
-import { Bike, Loader2, ChevronLeft, User, Star } from 'lucide-react';
-import { z } from 'zod';
-import { MapView } from '@/components/MapView';
-import { toast } from 'sonner';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, useRef } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getMapboxToken, getAcompanhamentoPassageiro } from "@/lib/user.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { Bike, Loader2, ChevronLeft, User, Star } from "lucide-react";
+import { z } from "zod";
+import { MapView } from "@/components/MapView";
+import { toast } from "sonner";
 
 const searchSchema = z.object({
   rideId: z.string(),
 });
 
-export const Route = createFileRoute('/acompanhamento')({
+export const Route = createFileRoute("/acompanhamento")({
   validateSearch: (search) => searchSchema.parse(search),
   component: AcompanhamentoCorrida,
 });
@@ -24,6 +25,7 @@ function AcompanhamentoCorrida() {
   const [veiculo, setVeiculo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const hasHandledCancellation = useRef(false);
 
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
@@ -43,17 +45,51 @@ function AcompanhamentoCorrida() {
 
         if (!data.handoffAvailable) {
           toast.error("Acompanhamento ainda não disponível para esta corrida.");
-          navigate({ to: '/' });
+          navigate({ to: "/" });
         }
       } catch {
         toast.error("Não foi possível carregar os dados do acompanhamento.");
-        navigate({ to: '/' });
+        navigate({ to: "/" });
       } finally {
         setIsLoading(false);
       }
     }
     init();
   }, [rideId, getAcompanhamentoFn, getMapboxTokenFn, navigate]);
+
+  useEffect(() => {
+    if (!rideId) return;
+
+    const channel = supabase
+      .channel(`acompanhamento-${rideId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "corridas",
+          filter: `id=eq.${rideId}`,
+        },
+        (payload: any) => {
+          if (payload.new?.status === "cancelada" && !hasHandledCancellation.current) {
+            hasHandledCancellation.current = true;
+            
+            if (payload.new?.cancelado_por === "motorista") {
+              toast.info("O motorista cancelou a corrida.");
+            } else {
+              toast.info("Esta corrida foi cancelada.");
+            }
+            
+            navigate({ to: "/" });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [rideId, navigate]);
 
   if (isLoading || !corrida) {
     return (
@@ -78,7 +114,7 @@ function AcompanhamentoCorrida() {
       {/* Overlay Superior */}
       <div className="relative z-10 p-6 flex items-center justify-between pointer-events-none">
         <button 
-          onClick={() => navigate({ to: '/' })}
+          onClick={() => navigate({ to: "/" })}
           className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 pointer-events-auto active:scale-95 transition-transform"
         >
           <ChevronLeft className="w-6 h-6" />
