@@ -434,6 +434,7 @@ function HomeMotorista() {
       lastRouteCoordsRef.current = null;
       setRouteError(null);
       setIsPickupMapReady(false);
+      pickupMapInstance.current = null;
     }
   }, [activeRide]);
 
