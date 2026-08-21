@@ -1054,6 +1054,29 @@ function HomeMotorista() {
           </div>
         </div>
       )}
+
+      {activeRide && (
+        <ChatConversation
+          open={chatOpen}
+          onOpenChange={handleChatOpenChange}
+          meuUsuarioId={chatData?.meuUsuarioId || ""}
+          interlocutor={
+            chatData?.interlocutor || {
+              id: "",
+              nome: "Passageiro",
+            }
+          }
+          mensagens={chatData?.mensagens || []}
+          presenca={chatData?.presenca || null}
+          podeEnviar={chatData?.podeEnviar ?? false}
+          loading={chatLoading}
+          error={chatError}
+          enviando={chatSending}
+          onEnviar={handleEnviarMensagem}
+          onDigitandoChange={handleDigitandoChange}
+          onRetry={refreshChat}
+        />
+      )}
     </div>
   );
 }
