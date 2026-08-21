@@ -85,6 +85,7 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [manualAddress, setManualAddress] = useState<string | null>(null);
   const [isEditingOrigin, setIsEditingOrigin] = useState(false);
   const [favoritosOpen, setFavoritosOpen] = useState(false);
+  const [recentesOpen, setRecentesOpen] = useState(false);
   
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
