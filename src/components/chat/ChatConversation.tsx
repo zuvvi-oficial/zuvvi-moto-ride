@@ -122,11 +122,7 @@ export function ChatConversation({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (
-      e.key === "Enter" &&
-      !e.shiftKey &&
-      !e.nativeEvent.isComposing
-    ) {
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       void handleSend();
     }
