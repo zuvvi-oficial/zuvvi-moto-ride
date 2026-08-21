@@ -221,7 +221,7 @@ function HomeMotorista() {
                 setIsGpsActive(true);
                 setGpsError(null);
                 lastUpdateRef.current = now;
-              } catch (err: any) {
+              } catch (err) {
                 // Se houver corrida ativa, marca erro mas mantém o watcher vivo
                 if (hasActiveRideRef.current) {
                   setIsGpsActive(false);
@@ -259,7 +259,7 @@ function HomeMotorista() {
         stopGps();
       }
     };
-  }, [shouldTrackLocation]);
+  }, [shouldTrackLocation, handleGpsError, updateLocationFn, stopGps]);
 
   const handleToggleOnline = () => {
     if (isToggling || activeRide) return;
