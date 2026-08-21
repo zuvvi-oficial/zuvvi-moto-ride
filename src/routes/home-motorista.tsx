@@ -291,7 +291,7 @@ function HomeMotorista() {
   // Implementação 3, 4, 5, 6 - Posição do Motorista e Rota
   useEffect(() => {
     const map = pickupMapInstance.current;
-    if (!map || !activeRide || !mapboxToken) return;
+    if (!map || !activeRide || !mapboxToken || !status) return;
 
     const dLat = status.ultima_lat;
     const dLng = status.ultima_lng;
