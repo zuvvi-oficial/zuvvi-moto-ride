@@ -58,6 +58,30 @@ export const Route = createFileRoute("/home-motorista")({
   component: HomeMotorista,
 });
 
+interface ChatMensagem {
+  id: string;
+  clientMessageId: string;
+  remetenteId: string;
+  conteudo: string;
+  createdAt: string;
+  entregueAt: string | null;
+  lidoAt: string | null;
+}
+
+interface ChatData {
+  meuUsuarioId: string;
+  interlocutor: {
+    id: string;
+    nome: string;
+  };
+  mensagens: ChatMensagem[];
+  presenca: {
+    ultimoVistoAt: string;
+    digitandoAte: string | null;
+  } | null;
+  podeEnviar: boolean;
+}
+
 function HomeMotorista() {
   const queryClient = useQueryClient();
   const [isToggling, setIsToggling] = useState(false);
