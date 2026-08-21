@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { getMapboxToken, checkCityAvailability, getReverseGeocoding } from "@/lib/user.functions";
 import { listarFavoritos, criarFavorito, excluirFavorito } from "@/lib/favoritos.functions";
+import { listarDestinosRecentes } from "@/lib/recentes.functions";
 import { toast } from "sonner";
 import {
   Dialog,
