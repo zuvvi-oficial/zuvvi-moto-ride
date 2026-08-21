@@ -393,6 +393,37 @@ function FavoritosDialog({
     longitude: number;
   } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [viewportOffsetTop, setViewportOffsetTop] = useState<number | null>(null);
+
+  useEffect(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    if (!open || mode !== "add" || !isMobile || typeof window === 'undefined' || !window.visualViewport) {
+      if (!open) {
+        setViewportHeight(null);
+        setViewportOffsetTop(null);
+      }
+      return;
+    }
+
+    const syncViewport = () => {
+      if (window.visualViewport) {
+        setViewportHeight(window.visualViewport.height);
+        setViewportOffsetTop(window.visualViewport.offsetTop);
+      }
+    };
+
+    const viewport = window.visualViewport;
+    viewport.addEventListener('resize', syncViewport);
+    viewport.addEventListener('scroll', syncViewport);
+    syncViewport();
+
+    return () => {
+      viewport.removeEventListener('resize', syncViewport);
+      viewport.removeEventListener('scroll', syncViewport);
+    };
+  }, [open, mode]);
+
 
   const listarFavoritosFn = useServerFn(listarFavoritos);
   const criarFavoritoFn = useServerFn(criarFavorito);
@@ -449,7 +480,27 @@ function FavoritosDialog({
         onOpenChange(val);
       }}
     >
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6">
+      <DialogContent 
+        className={`max-w-[calc(100vw-2rem)] sm:max-w-md bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6 transition-all duration-300 ${
+          mode === "add" 
+            ? "top-0 translate-y-0 sm:top-1/2 sm:-translate-y-1/2" 
+            : ""
+        }`}
+        style={{
+          top: (mode === "add" && viewportOffsetTop !== null) 
+            ? `${viewportOffsetTop + 12}px` 
+            : undefined,
+          maxHeight: (mode === "add" && viewportHeight !== null)
+            ? `${viewportHeight - 24}px`
+            : undefined,
+          transform: (mode === "add" && viewportOffsetTop !== null)
+            ? 'translateX(-50%)'
+            : undefined,
+          left: (mode === "add" && viewportOffsetTop !== null)
+            ? '50%'
+            : undefined
+        }}
+      >
         <DialogHeader className="mb-4">
           <div className="flex items-center gap-3">
             {mode === "add" && (
@@ -584,7 +635,7 @@ function FavoritosDialog({
             )}
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 overflow-y-auto overscroll-contain pr-1 custom-scrollbar">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
               <input 
