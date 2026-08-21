@@ -58,6 +58,8 @@ function HomeMotorista() {
   const lastUpdateRef = useRef<number>(0);
   const locationUpdateInFlightRef = useRef(false);
   const hasActiveRideRef = useRef(false);
+  const isOnlineRef = useRef(false);
+  const handleGpsErrorRef = useRef<(msg: string) => void>(() => {});
 
   const getOfertasFn = useServerFn(getOfertasDisponiveis);
   const aceitarCorridaFn = useServerFn(aceitarCorrida);
