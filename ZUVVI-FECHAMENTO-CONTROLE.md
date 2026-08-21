@@ -5,7 +5,7 @@
 **Sprint 0:** ✅ CONCLUÍDO  
 **Sprint 1:** ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA  
 **Data do fechamento funcional do Sprint 1:** 20/08/2026  
-**Último commit funcional de referência:** e52a679aaa474d798003c906a6b01260454cbbd4
+**Último commit funcional de referência:** 647a0f7e1a764922ada0279ce00fbfd14eb7b777
 
 ## Regras obrigatórias
 1. Uma microetapa por vez.
@@ -581,3 +581,124 @@ MICROETAPA 3.0 — ✅ FECHADA
 **PRÓXIMA MICROETAPA PLANEJADA:**
 
 Microetapa 3.1 — Posição do motorista + rota até o local de embarque.
+
+## Favoritos do Passageiro — ✅ FECHADO E CONGELADO
+
+Registrar:
+
+### Favoritos 1 — Banco e segurança — ✅ FECHADA
+
+- criada tabela public.enderecos_favoritos;
+- ownership por usuario_id;
+- FK para usuarios com ON DELETE CASCADE;
+- nome máximo 40;
+- endereço máximo 300;
+- latitude/longitude validadas;
+- nome único por usuário de forma case-insensitive;
+- RLS ativo;
+- exatamente 4 policies para authenticated;
+- anon sem SELECT/INSERT/UPDATE/DELETE;
+- updated_at preservado.
+
+### Favoritos 2 — Backend e gerenciamento — ✅ FECHADA
+
+- listarFavoritos;
+- criarFavorito;
+- excluirFavorito;
+- usuário resolvido server-side;
+- cliente não define usuario_id;
+- ownership validado também server-side;
+- duplicidade de nome recebe mensagem amigável;
+- criação, persistência e exclusão suportadas;
+- modal premium;
+- modo Novo favorito;
+- comportamento mobile com visualViewport;
+- teclado não desloca Home;
+- botão SALVAR permanece acessível acima do teclado;
+- lista com scroll interno.
+
+### Favoritos 3 — Usar favorito como destino — ✅ FECHADA E COMPROVADA
+
+- favorito salvo pode ser selecionado como destino;
+- coordenadas salvas são reutilizadas diretamente;
+- não ocorre nova geocodificação Mapbox;
+- seleção reutiliza handleDestinationSelected;
+- fluxo permanece:
+  Favorito → /confirmar-corrida;
+- NÃO pula diretamente para procura de motorista;
+- clique funcional comprovado manualmente;
+- card visual corrigido;
+- endereço truncado;
+- coluna exclusiva para lixeira;
+- ausência de overflow lateral comprovada visualmente;
+- overlay de Favoritos mais escuro;
+- outros Dialogs preservam comportamento padrão.
+
+### Favoritos 4 — Limite de 10 — ✅ FECHADA
+
+Regra oficial:
+
+- máximo de 10 favoritos por passageiro;
+- 0–9: pode adicionar;
+- 10: nova criação bloqueada;
+- mensagem:
+  "Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.";
+- ao excluir e voltar para 9, adicionar é liberado novamente.
+
+Registrar as 3 camadas:
+
+1. Interface:
+   - em 10/10 substitui botão por aviso;
+   - em 9/10 botão reaparece.
+
+2. Server-side:
+   - criarFavorito conta favoritos do usuário;
+   - bloqueia count >= 10;
+   - traduz erro de limite de forma amigável.
+
+3. Banco:
+   - função:
+     public.enforce_enderecos_favoritos_limit()
+   - SECURITY INVOKER;
+   - trigger:
+     enforce_enderecos_favoritos_limit_trigger
+   - BEFORE INSERT;
+   - pg_advisory_xact_lock por usuario_id contra concorrência.
+
+Registrar migration REAL aplicada:
+
+20260821212540_7c2f0dd6-b3cc-4761-a2d5-c8f4758e8884.sql
+
+Registrar explicitamente:
+
+- migration duplicada 20260821213000_enforce_favoritos_limit.sql
+  foi removida do GitHub;
+- ela NÃO está na migration history do Supabase;
+- histórico GitHub/Supabase reconciliado.
+
+### Contra-prova final de Favoritos
+
+GitHub:
+
+- último commit funcional:
+  647a0f7e1a764922ada0279ce00fbfd14eb7b777
+
+- HEAD auditado:
+  21b9921ebd5fd5cd5b64dfbcadda94c317d35f0d
+
+Supabase REAL:
+
+- 15 tabelas públicas;
+- 45 migrations;
+- última migration: 20260821212540;
+- enderecos_favoritos com RLS = true;
+- 4 policies;
+- função de limite existente;
+- trigger de limite existente.
+
+Registrar:
+
+FAVORITOS DO PASSAGEIRO:
+✅ FECHADO
+✅ AUDITADO
+✅ CONGELADO
