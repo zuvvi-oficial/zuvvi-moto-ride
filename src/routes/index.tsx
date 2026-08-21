@@ -1000,13 +1000,14 @@ function RecentesDialog({
     queryKey: ["destinos-recentes-passageiro"],
     queryFn: () => listarDestinosRecentesFn(),
     enabled: open,
-    staleTime: 1000 * 60, // 1 minute
   });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[92vw] w-full sm:max-w-[400px] rounded-[2rem] border-white/10 bg-zuvvi-indigo-dark p-6 shadow-2xl overflow-hidden overscroll-none animate-in fade-in zoom-in-95 duration-200">
-        <div className="absolute inset-0 bg-black/[0.86] z-[-1]" />
+      <DialogContent 
+        overlayClassName="bg-black/[0.86]"
+        className="max-w-[92vw] w-full sm:max-w-[400px] rounded-[2rem] border-white/10 bg-zuvvi-indigo-dark p-6 shadow-2xl overflow-hidden overscroll-none animate-in fade-in zoom-in-95 duration-200"
+      >
         
         <DialogHeader className="mb-6">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
@@ -1036,8 +1037,8 @@ function RecentesDialog({
               <button
                 key={`${recente.latitude}-${recente.longitude}-${idx}`}
                 onClick={() => {
-                  onSelectRecente(recente);
                   onOpenChange(false);
+                  onSelectRecente(recente);
                 }}
                 className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left transition-all active:scale-[0.98] active:bg-white/10 hover:bg-white/[0.08] group min-h-[44px]"
               >
