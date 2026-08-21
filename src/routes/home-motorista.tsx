@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import mapboxgl from "mapbox-gl";
 import {
   User,
   Power,
@@ -54,6 +55,13 @@ function HomeMotorista() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [processingRideId, setProcessingRideId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [routeError, setRouteError] = useState<string | null>(null);
+
+  const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
+  const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const routeAbortRef = useRef<AbortController | null>(null);
+  const routeFittedRideRef = useRef<string | null>(null);
+  const lastRouteCoordsRef = useRef<{ dLat: number; dLng: number; pLat: number; pLng: number } | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -280,6 +288,132 @@ function HomeMotorista() {
     mutation.mutate(!status?.is_disponivel);
   };
 
+  // Implementação 3, 4, 5, 6 - Posição do Motorista e Rota
+  useEffect(() => {
+    const map = pickupMapInstance.current;
+    if (!map || !activeRide || !mapboxToken) return;
+
+    const dLat = status.ultima_lat;
+    const dLng = status.ultima_lng;
+    const pLat = activeRide.origem_lat;
+    const pLng = activeRide.origem_lng;
+
+    const hasValidDriver = Number.isFinite(dLat) && Number.isFinite(dLng);
+    const hasValidPickup = Number.isFinite(pLat) && Number.isFinite(pLng);
+
+    // 3. Marcador do Motorista
+    if (hasValidDriver) {
+      if (!driverMarkerRef.current) {
+        driverMarkerRef.current = new mapboxgl.Marker({ color: "#6C3CE9" })
+          .setLngLat([dLng!, dLat!])
+          .addTo(map);
+      } else {
+        driverMarkerRef.current.setLngLat([dLng!, dLat!]);
+      }
+    }
+
+    // 4 & 5. Rota Directions
+    const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou"];
+    if (hasValidDriver && hasValidPickup && routeStatuses.includes(activeRide.status)) {
+      const coordsChanged = !lastRouteCoordsRef.current || 
+        lastRouteCoordsRef.current.dLat !== dLat || 
+        lastRouteCoordsRef.current.dLng !== dLng || 
+        lastRouteCoordsRef.current.pLat !== pLat || 
+        lastRouteCoordsRef.current.pLng !== pLng;
+
+      if (coordsChanged) {
+        if (routeAbortRef.current) routeAbortRef.current.abort();
+        routeAbortRef.current = new AbortController();
+
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${dLng},${dLat};${pLng},${pLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
+
+        fetch(url, { signal: routeAbortRef.current.signal })
+          .then(res => res.json())
+          .then(data => {
+            if (data.code !== "Ok" || !data.routes?.[0]) {
+              setRouteError("Rota temporariamente indisponível.");
+              return;
+            }
+            setRouteError(null);
+            const route = data.routes[0].geometry;
+            const sourceId = "zuvvi-driver-pickup-route-source";
+            const layerId = "zuvvi-driver-pickup-route-layer";
+
+            const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
+            if (source) {
+              source.setData(route);
+            } else {
+              map.addSource(sourceId, {
+                type: "geojson",
+                data: route
+              });
+              map.addLayer({
+                id: layerId,
+                type: "line",
+                source: sourceId,
+                layout: { "line-join": "round", "line-cap": "round" },
+                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 }
+              });
+            }
+
+            // 6. Enquadramento fitBounds (uma vez por rideId)
+            if (routeFittedRideRef.current !== activeRide.id) {
+              const bounds = new mapboxgl.LngLatBounds();
+              route.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
+              map.fitBounds(bounds, { padding: 40, duration: 2000 });
+              routeFittedRideRef.current = activeRide.id;
+            }
+
+            lastRouteCoordsRef.current = { dLat: dLat!, dLng: dLng!, pLat: pLat!, pLng: pLng! };
+          })
+          .catch(err => {
+            if (err.name !== "AbortError") {
+              setRouteError("Rota temporariamente indisponível.");
+            }
+          });
+      }
+    } else {
+      // Limpar rota se status mudar para em_andamento ou coordenadas sumirem
+      const sourceId = "zuvvi-driver-pickup-route-source";
+      const layerId = "zuvvi-driver-pickup-route-layer";
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      lastRouteCoordsRef.current = null;
+    }
+  }, [status.ultima_lat, status.ultima_lng, activeRide, mapboxToken]);
+
+  // 7. Cleanup
+  useEffect(() => {
+    return () => {
+      if (routeAbortRef.current) routeAbortRef.current.abort();
+      if (driverMarkerRef.current) {
+        driverMarkerRef.current.remove();
+        driverMarkerRef.current = null;
+      }
+      pickupMapInstance.current = null;
+    };
+  }, []);
+
+  // Cleanup quando activeRide deixa de existir
+  useEffect(() => {
+    if (!activeRide) {
+      if (driverMarkerRef.current) {
+        driverMarkerRef.current.remove();
+        driverMarkerRef.current = null;
+      }
+      const map = pickupMapInstance.current;
+      if (map) {
+        const sourceId = "zuvvi-driver-pickup-route-source";
+        const layerId = "zuvvi-driver-pickup-route-layer";
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      }
+      routeFittedRideRef.current = null;
+      lastRouteCoordsRef.current = null;
+      setRouteError(null);
+    }
+  }, [activeRide]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zuvvi-indigo flex items-center justify-center">
@@ -370,7 +504,29 @@ function HomeMotorista() {
                     token={mapboxToken}
                     zoom={15}
                     className="w-full h-full"
+                    onMapInstance={(map) => {
+                      pickupMapInstance.current = map;
+                    }}
                   />
+                  {(!status.ultima_lat || !status.ultima_lng) && !routeError && (
+                    <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
+                      <div className="bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                        <p className="text-[9px] text-white/80 font-bold uppercase tracking-widest flex items-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin text-zuvvi-volt" />
+                          Obtendo sua posição para traçar a rota...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {routeError && (
+                    <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
+                      <div className="bg-red-500/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-red-500/30">
+                        <p className="text-[9px] text-white font-bold uppercase tracking-widest">
+                          {routeError}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : activeRide && !mapboxToken ? (
