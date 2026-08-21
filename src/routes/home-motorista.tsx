@@ -318,6 +318,9 @@ function HomeMotorista() {
     };
   }, [chatOpen, activeRide?.id, atualizarPresencaFn, refreshChat]);
 
+  const chatDataAtual = chatData?.corridaId === activeRide?.id ? chatData : null;
+  const chatOpenAtual = chatOpen && chatSessionRideIdRef.current === activeRide?.id;
+
 
   const handleEnviarMensagem = async (conteudo: string) => {
     if (!activeRide?.id || chatSessionRideIdRef.current !== activeRide.id || chatOpenRef.current !== true) {
