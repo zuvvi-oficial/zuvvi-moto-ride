@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/lib/auth.middleware";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
  * ZUVVI CHAT SERVER FUNCTIONS
@@ -78,7 +78,7 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
 export const carregarChat = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ corridaId: z.string().uuid() }).parse(data))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ data: input, context }) => {
     const { meuUsuarioId, interlocutor, status, podeEnviar, supabaseAdmin } = 
       await resolveParticipanteChat(input.corridaId, context.userId);
 
@@ -139,7 +139,7 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
     clientMessageId: z.string().uuid(),
     conteudo: z.string().trim().min(1).max(1000)
   }).parse(data))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ data: input, context }) => {
     const { meuUsuarioId, podeEnviar, supabaseAdmin } = 
       await resolveParticipanteChat(input.corridaId, context.userId);
 
@@ -205,7 +205,7 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
 export const marcarMensagensEntregues = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ corridaId: z.string().uuid() }).parse(data))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ data: input, context }) => {
     const { meuUsuarioId, supabaseAdmin } = 
       await resolveParticipanteChat(input.corridaId, context.userId);
 
@@ -225,7 +225,7 @@ export const marcarMensagensEntregues = createServerFn({ method: "POST" })
 export const marcarMensagensLidas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ corridaId: z.string().uuid() }).parse(data))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ data: input, context }) => {
     const { meuUsuarioId, supabaseAdmin } = 
       await resolveParticipanteChat(input.corridaId, context.userId);
 
@@ -259,7 +259,7 @@ export const atualizarPresencaChat = createServerFn({ method: "POST" })
     corridaId: z.string().uuid(),
     digitando: z.boolean()
   }).parse(data))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ data: input, context }) => {
     const { meuUsuarioId, supabaseAdmin } = 
       await resolveParticipanteChat(input.corridaId, context.userId);
 
@@ -286,3 +286,4 @@ export const atualizarPresencaChat = createServerFn({ method: "POST" })
       digitandoAte
     };
   });
+
