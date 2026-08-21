@@ -682,7 +682,7 @@ function FavoritosDialog({
               <DestinoSearch 
                 location={location}
                 placeholder="Buscar endereço..."
-                compact={mode === "add" && viewport && viewport.width < 640}
+                compact={!!(mode === "add" && viewport && viewport.width < 640)}
                 onSelect={(res) => setSelectedAddress({
                   endereco: res.place_name,
                   latitude: res.center[1],
