@@ -8,15 +8,17 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 
 // Helper interno para mapear mensagem (camelCase)
-function mapearMensagem(m: {
-  id: string;
-  client_message_id: string;
-  remetente_id: string;
-  conteudo: string;
-  created_at: string;
-  entregue_at: string | null;
-  lido_at: string | null;
-} | null) {
+function mapearMensagem(
+  m: {
+    id: string;
+    client_message_id: string;
+    remetente_id: string;
+    conteudo: string;
+    created_at: string;
+    entregue_at: string | null;
+    lido_at: string | null;
+  } | null,
+) {
   if (!m) return null;
   return {
     id: m.id,
