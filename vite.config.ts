@@ -39,8 +39,7 @@ export default defineConfig({
           {
             // HTML navigations: always try the network first, fall back to the
             // cached shell (and finally the offline page) only when offline.
-            urlPattern: ({ request, sameOrigin }) =>
-              sameOrigin && request.mode === "navigate",
+            urlPattern: ({ request, sameOrigin }) => sameOrigin && request.mode === "navigate",
             handler: "NetworkFirst",
             options: {
               cacheName: "zuvvi-html",

@@ -33,8 +33,7 @@ export function usePwaDisplayMode(): PwaEnvironment {
   useEffect(() => {
     const ua = window.navigator.userAgent;
     const isIos =
-      /iPad|iPhone|iPod/.test(ua) ||
-      (ua.includes("Macintosh") && "ontouchend" in document);
+      /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && "ontouchend" in document);
     const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
 
     const sync = () => {

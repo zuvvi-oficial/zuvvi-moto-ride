@@ -15,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { syncAuthSessionToCookies } from "@/integrations/supabase/auth-attacher";
 import { PwaShell } from "@/components/pwa/PwaShell";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -82,8 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       {
         name: "viewport",
-        content:
-          "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
+        content: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
       },
       { name: "google", content: "notranslate" },
       { title: "Zuvvi — Mobilidade urbana na velocidade da moto" },
@@ -157,7 +155,9 @@ function RootComponent() {
 
   useEffect(() => {
     // Sincronização global de sessão com cookies para SSR
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log(`[AuthRoot] event=${event}`);
       syncAuthSessionToCookies(session);
     });

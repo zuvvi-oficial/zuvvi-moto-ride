@@ -81,7 +81,12 @@ export function InstallZuvvi() {
   }, [dismiss, isIos, promptEvent]);
 
   const canPromote =
-    isHydrated && ready && !installed && !isInstalled && !dismissed && (Boolean(promptEvent) || (isIos && isSafari));
+    isHydrated &&
+    ready &&
+    !installed &&
+    !isInstalled &&
+    !dismissed &&
+    (Boolean(promptEvent) || (isIos && isSafari));
 
   if (!canPromote) return null;
 
