@@ -34,6 +34,16 @@ import {
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 
+interface Oferta {
+  id: string;
+  origem_nome: string | null;
+  destino_nome: string | null;
+  valor_estimado: number;
+  forma_pagamento: string;
+  created_at: string;
+  distancia_aprox_m: number;
+}
+
 interface MotoristaStatus {
   is_disponivel: boolean;
   nome: string | null;
@@ -51,6 +61,12 @@ export const Route = createFileRoute("/home-motorista")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
     if (dest.redirectTo !== "/home-motorista") {
+      throw redirect({ to: dest.redirectTo });
+    }
+    return {};
+  },
+  component: HomeMotorista,
+});
       throw redirect({ to: dest.redirectTo });
     }
     return {};
