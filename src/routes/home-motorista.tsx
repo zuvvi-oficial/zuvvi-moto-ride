@@ -56,6 +56,7 @@ function HomeMotorista() {
   const [processingRideId, setProcessingRideId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [isPickupMapReady, setIsPickupMapReady] = useState(false);
 
   const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
