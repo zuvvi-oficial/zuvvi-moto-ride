@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getMapboxToken, getAcompanhamentoPassageiro } from "@/lib/user.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Bike, Loader2, ChevronLeft, User, Star, XCircle, AlertTriangle } from "lucide-react";
+import { Bike, Loader2, ChevronLeft, User, Star, XCircle } from "lucide-react";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { toast } from "sonner";
