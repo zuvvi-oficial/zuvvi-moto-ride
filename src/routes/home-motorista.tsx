@@ -301,7 +301,7 @@ function HomeMotorista() {
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
     onSuccess: (data: { is_disponivel: boolean }) => {
-      queryClient.setQueryData(["motorista-status"], (old: { is_disponivel: boolean } | undefined) => ({
+      queryClient.setQueryData(["motorista-status"], (old: any) => ({
         ...old,
         is_disponivel: data.is_disponivel,
       }));
@@ -310,8 +310,8 @@ function HomeMotorista() {
       }
       toast.success(data.is_disponivel ? "Você está Online" : "Você está Offline");
     },
-    onError: (err: { message?: string }) => {
-      toast.error(err.message || "Erro ao mudar status");
+    onError: (err: any) => {
+      toast.error(err?.message || "Erro ao mudar status");
     },
     onSettled: () => {
       setIsToggling(false);
@@ -326,8 +326,8 @@ function HomeMotorista() {
       toast.success("Corrida aceita com sucesso.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: { message?: string }) {
-      toast.error(err.message || "Falha ao aceitar corrida.");
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao aceitar corrida.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
     } finally {
       setProcessingRideId(null);
@@ -340,8 +340,8 @@ function HomeMotorista() {
     try {
       await recusarCorridaFn({ data: { rideId } });
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
-    } catch (err: { message?: string }) {
-      toast.error(err.message || "Falha ao recusar corrida.");
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao recusar corrida.");
     } finally {
       setProcessingRideId(null);
     }
@@ -356,8 +356,8 @@ function HomeMotorista() {
       toast.success("Corrida cancelada com sucesso.");
       setShowCancelModal(false);
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: { message?: string }) {
-      toast.error(err.message || "Erro ao cancelar corrida.");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao cancelar corrida.");
     } finally {
       setProcessingRideId(null);
     }
@@ -370,8 +370,8 @@ function HomeMotorista() {
       await marcarACaminhoFn({ data: { rideId } });
       toast.success("Deslocamento iniciado.");
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: { message?: string }) {
-      toast.error(err.message || "Não foi possível iniciar o deslocamento.");
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível iniciar o deslocamento.");
     } finally {
       setProcessingRideId(null);
     }
@@ -446,7 +446,7 @@ function HomeMotorista() {
                 setIsGpsActive(true);
                 setGpsError(null);
                 lastUpdateRef.current = now;
-              } catch (err: { message?: string }) {
+              } catch (err: any) {
                 // Se falhar no servidor, mas estiver em corrida, mantém o watcher ativo
                 if (hasActiveRideRef.current) {
                   setIsGpsActive(false);
@@ -954,7 +954,7 @@ function HomeMotorista() {
                               {new Intl.NumberFormat("pt-BR", {
                                 style: "currency",
                                 currency: "BRL",
-                              }).format(oferta.valor_estimado)}
+                              }).format(Number(oferta.valor_estimado))}
                             </p>
                           </div>
                         </div>
