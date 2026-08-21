@@ -85,12 +85,12 @@ function AcompanhamentoCorrida() {
             cancellationRedirectTimeoutRef.current = setTimeout(() => {
               navigate({ to: "/" });
             }, 1800);
-          }
           } else if (payload.new?.status === "motorista_a_caminho") {
             setCorrida((current: any) =>
               current ? { ...current, status: "motorista_a_caminho" } : current
             );
           }
+        }
       )
       .subscribe();
 
