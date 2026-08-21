@@ -69,17 +69,20 @@ interface ChatMensagem {
 }
 
 interface ChatData {
+  corridaId: string;
   meuUsuarioId: string;
   interlocutor: {
     id: string;
     nome: string;
   };
+  status: string;
+  podeEnviar: boolean;
+  naoLidas: number;
   mensagens: ChatMensagem[];
   presenca: {
     ultimoVistoAt: string;
     digitandoAte: string | null;
   } | null;
-  podeEnviar: boolean;
 }
 
 function HomeMotorista() {
@@ -96,12 +99,7 @@ function HomeMotorista() {
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
-  const lastRouteCoordsRef = useRef<{
-    dLat: number;
-    dLng: number;
-    pLat: number;
-    pLng: number;
-  } | null>(null);
+  const lastRouteCoordsRef = useRef<{ dLat: number; dLng: number; pLat: number; pLng: number } | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -146,6 +144,7 @@ function HomeMotorista() {
   const [chatSending, setChatSending] = useState(false);
   const digitandoRef = useRef(false);
   const chatDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const activeChatRideIdRef = useRef<string | undefined>(undefined);
 
   const handleChatOpenChange = (open: boolean) => {
     if (open && !activeRide?.id) return;
@@ -158,23 +157,45 @@ function HomeMotorista() {
 
   const refreshChat = useCallback(async () => {
     if (!activeRide?.id) return;
+    const currentRideId = activeRide.id;
 
     try {
-      const inicial = await carregarChatFn({ data: { corridaId: activeRide.id } });
+      const inicial = await carregarChatFn({ data: { corridaId: currentRideId } });
+      if (activeChatRideIdRef.current !== currentRideId) return;
       setChatData(inicial as ChatData);
 
-      await marcarEntreguesFn({ data: { corridaId: activeRide.id } });
-      await marcarLidasFn({ data: { corridaId: activeRide.id } });
+      await marcarEntreguesFn({ data: { corridaId: currentRideId } });
+      if (activeChatRideIdRef.current !== currentRideId) return;
+      
+      await marcarLidasFn({ data: { corridaId: currentRideId } });
+      if (activeChatRideIdRef.current !== currentRideId) return;
 
-      const atualizado = await carregarChatFn({ data: { corridaId: activeRide.id } });
+      const atualizado = await carregarChatFn({ data: { corridaId: currentRideId } });
+      if (activeChatRideIdRef.current !== currentRideId) return;
+      
       setChatData(atualizado as ChatData);
       setChatError(null);
     } catch {
-      setChatError("Não foi possível carregar o chat.");
+      if (activeChatRideIdRef.current === currentRideId) {
+        setChatError("Não foi possível carregar o chat.");
+      }
     } finally {
-      setChatLoading(false);
+      if (activeChatRideIdRef.current === currentRideId) {
+        setChatLoading(false);
+      }
     }
   }, [activeRide?.id, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
+
+  useEffect(() => {
+    activeChatRideIdRef.current = activeRide?.id;
+    chatOpenRef.current = false;
+    digitandoRef.current = false;
+    setChatOpen(false);
+    setChatData(null);
+    setChatError(null);
+    setChatLoading(false);
+    setChatSending(false);
+  }, [activeRide?.id]);
 
   useEffect(() => {
     if (!chatOpen || !activeRide?.id) return;
@@ -299,7 +320,7 @@ function HomeMotorista() {
 
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
-    onSuccess: (data: { is_disponivel: boolean }) => {
+    onSuccess: (data) => {
       queryClient.setQueryData(["motorista-status"], (old: any) => ({
         ...old,
         is_disponivel: data.is_disponivel,
@@ -310,7 +331,7 @@ function HomeMotorista() {
       toast.success(data.is_disponivel ? "Você está Online" : "Você está Offline");
     },
     onError: (err: any) => {
-      toast.error(err?.message || "Erro ao mudar status");
+      toast.error(err.message || "Erro ao mudar status");
     },
     onSettled: () => {
       setIsToggling(false);
@@ -325,9 +346,8 @@ function HomeMotorista() {
       toast.success("Corrida aceita com sucesso.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err) {
-      const error = err as { message?: string };
-      toast.error(error?.message || "Falha ao aceitar corrida.");
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao aceitar corrida.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
     } finally {
       setProcessingRideId(null);
@@ -340,9 +360,8 @@ function HomeMotorista() {
     try {
       await recusarCorridaFn({ data: { rideId } });
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
-    } catch (err) {
-      const error = err as { message?: string };
-      toast.error(error?.message || "Falha ao recusar corrida.");
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao recusar corrida.");
     } finally {
       setProcessingRideId(null);
     }
@@ -357,9 +376,8 @@ function HomeMotorista() {
       toast.success("Corrida cancelada com sucesso.");
       setShowCancelModal(false);
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err) {
-      const error = err as { message?: string };
-      toast.error(error?.message || "Erro ao cancelar corrida.");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cancelar corrida.");
     } finally {
       setProcessingRideId(null);
     }
@@ -372,9 +390,8 @@ function HomeMotorista() {
       await marcarACaminhoFn({ data: { rideId } });
       toast.success("Deslocamento iniciado.");
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err) {
-      const error = err as { message?: string };
-      toast.error(error?.message || "Não foi possível iniciar o deslocamento.");
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível iniciar o deslocamento.");
     } finally {
       setProcessingRideId(null);
     }
@@ -449,9 +466,7 @@ function HomeMotorista() {
                 setIsGpsActive(true);
                 setGpsError(null);
                 lastUpdateRef.current = now;
-              } catch (err) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const error = err as any;
+              } catch (err: any) {
                 // Se falhar no servidor, mas estiver em corrida, mantém o watcher ativo
                 if (hasActiveRideRef.current) {
                   setIsGpsActive(false);
@@ -523,11 +538,10 @@ function HomeMotorista() {
     // 4 & 5. Rota Directions
     const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou"];
     if (hasValidDriver && hasValidPickup && routeStatuses.includes(activeRide.status)) {
-      const coordsChanged =
-        !lastRouteCoordsRef.current ||
-        lastRouteCoordsRef.current.dLat !== dLat ||
-        lastRouteCoordsRef.current.dLng !== dLng ||
-        lastRouteCoordsRef.current.pLat !== pLat ||
+      const coordsChanged = !lastRouteCoordsRef.current || 
+        lastRouteCoordsRef.current.dLat !== dLat || 
+        lastRouteCoordsRef.current.dLng !== dLng || 
+        lastRouteCoordsRef.current.pLat !== pLat || 
         lastRouteCoordsRef.current.pLng !== pLng;
 
       if (coordsChanged && isPickupMapReady) {
@@ -535,17 +549,17 @@ function HomeMotorista() {
           routeAbortRef.current.abort();
           routeAbortRef.current = null;
         }
-
+        
         const controller = new AbortController();
         routeAbortRef.current = controller;
 
         const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${dLng},${dLat};${pLng},${pLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
 
         fetch(url, { signal: controller.signal })
-          .then((res) => res.json())
-          .then((data) => {
+          .then(res => res.json())
+          .then(data => {
             if (controller.signal.aborted) return;
-
+            
             if (data.code !== "Ok" || !data.routes?.[0]) {
               setRouteError("Rota temporariamente indisponível.");
               return;
@@ -561,14 +575,14 @@ function HomeMotorista() {
             } else {
               map.addSource(sourceId, {
                 type: "geojson",
-                data: route,
+                data: route
               });
               map.addLayer({
                 id: layerId,
                 type: "line",
                 source: sourceId,
                 layout: { "line-join": "round", "line-cap": "round" },
-                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
+                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 }
               });
             }
 
@@ -581,12 +595,12 @@ function HomeMotorista() {
             }
 
             lastRouteCoordsRef.current = { dLat: dLat!, dLng: dLng!, pLat: pLat!, pLng: pLng! };
-
+            
             if (routeAbortRef.current === controller) {
               routeAbortRef.current = null;
             }
           })
-          .catch((err) => {
+          .catch(err => {
             if (err.name !== "AbortError") {
               setRouteError("Rota temporariamente indisponível.");
             }
@@ -598,7 +612,7 @@ function HomeMotorista() {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
       }
-
+      
       const sourceId = "zuvvi-driver-pickup-route-source";
       const layerId = "zuvvi-driver-pickup-route-layer";
       if (map.getLayer(layerId)) map.removeLayer(layerId);
@@ -671,6 +685,8 @@ function HomeMotorista() {
       </div>
     );
   }
+
+  const chatDataAtual = chatData?.corridaId === activeRide?.id ? chatData : null;
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
@@ -895,111 +911,102 @@ function HomeMotorista() {
               </div>
             ) : (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {ofertas.map(
-                  (oferta: {
-                    id: string;
-                    distancia_aprox_m: number;
-                    origem_nome: string;
-                    destino_nome: string;
-                    valor_estimado: number | string;
-                    forma_pagamento: string;
-                  }) => (
-                    <div
-                      key={oferta.id}
-                      className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-6"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-zuvvi-volt">
-                          <Bike className="w-5 h-5" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">
-                            Novo pedido de corrida
-                          </span>
-                        </div>
-                        <span className="bg-zuvvi-volt/10 text-zuvvi-volt px-3 py-1 rounded-full text-[9px] font-bold">
-                          {oferta.distancia_aprox_m >= 1000
-                            ? `${(oferta.distancia_aprox_m / 1000).toFixed(1)}km`
-                            : `${oferta.distancia_aprox_m}m`}
+                {ofertas.map((oferta: any) => (
+                  <div
+                    key={oferta.id}
+                    className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-6"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-zuvvi-volt">
+                        <Bike className="w-5 h-5" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">
+                          Novo pedido de corrida
                         </span>
                       </div>
+                      <span className="bg-zuvvi-volt/10 text-zuvvi-volt px-3 py-1 rounded-full text-[9px] font-bold">
+                        {oferta.distancia_aprox_m >= 1000
+                          ? `${(oferta.distancia_aprox_m / 1000).toFixed(1)}km`
+                          : `${oferta.distancia_aprox_m}m`}
+                      </span>
+                    </div>
 
-                      <div className="space-y-4">
-                        <div className="flex gap-4">
-                          <div className="flex flex-col items-center gap-1 mt-1">
-                            <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
-                            <div className="w-0.5 h-8 bg-white/10" />
-                            <MapPin className="w-4 h-4 text-white/40" />
-                          </div>
-                          <div className="flex-1 space-y-4">
-                            <div className="space-y-0.5">
-                              <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
-                                Embarque
-                              </p>
-                              <p className="text-sm font-medium line-clamp-1">
-                                {oferta.origem_nome || "Local de embarque"}
-                              </p>
-                            </div>
-                            <div className="space-y-0.5">
-                              <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
-                                Destino
-                              </p>
-                              <p className="text-sm font-medium line-clamp-1">
-                                {oferta.destino_nome || "Local de destino"}
-                              </p>
-                            </div>
-                          </div>
+                    <div className="space-y-4">
+                      <div className="flex gap-4">
+                        <div className="flex flex-col items-center gap-1 mt-1">
+                          <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
+                          <div className="w-0.5 h-8 bg-white/10" />
+                          <MapPin className="w-4 h-4 text-white/40" />
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                          <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
-                            <CircleDollarSign className="w-4 h-4 text-zuvvi-volt" />
-                            <div>
-                              <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
-                                Valor
-                              </p>
-                              <p className="text-xs font-bold text-zuvvi-volt">
-                                {new Intl.NumberFormat("pt-BR", {
-                                  style: "currency",
-                                  currency: "BRL",
-                                }).format(Number(oferta.valor_estimado))}
-                              </p>
-                            </div>
+                        <div className="flex-1 space-y-4">
+                          <div className="space-y-0.5">
+                            <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
+                              Embarque
+                            </p>
+                            <p className="text-sm font-medium line-clamp-1">
+                              {oferta.origem_nome || "Local de embarque"}
+                            </p>
                           </div>
-                          <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
-                            <Wallet className="w-4 h-4 text-white/60" />
-                            <div>
-                              <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
-                                Pagamento
-                              </p>
-                              <p className="text-xs font-bold uppercase tracking-tight truncate">
-                                {oferta.forma_pagamento}
-                              </p>
-                            </div>
+                          <div className="space-y-0.5">
+                            <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
+                              Destino
+                            </p>
+                            <p className="text-sm font-medium line-clamp-1">
+                              {oferta.destino_nome || "Local de destino"}
+                            </p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleRecusar(oferta.id)}
-                          disabled={!!processingRideId}
-                          className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors disabled:opacity-50"
-                        >
-                          Recusar
-                        </button>
-                        <button
-                          onClick={() => handleAceitar(oferta.id)}
-                          disabled={!!processingRideId}
-                          className="flex-[2] py-4 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                          {processingRideId === oferta.id && (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          )}
-                          {processingRideId === oferta.id ? "Aceitando..." : "Aceitar Corrida"}
-                        </button>
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                          <CircleDollarSign className="w-4 h-4 text-zuvvi-volt" />
+                          <div>
+                            <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
+                              Valor
+                            </p>
+                            <p className="text-xs font-bold text-zuvvi-volt">
+                              {new Intl.NumberFormat("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              }).format(Number(oferta.valor_estimado))}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                          <Wallet className="w-4 h-4 text-white/60" />
+                          <div>
+                            <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
+                              Pagamento
+                            </p>
+                            <p className="text-xs font-bold uppercase tracking-tight truncate">
+                              {oferta.forma_pagamento}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ),
-                )}
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleRecusar(oferta.id)}
+                        disabled={!!processingRideId}
+                        className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors disabled:opacity-50"
+                      >
+                        Recusar
+                      </button>
+                      <button
+                        onClick={() => handleAceitar(oferta.id)}
+                        disabled={!!processingRideId}
+                        className="flex-[2] py-4 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {processingRideId === oferta.id && (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        )}
+                        {processingRideId === oferta.id ? "Aceitando..." : "Aceitar Corrida"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1028,7 +1035,7 @@ function HomeMotorista() {
           </button>
         </div>
       </nav>
-      {/* Modal de Confirmação de Cancelamento Profissional */}
+
       {showCancelModal && activeRide && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zuvvi-indigo/95 backdrop-blur-md animate-in fade-in duration-300">
           <div className="w-full max-w-sm bg-zuvvi-indigo border border-white/10 rounded-[2.5rem] p-8 space-y-8 shadow-2xl animate-in zoom-in-95 duration-300">
@@ -1041,8 +1048,7 @@ function HomeMotorista() {
                   Cancelar Corrida?
                 </h2>
                 <p className="text-xs text-white/40 leading-relaxed">
-                  O cancelamento frequente pode afetar sua nota e prioridade no recebimento de novas
-                  ofertas.
+                  O cancelamento frequente pode afetar sua nota e prioridade no recebimento de novas ofertas.
                 </p>
               </div>
             </div>
@@ -1079,16 +1085,16 @@ function HomeMotorista() {
         <ChatConversation
           open={chatOpen}
           onOpenChange={handleChatOpenChange}
-          meuUsuarioId={chatData?.meuUsuarioId || ""}
+          meuUsuarioId={chatDataAtual?.meuUsuarioId || ""}
           interlocutor={
-            chatData?.interlocutor || {
+            chatDataAtual?.interlocutor || {
               id: "",
               nome: "Passageiro",
             }
           }
-          mensagens={chatData?.mensagens || []}
-          presenca={chatData?.presenca || null}
-          podeEnviar={chatData?.podeEnviar ?? false}
+          mensagens={chatDataAtual?.mensagens || []}
+          presenca={chatDataAtual?.presenca || null}
+          podeEnviar={chatDataAtual?.podeEnviar ?? false}
           loading={chatLoading}
           error={chatError}
           enviando={chatSending}
