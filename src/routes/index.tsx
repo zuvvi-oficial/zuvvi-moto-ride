@@ -342,7 +342,13 @@ function HomePassageiro({ nome }: { nome: string }) {
               </div>
             </div>
           )}
+          <FavoritosDialog 
+            open={favoritosOpen} 
+            onOpenChange={setFavoritosOpen}
+            location={isManualOrigin ? manualLocation : location}
+          />
         </main>
+
 
         {/* Menu Inferior */}
         <nav className="bottom-0 left-0 right-0 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto shrink-0">
