@@ -178,7 +178,25 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
     if (mError || !motoristaInfo) throw new Error("Usuário não encontrado.");
     
     const motorista = (motoristaInfo.motoristas as any);
-    if (!motorista.is_disponivel) throw new Error("Motorista deve estar online para enviar GPS.");
+    
+    // Regra consolidada: Disponível OU Possui Corrida Ativa
+    if (!motorista.is_disponivel) {
+      const { data: activeRides, error: rideError } = await supabaseAdmin
+        .from("corridas")
+        .select("id")
+        .eq("motorista_id", motoristaInfo.id)
+        .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou', 'em_andamento']);
+
+      if (rideError) throw new Error("Erro ao validar estado da corrida.");
+      
+      if (!activeRides || activeRides.length === 0) {
+        throw new Error("Motorista deve estar online ou em corrida ativa para enviar GPS.");
+      }
+
+      if (activeRides.length > 1) {
+        throw new Error("Múltiplas corridas ativas detectadas (Inconsistência).");
+      }
+    }
 
     const { error } = await supabaseAdmin
       .from("motoristas")

@@ -176,54 +176,69 @@ function HomeMotorista() {
     }
   };
 
+  const shouldTrackLocation = isOnline || Boolean(activeRide);
+
   useEffect(() => {
-    if (status?.is_disponivel) {
+    if (shouldTrackLocation) {
       if (!navigator.geolocation) {
         handleGpsError("Seu navegador não suporta geolocalização.");
         return;
       }
 
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          
-          if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+      // Evita recriar se o watchId já existe, mas limpa se shouldTrackLocation mudar
+      if (watchIdRef.current === null) {
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
 
-          const now = Date.now();
-          // Lógica de Throttle: primeira imediata, depois 10s, sem concorrência
-          const isFirstUpdate = lastUpdateRef.current === 0;
-          const isTimeElapsed = now - lastUpdateRef.current >= 10000;
-          const canUpdate = (isFirstUpdate || isTimeElapsed) && !locationUpdateInFlightRef.current;
+            const now = Date.now();
+            // Lógica de Throttle: primeira imediata, depois 10s, sem concorrência
+            const isFirstUpdate = lastUpdateRef.current === 0;
+            const isTimeElapsed = now - lastUpdateRef.current >= 10000;
+            const canUpdate = (isFirstUpdate || isTimeElapsed) && !locationUpdateInFlightRef.current;
 
-          if (canUpdate) {
-            locationUpdateInFlightRef.current = true;
-            try {
-              await updateLocationFn({ data: { lat: latitude, lng: longitude } });
-              setIsGpsActive(true);
-              setGpsError(null);
-              lastUpdateRef.current = now;
-            } catch (err: any) {
-              handleGpsError("Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.");
-            } finally {
-              locationUpdateInFlightRef.current = false;
+            if (canUpdate) {
+              locationUpdateInFlightRef.current = true;
+              try {
+                await updateLocationFn({ data: { lat: latitude, lng: longitude } });
+                setIsGpsActive(true);
+                setGpsError(null);
+                lastUpdateRef.current = now;
+              } catch (err: any) {
+                // Se falhar no servidor, mas estiver em corrida, apenas loga (não desliga)
+                if (activeRide) {
+                  console.warn("Falha ao atualizar localização durante corrida ativa.");
+                } else {
+                  handleGpsError("Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.");
+                }
+              } finally {
+                locationUpdateInFlightRef.current = false;
+              }
             }
-          }
-        },
-        (err) => {
-          let msg = "Erro ao obter localização.";
-          if (err.code === err.PERMISSION_DENIED) {
-            msg = "Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.";
-          }
-          handleGpsError(msg);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
+          },
+          (err) => {
+            let msg = "Erro ao obter localização.";
+            if (err.code === err.PERMISSION_DENIED) {
+              msg = "Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.";
+            }
+            handleGpsError(msg);
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      }
     } else {
       stopGps();
     }
 
-    return () => stopGps();
-  }, [status?.is_disponivel]);
+    return () => {
+      // Se pararmos de rastrear, limpamos
+      if (!shouldTrackLocation) {
+        stopGps();
+      }
+    };
+  }, [shouldTrackLocation, activeRide]);
 
   const handleToggleOnline = () => {
     if (isToggling || activeRide) return;
