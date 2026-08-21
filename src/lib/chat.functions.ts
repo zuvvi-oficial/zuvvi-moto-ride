@@ -70,7 +70,7 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
     interlocutor,
     status: corrida.status,
     podeEnviar,
-    supabaseAdmin
+    supabaseAdmin,
   };
 }
 
@@ -79,7 +79,7 @@ export const carregarChat = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ corridaId: z.string().uuid() }).parse(data))
   .handler(async ({ data: input, context }) => {
-    const { meuUsuarioId, interlocutor, status, podeEnviar, supabaseAdmin } = 
+    const { meuUsuarioId, interlocutor, status, podeEnviar, supabaseAdmin } =
       await resolveParticipanteChat(input.corridaId, context.userId);
 
     // Buscar no máximo 100 mensagens da corrida (recentes, mas retorna em ordem cronológica crescente)
@@ -115,33 +115,41 @@ export const carregarChat = createServerFn({ method: "GET" })
       status,
       podeEnviar,
       naoLidas: naoLidas || 0,
-      presenca: presenca ? {
-        ultimoVistoAt: presenca.ultimo_visto_at,
-        digitandoAte: presenca.digitando_ate
-      } : null,
-      mensagens: (mensagens || []).reverse().map(m => ({
+      presenca: presenca
+        ? {
+            ultimoVistoAt: presenca.ultimo_visto_at,
+            digitandoAte: presenca.digitando_ate,
+          }
+        : null,
+      mensagens: (mensagens || []).reverse().map((m) => ({
         id: m.id,
         clientMessageId: m.client_message_id,
         remetenteId: m.remetente_id,
         conteudo: m.conteudo,
         createdAt: m.created_at,
         entregueAt: m.entregue_at,
-        lidoAt: m.lido_at
-      }))
+        lidoAt: m.lido_at,
+      })),
     };
   });
 
 // 2. enviarMensagemChat
 export const enviarMensagemChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({
-    corridaId: z.string().uuid(),
-    clientMessageId: z.string().uuid(),
-    conteudo: z.string().trim().min(1).max(1000)
-  }).parse(data))
+  .inputValidator((data) =>
+    z
+      .object({
+        corridaId: z.string().uuid(),
+        clientMessageId: z.string().uuid(),
+        conteudo: z.string().trim().min(1).max(1000),
+      })
+      .parse(data),
+  )
   .handler(async ({ data: input, context }) => {
-    const { meuUsuarioId, podeEnviar, supabaseAdmin } = 
-      await resolveParticipanteChat(input.corridaId, context.userId);
+    const { meuUsuarioId, podeEnviar, supabaseAdmin } = await resolveParticipanteChat(
+      input.corridaId,
+      context.userId,
+    );
 
     if (!podeEnviar) {
       throw new Error("O chat não está mais disponível para novas mensagens nesta corrida.");
@@ -178,7 +186,7 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
         corrida_id: input.corridaId,
         remetente_id: meuUsuarioId,
         client_message_id: input.clientMessageId,
-        conteudo: input.conteudo
+        conteudo: input.conteudo,
       })
       .select()
       .single();
@@ -206,8 +214,10 @@ export const marcarMensagensEntregues = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ corridaId: z.string().uuid() }).parse(data))
   .handler(async ({ data: input, context }) => {
-    const { meuUsuarioId, supabaseAdmin } = 
-      await resolveParticipanteChat(input.corridaId, context.userId);
+    const { meuUsuarioId, supabaseAdmin } = await resolveParticipanteChat(
+      input.corridaId,
+      context.userId,
+    );
 
     const { error, count } = await supabaseAdmin
       .from("chat_mensagens")
@@ -226,8 +236,10 @@ export const marcarMensagensLidas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ corridaId: z.string().uuid() }).parse(data))
   .handler(async ({ data: input, context }) => {
-    const { meuUsuarioId, supabaseAdmin } = 
-      await resolveParticipanteChat(input.corridaId, context.userId);
+    const { meuUsuarioId, supabaseAdmin } = await resolveParticipanteChat(
+      input.corridaId,
+      context.userId,
+    );
 
     const agora = new Date().toISOString();
 
@@ -255,35 +267,41 @@ export const marcarMensagensLidas = createServerFn({ method: "POST" })
 // 5. atualizarPresencaChat
 export const atualizarPresencaChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({
-    corridaId: z.string().uuid(),
-    digitando: z.boolean()
-  }).parse(data))
+  .inputValidator((data) =>
+    z
+      .object({
+        corridaId: z.string().uuid(),
+        digitando: z.boolean(),
+      })
+      .parse(data),
+  )
   .handler(async ({ data: input, context }) => {
-    const { meuUsuarioId, supabaseAdmin } = 
-      await resolveParticipanteChat(input.corridaId, context.userId);
+    const { meuUsuarioId, supabaseAdmin } = await resolveParticipanteChat(
+      input.corridaId,
+      context.userId,
+    );
 
     const agora = new Date();
     const digitandoAte = input.digitando ? new Date(agora.getTime() + 5000).toISOString() : null;
     const ultimoVistoAt = agora.toISOString();
 
-    const { error } = await supabaseAdmin
-      .from("chat_presenca")
-      .upsert({
+    const { error } = await supabaseAdmin.from("chat_presenca").upsert(
+      {
         corrida_id: input.corridaId,
         usuario_id: meuUsuarioId,
         ultimo_visto_at: ultimoVistoAt,
         digitando_ate: digitandoAte,
-        updated_at: ultimoVistoAt
-      }, {
-        onConflict: "corrida_id,usuario_id"
-      });
+        updated_at: ultimoVistoAt,
+      },
+      {
+        onConflict: "corrida_id,usuario_id",
+      },
+    );
 
     if (error) throw new Error("Erro ao atualizar presença.");
 
     return {
       ultimoVistoAt,
-      digitandoAte
+      digitandoAte,
     };
   });
-
