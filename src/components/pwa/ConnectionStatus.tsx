@@ -13,6 +13,7 @@ export function ConnectionStatus() {
       const timer = window.setTimeout(() => setShowRecovered(false), 2600);
       return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [isOnline, wasOffline]);
 
   if (isOnline && !showRecovered) return null;
