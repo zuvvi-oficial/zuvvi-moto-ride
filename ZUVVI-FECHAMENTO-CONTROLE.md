@@ -505,7 +505,58 @@ Registrado em 21/08/2026 como PENDÊNCIA (não falha da 2.8).
 **Auditoria técnica:**
 `src/routes/acompanhamento.tsx` atualmente carrega a corrida somente na inicialização e não possui atualização Realtime/polling para mudanças posteriores do status. A tela também mantém o rótulo "Motorista Aceitou" de forma fixa.
 
-**Status:** BLOQUEADOR FUNCIONAL DO PASSAGEIRO a ser corrigido antes de prosseguir com a evolução visual do mapa do motorista.
+**Status:** ✅ RESOLVIDO (Microetapa 2.9).
+
+### MICROETAPA 2.9 — Cancelamento no Passageiro — ✅ FECHADA
+
+Comprovada funcionalmente em 21/08/2026.
+
+- Tela `/acompanhamento` reage em tempo real ao cancelamento da corrida.
+- Exibe overlay visual "Corrida cancelada" com motivo.
+- Redireciona para a Home após 1.8s.
+
+---
+
+### Microetapa 3.0 — Mapa do Local de Embarque — ✅ FECHADA
+
+Implementação comprovada:
+
+- após o motorista aceitar a corrida, a Home Motorista exibe mapa Mapbox dentro do card da corrida ativa;
+- o mapa utiliza as coordenadas reais: corridas.origem_lat, corridas.origem_lng;
+- o marcador representa o local de embarque do passageiro;
+- MapView existente foi reutilizado sem alteração;
+- getMapboxToken existente foi reutilizado;
+- o mapa possui container com dimensão real para celular;
+- card de origem, destino, valor e pagamento foi preservado;
+- GPS pós-aceite da Microetapa 2.8 permaneceu intacto;
+- fluxo do passageiro permaneceu intacto;
+- nenhuma migration ou alteração Supabase foi necessária.
+
+TESTE MANUAL APROVADO EM 21/08/2026:
+
+Fluxo comprovado:
+Passageiro solicita corrida
+→ motorista recebe
+→ motorista aceita
+→ Home Motorista entra em estado EM CORRIDA
+→ seção LOCAL DE EMBARQUE aparece
+→ mapa Mapbox carrega corretamente
+→ marcador aparece no local de embarque.
+
+CONTRA-PROVA:
+
+GitHub final:
+13a44281a55df2257b57c3a32fdfccc106efbdb7
+
+Commit funcional da implementação:
+6bd1603cf7aab3ad0e2eb944580f8ad31e64f606
+
+Supabase:
+42 migrations
+última migration:
+20260820183150
+
+MICROETAPA 3.0 — ✅ FECHADA
 
 ---
 
@@ -515,10 +566,20 @@ Registrado em 21/08/2026 como PENDÊNCIA (não falha da 2.8).
 
 **SPRINT 1 — ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA**
 
-**SPRINT 2 — ⚠️ EM ANDAMENTO**
+**SPRINT 2 — ✅ CONCLUÍDO**
+
+**SPRINT 3 — ⚠️ EM ANDAMENTO**
+
+**CORE CONGELADO:**
+- mapa do embarque do motorista;
+- origem_lat/origem_lng no activeRide;
+- MapView utilizado nessa tela;
+- getMapboxToken utilizado nessa tela;
+- GPS pós-aceite já aprovado.
 
 **FECHAMENTO FUNCIONAL ATUAL:** 21/08/2026
-**BASELINE GITHUB:** 10123b47cde9e8d08f96ddb0bcfaffcf00e48593 (após Microcorreção 2.8-D)
+**BASELINE GITHUB:** 13a44281a55df2257b57c3a32fdfccc106efbdb7
 
-**Próxima etapa oficial:**
-Auditoria e correção isolada do cancelamento no passageiro (sincronização de `/acompanhamento`).
+**PRÓXIMA MICROETAPA PLANEJADA:**
+
+Microetapa 3.1 — Posição do motorista + rota até o local de embarque.
