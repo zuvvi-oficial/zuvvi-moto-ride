@@ -584,6 +584,65 @@ Microetapa 3.1 — Posição do motorista + rota até o local de embarque.
 
 ## Favoritos do Passageiro — ✅ FECHADO E CONGELADO
 
+### Favoritos 1 — Banco e segurança — ✅ FECHADA
+
+- criada tabela public.enderecos_favoritos;
+- ownership por usuario_id;
+- FK para usuarios com ON DELETE CASCADE;
+- nome máximo 40;
+- endereço máximo 300;
+- latitude/longitude validadas;
+- nome único por usuário de forma case-insensitive;
+- RLS ativo;
+- exatamente 4 policies para authenticated;
+- anon sem SELECT/INSERT/UPDATE/DELETE;
+- updated_at preservado.
+
+### Favoritos 2 — Backend e gerenciamento — ✅ FECHADA
+
+- listarFavoritos;
+- criarFavorito;
+- excluirFavorito;
+- usuário resolvido server-side;
+- cliente não define usuario_id;
+- ownership validado também server-side;
+- duplicidade de nome recebe mensagem amigável;
+- criação, persistência e exclusão suportadas;
+- modal premium;
+- modo Novo favorito;
+- comportamento mobile com visualViewport;
+- teclado não desloca Home;
+- botão SALVAR permanece acessível acima do teclado;
+- lista com scroll interno.
+
+### Favoritos 3 — Usar favorito como destino — ✅ FECHADA E COMPROVADA
+
+- favorito salvo pode ser selecionado como destino;
+- coordenadas salvas são reutilizadas diretamente;
+- não ocorre nova geocodificação Mapbox;
+- seleção reutiliza handleDestinationSelected;
+- fluxo permanece:
+  Favorito → /confirmar-corrida;
+- NÃO pula diretamente para procura de motorista;
+- clique funcional comprovado manualmente;
+- card visual corrigido;
+- endereço truncado;
+- coluna exclusiva para lixeira;
+- ausência de overflow lateral comprovada visualmente;
+- overlay de Favoritos mais escuro;
+- outros Dialogs preservam comportamento padrão.
+
+### Favoritos 4 — Limite de 10 — ✅ FECHADA
+
+Regra oficial:
+
+- máximo de 10 favoritos por passageiro;
+- 0–9: pode adicionar;
+- 10: nova criação bloqueada;
+- mensagem:
+  "Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.";
+- ao excluir e voltar para 9, adicionar é liberado novamente.
+
 ### Camadas de proteção
 
 1. Interface:
