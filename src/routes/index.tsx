@@ -373,6 +373,18 @@ function HomePassageiro({ nome }: { nome: string }) {
               });
             }}
           />
+          
+          <RecentesDialog 
+            open={recentesOpen}
+            onOpenChange={setRecentesOpen}
+            onSelectRecente={(recente) => {
+              handleDestinationSelected({
+                latitude: Number(recente.latitude),
+                longitude: Number(recente.longitude),
+                endereco: recente.nome
+              });
+            }}
+          />
 
         </main>
 
