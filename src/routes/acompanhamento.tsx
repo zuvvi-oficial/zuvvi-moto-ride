@@ -131,7 +131,9 @@ function AcompanhamentoCorrida() {
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
-          <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">Motorista Aceitou</p>
+          <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">
+            {corrida.status === "motorista_a_caminho" ? "Motorista a Caminho" : "Motorista Aceitou"}
+          </p>
         </div>
         <div className="w-12" />
       </div>
