@@ -331,7 +331,7 @@ function HomePassageiro({ nome }: { nome: string }) {
         </main>
 
         {/* Menu Inferior */}
-        <nav className="sticky bottom-0 left-0 right-0 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto shrink-0">
+        <nav className="bottom-0 left-0 right-0 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto shrink-0">
           <div className="mx-auto max-w-md flex items-center justify-around">
             <button className="flex flex-col items-center gap-1 volt-text">
               <Bike className="w-6 h-6" strokeWidth={2.5} />
