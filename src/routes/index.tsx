@@ -168,8 +168,32 @@ function HomePassageiro({ nome }: { nome: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.lat, location?.lng, isLocating]);
 
+  const handleDestinationSelected = (dest: {
+    latitude: number;
+    longitude: number;
+    endereco: string;
+  }) => {
+    const currentOrigin = isManualOrigin ? manualLocation : location;
+    const currentOriginName = isManualOrigin ? manualAddress : originAddress;
+
+    if (currentOrigin && currentOriginName) {
+      navigate({
+        to: '/confirmar-corrida',
+        search: {
+          originLat: currentOrigin.lat,
+          originLng: currentOrigin.lng,
+          destLat: dest.latitude,
+          destLng: dest.longitude,
+          destName: dest.endereco.split(',')[0] || '',
+          originName: (currentOriginName.split(',')[0] || '') + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
+
+        }
+      });
+    }
+  };
 
   return (
+
     <div 
       className="relative bg-zuvvi-indigo text-foreground overflow-hidden"
       style={{ height: '100dvh', width: '100vw' }}
@@ -303,24 +327,14 @@ function HomePassageiro({ nome }: { nome: string }) {
               <DestinoSearch 
                 location={isManualOrigin ? manualLocation : location} 
                 onSelect={(dest) => {
-                  const currentOrigin = isManualOrigin ? manualLocation : location;
-                  const currentOriginName = isManualOrigin ? manualAddress : originAddress;
-                  
-                  if (currentOrigin && currentOriginName) {
-                    navigate({
-                      to: '/confirmar-corrida',
-                      search: {
-                        originLat: currentOrigin.lat,
-                        originLng: currentOrigin.lng,
-                        destLat: dest.center[1],
-                        destLng: dest.center[0],
-                        destName: dest.place_name.split(',')[0],
-                        originName: currentOriginName.split(',')[0] + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
-                      }
-                    });
-                  }
+                  handleDestinationSelected({
+                    latitude: dest.center[1],
+                    longitude: dest.center[0],
+                    endereco: dest.place_name
+                  });
                 }}
               />
+
               
               <div className="grid grid-cols-2 gap-3 pb-4">
                 <button 
@@ -346,7 +360,15 @@ function HomePassageiro({ nome }: { nome: string }) {
             open={favoritosOpen} 
             onOpenChange={setFavoritosOpen}
             location={isManualOrigin ? manualLocation : location}
+            onSelectFavorite={(fav) => {
+              handleDestinationSelected({
+                latitude: Number(fav.latitude),
+                longitude: Number(fav.longitude),
+                endereco: fav.endereco
+              });
+            }}
           />
+
         </main>
 
 
@@ -379,12 +401,20 @@ function HomePassageiro({ nome }: { nome: string }) {
 function FavoritosDialog({ 
   open, 
   onOpenChange, 
-  location 
+  location,
+  onSelectFavorite
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void; 
   location: { lat: number; lng: number } | null;
+  onSelectFavorite: (fav: {
+    nome: string;
+    endereco: string;
+    latitude: number;
+    longitude: number;
+  }) => void;
 }) {
+
   const [mode, setMode] = useState<"list" | "add">("list");
   const [nome, setNome] = useState("");
   const [selectedAddress, setSelectedAddress] = useState<{
@@ -494,8 +524,9 @@ function FavoritosDialog({
         className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 shadow-2xl transition-all duration-300 rounded-[2rem] max-w-[calc(100vw-2rem)] sm:max-w-md ${
           mode === "add" 
             ? "sm:top-1/2 sm:-translate-y-1/2 p-4 sm:p-6" 
-            : "p-6"
+            : "p-6 overflow-hidden"
         } ${isMobileAdd ? "flex flex-col" : ""}`}
+
         style={
           isMobileAdd
             ? (viewport ? {
@@ -581,77 +612,89 @@ function FavoritosDialog({
                 </div>
                 <button 
                   onClick={() => setMode("add")}
-                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2"
+                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2 w-full max-w-full justify-center"
                 >
                   <Plus className="w-3 h-3" strokeWidth={3} />
                   ADICIONAR ENDEREÇO
                 </button>
 
+
               </div>
             ) : (
               <>
-                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain pr-1 space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain pr-1 space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full min-w-0 max-w-full overflow-x-hidden">
                   {favoritos.map((fav: any) => (
                     <div 
                       key={fav.id}
-                      className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-3 group transition-colors hover:border-white/20"
+                      className="bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between gap-3 group transition-colors hover:border-white/20 w-full min-w-0 max-w-full overflow-hidden"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        onClick={() => {
+                          if (confirmDeleteId === fav.id) return;
+                          onOpenChange(false);
+                          onSelectFavorite(fav);
+                        }}
+                        disabled={confirmDeleteId === fav.id}
+                        aria-label={`Usar favorito ${fav.nome} como destino`}
+                        className="flex-1 min-w-0 flex items-center gap-3 p-4 text-left transition-transform active:scale-[0.99] overflow-hidden"
+                      >
                         <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
                           <Star className="text-zuvvi-volt w-4 h-4" />
                         </div>
-                        <div className="min-w-0">
+                        <div className="flex-1 min-w-0 overflow-hidden">
                           {confirmDeleteId === fav.id ? (
-                            <p className="text-xs font-bold volt-text">Excluir este favorito?</p>
+                            <p className="text-xs font-bold volt-text truncate">Excluir este favorito?</p>
                           ) : (
                             <>
                               <p className="text-sm font-bold truncate">{fav.nome}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">{fav.endereco}</p>
+                              <p className="text-[10px] text-muted-foreground truncate block max-w-full">{fav.endereco}</p>
                             </>
                           )}
                         </div>
-                      </div>
+                      </button>
                       
-                      {confirmDeleteId === fav.id ? (
-                        <div className="flex items-center gap-2 shrink-0">
+                      <div className="shrink-0 pr-4">
+                        {confirmDeleteId === fav.id ? (
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => setConfirmDeleteId(null)}
+                              aria-label="Cancelar exclusão"
+                              className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center"
+                            >
+                              <X className="w-5 h-5 text-muted-foreground" />
+                            </button>
+                            <button 
+                              onClick={() => deleteMutation.mutate(fav.id)}
+                              disabled={deleteMutation.isPending}
+                              aria-label={`Confirmar exclusão de ${fav.nome}`}
+                              className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center"
+                            >
+                              {deleteMutation.isPending ? (
+                                <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-5 h-5 text-red-500" />
+                              )}
+                            </button>
+                          </div>
+                        ) : (
                           <button 
-                            onClick={() => setConfirmDeleteId(null)}
-                            aria-label="Cancelar exclusão"
-                            className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center"
+                            onClick={() => setConfirmDeleteId(fav.id)}
+                            aria-label={`Excluir favorito ${fav.nome}`}
+                            className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/5 transition-all"
                           >
-                            <X className="w-5 h-5 text-muted-foreground" />
+                            <Trash2 className="w-5 h-5 text-muted-foreground hover:text-red-500" />
                           </button>
-                          <button 
-                            onClick={() => deleteMutation.mutate(fav.id)}
-                            disabled={deleteMutation.isPending}
-                            aria-label={`Confirmar exclusão de ${fav.nome}`}
-                            className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center"
-                          >
-                            {deleteMutation.isPending ? (
-                              <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-5 h-5 text-red-500" />
-                            )}
-                          </button>
-
-                        </div>
-                      ) : (
-                        <button 
-                          onClick={() => setConfirmDeleteId(fav.id)}
-                          aria-label={`Excluir favorito ${fav.nome}`}
-                          className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/5 transition-all shrink-0"
-                        >
-                          <Trash2 className="w-5 h-5 text-muted-foreground hover:text-red-500" />
-                        </button>
-
-                      )}
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
+
                 <button 
                   onClick={() => setMode("add")}
-                  className="w-full bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                  className="w-full max-w-full bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                 >
+
                   <Plus className="w-3 h-3" strokeWidth={3} />
                   ADICIONAR ENDEREÇO
                 </button>
