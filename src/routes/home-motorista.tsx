@@ -155,7 +155,7 @@ function HomeMotorista() {
 
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
 
-  const stopGps = () => {
+  const stopGps = useCallback(() => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -164,9 +164,9 @@ function HomeMotorista() {
     setGpsError(null);
     lastUpdateRef.current = 0;
     locationUpdateInFlightRef.current = false;
-  };
+  }, []);
 
-  const handleGpsError = (msg: string) => {
+  const handleGpsError = useCallback((msg: string) => {
     stopGps();
     setGpsError(msg);
     toast.error(msg);
@@ -174,7 +174,7 @@ function HomeMotorista() {
     if (status?.is_disponivel) {
       mutation.mutate(false);
     }
-  };
+  }, [status?.is_disponivel, stopGps, mutation]);
 
   const shouldTrackLocation = isOnline || Boolean(activeRide);
 
