@@ -393,34 +393,40 @@ function FavoritosDialog({
     longitude: number;
   } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
-  const [viewportOffsetTop, setViewportOffsetTop] = useState<number | null>(null);
+  const [viewport, setViewport] = useState<{
+    height: number;
+    width: number;
+    offsetTop: number;
+    offsetLeft: number;
+  } | null>(null);
 
   useEffect(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
     if (!open || mode !== "add" || !isMobile || typeof window === 'undefined' || !window.visualViewport) {
-      if (!open) {
-        setViewportHeight(null);
-        setViewportOffsetTop(null);
-      }
+      if (!open) setViewport(null);
       return;
     }
 
     const syncViewport = () => {
-      if (window.visualViewport) {
-        setViewportHeight(window.visualViewport.height);
-        setViewportOffsetTop(window.visualViewport.offsetTop);
+      const vv = window.visualViewport;
+      if (vv) {
+        setViewport({
+          height: vv.height,
+          width: vv.width,
+          offsetTop: vv.offsetTop,
+          offsetLeft: vv.offsetLeft
+        });
       }
     };
 
-    const viewport = window.visualViewport;
-    viewport.addEventListener('resize', syncViewport);
-    viewport.addEventListener('scroll', syncViewport);
+    const vv = window.visualViewport;
+    vv.addEventListener('resize', syncViewport);
+    vv.addEventListener('scroll', syncViewport);
     syncViewport();
 
     return () => {
-      viewport.removeEventListener('resize', syncViewport);
-      viewport.removeEventListener('scroll', syncViewport);
+      vv.removeEventListener('resize', syncViewport);
+      vv.removeEventListener('scroll', syncViewport);
     };
   }, [open, mode]);
 
@@ -481,25 +487,35 @@ function FavoritosDialog({
       }}
     >
       <DialogContent 
-        className={`max-w-[calc(100vw-2rem)] sm:max-w-md bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6 transition-all duration-300 ${
+        className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6 transition-all duration-300 ${
           mode === "add" 
-            ? "top-0 translate-y-0 sm:top-1/2 sm:-translate-y-1/2" 
+            ? "sm:top-1/2 sm:-translate-y-1/2" 
             : ""
         }`}
-        style={{
-          top: (mode === "add" && viewportOffsetTop !== null) 
-            ? `${viewportOffsetTop + 12}px` 
-            : undefined,
-          maxHeight: (mode === "add" && viewportHeight !== null)
-            ? `${viewportHeight - 24}px`
-            : undefined,
-          transform: (mode === "add" && viewportOffsetTop !== null)
-            ? 'translateX(-50%)'
-            : undefined,
-          left: (mode === "add" && viewportOffsetTop !== null)
-            ? '50%'
-            : undefined
-        }}
+        style={
+          mode === "add"
+            ? (viewport ? {
+                position: 'absolute',
+                top: `${viewport.offsetTop + 88}px`,
+                left: `${viewport.offsetLeft + viewport.width / 2}px`,
+                width: `${Math.min(viewport.width - 32, 448)}px`,
+                maxHeight: `${viewport.height - 88 - 12}px`,
+                transform: 'translateX(-50%)',
+                translate: 'none',
+              } : {
+                // Fallback mobile mode add
+                top: '88px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 'calc(100vw - 32px)',
+                maxHeight: 'calc(100dvh - 100px)',
+                translate: 'none',
+              })
+            : {
+              maxWidth: 'calc(100vw - 2rem)',
+              // desktop/tablet centralização padrão
+            }
+        }
       >
         <DialogHeader className="mb-4">
           <div className="flex items-center gap-3">
@@ -635,7 +651,7 @@ function FavoritosDialog({
             )}
           </div>
         ) : (
-          <div className="space-y-6 overflow-y-auto overscroll-contain pr-1 custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
               <input 
