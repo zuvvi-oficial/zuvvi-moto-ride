@@ -12,7 +12,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, isToday, isYesterday, isSameDay } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Mensagem {
@@ -114,10 +114,17 @@ export function ChatConversation({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleBlur = () => {
+    if (isLocalDigitando) {
+      setIsLocalDigitando(false);
+      onDigitandoChange?.(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   };
 
@@ -284,6 +291,8 @@ export function ChatConversation({
           "p-0 gap-0 overflow-hidden border-none sm:border flex flex-col sm:rounded-3xl",
           "w-full h-[100dvh] sm:max-w-[460px] sm:h-[90vh] sm:max-h-[720px]",
           "sm:shadow-2xl transition-all duration-300",
+          "[&>button[disabled]]:hidden sm:[&>button]:flex sm:[&>button]:h-11 sm:[&>button]:w-11 sm:[&>button]:items-center sm:[&>button]:justify-center sm:[&>button]:top-2 sm:[&>button]:right-2",
+          "[&>button]:hidden sm:[&>button]:inline-flex",
         )}
         overlayClassName="bg-black/[0.86]"
         // Removendo o botão padrão do dialog se for mobile para usar o header custom
@@ -294,7 +303,7 @@ export function ChatConversation({
             <Button
               variant="ghost"
               size="icon"
-              className="h-11 w-11 rounded-full shrink-0"
+              className="h-11 w-11 rounded-full shrink-0 sm:hidden"
               onClick={() => onOpenChange(false)}
             >
               <ChevronLeft className="w-6 h-6" />
@@ -354,10 +363,12 @@ export function ChatConversation({
                   )}
                   <Textarea
                     placeholder="Digite uma mensagem..."
+                    aria-label="Digite uma mensagem"
                     className="min-h-[44px] max-h-32 bg-transparent border-none focus-visible:ring-0 resize-none py-2.5"
                     value={draft}
                     onChange={handleDraftChange}
                     onKeyDown={handleKeyDown}
+                    onBlur={handleBlur}
                     maxLength={1000}
                   />
                 </div>
