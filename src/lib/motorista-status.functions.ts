@@ -16,7 +16,7 @@ const ACTIVE_RIDE_STATUSES = [
 async function fetchActiveRide(supabaseAdmin: any, motoristaId: string) {
   const { data, error } = await supabaseAdmin
     .from("corridas")
-    .select("id, status, origem_nome, destino_nome, valor_estimado, forma_pagamento")
+    .select("id, status, origem_nome, destino_nome, valor_estimado, forma_pagamento, origem_lat, origem_lng")
     .eq("motorista_id", motoristaId)
     .in("status", ACTIVE_RIDE_STATUSES as unknown as string[]);
 
@@ -138,6 +138,8 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
             destino_nome: activeRide.destino_nome,
             valor_estimado: activeRide.valor_estimado,
             forma_pagamento: activeRide.forma_pagamento,
+            origem_lat: Number(activeRide.origem_lat),
+            origem_lng: Number(activeRide.origem_lng),
           }
         : null,
       nome: usuario.nome,
