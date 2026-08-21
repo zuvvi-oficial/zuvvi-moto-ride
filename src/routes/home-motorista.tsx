@@ -1,10 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -110,16 +105,13 @@ function HomeMotorista() {
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["motorista-status"],
-        (old: MotoristaStatus | undefined) => {
-          if (!old) return undefined;
-          return {
-            ...old,
-            is_disponivel: data.is_disponivel,
-          };
-        },
-      );
+      queryClient.setQueryData(["motorista-status"], (old: MotoristaStatus | undefined) => {
+        if (!old) return undefined;
+        return {
+          ...old,
+          is_disponivel: data.is_disponivel,
+        };
+      });
       if (!data.is_disponivel) {
         queryClient.setQueryData(["motorista-ofertas"], []);
       }
