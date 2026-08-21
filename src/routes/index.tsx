@@ -730,12 +730,14 @@ function DestinoSearch({
   location, 
   onSelect, 
   placeholder = "Para onde vamos?", 
-  autoFocus = false 
+  autoFocus = false,
+  compact = false
 }: { 
   location: { lat: number; lng: number } | null, 
   onSelect: (dest: any) => void,
   placeholder?: string,
-  autoFocus?: boolean
+  autoFocus?: boolean,
+  compact?: boolean
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -773,7 +775,7 @@ function DestinoSearch({
 
   return (
     <div className="relative group">
-      <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+      <div className={`absolute inset-y-0 left-6 flex items-center pointer-events-none ${compact ? 'left-5' : ''}`}>
         <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
       </div>
       <input
@@ -782,31 +784,49 @@ function DestinoSearch({
         autoFocus={autoFocus}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] py-6 pl-14 pr-4 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl text-base font-bold placeholder:text-muted-foreground/50"
+        className={`w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl font-bold placeholder:text-muted-foreground/50 ${
+          compact 
+            ? "h-12 py-0 pl-12 pr-4 rounded-2xl text-sm" 
+            : "py-6 pl-14 pr-4 rounded-[2rem] text-base"
+        }`}
       />
       
       {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-3 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className={`absolute top-full left-0 right-0 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300 ${
+          compact ? "mt-2 rounded-2xl" : "mt-3 rounded-[2rem]"
+        }`}>
           <div className="max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain custom-scrollbar">
-            {results.map((result) => (
-            <button
-              key={result.id}
-              onClick={() => {
-                onSelect(result);
-                setIsOpen(false);
-                setQuery('');
-              }}
-              className="w-full text-left px-6 py-4 flex items-start gap-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-            >
-              <div className="w-8 h-8 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0 mt-0.5">
-                <MapPin className="text-zuvvi-volt w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold truncate">{result.text}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{result.place_name}</p>
-              </div>
-            </button>
-            ))}
+            {results.map((result) => {
+              // Somente no modo compact para exibição, remover do início de place_name a repetição de result.text
+              let secondaryText = result.place_name;
+              if (compact && result.text && secondaryText.startsWith(result.text)) {
+                secondaryText = secondaryText.substring(result.text.length).replace(/^[, ]+/, '');
+              }
+
+              return (
+                <button
+                  key={result.id}
+                  onClick={() => {
+                    onSelect(result);
+                    setIsOpen(false);
+                    setQuery('');
+                  }}
+                  className={`w-full text-left flex items-start gap-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 ${
+                    compact ? "px-4 py-3 gap-3" : "px-6 py-4"
+                  }`}
+                >
+                  <div className={`rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0 mt-0.5 ${
+                    compact ? "w-7 h-7" : "w-8 h-8"
+                  }`}>
+                    <MapPin className={`text-zuvvi-volt ${compact ? "w-3.5 h-3.5" : "w-4 h-4"}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold truncate">{result.text}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{secondaryText}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
