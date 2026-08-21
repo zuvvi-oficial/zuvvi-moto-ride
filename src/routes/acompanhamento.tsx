@@ -25,6 +25,7 @@ function AcompanhamentoCorrida() {
   const [veiculo, setVeiculo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const hasHandledCancellation = useRef(false);
 
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
