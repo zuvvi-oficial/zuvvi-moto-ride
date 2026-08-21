@@ -430,7 +430,21 @@ O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo,
 - Travas de segurança preservadas (não altera o core do cancelamento).
 - Experiência profissional de confirmação/desistência.
 
+### 2.8 — GPS Pós-Aceite — ✅ FECHADA
+- Corrigida lógica de rastreamento na Home Motorista.
+- GPS permanece ativo quando o motorista está ONLINE ou possui CORRIDA ATIVA.
+- `updateLocalizacaoMotorista` no servidor agora autoriza atualizações se houver corrida ativa, mesmo com `is_disponivel = false`.
+- Fail-closed: GPS não é interrompido por falhas momentâneas de rede durante a corrida.
+
+#### 2.8-A — Ciclo de Vida do GPS — ✅ FECHADA
+- Otimização do `watchPosition`: limpeza ocorre apenas no desmonte ou quando as condições de rastreamento cessam.
+- Estabilização de dependências via `useCallback` e `useRef` para evitar reinicializações desnecessárias.
+- Tratamento visual de "Conexão instável" sem interromper o hardware de GPS.
+- Remoção total de tipos `any` nas ofertas e status, garantindo integridade via `interface Oferta` e `interface MotoristaStatus`.
+- Validação completa: TSC (Sucesso), Build (Sucesso), Lint (Sucesso).
+
 ---
+
 
 ## Reconciliação oficial do Sprint 2 — Baseline 21/08/2026
 
@@ -438,8 +452,8 @@ O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo,
 
 *   **Sprint 1:** ✅ FECHADO.
 *   **Sprint 2:** ⚠️ EM ANDAMENTO.
-*   **Implementação mais recente:** Microetapa 2.7-A — Modal Profissional de Cancelamento.
-*   **Principal bloqueador funcional:** GPS pós-aceite da corrida (o motorista deixa de transmitir localização após aceitar a corrida).
+*   **Implementação mais recente:** Microetapa 2.8-A — Ciclo de Vida do GPS.
+*   **Principal bloqueador funcional:** (Nenhum bloqueador crítico imediato identificado na 2.8-A).
 *   **Interface:** A Home do Motorista ainda não possui mapa operacional da corrida.
 *   **Fluxo:** Os estados posteriores ao aceite (a caminho, chegou, em andamento) ainda não estão completamente fechados.
 *   **Passageiro:** O acompanhamento do passageiro existe, porém o rastreamento vivo completo (realtime GPS) ainda não está fechado.
@@ -475,7 +489,7 @@ não existiam na branch `main`.
 **SPRINT 2 — ⚠️ EM ANDAMENTO**
 
 **FECHAMENTO FUNCIONAL ATUAL:** 21/08/2026
-**BASELINE GITHUB:** 63012c1724a9b5d1b034b0b48b90aae3ed881ca1 (conforme auditoria de Microetapa Zero)
+**BASELINE GITHUB:** 1e7ee7a (referência após hardening de GPS e workflow)
 
 **Próxima etapa oficial:**
-Correção do GPS pós-aceite na Home Motorista.
+Interface de navegação e mapa operacional na Home Motorista.
