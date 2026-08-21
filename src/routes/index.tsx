@@ -623,11 +623,15 @@ function FavoritosDialog({
               </div>
             ) : (
               <>
-                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain pr-1 space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full min-w-0 max-w-full overflow-x-hidden px-1">
+                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full min-w-0 max-w-full overflow-x-hidden">
                   {favoritos.map((fav: any) => (
                     <div 
                       key={fav.id}
-                      className="bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between gap-3 group transition-colors hover:border-white/20 w-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)] mx-auto overflow-hidden box-border"
+                      className={`bg-white/5 border border-white/10 rounded-2xl overflow-hidden box-border w-full min-w-0 max-w-full grid ${
+                        confirmDeleteId === fav.id 
+                          ? "grid-cols-[minmax(0,1fr)_6rem] gap-1" 
+                          : "grid-cols-[minmax(0,1fr)_3.25rem]"
+                      }`}
                     >
                       <button
                         onClick={() => {
@@ -637,30 +641,32 @@ function FavoritosDialog({
                         }}
                         disabled={confirmDeleteId === fav.id}
                         aria-label={`Usar favorito ${fav.nome} como destino`}
-                        className="flex-1 basis-0 min-w-0 flex items-center gap-3 p-4 text-left transition-transform active:scale-[0.99] overflow-hidden"
+                        className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 min-w-0 overflow-hidden p-4 pr-2 text-left w-full transition-transform active:scale-[0.99]"
                       >
                         <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
                           <Star className="text-zuvvi-volt w-4 h-4" />
                         </div>
-                        <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="min-w-0 overflow-hidden">
                           {confirmDeleteId === fav.id ? (
-                            <p className="text-xs font-bold volt-text truncate">Excluir este favorito?</p>
+                            <p className="text-xs font-bold volt-text truncate block w-full min-w-0">Excluir este favorito?</p>
                           ) : (
                             <>
-                              <p className="text-sm font-bold truncate">{fav.nome}</p>
-                              <p className="text-[10px] text-muted-foreground truncate block max-w-full">{fav.endereco}</p>
+                              <p className="text-sm font-bold truncate block w-full min-w-0">{fav.nome}</p>
+                              <p className="text-[10px] text-muted-foreground block w-full min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">{fav.endereco}</p>
                             </>
                           )}
                         </div>
                       </button>
                       
-                      <div className="shrink-0 pr-2">
+                      <div className={`flex items-center justify-center overflow-hidden ${
+                        confirmDeleteId === fav.id ? "w-[6rem] min-w-[6rem] gap-1" : "w-[3.25rem] min-w-[3.25rem]"
+                      }`}>
                         {confirmDeleteId === fav.id ? (
-                          <div className="flex items-center gap-2">
+                          <>
                             <button 
                               onClick={() => setConfirmDeleteId(null)}
                               aria-label="Cancelar exclusão"
-                              className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center"
+                              className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center shrink-0"
                             >
                               <X className="w-5 h-5 text-muted-foreground" />
                             </button>
@@ -668,7 +674,7 @@ function FavoritosDialog({
                               onClick={() => deleteMutation.mutate(fav.id)}
                               disabled={deleteMutation.isPending}
                               aria-label={`Confirmar exclusão de ${fav.nome}`}
-                              className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center"
+                              className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center shrink-0"
                             >
                               {deleteMutation.isPending ? (
                                 <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
@@ -676,12 +682,12 @@ function FavoritosDialog({
                                 <Trash2 className="w-5 h-5 text-red-500" />
                               )}
                             </button>
-                          </div>
+                          </>
                         ) : (
                           <button 
                             onClick={() => setConfirmDeleteId(fav.id)}
                             aria-label={`Excluir favorito ${fav.nome}`}
-                            className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/5 transition-all"
+                            className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center hover:bg-white/5 transition-all shrink-0"
                           >
                             <Trash2 className="w-5 h-5 text-muted-foreground hover:text-red-500" />
                           </button>
@@ -693,9 +699,8 @@ function FavoritosDialog({
 
                 <button 
                   onClick={() => setMode("add")}
-                  className="w-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)] mx-auto bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                  className="w-full max-w-full box-border bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                 >
-
                   <Plus className="w-3 h-3" strokeWidth={3} />
                   ADICIONAR ENDEREÇO
                 </button>
