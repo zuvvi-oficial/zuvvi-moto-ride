@@ -70,8 +70,6 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isCityAvailable, setIsCityAvailable] = useState<boolean | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
-  const [debugStatus, setDebugStatus] = useState<string>("Verificando token...");
-  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [originAddress, setOriginAddress] = useState<string>("Buscando endereço...");
   const [isManualOrigin, setIsManualOrigin] = useState(false);
   const [manualLocation, setManualLocation] = useState<{ lat: number; lng: number } | null>(null);
