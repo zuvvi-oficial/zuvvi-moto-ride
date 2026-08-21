@@ -17,7 +17,16 @@ import {
   Wallet,
   X,
   AlertTriangle,
+  MessageCircle,
 } from "lucide-react";
+import { ChatConversation } from "@/components/chat/ChatConversation";
+import {
+  carregarChat,
+  enviarMensagemChat,
+  marcarMensagensEntregues,
+  marcarMensagensLidas,
+  atualizarPresencaChat,
+} from "@/lib/chat.functions";
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
