@@ -112,6 +112,21 @@ function HomeMotorista() {
   const marcarACaminhoFn = useServerFn(marcarMotoristaACaminho);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
+  const {
+    data: status,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["motorista-status"],
+    queryFn: () => getMotoristaStatusHome(),
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  const activeRide = status?.active_ride ?? null;
+  const isOnline = !!status?.is_disponivel;
+
   const carregarChatFn = useServerFn(carregarChat);
   const enviarMensagemFn = useServerFn(enviarMensagemChat);
   const marcarEntreguesFn = useServerFn(marcarMensagensEntregues);
