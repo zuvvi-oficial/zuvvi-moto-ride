@@ -1,5 +1,5 @@
 -- ZUVVI CHAT FOUNDATION
--- 20260821223000_chat_foundation.sql
+-- 20260821223450_chat_foundation.sql
 
 -- 1. TABELA public.chat_mensagens
 CREATE TABLE IF NOT EXISTS public.chat_mensagens (
