@@ -436,7 +436,8 @@ function DestinoSearch({
                 <p className="text-[10px] text-muted-foreground truncate">{result.place_name}</p>
               </div>
             </button>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
