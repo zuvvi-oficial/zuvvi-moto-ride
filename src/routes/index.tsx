@@ -83,7 +83,9 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [manualLocation, setManualLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [manualAddress, setManualAddress] = useState<string | null>(null);
   const [isEditingOrigin, setIsEditingOrigin] = useState(false);
+  const [favoritosOpen, setFavoritosOpen] = useState(false);
   
+
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
   const getReverseGeocodingFn = useServerFn(getReverseGeocoding);
