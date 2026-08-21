@@ -279,7 +279,6 @@ function HomeMotorista() {
     }
   };
 
-
   const { data: mapboxToken } = useQuery({
     queryKey: ["mapbox-token-motorista"],
     queryFn: () => getMapboxTokenFn(),
@@ -536,7 +535,7 @@ function HomeMotorista() {
           routeAbortRef.current.abort();
           routeAbortRef.current = null;
         }
-        
+
         const controller = new AbortController();
         routeAbortRef.current = controller;
 
@@ -546,7 +545,7 @@ function HomeMotorista() {
           .then((res) => res.json())
           .then((data) => {
             if (controller.signal.aborted) return;
-            
+
             if (data.code !== "Ok" || !data.routes?.[0]) {
               setRouteError("Rota temporariamente indisponível.");
               return;
@@ -562,14 +561,14 @@ function HomeMotorista() {
             } else {
               map.addSource(sourceId, {
                 type: "geojson",
-                data: route
+                data: route,
               });
               map.addLayer({
                 id: layerId,
                 type: "line",
                 source: sourceId,
                 layout: { "line-join": "round", "line-cap": "round" },
-                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 }
+                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
               });
             }
 
@@ -582,7 +581,7 @@ function HomeMotorista() {
             }
 
             lastRouteCoordsRef.current = { dLat: dLat!, dLng: dLng!, pLat: pLat!, pLng: pLng! };
-            
+
             if (routeAbortRef.current === controller) {
               routeAbortRef.current = null;
             }
@@ -599,7 +598,7 @@ function HomeMotorista() {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
       }
-      
+
       const sourceId = "zuvvi-driver-pickup-route-source";
       const layerId = "zuvvi-driver-pickup-route-layer";
       if (map.getLayer(layerId)) map.removeLayer(layerId);
@@ -896,109 +895,111 @@ function HomeMotorista() {
               </div>
             ) : (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {ofertas.map((oferta: {
-                  id: string;
-                  distancia_aprox_m: number;
-                  origem_nome: string;
-                  destino_nome: string;
-                  valor_estimado: number | string;
-                  forma_pagamento: string;
-                }) => (
-                  <div
-                    key={oferta.id}
-                    className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-zuvvi-volt">
-                        <Bike className="w-5 h-5" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">
-                          Novo pedido de corrida
+                {ofertas.map(
+                  (oferta: {
+                    id: string;
+                    distancia_aprox_m: number;
+                    origem_nome: string;
+                    destino_nome: string;
+                    valor_estimado: number | string;
+                    forma_pagamento: string;
+                  }) => (
+                    <div
+                      key={oferta.id}
+                      className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-6"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-zuvvi-volt">
+                          <Bike className="w-5 h-5" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            Novo pedido de corrida
+                          </span>
+                        </div>
+                        <span className="bg-zuvvi-volt/10 text-zuvvi-volt px-3 py-1 rounded-full text-[9px] font-bold">
+                          {oferta.distancia_aprox_m >= 1000
+                            ? `${(oferta.distancia_aprox_m / 1000).toFixed(1)}km`
+                            : `${oferta.distancia_aprox_m}m`}
                         </span>
                       </div>
-                      <span className="bg-zuvvi-volt/10 text-zuvvi-volt px-3 py-1 rounded-full text-[9px] font-bold">
-                        {oferta.distancia_aprox_m >= 1000
-                          ? `${(oferta.distancia_aprox_m / 1000).toFixed(1)}km`
-                          : `${oferta.distancia_aprox_m}m`}
-                      </span>
-                    </div>
 
-                    <div className="space-y-4">
-                      <div className="flex gap-4">
-                        <div className="flex flex-col items-center gap-1 mt-1">
-                          <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
-                          <div className="w-0.5 h-8 bg-white/10" />
-                          <MapPin className="w-4 h-4 text-white/40" />
-                        </div>
-                        <div className="flex-1 space-y-4">
-                          <div className="space-y-0.5">
-                            <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
-                              Embarque
-                            </p>
-                            <p className="text-sm font-medium line-clamp-1">
-                              {oferta.origem_nome || "Local de embarque"}
-                            </p>
+                      <div className="space-y-4">
+                        <div className="flex gap-4">
+                          <div className="flex flex-col items-center gap-1 mt-1">
+                            <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
+                            <div className="w-0.5 h-8 bg-white/10" />
+                            <MapPin className="w-4 h-4 text-white/40" />
                           </div>
-                          <div className="space-y-0.5">
-                            <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
-                              Destino
-                            </p>
-                            <p className="text-sm font-medium line-clamp-1">
-                              {oferta.destino_nome || "Local de destino"}
-                            </p>
+                          <div className="flex-1 space-y-4">
+                            <div className="space-y-0.5">
+                              <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
+                                Embarque
+                              </p>
+                              <p className="text-sm font-medium line-clamp-1">
+                                {oferta.origem_nome || "Local de embarque"}
+                              </p>
+                            </div>
+                            <div className="space-y-0.5">
+                              <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
+                                Destino
+                              </p>
+                              <p className="text-sm font-medium line-clamp-1">
+                                {oferta.destino_nome || "Local de destino"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                          <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                            <CircleDollarSign className="w-4 h-4 text-zuvvi-volt" />
+                            <div>
+                              <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
+                                Valor
+                              </p>
+                              <p className="text-xs font-bold text-zuvvi-volt">
+                                {new Intl.NumberFormat("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                }).format(Number(oferta.valor_estimado))}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
+                            <Wallet className="w-4 h-4 text-white/60" />
+                            <div>
+                              <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
+                                Pagamento
+                              </p>
+                              <p className="text-xs font-bold uppercase tracking-tight truncate">
+                                {oferta.forma_pagamento}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 pt-2">
-                        <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
-                          <CircleDollarSign className="w-4 h-4 text-zuvvi-volt" />
-                          <div>
-                            <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
-                              Valor
-                            </p>
-                            <p className="text-xs font-bold text-zuvvi-volt">
-                              {new Intl.NumberFormat("pt-BR", {
-                                style: "currency",
-                                currency: "BRL",
-                              }).format(Number(oferta.valor_estimado))}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
-                          <Wallet className="w-4 h-4 text-white/60" />
-                          <div>
-                            <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
-                              Pagamento
-                            </p>
-                            <p className="text-xs font-bold uppercase tracking-tight truncate">
-                              {oferta.forma_pagamento}
-                            </p>
-                          </div>
-                        </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleRecusar(oferta.id)}
+                          disabled={!!processingRideId}
+                          className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors disabled:opacity-50"
+                        >
+                          Recusar
+                        </button>
+                        <button
+                          onClick={() => handleAceitar(oferta.id)}
+                          disabled={!!processingRideId}
+                          className="flex-[2] py-4 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {processingRideId === oferta.id && (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          )}
+                          {processingRideId === oferta.id ? "Aceitando..." : "Aceitar Corrida"}
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleRecusar(oferta.id)}
-                        disabled={!!processingRideId}
-                        className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors disabled:opacity-50"
-                      >
-                        Recusar
-                      </button>
-                      <button
-                        onClick={() => handleAceitar(oferta.id)}
-                        disabled={!!processingRideId}
-                        className="flex-[2] py-4 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        {processingRideId === oferta.id && (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        )}
-                        {processingRideId === oferta.id ? "Aceitando..." : "Aceitar Corrida"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             )}
           </div>
