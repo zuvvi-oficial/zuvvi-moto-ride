@@ -179,6 +179,11 @@ function HomeMotorista() {
 
   const shouldTrackLocation = isOnline || Boolean(activeRide);
 
+  // Sincroniza ref para acesso dentro do closure do watchPosition sem recriar o watcher
+  useEffect(() => {
+    hasActiveRideRef.current = Boolean(activeRide);
+  }, [activeRide]);
+
   useEffect(() => {
     if (shouldTrackLocation) {
       if (!navigator.geolocation) {
@@ -186,7 +191,7 @@ function HomeMotorista() {
         return;
       }
 
-      // Evita recriar se o watchId já existe, mas limpa se shouldTrackLocation mudar
+      // Inicia se não houver watcher ativo
       if (watchIdRef.current === null) {
         watchIdRef.current = navigator.geolocation.watchPosition(
           async (position) => {
@@ -208,10 +213,12 @@ function HomeMotorista() {
                 setGpsError(null);
                 lastUpdateRef.current = now;
               } catch (err: any) {
-                // Se falhar no servidor, mas estiver em corrida, apenas loga (não desliga)
-                if (activeRide) {
-                  console.warn("Falha ao atualizar localização durante corrida ativa.");
+                // Se houver corrida ativa, marca erro mas mantém o watcher vivo
+                if (hasActiveRideRef.current) {
+                  setIsGpsActive(false);
+                  setGpsError("Conexão instável. Tentando reconectar GPS...");
                 } else {
+                  // ONLINE sem corrida: fail-safe original (stopGps + offline)
                   handleGpsError("Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.");
                 }
               } finally {
@@ -230,16 +237,17 @@ function HomeMotorista() {
         );
       }
     } else {
+      // shouldTrackLocation false -> para imediatamente
       stopGps();
     }
 
     return () => {
-      // Se pararmos de rastrear, limpamos
+      // Cleanup: se shouldTrackLocation mudar para false ou componente desmontar
       if (!shouldTrackLocation) {
         stopGps();
       }
     };
-  }, [shouldTrackLocation, activeRide]);
+  }, [shouldTrackLocation]);
 
   const handleToggleOnline = () => {
     if (isToggling || activeRide) return;
