@@ -417,7 +417,8 @@ function DestinoSearch({
       
       {isOpen && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-3 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
-          {results.map((result) => (
+          <div className="max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain custom-scrollbar">
+            {results.map((result) => (
             <button
               key={result.id}
               onClick={() => {
