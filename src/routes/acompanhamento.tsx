@@ -245,6 +245,7 @@ function AcompanhamentoCorrida() {
         }).catch(() => {});
       };
     }
+    return undefined;
   }, [chatOpen, rideId]);
 
   const handleEnviarMensagem = async (conteudo: string) => {
