@@ -489,7 +489,7 @@ não existiam na branch `main`.
 **SPRINT 2 — ⚠️ EM ANDAMENTO**
 
 **FECHAMENTO FUNCIONAL ATUAL:** 21/08/2026
-**BASELINE GITHUB:** 1e7ee7a (referência após hardening de GPS e workflow)
+**BASELINE GITHUB:** efca983 (referência após hardening de GPS e workflow)
 
 **Próxima etapa oficial:**
 Interface de navegação e mapa operacional na Home Motorista.
