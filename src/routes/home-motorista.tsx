@@ -39,6 +39,19 @@ import {
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 
+interface MotoristaStatus {
+  is_disponivel: boolean;
+  nome: string | null;
+  active_ride: {
+    id: string;
+    origem_nome: string | null;
+    destino_nome: string | null;
+    valor_estimado: number;
+    forma_pagamento: string;
+    status: string;
+  } | null;
+}
+
 export const Route = createFileRoute("/home-motorista")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
