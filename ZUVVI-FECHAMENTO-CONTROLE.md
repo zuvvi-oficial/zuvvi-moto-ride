@@ -395,6 +395,17 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - `em_andamento`;
 - conclusão real da corrida.
 
+> **REGISTRO HISTÓRICO — SUPERADO EM 21/08/2026**
+> O diagnóstico abaixo registra o estado encontrado na auditoria
+> anterior e é preservado exclusivamente como evidência histórica.
+> Ele NÃO representa o estado atual.
+> Atualmente os arquivos `20260819113539_fix_usuarios_auth_user_id_unique_constraint.sql`
+> e `20260819114735_complete_tipo_chave_pix_migration.sql`
+> estão presentes em `supabase/migrations/`.
+> A reconciliação futura GitHub × Supabase permanece necessária
+> apenas para validar a paridade completa do histórico antes de
+> novas migrations.
+
 ### DRIFT DE MIGRATIONS
 **STATUS: DRIFT DE HISTÓRICO DE MIGRATIONS PENDENTE DE RECONCILIAÇÃO.**
 
