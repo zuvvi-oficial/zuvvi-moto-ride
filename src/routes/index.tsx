@@ -173,8 +173,8 @@ function HomePassageiro({ nome }: { nome: string }) {
 
       {/* 2. Camada de Interface (Z-INDEX 10) - Sobreposta ao mapa */}
       <div 
-        className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-y-auto"
-        style={{ height: '100dvh' }}
+        className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-hidden overscroll-none"
+        style={{ height: '100dvh', width: '100vw' }}
       >
         {/* Header */}
         <header className="px-5 py-4 pointer-events-auto shrink-0">
