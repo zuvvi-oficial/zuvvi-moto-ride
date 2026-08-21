@@ -47,7 +47,7 @@ import {
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 
-export const Route = createFileRoute("/home-motorista")({
+export const Route = createFileRoute("/home-motorista/chat")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
     if (dest.redirectTo !== "/home-motorista") {

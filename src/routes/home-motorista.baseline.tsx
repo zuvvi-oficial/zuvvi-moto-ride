@@ -38,7 +38,7 @@ import {
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 
-export const Route = createFileRoute("/home-motorista")({
+export const Route = createFileRoute("/home-motorista/baseline")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
     if (dest.redirectTo !== "/home-motorista") {
