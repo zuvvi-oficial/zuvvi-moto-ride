@@ -95,6 +95,14 @@ function AcompanhamentoCorrida() {
   const marcarLidasFn = useServerFn(marcarMensagensLidas);
   const atualizarPresencaFn = useServerFn(atualizarPresencaChat);
 
+  const handleChatOpenChange = (open: boolean) => {
+    chatOpenRef.current = open;
+    if (!open) {
+      digitandoRef.current = false;
+    }
+    setChatOpen(open);
+  };
+
   useEffect(() => {
     async function init() {
       try {
@@ -169,14 +177,15 @@ function AcompanhamentoCorrida() {
 
   const refreshChat = React.useCallback(async () => {
     try {
-      const data = await carregarChatFn({ data: { corridaId: rideId } });
-      setChatData(data as ChatData);
-      setChatError(null);
+      const inicial = await carregarChatFn({ data: { corridaId: rideId } });
+      setChatData(inicial as ChatData);
 
-      await Promise.all([
-        marcarEntreguesFn({ data: { corridaId: rideId } }),
-        marcarLidasFn({ data: { corridaId: rideId } }),
-      ]);
+      await marcarEntreguesFn({ data: { corridaId: rideId } });
+      await marcarLidasFn({ data: { corridaId: rideId } });
+
+      const atualizado = await carregarChatFn({ data: { corridaId: rideId } });
+      setChatData(atualizado as ChatData);
+      setChatError(null);
     } catch {
       setChatError("Não foi possível carregar o chat.");
     } finally {
@@ -362,7 +371,7 @@ function AcompanhamentoCorrida() {
                 </div>
               </div>
               <button
-                onClick={() => setChatOpen(true)}
+                onClick={() => handleChatOpenChange(true)}
                 className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px]"
                 aria-label="Chat com motorista"
               >
@@ -400,7 +409,7 @@ function AcompanhamentoCorrida() {
 
       <ChatConversation
         open={chatOpen}
-        onOpenChange={setChatOpen}
+        onOpenChange={handleChatOpenChange}
         meuUsuarioId={chatData?.meuUsuarioId || ""}
         interlocutor={
           chatData?.interlocutor || {
