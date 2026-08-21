@@ -119,7 +119,13 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
         id,
         nome,
         is_motorista,
-        motoristas!inner(status_aprovacao, is_disponivel)
+        motoristas!inner(
+          status_aprovacao, 
+          is_disponivel,
+          ultima_lat,
+          ultima_lng,
+          ultima_localizacao_at
+        )
       `)
       .eq("auth_user_id", context.userId)
       .single();
