@@ -45,11 +45,11 @@ function AcompanhamentoCorrida() {
 
         if (!data.handoffAvailable) {
           toast.error("Acompanhamento ainda não disponível para esta corrida.");
-          navigate({ to: '/' });
+          navigate({ to: "/" });
         }
       } catch {
         toast.error("Não foi possível carregar os dados do acompanhamento.");
-        navigate({ to: '/' });
+        navigate({ to: "/" });
       } finally {
         setIsLoading(false);
       }
