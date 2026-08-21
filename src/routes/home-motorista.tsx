@@ -380,7 +380,7 @@ function HomeMotorista() {
       if (map.getSource(sourceId)) map.removeSource(sourceId);
       lastRouteCoordsRef.current = null;
     }
-  }, [status.ultima_lat, status.ultima_lng, activeRide, mapboxToken]);
+  }, [status?.ultima_lat, status?.ultima_lng, activeRide, mapboxToken]);
 
   // 7. Cleanup
   useEffect(() => {
