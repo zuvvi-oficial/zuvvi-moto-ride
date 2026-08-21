@@ -173,8 +173,8 @@ function HomePassageiro({ nome }: { nome: string }) {
 
       {/* 2. Camada de Interface (Z-INDEX 10) - Sobreposta ao mapa */}
       <div 
-        className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-y-auto"
-        style={{ height: '100dvh' }}
+        className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-hidden overscroll-none"
+        style={{ height: '100dvh', width: '100vw' }}
       >
         {/* Header */}
         <header className="px-5 py-4 pointer-events-auto shrink-0">
@@ -199,7 +199,7 @@ function HomePassageiro({ nome }: { nome: string }) {
         </header>
 
         {/* Conteúdo Principal */}
-        <main className="flex-1 flex flex-col justify-end px-5 pb-28 mx-auto w-full max-w-md space-y-4">
+        <main className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end px-5 pb-28 mx-auto w-full max-w-md space-y-4">
           
           {isLocating && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-4 shadow-2xl pointer-events-auto animate-rise">
@@ -331,7 +331,7 @@ function HomePassageiro({ nome }: { nome: string }) {
         </main>
 
         {/* Menu Inferior */}
-        <nav className="sticky bottom-0 left-0 right-0 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto shrink-0">
+        <nav className="bottom-0 left-0 right-0 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto shrink-0">
           <div className="mx-auto max-w-md flex items-center justify-around">
             <button className="flex flex-col items-center gap-1 volt-text">
               <Bike className="w-6 h-6" strokeWidth={2.5} />
@@ -417,7 +417,8 @@ function DestinoSearch({
       
       {isOpen && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-3 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
-          {results.map((result) => (
+          <div className="max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain custom-scrollbar">
+            {results.map((result) => (
             <button
               key={result.id}
               onClick={() => {
@@ -435,7 +436,8 @@ function DestinoSearch({
                 <p className="text-[10px] text-muted-foreground truncate">{result.place_name}</p>
               </div>
             </button>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
