@@ -174,7 +174,7 @@ function HomeMotorista() {
       stopGps();
       setGpsError(msg);
       toast.error(msg);
-      // Fail-safe: colocar offline
+      // Fail-safe: colocar offline usando a ref para evitar dependência do estado volátil
       if (isOnlineRef.current) {
         mutation.mutate(false);
       }
@@ -196,6 +196,7 @@ function HomeMotorista() {
     hasActiveRideRef.current = Boolean(activeRide);
   }, [activeRide]);
 
+  // Efeito operacional do watchPosition
   useEffect(() => {
     if (shouldTrackLocation) {
       if (!navigator.geolocation) {
@@ -203,7 +204,7 @@ function HomeMotorista() {
         return;
       }
 
-      // Evita recriar se o watchId já existe
+      // Cria watchPosition SOMENTE se watchIdRef.current === null
       if (watchIdRef.current === null) {
         watchIdRef.current = navigator.geolocation.watchPosition(
           async (position) => {
@@ -212,7 +213,6 @@ function HomeMotorista() {
             if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
 
             const now = Date.now();
-            // Lógica de Throttle: primeira imediata, depois 10s, sem concorrência
             const isFirstUpdate = lastUpdateRef.current === 0;
             const isTimeElapsed = now - lastUpdateRef.current >= 10000;
             const canUpdate =
@@ -226,7 +226,7 @@ function HomeMotorista() {
                 setGpsError(null);
                 lastUpdateRef.current = now;
               } catch (err: any) {
-                // Se falhar no servidor, mas estiver em corrida, apenas sinaliza erro visual sem matar o watcher
+                // Se falhar no servidor, mas estiver em corrida, mantém o watcher ativo
                 if (hasActiveRideRef.current) {
                   setIsGpsActive(false);
                   setGpsError("Conexão instável. Tentando reconectar GPS...");
@@ -252,19 +252,17 @@ function HomeMotorista() {
         );
       }
     } else {
+      // Se shouldTrackLocation for false, para o GPS
       stopGps();
     }
-
-    return () => {
-      // O cleanup só deve chamar stopGps se o motivo da execução do cleanup
-      // for a mudança de shouldTrackLocation para false ou desmontagem.
-      // A ref handleGpsErrorRef garante que o efeito não rode novamente
-      // quando o status mudar.
-      if (!shouldTrackLocation) {
-        stopGps();
-      }
-    };
   }, [shouldTrackLocation, stopGps, updateLocationFn]);
+
+  // Cleanup exclusivo de desmontagem (Incondicional)
+  useEffect(() => {
+    return () => {
+      stopGps();
+    };
+  }, [stopGps]);
 
   const handleToggleOnline = () => {
     if (isToggling || activeRide) return;
