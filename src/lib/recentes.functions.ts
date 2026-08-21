@@ -1,33 +1,26 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const listarDestinosRecentes = createServerFn({ method: "GET" })
-  .middleware([])
-  .handler(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const authUserId = context.userId;
 
     // 1. Obter o id do usuário na tabela public.usuarios
-    const { data: usuario, error: userError } = await supabase
+    const { data: usuario, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("id")
-      .eq("auth_user_id", user.id)
+      .eq("auth_user_id", authUserId)
       .single();
 
     if (userError || !usuario) {
-      throw new Error("Usuário não encontrado");
+      throw new Error("Usuário não encontrado.");
     }
 
-    // 2. Consultar corridas
-    // O objetivo pede passageiro_id = usuario.id
-    // Selecionar destino_nome, destino_lat, destino_lng, created_at
-    // Ordenar por created_at DESC
-    // Limite de 50 para permitir deduplicação
-    const { data: corridas, error: corridasError } = await supabase
+    // 2. Consultar corridas usando o ID real do usuário para garantir ownership
+    const { data: corridas, error: corridasError } = await supabaseAdmin
       .from("corridas")
       .select("destino_nome, destino_lat, destino_lng, created_at")
       .eq("passageiro_id", usuario.id)
@@ -35,17 +28,10 @@ export const listarDestinosRecentes = createServerFn({ method: "GET" })
       .limit(50);
 
     if (corridasError) {
-      console.error("Erro ao buscar corridas recentes:", corridasError);
-      throw new Error("Erro ao carregar destinos recentes");
+      throw new Error("Não foi possível carregar seus destinos recentes.");
     }
 
     // 3. Validação e Deduplicação
-    // - destino_nome não vazio
-    // - coordenadas válidas e finitas
-    // - Converter lat/lng para Number
-    // - Deduplicar por coordenadas (6 casas decimais)
-    // - Máximo 10 destinos distintos
-
     const distinctDestinos: Array<{
       nome: string;
       latitude: number;
@@ -56,19 +42,22 @@ export const listarDestinosRecentes = createServerFn({ method: "GET" })
     const seenCoordinates = new Set<string>();
 
     for (const corrida of (corridas || [])) {
-      if (!corrida.destino_nome || corrida.destino_lat === null || corrida.destino_lng === null) continue;
+      const nomeTrim = (corrida.destino_nome || "").trim();
+      if (!nomeTrim || corrida.destino_lat === null || corrida.destino_lng === null) continue;
       
       const lat = Number(corrida.destino_lat);
       const lng = Number(corrida.destino_lng);
       
+      // Validação de finitude e ranges lat/lng
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
 
       const coordKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
       
       if (!seenCoordinates.has(coordKey)) {
         seenCoordinates.add(coordKey);
         distinctDestinos.push({
-          nome: corrida.destino_nome,
+          nome: nomeTrim,
           latitude: lat,
           longitude: lng,
           usadoEm: corrida.created_at || new Date().toISOString()
