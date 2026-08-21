@@ -492,7 +492,9 @@ function FavoritosDialog({
     },
     onError: (error: any) => {
       const message = error.message || "";
-      if (message.includes("Você já possui um favorito com esse nome.")) {
+      if (message.includes("Você atingiu o limite de 10 favoritos")) {
+        toast.error("Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.");
+      } else if (message.includes("Você já possui um favorito com esse nome.")) {
         toast.error("Você já possui um favorito com esse nome.");
       } else {
         toast.error("Não foi possível salvar o favorito.");
