@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/lib/auth-status.functions";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const favoritoSchema = z.object({
   nome: z.string().trim().min(1).max(40),
