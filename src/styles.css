@@ -141,6 +141,10 @@
 
   html {
     scroll-behavior: smooth;
+    background-color: var(--color-background);
+    /* Avoid involuntary body scroll / 100vh jumps in installed PWA mode */
+    height: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -149,6 +153,8 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -208,4 +214,27 @@ div[style*="Edit with Lovable"],
   pointer-events: none !important;
   position: absolute !important;
   z-index: -9999 !important;
+}
+
+/* PWA — safe areas (notch, Dynamic Island, gesture bar) */
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .safe-area {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .screen-dvh {
+    min-height: 100dvh;
+  }
 }
