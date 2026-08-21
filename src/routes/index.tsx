@@ -83,7 +83,9 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [manualLocation, setManualLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [manualAddress, setManualAddress] = useState<string | null>(null);
   const [isEditingOrigin, setIsEditingOrigin] = useState(false);
+  const [favoritosOpen, setFavoritosOpen] = useState(false);
   
+
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
   const getReverseGeocodingFn = useServerFn(getReverseGeocoding);
@@ -321,12 +323,16 @@ function HomePassageiro({ nome }: { nome: string }) {
               />
               
               <div className="grid grid-cols-2 gap-3 pb-4">
-                <button className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]">
+                <button 
+                  onClick={() => setFavoritosOpen(true)}
+                  className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]"
+                >
                   <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center">
                     <Star className="text-zuvvi-volt w-4 h-4" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-widest">Favoritos</span>
                 </button>
+
                 <button className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]">
                   <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center">
                     <Clock className="text-zuvvi-volt w-4 h-4" />
@@ -336,7 +342,13 @@ function HomePassageiro({ nome }: { nome: string }) {
               </div>
             </div>
           )}
+          <FavoritosDialog 
+            open={favoritosOpen} 
+            onOpenChange={setFavoritosOpen}
+            location={isManualOrigin ? manualLocation : location}
+          />
         </main>
+
 
         {/* Menu Inferior */}
         <nav className="bottom-0 left-0 right-0 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto shrink-0">
@@ -364,7 +376,263 @@ function HomePassageiro({ nome }: { nome: string }) {
   );
 }
 
+function FavoritosDialog({ 
+  open, 
+  onOpenChange, 
+  location 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+  location: { lat: number; lng: number } | null;
+}) {
+  const [mode, setMode] = useState<"list" | "add">("list");
+  const [nome, setNome] = useState("");
+  const [selectedAddress, setSelectedAddress] = useState<{
+    endereco: string;
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const listarFavoritosFn = useServerFn(listarFavoritos);
+  const criarFavoritoFn = useServerFn(criarFavorito);
+  const excluirFavoritoFn = useServerFn(excluirFavorito);
+  const queryClient = useQueryClient();
+
+  const { data: favoritos = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["favoritos-passageiro"],
+    queryFn: () => listarFavoritosFn(),
+    enabled: open,
+  });
+
+  const resetForm = () => {
+    setMode("list");
+    setNome("");
+    setSelectedAddress(null);
+    setConfirmDeleteId(null);
+  };
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => criarFavoritoFn({ data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["favoritos-passageiro"] });
+      toast.success("Favorito salvo.");
+      resetForm();
+    },
+    onError: (error: any) => {
+      const message = error.message || "";
+      if (message.includes("Você já possui um favorito com esse nome.")) {
+        toast.error("Você já possui um favorito com esse nome.");
+      } else {
+        toast.error("Não foi possível salvar o favorito.");
+      }
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => excluirFavoritoFn({ data: { id } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["favoritos-passageiro"] });
+      toast.success("Favorito excluído.");
+      setConfirmDeleteId(null);
+    },
+    onError: () => {
+      toast.error("Não foi possível excluir o favorito.");
+    }
+  });
+
+  return (
+    <Dialog 
+      open={open} 
+      onOpenChange={(val) => {
+        if (!val) resetForm();
+        onOpenChange(val);
+      }}
+    >
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6">
+        <DialogHeader className="mb-4">
+          <div className="flex items-center gap-3">
+            {mode === "add" && (
+              <button 
+                onClick={() => setMode("list")}
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-all active:scale-95"
+              >
+                <ChevronLeft className="w-4 h-4 text-zuvvi-volt" />
+              </button>
+            )}
+            <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center">
+              <Star className="text-zuvvi-volt w-5 h-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold">
+                {mode === "list" ? "Seus favoritos" : "Novo favorito"}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                {mode === "list" 
+                  ? "Salve lugares para chegar mais rápido." 
+                  : "Adicione um nome e escolha o local."}
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 text-zuvvi-volt animate-spin" />
+            <p className="text-xs font-medium text-muted-foreground">Carregando seus favoritos...</p>
+          </div>
+        ) : isError ? (
+          <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
+            <p className="text-sm font-medium text-muted-foreground">Não foi possível carregar seus favoritos.</p>
+            <button 
+              onClick={() => refetch()}
+              className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors"
+            >
+              TENTAR NOVAMENTE
+            </button>
+          </div>
+        ) : mode === "list" ? (
+          <div className="space-y-4">
+            {favoritos.length === 0 ? (
+              <div className="py-10 flex flex-col items-center justify-center text-center space-y-4 bg-white/5 rounded-3xl border border-white/10">
+                <Star className="w-10 h-10 text-zuvvi-volt/20" />
+                <div>
+                  <h3 className="text-sm font-bold">Nenhum favorito ainda</h3>
+                  <p className="text-xs text-muted-foreground px-10">Salve Casa, Trabalho ou qualquer lugar importante.</p>
+                </div>
+                <button 
+                  onClick={() => setMode("add")}
+                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2"
+                >
+                  <Plus className="w-3 h-3" strokeWidth={3} />
+                  ADICIONAR ENDEREÇO
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain pr-1 custom-scrollbar space-y-2">
+                  {favoritos.map((fav: any) => (
+                    <div 
+                      key={fav.id}
+                      className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-3 group transition-colors hover:border-white/20"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
+                          <Star className="text-zuvvi-volt w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          {confirmDeleteId === fav.id ? (
+                            <p className="text-xs font-bold volt-text">Excluir este favorito?</p>
+                          ) : (
+                            <>
+                              <p className="text-sm font-bold truncate">{fav.nome}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{fav.endereco}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {confirmDeleteId === fav.id ? (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button 
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="p-2 rounded-full hover:bg-white/5 transition-colors"
+                          >
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                          <button 
+                            onClick={() => deleteMutation.mutate(fav.id)}
+                            disabled={deleteMutation.isPending}
+                            className="p-2 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center"
+                          >
+                            {deleteMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => setConfirmDeleteId(fav.id)}
+                          aria-label={`Excluir favorito ${fav.nome}`}
+                          className="w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-white/5 transition-all shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-500" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => setMode("add")}
+                  className="w-full bg-white/5 border border-white/10 text-foreground py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                >
+                  <Plus className="w-3 h-3" strokeWidth={3} />
+                  ADICIONAR ENDEREÇO
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
+              <input 
+                type="text"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Ex.: Casa, Trabalho, Academia"
+                maxLength={40}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-5 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Endereço</label>
+              <DestinoSearch 
+                location={location}
+                placeholder="Buscar endereço..."
+                onSelect={(res) => setSelectedAddress({
+                  endereco: res.place_name,
+                  latitude: res.center[1],
+                  longitude: res.center[0]
+                })}
+              />
+            </div>
+
+            {selectedAddress && (
+              <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2">
+                <p className="text-[8px] font-black uppercase tracking-widest text-zuvvi-volt mb-1">ENDEREÇO SELECIONADO</p>
+                <p className="text-xs font-bold leading-tight">{selectedAddress.endereco}</p>
+              </div>
+            )}
+
+            <button 
+              disabled={!nome.trim() || !selectedAddress || createMutation.isPending}
+              onClick={() => createMutation.mutate({
+                nome: nome.trim(),
+                endereco: selectedAddress?.endereco,
+                latitude: selectedAddress?.latitude,
+                longitude: selectedAddress?.longitude
+              })}
+              className="w-full bg-zuvvi-volt text-zuvvi-indigo py-4 rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+            >
+              {createMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "SALVAR FAVORITO"
+              )}
+            </button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DestinoSearch({ 
+
   location, 
   onSelect, 
   placeholder = "Para onde vamos?", 
