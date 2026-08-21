@@ -274,20 +274,6 @@ function HomeMotorista() {
     }
   };
 
-  const {
-    data: status,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["motorista-status"],
-    queryFn: () => getMotoristaStatusHome(),
-    refetchInterval: 10000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
-
-  const activeRide = status?.active_ride ?? null;
-  const isOnline = !!status?.is_disponivel;
 
   const { data: mapboxToken } = useQuery({
     queryKey: ["mapbox-token-motorista"],
