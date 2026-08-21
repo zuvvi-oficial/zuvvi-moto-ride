@@ -103,7 +103,7 @@ function HomeMotorista() {
 
   const { data: rawOfertas = [] } = useQuery({
     queryKey: ["motorista-ofertas"],
-    queryFn: () => getOfertasFn(),
+    queryFn: () => getOfertasFn() as Promise<Oferta[]>,
     enabled: isOnline && isGpsActive && !activeRide,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
@@ -471,7 +471,7 @@ function HomeMotorista() {
               </div>
             ) : (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {ofertas.map((oferta: any) => (
+                {ofertas.map((oferta) => (
                   <div
                     key={oferta.id}
                     className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-6"
