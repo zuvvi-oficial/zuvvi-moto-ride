@@ -393,34 +393,40 @@ function FavoritosDialog({
     longitude: number;
   } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
-  const [viewportOffsetTop, setViewportOffsetTop] = useState<number | null>(null);
+  const [viewport, setViewport] = useState<{
+    height: number;
+    width: number;
+    offsetTop: number;
+    offsetLeft: number;
+  } | null>(null);
 
   useEffect(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
     if (!open || mode !== "add" || !isMobile || typeof window === 'undefined' || !window.visualViewport) {
-      if (!open) {
-        setViewportHeight(null);
-        setViewportOffsetTop(null);
-      }
+      if (!open) setViewport(null);
       return;
     }
 
     const syncViewport = () => {
-      if (window.visualViewport) {
-        setViewportHeight(window.visualViewport.height);
-        setViewportOffsetTop(window.visualViewport.offsetTop);
+      const vv = window.visualViewport;
+      if (vv) {
+        setViewport({
+          height: vv.height,
+          width: vv.width,
+          offsetTop: vv.offsetTop,
+          offsetLeft: vv.offsetLeft
+        });
       }
     };
 
-    const viewport = window.visualViewport;
-    viewport.addEventListener('resize', syncViewport);
-    viewport.addEventListener('scroll', syncViewport);
+    const vv = window.visualViewport;
+    vv.addEventListener('resize', syncViewport);
+    vv.addEventListener('scroll', syncViewport);
     syncViewport();
 
     return () => {
-      viewport.removeEventListener('resize', syncViewport);
-      viewport.removeEventListener('scroll', syncViewport);
+      vv.removeEventListener('resize', syncViewport);
+      vv.removeEventListener('scroll', syncViewport);
     };
   }, [open, mode]);
 
