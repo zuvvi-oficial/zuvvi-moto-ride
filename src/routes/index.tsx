@@ -611,11 +611,12 @@ function FavoritosDialog({
                 </div>
                 <button 
                   onClick={() => setMode("add")}
-                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2"
+                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2 w-full max-w-full justify-center"
                 >
                   <Plus className="w-3 h-3" strokeWidth={3} />
                   ADICIONAR ENDEREÇO
                 </button>
+
 
               </div>
             ) : (
