@@ -332,199 +332,255 @@ Estes itens NÃO estão marcados como concluídos.
 **SPRINT 1 — ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA**
 
 **FECHAMENTO FUNCIONAL:** 21/08/2026  
-**Último commit funcional de referência:** f9d6f092ff5ad939cdfc39832e598aa6763a9500
+**Último commit funcional de referência:** e52a679aaa474d798003c906a6b01260454cbbd4
 
 **Próxima etapa oficial:**
 Sprint 2 — GPS Pós-Aceite e Rastreamento.
 
-## Reconciliação operacional — 21/08/2026
+## Reconciliação oficial do Sprint 2 — Baseline 20/08/2026
 
-### Estado GitHub
+### Auditoria
+- Microetapa 2.0-R — auditoria de reconciliação realizada.
+- Microcorreção 2.0-R-A — divergências da auditoria corrigidas.
+- Contra-prova independente GitHub/Supabase concluída.
+- baseline oficial atual: 6a6717e9d48b7b04988c879fe3a119bc4c697e86.
 
-- HEAD/commit funcional auditado:
-  f9d6f092ff5ad939cdfc39832e598aa6763a9500
+### Funcionalidades tecnicamente existentes (SEM DECLARAR O SPRINT 2 CONCLUÍDO)
+- motorista online/offline;
+- GPS antes do aceite;
+- recebimento real de ofertas;
+- filtro por cidade;
+- filtro por elegibilidade operacional;
+- ordenação por proximidade;
+- recusa de corrida;
+- aceite de corrida;
+- aceite atômico;
+- proteção contra aceite concorrente;
+- proteção contra duas corridas ativas para o mesmo motorista;
+- recuperação/exibição de corrida ativa na Home Motorista;
+- Realtime de public.corridas;
+- passageiro detecta aceite;
+- passageiro é redirecionado para /acompanhamento;
+- handoff seguro de dados da corrida, motorista e veículo;
+- mapa do passageiro já existente.
 
-### Estado Supabase REAL
+### MICROETAPAS COMPROVADAS POR MIGRATION
+- **20260820164016**: accept_corrida_atomic + índice único de corrida ativa.
+- **20260820175105**: set_motorista_online_atomic.
+- **20260820183150**: Microetapa 2.5 — Realtime de public.corridas.
 
-- 15 tabelas públicas;
-- 45 migrations;
-- última migration: 20260821212540;
-- Realtime atualmente contém public.corridas;
-- nenhuma tabela de chat/mensagens/conversas existe;
-- 0 corridas ativas no momento da auditoria;
-- 1 corrida concluída no histórico;
-- 31 pagamentos existentes com status pendente;
-- tabela enderecos_favoritos preservada.
+*Nota: Existe implementação posterior à 2.5 relacionada ao handoff do passageiro, porém ela ainda não possui fechamento documental oficial. A numeração 2.6-A NÃO é oficial.*
 
-### Microetapa 3.1 — Posição do motorista + rota até embarque — 🟡 IMPLEMENTADA
+### BLOQUEADOR CRÍTICO — GPS PÓS-ACEITE
+**GPS DURANTE CORRIDA ATIVA: NÃO FUNCIONA ATUALMENTE.**
 
-Estado real:
+**Motivo comprovado:**
+1. `accept_corrida_atomic` grava `motoristas.is_disponivel = false` após o aceite;
+2. `home-motorista.tsx` mantém `watchPosition` somente enquanto `status.is_disponivel = true`;
+3. Quando `is_disponivel = false`, o frontend executa `stopGps()`;
+4. `updateLocalizacaoMotorista` também rejeita server-side o envio de GPS se `is_disponivel = false`.
 
-- marcador do motorista implementado na Home Motorista;
-- usa ultima_lat / ultima_lng;
-- rota Mapbox até origem_lat/origem_lng;
-- rota usada nos estados:
-  aceita,
-  motorista_a_caminho,
-  motorista_chegou;
-- atualização de marcador/rota prevista quando coordenadas mudam;
-- enquadramento inicial implementado;
-- prova visual em repouso executada;
-- teste real de deslocamento físico/movimento permanece ADIADO;
-- NÃO declarar prova de movimento concluída.
+**Consequência:** O motorista deixa de transmitir localização após aceitar a corrida.
 
-### Microetapa 3.2 — aceita → motorista_a_caminho — ✅ IMPLEMENTADA E PROVADA
+### MAPAS E RASTREAMENTO
+- Mapa do passageiro: **IMPLEMENTADO**.
+- Rastreamento ao vivo do motorista pelo passageiro: **NÃO IMPLEMENTADO**.
+- Mapa operacional do motorista após aceite: **NÃO IMPLEMENTADO**.
+- Rota do motorista até o passageiro: **NÃO IMPLEMENTADA**.
 
-- função server-side:
-  marcarMotoristaACaminho;
-- exige requireSupabaseAuth;
-- resolve motorista autenticado;
-- exige ownership por motorista_id;
-- transição permitida somente:
-  aceita → motorista_a_caminho;
-- Home Motorista possui ação:
-  "A CAMINHO DO EMBARQUE";
-- prova funcional no banco já executada.
+### ESTADOS POSTERIORES DA CORRIDA (NÃO FECHADOS)
+- `motorista_a_caminho`;
+- `motorista_chegou`;
+- início real da corrida;
+- `em_andamento`;
+- conclusão real da corrida.
 
-### Microetapa 3.3 — Passageiro recebe "Motorista a Caminho" — 🟡 PENDENTE DE PROVA MANUAL FINAL
+> **REGISTRO HISTÓRICO — SUPERADO EM 21/08/2026**
+> O diagnóstico abaixo registra o estado encontrado na auditoria
+> anterior e é preservado exclusivamente como evidência histórica.
+> Ele NÃO representa o estado atual.
+> Atualmente os arquivos `20260819113539_fix_usuarios_auth_user_id_unique_constraint.sql`
+> e `20260819114735_complete_tipo_chave_pix_migration.sql`
+> estão presentes em `supabase/migrations/`.
+> A reconciliação futura GitHub × Supabase permanece necessária
+> apenas para validar a paridade completa do histórico antes de
+> novas migrations.
 
-Código existente:
+### DRIFT DE MIGRATIONS
+**STATUS: DRIFT DE HISTÓRICO DE MIGRATIONS PENDENTE DE RECONCILIAÇÃO.**
 
-- /acompanhamento escuta UPDATE de public.corridas;
-- filtra pelo rideId;
-- ao receber status motorista_a_caminho atualiza estado local;
-- cabeçalho passa de:
-  "Motorista Aceitou"
-  para
-  "Motorista a Caminho".
+O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo, que não possuem arquivos correspondentes na branch `main`:
+- `20260819113539` — fix_usuarios_auth_user_id_unique_constraint
+- `20260819114735` — complete_tipo_chave_pix_migration
 
-NÃO marcar como fechada.
+**REGRA:** Nenhuma nova alteração de banco deverá ser executada até que esse drift seja tratado em microetapa própria.
 
-Motivo:
-prova manual final ainda deve ser executada em corrida real.
+### 2.7 — Cancelamento de Corrida pelo Motorista — ✅ FECHADA
+- Implementado botão "CANCELAR CORRIDA" na Home do Motorista.
+- Server function `cancelarCorridaMotorista` valida ownership e status da corrida.
+- Corrida é marcada como `cancelada` com `cancelado_por = 'motorista'`.
+- Motorista é mantido offline após o cancelamento por segurança.
+- Design alinhado com a identidade visual Zuvvi.
+- Nenhuma alteração no core ou no banco de dados necessária (aproveitamento de estrutura existente).
 
-## Recentes do Passageiro — ✅ FECHADO
-
-- botão Recentes funcional;
-- modal "Destinos recentes";
-- leitura baseada em public.corridas;
-- não cria tabela nova;
-- server function listarDestinosRecentes;
-- requireSupabaseAuth;
-- context.userId;
-- supabaseAdmin;
-- passageiro_id resolvido server-side;
-- cliente não informa passageiro_id;
-- até 50 corridas consultadas;
-- máximo 10 destinos distintos retornados;
-- deduplicação por coordenadas com 6 casas;
-- ocorrência mais recente preservada;
-- nenhum filtro por status da corrida;
-- lat/lng validados;
-- loading, erro, vazio e lista implementados;
-- overlay local correto;
-- seleção fecha modal e reutiliza handleDestinationSelected;
-- fluxo:
-  Recentes → /confirmar-corrida;
-- não cria corrida automaticamente;
-- não procura motorista automaticamente;
-- teste visual/manual aprovado pelo usuário;
-- funcionalidade considerada fechada.
-
-### Chat Passageiro ↔ Motorista — ❌ NÃO IMPLEMENTADO
-
-Estado auditado:
-
-- nenhuma tabela chat/mensagem/conversa no Supabase;
-- nenhuma publicação Realtime específica de chat;
-- /acompanhamento ainda mostra:
-  "Em breve: Chat";
-- chat será funcionalidade nova;
-- não declarar nada como pronto.
-
-Próxima etapa planejada:
-
-Chat 1 — Banco + RLS + segurança + Realtime.
-
-### PENDÊNCIAS DO FLUXO DA CORRIDA
-
-Registrar como PENDENTES:
-
-- prova manual final de 3.3;
-- motorista_chegou / botão CHEGUEI;
-- data_chegada_motorista;
-- exibição do código de embarque ao passageiro;
-- validação do código pelo motorista;
-- motorista_chegou → em_andamento;
-- data_inicio;
-- rota operacional até destino;
-- conclusão real da corrida;
-- data_finalizacao;
-- valor_final;
-- tela de corrida concluída;
-- rastreamento vivo do motorista no passageiro;
-- avaliação pós-corrida;
-- pagamentos reais/liquidação;
-- notificações;
-- Histórico/Corridas do passageiro;
-- Carteira;
-- Perfil do passageiro.
-
-### HARDENING PENDENTE
-
-Registrar sem corrigir:
-
-- banco protege uma corrida ativa por motorista;
-- proteção equivalente de corrida ativa única por passageiro
-  ainda deve ser avaliada/implementada;
-- cancelamento do passageiro ainda precisa de matriz
-  explícita de estados canceláveis antes de produção;
-- CI significativo permanece pendente;
-- lint global herdado permanece pendente.
-
-## PRÓXIMA ETAPA OFICIAL
-
-**PRÓXIMA MICROETAPA OFICIAL:**
-
-Chat 1 — Estrutura de banco, ownership, RLS e Realtime
-para conversa Passageiro ↔ Motorista.
-
-Regra:
-
-Chat somente depois do aceite da corrida.
-
-O desenho funcional pretendido posteriormente inclui:
-
-- mensagens em tempo real;
-- enviada;
-- entregue;
-- lida;
-- dois checks azuis quando lida;
-- digitando;
-- online/visto por último;
-- badge de não lidas;
-- somente participantes da corrida;
-- bloqueio de envio quando o ciclo da corrida não permitir.
-
-IMPORTANTE:
-
-Isso é PLANEJAMENTO.
-NÃO declarar implementado.
+#### 2.7-A — Modal Profissional de Cancelamento — ✅ FECHADA
+- Substituído `window.confirm` nativo (branco/básico) por modal personalizado Zuvvi.
+- Design alinhado: Fundo indigo, bordas 2.5rem, tipografia Poppins e ícones Lucide.
+- Feedback de processamento integrado no botão de confirmação.
+- Travas de segurança preservadas (não altera o core do cancelamento).
+- Experiência profissional de confirmação/desistência.
 
 ---
 
+## Reconciliação oficial do Sprint 2 — Baseline 21/08/2026
 
-## Status final
+### Estado operacional
+
+*   **Sprint 1:** ✅ FECHADO.
+*   **Sprint 2:** ⚠️ EM ANDAMENTO.
+*   **Implementação mais recente:** Microetapa 2.7-A — Modal Profissional de Cancelamento.
+*   **Principal bloqueador funcional:** GPS pós-aceite da corrida (o motorista deixa de transmitir localização após aceitar a corrida).
+*   **Interface:** A Home do Motorista ainda não possui mapa operacional da corrida.
+*   **Fluxo:** Os estados posteriores ao aceite (a caminho, chegou, em andamento) ainda não estão completamente fechados.
+*   **Passageiro:** O acompanhamento do passageiro existe, porém o rastreamento vivo completo (realtime GPS) ainda não está fechado.
+
+### Reconciliação do histórico de migrations
+
+Anteriormente, este documento registrava que as migrations:
+*   `20260819113539_fix_usuarios_auth_user_id_unique_constraint.sql`
+*   `20260819114735_complete_tipo_chave_pix_migration.sql`
+
+não existiam na branch `main`.
+
+**ATUALIZAÇÃO:** Esta divergência foi superada. Ambos os arquivos estão presentes em `supabase/migrations/`.
+
+**PRÓXIMO PASSO DE INFRAESTRUTURA:** Antes de qualquer nova migration de funcionalidade, deve ser executada uma etapa final de **RECONCILIAÇÃO DO HISTÓRICO DE MIGRATIONS GitHub × Supabase** para garantir paridade total e evitar novos drifts.
+
+### MICROETAPA 2.8 — GPS Pós-Aceite — ✅ FECHADA
+
+Comprovada funcionalmente em 21/08/2026.
+
+**Evidências comprovadas:**
+
+1. **Antes do aceite:**
+   - motorista `is_disponivel=true`;
+   - nenhuma corrida ativa;
+   - GPS atualizando normalmente.
+
+2. **Após o aceite:**
+   - corrida `status=aceita`;
+   - motorista `is_disponivel=false`;
+   - exatamente 1 corrida ativa;
+   - GPS continuou atualizando mesmo com `is_disponivel=false`.
+
+**Prova temporal:**
+- `data_aceite`: 21/08/2026 12:13:31 horário local;
+- `ultima_localizacao_at` posterior ao aceite: 21/08/2026 12:15:13 horário local.
+
+**Portanto:** GPS permaneceu transmitindo após o aceite.
+
+3. **Após cancelamento pelo motorista:**
+   - corrida `status=cancelada`;
+   - `cancelado_por=motorista`;
+   - motorista permaneceu offline;
+   - último GPS: 12:16:16;
+   - cancelamento: 12:16:24;
+   - após mais de 2 minutos o timestamp de GPS não avançou.
+
+**Portanto:** GPS parou corretamente quando não havia mais corrida ativa.
+
+---
+
+## Bloqueadores Críticos Descobertos
+
+### PASSAGEIRO — CANCELAMENTO PÓS-ACEITE NÃO PROPAGADO — ⚠️ BLOQUEADOR
+Registrado em 21/08/2026 como PENDÊNCIA (não falha da 2.8).
+
+**Comportamento comprovado:**
+- motorista cancela corrida aceita;
+- banco registra corretamente `status=cancelada`;
+- tela do motorista fecha a corrida e permanece offline;
+- passageiro permanece na tela `/acompanhamento` exibindo o estado anterior da corrida.
+
+**Auditoria técnica:**
+`src/routes/acompanhamento.tsx` atualmente carrega a corrida somente na inicialização e não possui atualização Realtime/polling para mudanças posteriores do status. A tela também mantém o rótulo "Motorista Aceitou" de forma fixa.
+
+**Status:** ✅ RESOLVIDO (Microetapa 2.9).
+
+### MICROETAPA 2.9 — Cancelamento no Passageiro — ✅ FECHADA
+
+Comprovada funcionalmente em 21/08/2026.
+
+- Tela `/acompanhamento` reage em tempo real ao cancelamento da corrida.
+- Exibe overlay visual "Corrida cancelada" com motivo.
+- Redireciona para a Home após 1.8s.
+
+---
+
+### Microetapa 3.0 — Mapa do Local de Embarque — ✅ FECHADA
+
+Implementação comprovada:
+
+- após o motorista aceitar a corrida, a Home Motorista exibe mapa Mapbox dentro do card da corrida ativa;
+- o mapa utiliza as coordenadas reais: corridas.origem_lat, corridas.origem_lng;
+- o marcador representa o local de embarque do passageiro;
+- MapView existente foi reutilizado sem alteração;
+- getMapboxToken existente foi reutilizado;
+- o mapa possui container com dimensão real para celular;
+- card de origem, destino, valor e pagamento foi preservado;
+- GPS pós-aceite da Microetapa 2.8 permaneceu intacto;
+- fluxo do passageiro permaneceu intacto;
+- nenhuma migration ou alteração Supabase foi necessária.
+
+TESTE MANUAL APROVADO EM 21/08/2026:
+
+Fluxo comprovado:
+Passageiro solicita corrida
+→ motorista recebe
+→ motorista aceita
+→ Home Motorista entra em estado EM CORRIDA
+→ seção LOCAL DE EMBARQUE aparece
+→ mapa Mapbox carrega corretamente
+→ marcador aparece no local de embarque.
+
+CONTRA-PROVA:
+
+GitHub final:
+13a44281a55df2257b57c3a32fdfccc106efbdb7
+
+Commit funcional da implementação:
+6bd1603cf7aab3ad0e2eb944580f8ad31e64f606
+
+Supabase:
+42 migrations
+última migration:
+20260820183150
+
+MICROETAPA 3.0 — ✅ FECHADA
+
+---
+
+## Status final consolidado
 
 **SPRINT 0 — ✅ CONCLUÍDO**
 
 **SPRINT 1 — ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA**
 
-**FECHAMENTO FUNCIONAL:** 21/08/2026
-**Último commit funcional de referência:** f9d6f092ff5ad939cdfc39832e598aa6763a9500
+**SPRINT 2 — ⚠️ EM ANDAMENTO**
 
----
+**CORE CONGELADO:**
+- mapa do embarque do motorista;
+- origem_lat/origem_lng no activeRide;
+- MapView utilizado nessa tela;
+- getMapboxToken utilizado nessa tela;
+- GPS pós-aceite já aprovado.
 
+**FECHAMENTO FUNCIONAL ATUAL:** 21/08/2026
+**BASELINE GITHUB:** 13a44281a55df2257b57c3a32fdfccc106efbdb7
+
+**PRÓXIMA MICROETAPA PLANEJADA:**
+
+Microetapa 3.1 — Posição do motorista + rota até o local de embarque.
 
 ## Favoritos do Passageiro — ✅ FECHADO E CONGELADO
 
@@ -623,10 +679,10 @@ Regra oficial:
 GitHub:
 
 - último commit funcional:
-  f9d6f092ff5ad939cdfc39832e598aa6763a9500
+  647a0f7e1a764922ada0279ce00fbfd14eb7b777
 
 - HEAD auditado:
-  f9d6f092ff5ad939cdfc39832e598aa6763a9500
+  21b9921ebd5fd5cd5b64dfbcadda94c317d35f0d
 
 Supabase REAL:
 
@@ -644,3 +700,164 @@ FAVORITOS DO PASSAGEIRO:
 ✅ FECHADO
 ✅ AUDITADO
 ✅ CONGELADO
+
+## Reconciliação operacional atual — 21/08/2026
+
+### Baseline operacional atual
+
+- GitHub funcional auditado antes desta atualização:
+  f9d6f092ff5ad939cdfc39832e598aa6763a9500
+
+### Supabase REAL
+
+- 15 tabelas públicas;
+- 45 migrations;
+- última migration: 20260821212540;
+- public.corridas está no Supabase Realtime;
+- nenhuma tabela de chat, mensagens ou conversas existe;
+- 0 corridas ativas no momento da auditoria;
+- enderecos_favoritos preservada.
+
+### Estado atual do fluxo
+
+#### Microetapa 3.1 — Posição + rota até embarque
+🟡 IMPLEMENTADA
+
+- marcador da posição do motorista implementado;
+- usa ultima_lat / ultima_lng;
+- rota Mapbox motorista → local de embarque;
+- rota aplicável nos estados aceita,
+  motorista_a_caminho e motorista_chegou;
+- atualização do marcador/rota implementada quando
+  coordenadas mudam;
+- enquadramento inicial da rota implementado;
+- prova visual em repouso realizada;
+- prova física de movimento/recalculo permanece ADIADO.
+
+NÃO marcar movimento real como comprovado.
+
+#### Microetapa 3.2 — aceita → motorista_a_caminho
+✅ IMPLEMENTADA E PROVADA
+
+- função marcarMotoristaACaminho;
+- requireSupabaseAuth;
+- motorista resolvido server-side;
+- ownership por motorista_id;
+- exige status atual aceita;
+- grava motorista_a_caminho;
+- ação "A CAMINHO DO EMBARQUE" existente;
+- transição já comprovada funcionalmente no banco.
+
+#### Microetapa 3.3 — Passageiro: Motorista a Caminho
+🟡 CÓDIGO IMPLEMENTADO / PROVA MANUAL FINAL PENDENTE
+
+- /acompanhamento escuta public.corridas via Realtime;
+- canal filtrado pelo rideId;
+- recebe motorista_a_caminho;
+- atualiza estado local;
+- cabeçalho suporta:
+  "Motorista Aceitou"
+  →
+  "Motorista a Caminho".
+
+NÃO marcar 3.3 como fechada.
+
+### Recentes do Passageiro
+✅ FECHADO
+
+- botão Recentes funcional;
+- modal Destinos recentes;
+- até 10 destinos distintos;
+- fonte: histórico de public.corridas;
+- nenhum filtro por status;
+- deduplicação por coordenadas;
+- registro mais recente preservado;
+- requireSupabaseAuth;
+- context.userId;
+- supabaseAdmin;
+- ownership por passageiro_id resolvido server-side;
+- cliente não envia passageiro_id;
+- coordenadas validadas;
+- loading;
+- erro;
+- vazio;
+- lista;
+- overlay local;
+- seleção reutiliza handleDestinationSelected;
+- fluxo preservado:
+  Recentes → /confirmar-corrida;
+- não cria corrida automaticamente;
+- não procura motorista automaticamente;
+- teste visual/manual aprovado.
+
+### Favoritos do Passageiro
+✅ FECHADO
+✅ AUDITADO
+✅ CONGELADO
+
+A seção histórica completa de Favoritos acima
+permanece como fonte de detalhe.
+NÃO duplicar nem reescrever seus dados.
+
+### Chat Passageiro ↔ Motorista
+❌ NÃO IMPLEMENTADO
+
+Estado real:
+
+- nenhuma tabela de chat existe;
+- nenhuma estrutura de mensagens existe;
+- nenhuma presença de chat existe;
+- nenhum Realtime específico de chat existe;
+- /acompanhamento ainda contém "Em breve: Chat".
+
+Próxima funcionalidade planejada:
+
+CHAT 1 —
+Banco + ownership + RLS + segurança + Realtime.
+
+Isto é planejamento.
+NÃO declarar implementado.
+
+### Pendências do fluxo da corrida
+
+Permanecem pendentes:
+
+- prova manual da 3.3;
+- motorista_chegou;
+- botão CHEGUEI;
+- data_chegada_motorista;
+- código de embarque visível ao passageiro;
+- validação do código pelo motorista;
+- motorista_chegou → em_andamento;
+- data_inicio;
+- rota até destino durante corrida;
+- finalização;
+- concluida;
+- data_finalizacao;
+- valor_final;
+- tela final;
+- rastreamento vivo do motorista no passageiro;
+- avaliação;
+- pagamentos reais/liquidação;
+- notificações;
+- Corridas/Histórico;
+- Carteira;
+- Perfil do passageiro.
+
+### Hardening futuro já identificado
+
+- proteção de corrida ativa única existe para motorista;
+- equivalente para passageiro ainda deve ser fechado;
+- cancelamento do passageiro precisa de matriz explícita
+  de estados canceláveis antes da produção;
+- CI significativo ainda pendente;
+- lint global herdado ainda pendente.
+
+### Próxima microetapa oficial
+
+CHAT 1 —
+Fundação de banco, ownership, RLS,
+segurança e Realtime.
+
+A implementação do Chat NÃO faz parte desta
+microcorreção documental.
