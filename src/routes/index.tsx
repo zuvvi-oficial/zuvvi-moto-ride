@@ -606,109 +606,94 @@ function FavoritosDialog({
           </div>
         ) : mode === "list" ? (
           <div className="space-y-4">
-            {favoritos.length === 0 ? (
-              <div className="py-10 flex flex-col items-center justify-center text-center space-y-4 bg-white/5 rounded-3xl border border-white/10">
-                <Star className="w-10 h-10 text-zuvvi-volt/20" />
-                <div>
-                  <h3 className="text-sm font-bold">Nenhum favorito ainda</h3>
-                  <p className="text-xs text-muted-foreground px-10">Salve Casa, Trabalho ou qualquer lugar importante.</p>
-                </div>
-                <button 
-                  onClick={() => setMode("add")}
-                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2 w-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)] mx-auto justify-center"
-                >
-                  <Plus className="w-3 h-3" strokeWidth={3} />
-                  ADICIONAR ENDEREÇO
-                </button>
-
-
+            {favoritos.length >= 10 ? (
+              <div className="py-6 flex flex-col items-center justify-center text-center space-y-2 bg-white/5 rounded-2xl border border-white/10 px-4">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] volt-text">LIMITE DE 10 FAVORITOS</h3>
+                <p className="text-[10px] text-muted-foreground">Exclua um favorito para adicionar outro.</p>
               </div>
             ) : (
-              <>
-                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full min-w-0 max-w-full overflow-x-hidden">
-                  {favoritos.map((fav: any) => (
-                    <div 
-                      key={fav.id}
-                      className={`bg-white/5 border border-white/10 rounded-2xl overflow-hidden box-border w-full min-w-0 max-w-full grid ${
-                        confirmDeleteId === fav.id 
-                          ? "grid-cols-[minmax(0,1fr)_6rem] gap-1" 
-                          : "grid-cols-[minmax(0,1fr)_3.25rem]"
-                      }`}
-                    >
-                      <button
-                        onClick={() => {
-                          if (confirmDeleteId === fav.id) return;
-                          onOpenChange(false);
-                          onSelectFavorite(fav);
-                        }}
-                        disabled={confirmDeleteId === fav.id}
-                        aria-label={`Usar favorito ${fav.nome} como destino`}
-                        className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 min-w-0 overflow-hidden p-4 pr-2 text-left w-full transition-transform active:scale-[0.99]"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
-                          <Star className="text-zuvvi-volt w-4 h-4" />
-                        </div>
-                        <div className="min-w-0 overflow-hidden">
-                          {confirmDeleteId === fav.id ? (
-                            <p className="text-xs font-bold volt-text truncate block w-full min-w-0">Excluir este favorito?</p>
-                          ) : (
-                            <>
-                              <p className="text-sm font-bold truncate block w-full min-w-0">{fav.nome}</p>
-                              <p className="text-[10px] text-muted-foreground block w-full min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">{fav.endereco}</p>
-                            </>
-                          )}
-                        </div>
-                      </button>
-                      
-                      <div className={`flex items-center justify-center overflow-hidden ${
-                        confirmDeleteId === fav.id ? "w-[6rem] min-w-[6rem] gap-1" : "w-[3.25rem] min-w-[3.25rem]"
-                      }`}>
-                        {confirmDeleteId === fav.id ? (
-                          <>
-                            <button 
-                              onClick={() => setConfirmDeleteId(null)}
-                              aria-label="Cancelar exclusão"
-                              className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center shrink-0"
-                            >
-                              <X className="w-5 h-5 text-muted-foreground" />
-                            </button>
-                            <button 
-                              onClick={() => deleteMutation.mutate(fav.id)}
-                              disabled={deleteMutation.isPending}
-                              aria-label={`Confirmar exclusão de ${fav.nome}`}
-                              className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center shrink-0"
-                            >
-                              {deleteMutation.isPending ? (
-                                <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-5 h-5 text-red-500" />
-                              )}
-                            </button>
-                          </>
-                        ) : (
-                          <button 
-                            onClick={() => setConfirmDeleteId(fav.id)}
-                            aria-label={`Excluir favorito ${fav.nome}`}
-                            className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center hover:bg-white/5 transition-all shrink-0"
-                          >
-                            <Trash2 className="w-5 h-5 text-muted-foreground hover:text-red-500" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <button 
-                  onClick={() => setMode("add")}
-                  className="w-full max-w-full box-border bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-                >
-                  <Plus className="w-3 h-3" strokeWidth={3} />
-                  ADICIONAR ENDEREÇO
-                </button>
-
-              </>
+              <button 
+                onClick={() => setMode("add")}
+                className="w-full max-w-full box-border bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <Plus className="w-3 h-3" strokeWidth={3} />
+                ADICIONAR ENDEREÇO
+              </button>
             )}
+
+            <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full min-w-0 max-w-full overflow-x-hidden">
+              {favoritos.map((fav: any) => (
+                <div 
+                  key={fav.id}
+                  className={`bg-white/5 border border-white/10 rounded-2xl overflow-hidden box-border w-full min-w-0 max-w-full grid ${
+                    confirmDeleteId === fav.id 
+                      ? "grid-cols-[minmax(0,1fr)_6rem] gap-1" 
+                      : "grid-cols-[minmax(0,1fr)_3.25rem]"
+                  }`}
+                >
+                  <button
+                    onClick={() => {
+                      if (confirmDeleteId === fav.id) return;
+                      onOpenChange(false);
+                      onSelectFavorite(fav);
+                    }}
+                    disabled={confirmDeleteId === fav.id}
+                    aria-label={`Usar favorito ${fav.nome} como destino`}
+                    className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 min-w-0 overflow-hidden p-4 pr-2 text-left w-full transition-transform active:scale-[0.99]"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
+                      <Star className="text-zuvvi-volt w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 overflow-hidden">
+                      {confirmDeleteId === fav.id ? (
+                        <p className="text-xs font-bold volt-text truncate block w-full min-w-0">Excluir este favorito?</p>
+                      ) : (
+                        <>
+                          <p className="text-sm font-bold truncate block w-full min-w-0">{fav.nome}</p>
+                          <p className="text-[10px] text-muted-foreground block w-full min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">{fav.endereco}</p>
+                        </>
+                      )}
+                    </div>
+                  </button>
+                  
+                  <div className={`flex items-center justify-center overflow-hidden ${
+                    confirmDeleteId === fav.id ? "w-[6rem] min-w-[6rem] gap-1" : "w-[3.25rem] min-w-[3.25rem]"
+                  }`}>
+                    {confirmDeleteId === fav.id ? (
+                      <>
+                        <button 
+                          onClick={() => setConfirmDeleteId(null)}
+                          aria-label="Cancelar exclusão"
+                          className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center shrink-0"
+                        >
+                          <X className="w-5 h-5 text-muted-foreground" />
+                        </button>
+                        <button 
+                          onClick={() => deleteMutation.mutate(fav.id)}
+                          disabled={deleteMutation.isPending}
+                          aria-label={`Confirmar exclusão de ${fav.nome}`}
+                          className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center shrink-0"
+                        >
+                          {deleteMutation.isPending ? (
+                            <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-5 h-5 text-red-500" />
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <button 
+                        onClick={() => setConfirmDeleteId(fav.id)}
+                        aria-label={`Excluir favorito ${fav.nome}`}
+                        className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center hover:bg-white/5 transition-all shrink-0"
+                      >
+                        <Trash2 className="w-5 h-5 text-muted-foreground hover:text-red-500" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <>
