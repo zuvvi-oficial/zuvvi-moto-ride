@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import * as React from "react";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getMapboxToken, getAcompanhamentoPassageiro } from "@/lib/user.functions";
@@ -52,9 +53,17 @@ interface ChatData {
 function AcompanhamentoCorrida() {
   const { rideId } = Route.useSearch();
   const navigate = useNavigate();
-  const [corrida, setCorrida] = useState<{ status: string; origem_lat: number; origem_lng: number } | null>(null);
+  const [corrida, setCorrida] = useState<{
+    status: string;
+    origem_lat: number;
+    origem_lng: number;
+  } | null>(null);
   const [motorista, setMotorista] = useState<any>(null);
-  const [veiculo, setVeiculo] = useState<{ placa: string; marca: string; modelo: string } | null>(null);
+  const [veiculo, setVeiculo] = useState<{
+    placa: string;
+    marca: string;
+    modelo: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const hasHandledCancellation = useRef(false);
@@ -159,7 +168,7 @@ function AcompanhamentoCorrida() {
     };
   }, [rideId, navigate]);
 
-  const refreshChat = async () => {
+  const refreshChat = React.useCallback(async () => {
     try {
       const data = await carregarChatFn({ data: { corridaId: rideId } });
       setChatData(data as ChatData);
@@ -175,7 +184,7 @@ function AcompanhamentoCorrida() {
     } finally {
       setChatLoading(false);
     }
-  };
+  }, [rideId, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
 
   useEffect(() => {
     chatOpenRef.current = chatOpen;
