@@ -146,6 +146,8 @@ function HomeMotorista() {
   const chatDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const activeChatRideIdRef = useRef<string | undefined>(undefined);
   const chatSessionRideIdRef = useRef<string | undefined>(undefined);
+  const chatRefreshInFlightRef = useRef(false);
+
 
   const handleChatOpenChange = (open: boolean) => {
     if (open && !activeRide?.id) return;
@@ -167,7 +169,9 @@ function HomeMotorista() {
     const currentRideId = activeRide.id;
 
     if (chatSessionRideIdRef.current !== currentRideId) return;
+    if (chatRefreshInFlightRef.current) return;
 
+    chatRefreshInFlightRef.current = true;
     try {
       const inicial = await carregarChatFn({ data: { corridaId: currentRideId } });
       if (activeChatRideIdRef.current !== currentRideId) return;
@@ -192,8 +196,10 @@ function HomeMotorista() {
       if (activeChatRideIdRef.current === currentRideId) {
         setChatLoading(false);
       }
+      chatRefreshInFlightRef.current = false;
     }
   }, [activeRide?.id, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
+
 
   useEffect(() => {
     activeChatRideIdRef.current = activeRide?.id;
@@ -211,10 +217,63 @@ function HomeMotorista() {
     const corridaId = activeRide?.id;
     if (!chatOpen || !corridaId || chatSessionRideIdRef.current !== corridaId) return;
 
+    let cancelled = false;
+    let chatChannel: ReturnType<typeof supabase.channel> | null = null;
+
     setChatLoading(true);
-    void refreshChat();
+    
+    const startRealtime = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+        if (cancelled) return;
+      }
+
+      chatChannel = supabase
+        .channel(`chat-motorista-${corridaId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "chat_mensagens",
+            filter: `corrida_id=eq.${corridaId}`,
+          },
+          () => {
+            if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
+            chatDebounceRef.current = setTimeout(() => {
+              if (chatOpenRef.current && !cancelled) void refreshChat();
+            }, 200);
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "chat_presenca",
+            filter: `corrida_id=eq.${corridaId}`,
+          },
+          () => {
+            if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
+            chatDebounceRef.current = setTimeout(() => {
+              if (chatOpenRef.current && !cancelled) void refreshChat();
+            }, 200);
+          },
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED" && !cancelled) {
+            void refreshChat();
+          }
+        });
+    };
+
+    void startRealtime();
 
     const heartbeatInterval = setInterval(() => {
+      if (cancelled) return;
       void atualizarPresencaFn({
         data: {
           corridaId: corridaId,
@@ -223,39 +282,16 @@ function HomeMotorista() {
       }).catch(() => {});
     }, 20000);
 
-    const chatChannel = supabase
-      .channel(`chat-motorista-${corridaId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "chat_mensagens",
-          filter: `corrida_id=eq.${corridaId}`,
-        },
-        () => {
-          if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
-          chatDebounceRef.current = setTimeout(() => {
-            if (chatOpenRef.current) void refreshChat();
-          }, 200);
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "chat_presenca",
-          filter: `corrida_id=eq.${corridaId}`,
-        },
-        () => {
-          if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
-          chatDebounceRef.current = setTimeout(() => {
-            if (chatOpenRef.current) void refreshChat();
-          }, 200);
-        },
-      )
-      .subscribe();
+    const safetySyncInterval = setInterval(() => {
+      if (
+        !cancelled &&
+        chatOpenRef.current === true &&
+        chatSessionRideIdRef.current === corridaId &&
+        activeChatRideIdRef.current === corridaId
+      ) {
+        void refreshChat();
+      }
+    }, 10000);
 
     void atualizarPresencaFn({
       data: {
@@ -265,8 +301,12 @@ function HomeMotorista() {
     }).catch(() => {});
 
     return () => {
+      cancelled = true;
       clearInterval(heartbeatInterval);
-      void supabase.removeChannel(chatChannel);
+      clearInterval(safetySyncInterval);
+      if (chatChannel) {
+        void supabase.removeChannel(chatChannel);
+      }
       if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
 
       void atualizarPresencaFn({
@@ -277,6 +317,8 @@ function HomeMotorista() {
       }).catch(() => {});
     };
   }, [chatOpen, activeRide?.id, atualizarPresencaFn, refreshChat]);
+
+
 
   const handleEnviarMensagem = async (conteudo: string) => {
     if (!activeRide?.id || chatSessionRideIdRef.current !== activeRide.id || chatOpenRef.current !== true) {
@@ -701,7 +743,8 @@ function HomeMotorista() {
   }
 
   const chatDataAtual = chatData?.corridaId === activeRide?.id ? chatData : null;
-  const chatOpenAtual = Boolean(chatOpen && activeRide?.id && chatSessionRideIdRef.current === activeRide.id);
+  const chatOpenAtual = chatOpen && chatSessionRideIdRef.current === activeRide?.id;
+
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
