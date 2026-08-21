@@ -337,6 +337,90 @@ Estes itens NÃO estão marcados como concluídos.
 **Próxima etapa oficial:**
 Sprint 2 — GPS Pós-Aceite e Rastreamento.
 
+## Reconciliação oficial do Sprint 2 — Baseline 20/08/2026
+
+### Auditoria
+- Microetapa 2.0-R — auditoria de reconciliação realizada.
+- Microcorreção 2.0-R-A — divergências da auditoria corrigidas.
+- Contra-prova independente GitHub/Supabase concluída.
+- baseline oficial atual: 6a6717e9d48b7b04988c879fe3a119bc4c697e86.
+
+### Funcionalidades tecnicamente existentes (SEM DECLARAR O SPRINT 2 CONCLUÍDO)
+- motorista online/offline;
+- GPS antes do aceite;
+- recebimento real de ofertas;
+- filtro por cidade;
+- filtro por elegibilidade operacional;
+- ordenação por proximidade;
+- recusa de corrida;
+- aceite de corrida;
+- aceite atômico;
+- proteção contra aceite concorrente;
+- proteção contra duas corridas ativas para o mesmo motorista;
+- recuperação/exibição de corrida ativa na Home Motorista;
+- Realtime de public.corridas;
+- passageiro detecta aceite;
+- passageiro é redirecionado para /acompanhamento;
+- handoff seguro de dados da corrida, motorista e veículo;
+- mapa do passageiro já existente.
+
+### MICROETAPAS COMPROVADAS POR MIGRATION
+- **20260820164016**: accept_corrida_atomic + índice único de corrida ativa.
+- **20260820175105**: set_motorista_online_atomic.
+- **20260820183150**: Microetapa 2.5 — Realtime de public.corridas.
+
+*Nota: Existe implementação posterior à 2.5 relacionada ao handoff do passageiro, porém ela ainda não possui fechamento documental oficial. A numeração 2.6-A NÃO é oficial.*
+
+### BLOQUEADOR CRÍTICO — GPS PÓS-ACEITE
+**GPS DURANTE CORRIDA ATIVA: NÃO FUNCIONA ATUALMENTE.**
+
+**Motivo comprovado:**
+1. `accept_corrida_atomic` grava `motoristas.is_disponivel = false` após o aceite;
+2. `home-motorista.tsx` mantém `watchPosition` somente enquanto `status.is_disponivel = true`;
+3. Quando `is_disponivel = false`, o frontend executa `stopGps()`;
+4. `updateLocalizacaoMotorista` também rejeita server-side o envio de GPS se `is_disponivel = false`.
+
+**Consequência:** O motorista deixa de transmitir localização após aceitar a corrida.
+
+### MAPAS E RASTREAMENTO
+- Mapa do passageiro: **IMPLEMENTADO**.
+- Rastreamento ao vivo do motorista pelo passageiro: **NÃO IMPLEMENTADO**.
+- Mapa operacional do motorista após aceite: **NÃO IMPLEMENTADO**.
+- Rota do motorista até o passageiro: **NÃO IMPLEMENTADA**.
+
+### ESTADOS POSTERIORES DA CORRIDA (NÃO FECHADOS)
+- `motorista_a_caminho`;
+- `motorista_chegou`;
+- início real da corrida;
+- `em_andamento`;
+- conclusão real da corrida.
+
+### DRIFT DE MIGRATIONS
+**STATUS: DRIFT DE HISTÓRICO DE MIGRATIONS PENDENTE DE RECONCILIAÇÃO.**
+
+O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo, que não possuem arquivos correspondentes na branch `main`:
+- `20260819113539` — fix_usuarios_auth_user_id_unique_constraint
+- `20260819114735` — complete_tipo_chave_pix_migration
+
+**REGRA:** Nenhuma nova alteração de banco deverá ser executada até que esse drift seja tratado em microetapa própria.
+
+### 2.7 — Cancelamento de Corrida pelo Motorista — ✅ FECHADA
+- Implementado botão "CANCELAR CORRIDA" na Home do Motorista.
+- Server function `cancelarCorridaMotorista` valida ownership e status da corrida.
+- Corrida é marcada como `cancelada` com `cancelado_por = 'motorista'`.
+- Motorista é mantido offline após o cancelamento por segurança.
+- Design alinhado com a identidade visual Zuvvi.
+- Nenhuma alteração no core ou no banco de dados necessária (aproveitamento de estrutura existente).
+
+#### 2.7-A — Modal Profissional de Cancelamento — ✅ FECHADA
+- Substituído `window.confirm` nativo (branco/básico) por modal personalizado Zuvvi.
+- Design alinhado: Fundo indigo, bordas 2.5rem, tipografia Poppins e ícones Lucide.
+- Feedback de processamento integrado no botão de confirmação.
+- Travas de segurança preservadas (não altera o core do cancelamento).
+- Experiência profissional de confirmação/desistência.
+
+---
+
 ## Reconciliação oficial do Sprint 2 — Baseline 21/08/2026
 
 ### Estado operacional
@@ -384,5 +468,3 @@ não existiam na branch `main`.
 
 **Próxima etapa oficial:**
 Correção do GPS pós-aceite na Home Motorista.
-
-
