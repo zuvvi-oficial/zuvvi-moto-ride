@@ -53,7 +53,7 @@ function AcompanhamentoCorrida() {
   const { rideId } = Route.useSearch();
   const navigate = useNavigate();
   const [corrida, setCorrida] = useState<{ status: string; origem_lat: number; origem_lng: number } | null>(null);
-  const [motorista, setMotorista] = useState<{ id: string; nome: string; nota_media: number | null } | null>(null);
+  const [motorista, setMotorista] = useState<{ id?: string; nome: string; nota_media: number | null } | null>(null);
   const [veiculo, setVeiculo] = useState<{ placa: string; marca: string; modelo: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
