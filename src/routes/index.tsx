@@ -400,9 +400,13 @@ function FavoritosDialog({
     offsetLeft: number;
   } | null>(null);
 
+  const isMobileAdd =
+    mode === "add" &&
+    typeof window !== "undefined" &&
+    window.innerWidth < 640;
+
   useEffect(() => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-    if (!open || mode !== "add" || !isMobile || typeof window === 'undefined' || !window.visualViewport) {
+    if (!open || !isMobileAdd || typeof window === 'undefined' || !window.visualViewport) {
       if (!open) setViewport(null);
       return;
     }
@@ -428,7 +432,7 @@ function FavoritosDialog({
       vv.removeEventListener('resize', syncViewport);
       vv.removeEventListener('scroll', syncViewport);
     };
-  }, [open, mode]);
+  }, [open, isMobileAdd]);
 
 
   const listarFavoritosFn = useServerFn(listarFavoritos);
@@ -487,38 +491,34 @@ function FavoritosDialog({
       }}
     >
       <DialogContent 
-        className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 shadow-2xl transition-all duration-300 ${
+        className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 shadow-2xl transition-all duration-300 rounded-[2rem] max-w-[calc(100vw-2rem)] sm:max-w-md ${
           mode === "add" 
-            ? "sm:top-1/2 sm:-translate-y-1/2 sm:rounded-[2rem] p-4 sm:p-6" 
-            : "rounded-[2rem] p-6"
+            ? "sm:top-1/2 sm:-translate-y-1/2 p-4 sm:p-6" 
+            : "p-6"
         }`}
         style={
-          mode === "add"
+          isMobileAdd
             ? (viewport ? {
                 position: 'fixed',
                 top: `${viewport.offsetTop + 88}px`,
                 left: `${viewport.offsetLeft + viewport.width / 2}px`,
                 width: `${Math.min(viewport.width - 32, 448)}px`,
-                maxHeight: `${viewport.height - 88 - 12}px`,
+                maxHeight: `${viewport.height - 100}px`,
                 transform: 'translateX(-50%)',
                 translate: 'none',
               } : {
-                // Fallback mobile mode add
                 position: 'fixed',
                 top: '88px',
                 left: '50%',
-                transform: 'translateX(-50%)',
                 width: 'calc(100vw - 32px)',
                 maxHeight: 'calc(100dvh - 100px)',
+                transform: 'translateX(-50%)',
                 translate: 'none',
               })
-            : {
-              maxWidth: 'calc(100vw - 2rem)',
-              // desktop/tablet centralização padrão
-            }
+            : undefined
         }
       >
-        <DialogHeader className={mode === "add" && viewport && viewport.width < 640 ? "mb-3" : "mb-4"}>
+        <DialogHeader className={isMobileAdd ? "mb-3" : "mb-4"}>
           <div className="flex items-center gap-3">
             {mode === "add" && (
               <button 
@@ -531,20 +531,20 @@ function FavoritosDialog({
             )}
 
             <div className={`rounded-xl bg-zuvvi-volt/10 flex items-center justify-center shrink-0 ${
-              mode === "add" && viewport && viewport.width < 640 ? "w-9 h-9" : "w-10 h-10"
+              isMobileAdd ? "w-9 h-9" : "w-10 h-10"
             }`}>
               <Star className={`text-zuvvi-volt ${
-                mode === "add" && viewport && viewport.width < 640 ? "w-[18px] h-[18px]" : "w-5 h-5"
+                isMobileAdd ? "w-[18px] h-[18px]" : "w-5 h-5"
               }`} />
             </div>
             <div className="min-w-0">
               <DialogTitle className={`font-bold truncate ${
-                mode === "add" && viewport && viewport.width < 640 ? "text-lg" : "text-xl"
+                isMobileAdd ? "text-lg" : "text-xl"
               }`}>
                 {mode === "list" ? "Seus favoritos" : "Novo favorito"}
               </DialogTitle>
               <DialogDescription className={`text-muted-foreground leading-snug ${
-                mode === "add" && viewport && viewport.width < 640 ? "text-xs" : "text-sm"
+                isMobileAdd ? "text-xs" : "text-sm"
               }`}>
                 {mode === "list" 
                   ? "Salve lugares para chegar mais rápido." 
@@ -590,7 +590,7 @@ function FavoritosDialog({
               </div>
             ) : (
               <>
-                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain pr-1 custom-scrollbar space-y-2">
+                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain pr-1 space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {favoritos.map((fav: any) => (
                     <div 
                       key={fav.id}
@@ -660,8 +660,8 @@ function FavoritosDialog({
             )}
           </div>
         ) : (
-          <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar ${
-            mode === "add" && viewport && viewport.width < 640 ? "space-y-4" : "space-y-6"
+          <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+            isMobileAdd ? "space-y-4" : "space-y-6"
           }`}>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
@@ -672,7 +672,7 @@ function FavoritosDialog({
                 placeholder="Ex.: Casa, Trabalho, Academia"
                 maxLength={40}
                 className={`w-full bg-white/5 border border-white/10 rounded-2xl px-5 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 ${
-                  mode === "add" && viewport && viewport.width < 640 ? "h-12 py-0" : "py-4"
+                  isMobileAdd ? "h-12 py-0" : "py-4"
                 }`}
               />
             </div>
@@ -682,7 +682,7 @@ function FavoritosDialog({
               <DestinoSearch 
                 location={location}
                 placeholder="Buscar endereço..."
-                compact={!!(mode === "add" && viewport && viewport.width < 640)}
+                compact={!!isMobileAdd}
                 onSelect={(res) => setSelectedAddress({
                   endereco: res.place_name,
                   latitude: res.center[1],
@@ -693,7 +693,7 @@ function FavoritosDialog({
 
             {selectedAddress && (
               <div className={`bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
-                mode === "add" && viewport && viewport.width < 640 ? "p-3" : "p-4"
+                isMobileAdd ? "p-3" : "p-4"
               }`}>
                 <p className="text-[8px] font-black uppercase tracking-widest text-zuvvi-volt mb-1">ENDEREÇO SELECIONADO</p>
                 <p className="text-xs font-bold leading-tight">{selectedAddress.endereco}</p>
@@ -709,7 +709,7 @@ function FavoritosDialog({
                 longitude: selectedAddress?.longitude
               })}
               className={`w-full bg-zuvvi-volt text-zuvvi-indigo rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 ${
-                mode === "add" && viewport && viewport.width < 640 ? "h-12" : "py-4"
+                isMobileAdd ? "h-12" : "py-4"
               }`}
             >
               {createMutation.isPending ? (
@@ -795,7 +795,7 @@ function DestinoSearch({
         <div className={`absolute top-full left-0 right-0 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300 ${
           compact ? "mt-2 rounded-2xl" : "mt-3 rounded-[2rem]"
         }`}>
-          <div className="max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain custom-scrollbar">
+          <div className={`max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain ${compact ? "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "custom-scrollbar"}`}>
             {results.map((result) => {
               // Somente no modo compact para exibição, remover do início de place_name a repetição de result.text
               let secondaryText = result.place_name;
