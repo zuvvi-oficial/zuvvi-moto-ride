@@ -57,6 +57,7 @@ function HomeMotorista() {
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
   const locationUpdateInFlightRef = useRef(false);
+  const hasActiveRideRef = useRef(false);
 
   const getOfertasFn = useServerFn(getOfertasDisponiveis);
   const aceitarCorridaFn = useServerFn(aceitarCorrida);
