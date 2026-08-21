@@ -52,14 +52,17 @@ interface ChatData {
 function AcompanhamentoCorrida() {
   const { rideId } = Route.useSearch();
   const navigate = useNavigate();
-  const [corrida, setCorrida] = useState<any>(null);
-  const [motorista, setMotorista] = useState<any>(null);
-  const [veiculo, setVeiculo] = useState<any>(null);
+  const [corrida, setCorrida] = useState<{ status: string; origem_lat: number; origem_lng: number } | null>(null);
+  const [motorista, setMotorista] = useState<{ id: string; nome: string; nota_media: number | null } | null>(null);
+  const [veiculo, setVeiculo] = useState<{ placa: string; marca: string; modelo: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const hasHandledCancellation = useRef(false);
   const cancellationRedirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [cancellationNotice, setCancellationNotice] = useState<{ title: string; message: string } | null>(null);
+  const [cancellationNotice, setCancellationNotice] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
 
   // Estados do Chat
   const [chatOpen, setChatOpen] = useState(false);
@@ -121,25 +124,30 @@ function AcompanhamentoCorrida() {
           table: "corridas",
           filter: `id=eq.${rideId}`,
         },
-        (payload: any) => {
-          if (payload.new?.status === "cancelada" && !hasHandledCancellation.current) {
+        (payload: { new: { status: string; cancelado_por?: string } }) => {
+          if (
+            payload.new?.status === "cancelada" &&
+            !hasHandledCancellation.current
+          ) {
             hasHandledCancellation.current = true;
-            
+
             const isMotorista = payload.new?.cancelado_por === "motorista";
             setCancellationNotice({
               title: "Corrida cancelada",
-              message: isMotorista ? "O motorista cancelou a corrida." : "Esta corrida foi cancelada."
+              message: isMotorista
+                ? "O motorista cancelou a corrida."
+                : "Esta corrida foi cancelada.",
             });
 
             cancellationRedirectTimeoutRef.current = setTimeout(() => {
-              navigate({ to: "/" });
+              void navigate({ to: "/" });
             }, 1800);
           } else if (payload.new?.status === "motorista_a_caminho") {
-            setCorrida((current: any) =>
-              current ? { ...current, status: "motorista_a_caminho" } : current
+            setCorrida((current) =>
+              current ? { ...current, status: "motorista_a_caminho" } : current,
             );
           }
-        }
+        },
       )
       .subscribe();
 
@@ -246,7 +254,7 @@ function AcompanhamentoCorrida() {
       };
     }
     return undefined;
-  }, [chatOpen, rideId]);
+  }, [chatOpen, rideId, carregarChatFn, atualizarPresencaFn, refreshChat]);
 
   const handleEnviarMensagem = async (conteudo: string) => {
     setChatSending(true);
@@ -328,7 +336,9 @@ function AcompanhamentoCorrida() {
                   <div className="flex items-center gap-1">
                     <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
                     <span className="text-xs text-zuvvi-volt font-bold">
-                      {motorista.nota_media !== null ? motorista.nota_media.toFixed(1) : 'Novo na Zuvvi'}
+                      {motorista.nota_media !== null
+                        ? motorista.nota_media.toFixed(1)
+                        : "Novo na Zuvvi"}
                     </span>
                   </div>
                 </div>
@@ -345,19 +355,23 @@ function AcompanhamentoCorrida() {
                   <Bike className="w-5 h-5 text-zuvvi-volt" />
                 </div>
                 <div>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Veículo</p>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest">
+                    Veículo
+                  </p>
                   <p className="text-xs font-bold text-white">
                     {veiculo.marca} {veiculo.modelo}
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setChatOpen(true)}
                 className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px]"
                 aria-label="Chat com motorista"
               >
-                 <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
-                 <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">Chat</p>
+                <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
+                <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">
+                  Chat
+                </p>
               </button>
             </div>
           </div>
@@ -379,7 +393,9 @@ function AcompanhamentoCorrida() {
             </div>
             <div className="pt-4 flex flex-col items-center gap-3">
               <Loader2 className="w-5 h-5 text-zuvvi-volt animate-spin" />
-              <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.2em]">Voltando para a tela inicial...</p>
+              <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.2em]">
+                Voltando para a tela inicial...
+              </p>
             </div>
           </div>
         </div>
@@ -390,7 +406,12 @@ function AcompanhamentoCorrida() {
         open={chatOpen}
         onOpenChange={setChatOpen}
         meuUsuarioId={chatData?.meuUsuarioId || ""}
-        interlocutor={chatData?.interlocutor || { id: motorista?.id || "", nome: motorista?.nome || "Motorista" }}
+        interlocutor={
+          chatData?.interlocutor || {
+            id: motorista?.id || "",
+            nome: motorista?.nome || "Motorista",
+          }
+        }
         mensagens={chatData?.mensagens || []}
         presenca={chatData?.presenca || null}
         podeEnviar={chatData?.podeEnviar ?? false}
