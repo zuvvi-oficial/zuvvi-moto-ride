@@ -487,25 +487,35 @@ function FavoritosDialog({
       }}
     >
       <DialogContent 
-        className={`max-w-[calc(100vw-2rem)] sm:max-w-md bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6 transition-all duration-300 ${
+        className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 rounded-[2rem] shadow-2xl p-6 transition-all duration-300 ${
           mode === "add" 
-            ? "top-0 translate-y-0 sm:top-1/2 sm:-translate-y-1/2" 
+            ? "sm:top-1/2 sm:-translate-y-1/2" 
             : ""
         }`}
-        style={{
-          top: (mode === "add" && viewportOffsetTop !== null) 
-            ? `${viewportOffsetTop + 12}px` 
-            : undefined,
-          maxHeight: (mode === "add" && viewportHeight !== null)
-            ? `${viewportHeight - 24}px`
-            : undefined,
-          transform: (mode === "add" && viewportOffsetTop !== null)
-            ? 'translateX(-50%)'
-            : undefined,
-          left: (mode === "add" && viewportOffsetTop !== null)
-            ? '50%'
-            : undefined
-        }}
+        style={
+          mode === "add"
+            ? (viewport ? {
+                position: 'absolute',
+                top: `${viewport.offsetTop + 88}px`,
+                left: `${viewport.offsetLeft + viewport.width / 2}px`,
+                width: `${Math.min(viewport.width - 32, 448)}px`,
+                maxHeight: `${viewport.height - 88 - 12}px`,
+                transform: 'translateX(-50%)',
+                translate: 'none',
+              } : {
+                // Fallback mobile mode add
+                top: '88px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 'calc(100vw - 32px)',
+                maxHeight: 'calc(100dvh - 100px)',
+                translate: 'none',
+              })
+            : {
+              maxWidth: 'calc(100vw - 2rem)',
+              // desktop/tablet centralização padrão
+            }
+        }
       >
         <DialogHeader className="mb-4">
           <div className="flex items-center gap-3">
