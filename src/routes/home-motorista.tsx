@@ -196,7 +196,7 @@ function HomeMotorista() {
   useEffect(() => {
     if (shouldTrackLocation) {
       if (!navigator.geolocation) {
-        handleGpsError("Seu navegador não suporta geolocalização.");
+        handleGpsErrorRef.current("Seu navegador não suporta geolocalização.");
         return;
       }
 
@@ -227,7 +227,7 @@ function HomeMotorista() {
                   setIsGpsActive(false);
                   setGpsError("Conexão instável. Tentando reconectar GPS...");
                 } else {
-                  handleGpsError("Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.");
+                  handleGpsErrorRef.current("Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.");
                 }
               } finally {
                 locationUpdateInFlightRef.current = false;
@@ -239,7 +239,7 @@ function HomeMotorista() {
             if (err.code === err.PERMISSION_DENIED) {
               msg = "Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.";
             }
-            handleGpsError(msg);
+            handleGpsErrorRef.current(msg);
           },
           { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
@@ -249,10 +249,15 @@ function HomeMotorista() {
     }
 
     return () => {
-      // Cleanup REAL de desmontagem ou quando para de rastrear
-      stopGps();
+      // O cleanup só deve chamar stopGps se o motivo da execução do cleanup
+      // for a mudança de shouldTrackLocation para false ou desmontagem.
+      // A ref handleGpsErrorRef garante que o efeito não rode novamente
+      // quando o status mudar.
+      if (!shouldTrackLocation) {
+        stopGps();
+      }
     };
-  }, [shouldTrackLocation, handleGpsError, stopGps, updateLocationFn]);
+  }, [shouldTrackLocation, stopGps, updateLocationFn]);
 
   const handleToggleOnline = () => {
     if (isToggling || activeRide) return;
