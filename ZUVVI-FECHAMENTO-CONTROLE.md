@@ -456,13 +456,56 @@ não existiam na branch `main`.
 
 **PRÓXIMO PASSO DE INFRAESTRUTURA:** Antes de qualquer nova migration de funcionalidade, deve ser executada uma etapa final de **RECONCILIAÇÃO DO HISTÓRICO DE MIGRATIONS GitHub × Supabase** para garantir paridade total e evitar novos drifts.
 
-### Próxima microetapa operacional (Planejada)
+### MICROETAPA 2.8 — GPS Pós-Aceite — ✅ FECHADA
 
-**Alvo:** `/home-motorista`
+Comprovada funcionalmente em 21/08/2026.
 
-**Objetivo:** Corrigir exclusivamente o GPS pós-aceite para permitir rastreamento durante uma corrida ativa.
-*   O motorista deve permanecer indisponível para novas corridas enquanto estiver em uma ativa.
-*   O rastreamento deve persistir mesmo com `is_disponivel = false` se houver uma `corrida_id` ativa vinculada.
+**Evidências comprovadas:**
+
+1. **Antes do aceite:**
+   - motorista `is_disponivel=true`;
+   - nenhuma corrida ativa;
+   - GPS atualizando normalmente.
+
+2. **Após o aceite:**
+   - corrida `status=aceita`;
+   - motorista `is_disponivel=false`;
+   - exatamente 1 corrida ativa;
+   - GPS continuou atualizando mesmo com `is_disponivel=false`.
+
+**Prova temporal:**
+- `data_aceite`: 21/08/2026 12:13:31 horário local;
+- `ultima_localizacao_at` posterior ao aceite: 21/08/2026 12:15:13 horário local.
+
+**Portanto:** GPS permaneceu transmitindo após o aceite.
+
+3. **Após cancelamento pelo motorista:**
+   - corrida `status=cancelada`;
+   - `cancelado_por=motorista`;
+   - motorista permaneceu offline;
+   - último GPS: 12:16:16;
+   - cancelamento: 12:16:24;
+   - após mais de 2 minutos o timestamp de GPS não avançou.
+
+**Portanto:** GPS parou corretamente quando não havia mais corrida ativa.
+
+---
+
+## Bloqueadores Críticos Descobertos
+
+### PASSAGEIRO — CANCELAMENTO PÓS-ACEITE NÃO PROPAGADO — ⚠️ BLOQUEADOR
+Registrado em 21/08/2026 como PENDÊNCIA (não falha da 2.8).
+
+**Comportamento comprovado:**
+- motorista cancela corrida aceita;
+- banco registra corretamente `status=cancelada`;
+- tela do motorista fecha a corrida e permanece offline;
+- passageiro permanece na tela `/acompanhamento` exibindo o estado anterior da corrida.
+
+**Auditoria técnica:**
+`src/routes/acompanhamento.tsx` atualmente carrega a corrida somente na inicialização e não possui atualização Realtime/polling para mudanças posteriores do status. A tela também mantém o rótulo "Motorista Aceitou" de forma fixa.
+
+**Status:** BLOQUEADOR FUNCIONAL DO PASSAGEIRO a ser corrigido antes de prosseguir com a evolução visual do mapa do motorista.
 
 ---
 
@@ -475,7 +518,7 @@ não existiam na branch `main`.
 **SPRINT 2 — ⚠️ EM ANDAMENTO**
 
 **FECHAMENTO FUNCIONAL ATUAL:** 21/08/2026
-**BASELINE GITHUB:** 63012c1724a9b5d1b034b0b48b90aae3ed881ca1 (conforme auditoria de Microetapa Zero)
+**BASELINE GITHUB:** 1897b7bb73d933d2155fc15d3263253626bee8d4 (após Microcorreção 2.8-D)
 
 **Próxima etapa oficial:**
-Correção do GPS pós-aceite na Home Motorista.
+Auditoria e correção isolada do cancelamento no passageiro (sincronização de `/acompanhamento`).
