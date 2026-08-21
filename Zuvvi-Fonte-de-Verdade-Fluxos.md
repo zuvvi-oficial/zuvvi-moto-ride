@@ -1,5 +1,11 @@
 # Zuvvi — Fonte de Verdade — Fluxos
 
+> [!CAUTION]
+> **AVISO DE CARÁTER HISTÓRICO**  
+> Este documento passou a ter caráter **HISTÓRICO**. Ele não representa mais a etapa operacional atual do projeto.  
+> A única fonte da verdade operacional oficial agora é o arquivo: `ZUVVI-FECHAMENTO-CONTROLE.md`.  
+> Decisões, microetapas e novos planos devem ser registrados exclusivamente no documento oficial.
+
 ## Estado da Missão
 - **Fase Atual:** Piloto (Brasília/DF e Jacarezinho/PR)
 - **Etapa em Execução:** 1 — Padronização da Sessão
