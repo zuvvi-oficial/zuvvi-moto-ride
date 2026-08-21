@@ -420,6 +420,47 @@ export type Database = {
           },
         ]
       }
+      enderecos_favoritos: {
+        Row: {
+          created_at: string
+          endereco: string
+          id: string
+          latitude: number
+          longitude: number
+          nome: string
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          endereco: string
+          id?: string
+          latitude: number
+          longitude: number
+          nome: string
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          endereco?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          nome?: string
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enderecos_favoritos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motorista_recusas: {
         Row: {
           corrida_id: string
