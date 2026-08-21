@@ -199,7 +199,7 @@ function HomePassageiro({ nome }: { nome: string }) {
         </header>
 
         {/* Conteúdo Principal */}
-        <main className="flex-1 flex flex-col justify-end px-5 pb-28 mx-auto w-full max-w-md space-y-4">
+        <main className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end px-5 pb-28 mx-auto w-full max-w-md space-y-4">
           
           {isLocating && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-4 shadow-2xl pointer-events-auto animate-rise">
