@@ -4,7 +4,6 @@ import {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
 } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -24,6 +23,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   getMotoristaStatusHome,
@@ -38,19 +38,6 @@ import {
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
-
-interface MotoristaStatus {
-  is_disponivel: boolean;
-  nome: string | null;
-  active_ride: {
-    id: string;
-    origem_nome: string | null;
-    destino_nome: string | null;
-    valor_estimado: number;
-    forma_pagamento: string;
-    status: string;
-  } | null;
-}
 
 export const Route = createFileRoute("/home-motorista")({
   loader: async () => {
@@ -174,7 +161,7 @@ function HomeMotorista() {
 
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
 
-  const stopGps = () => {
+  const stopGps = useCallback(() => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -183,17 +170,20 @@ function HomeMotorista() {
     setGpsError(null);
     lastUpdateRef.current = 0;
     locationUpdateInFlightRef.current = false;
-  };
+  }, []);
 
-  const handleGpsError = (msg: string) => {
-    stopGps();
-    setGpsError(msg);
-    toast.error(msg);
-    // Fail-safe: colocar offline
-    if (status?.is_disponivel) {
-      mutation.mutate(false);
-    }
-  };
+  const handleGpsError = useCallback(
+    (msg: string) => {
+      stopGps();
+      setGpsError(msg);
+      toast.error(msg);
+      // Fail-safe: colocar offline
+      if (status?.is_disponivel) {
+        mutation.mutate(false);
+      }
+    },
+    [status?.is_disponivel, stopGps, mutation],
+  );
 
   const shouldTrackLocation = isOnline || Boolean(activeRide);
 
