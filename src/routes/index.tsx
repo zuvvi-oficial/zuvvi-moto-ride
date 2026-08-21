@@ -521,6 +521,7 @@ function FavoritosDialog({
       }}
     >
       <DialogContent 
+        overlayClassName="bg-black/[0.86]"
         className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 shadow-2xl transition-all duration-300 rounded-[2rem] max-w-[calc(100vw-2rem)] sm:max-w-md ${
           mode === "add" 
             ? "sm:top-1/2 sm:-translate-y-1/2 p-4 sm:p-6" 
@@ -612,7 +613,7 @@ function FavoritosDialog({
                 </div>
                 <button 
                   onClick={() => setMode("add")}
-                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2 w-full max-w-full justify-center"
+                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2 w-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)] mx-auto justify-center"
                 >
                   <Plus className="w-3 h-3" strokeWidth={3} />
                   ADICIONAR ENDEREÇO
@@ -622,11 +623,11 @@ function FavoritosDialog({
               </div>
             ) : (
               <>
-                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain pr-1 space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full min-w-0 max-w-full overflow-x-hidden">
+                <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain pr-1 space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full min-w-0 max-w-full overflow-x-hidden px-1">
                   {favoritos.map((fav: any) => (
                     <div 
                       key={fav.id}
-                      className="bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between gap-3 group transition-colors hover:border-white/20 w-full min-w-0 max-w-full overflow-hidden"
+                      className="bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between gap-3 group transition-colors hover:border-white/20 w-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)] mx-auto overflow-hidden box-border"
                     >
                       <button
                         onClick={() => {
@@ -636,7 +637,7 @@ function FavoritosDialog({
                         }}
                         disabled={confirmDeleteId === fav.id}
                         aria-label={`Usar favorito ${fav.nome} como destino`}
-                        className="flex-1 min-w-0 flex items-center gap-3 p-4 text-left transition-transform active:scale-[0.99] overflow-hidden"
+                        className="flex-1 basis-0 min-w-0 flex items-center gap-3 p-4 text-left transition-transform active:scale-[0.99] overflow-hidden"
                       >
                         <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
                           <Star className="text-zuvvi-volt w-4 h-4" />
@@ -653,7 +654,7 @@ function FavoritosDialog({
                         </div>
                       </button>
                       
-                      <div className="shrink-0 pr-4">
+                      <div className="shrink-0 pr-2">
                         {confirmDeleteId === fav.id ? (
                           <div className="flex items-center gap-2">
                             <button 
@@ -692,7 +693,7 @@ function FavoritosDialog({
 
                 <button 
                   onClick={() => setMode("add")}
-                  className="w-full max-w-full bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                  className="w-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)] mx-auto bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                 >
 
                   <Plus className="w-3 h-3" strokeWidth={3} />
