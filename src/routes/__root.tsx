@@ -169,6 +169,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <PwaShell />
     </QueryClientProvider>
   );
 }
