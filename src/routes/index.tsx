@@ -563,10 +563,11 @@ function FavoritosDialog({
                         <button 
                           onClick={() => setConfirmDeleteId(fav.id)}
                           aria-label={`Excluir favorito ${fav.nome}`}
-                          className="w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-white/5 transition-all shrink-0"
+                          className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/5 transition-all shrink-0"
                         >
-                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-500" />
+                          <Trash2 className="w-5 h-5 text-muted-foreground hover:text-red-500" />
                         </button>
+
                       )}
                     </div>
                   ))}
