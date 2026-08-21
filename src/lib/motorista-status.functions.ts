@@ -119,7 +119,13 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
         id,
         nome,
         is_motorista,
-        motoristas!inner(status_aprovacao, is_disponivel)
+        motoristas!inner(
+          status_aprovacao, 
+          is_disponivel,
+          ultima_lat,
+          ultima_lng,
+          ultima_localizacao_at
+        )
       `)
       .eq("auth_user_id", context.userId)
       .single();
@@ -146,6 +152,9 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
       is_motorista: usuario.is_motorista,
       status_aprovacao: (usuario.motoristas as any).status_aprovacao,
       is_disponivel: (usuario.motoristas as any).is_disponivel,
+      ultima_lat: (usuario.motoristas as any).ultima_lat !== null ? Number((usuario.motoristas as any).ultima_lat) : null,
+      ultima_lng: (usuario.motoristas as any).ultima_lng !== null ? Number((usuario.motoristas as any).ultima_lng) : null,
+      ultima_localizacao_at: (usuario.motoristas as any).ultima_localizacao_at,
       operational_eligible: eligibility.eligible,
       operational_block_code: eligibility.reasonCode,
       operational_block_message: eligibility.message
