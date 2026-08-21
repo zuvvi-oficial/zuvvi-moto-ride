@@ -521,6 +521,7 @@ function FavoritosDialog({
       }}
     >
       <DialogContent 
+        overlayClassName="bg-black/[0.86]"
         className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 shadow-2xl transition-all duration-300 rounded-[2rem] max-w-[calc(100vw-2rem)] sm:max-w-md ${
           mode === "add" 
             ? "sm:top-1/2 sm:-translate-y-1/2 p-4 sm:p-6" 
