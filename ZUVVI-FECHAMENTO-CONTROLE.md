@@ -566,9 +566,7 @@ MICROETAPA 3.0 — ✅ FECHADA
 
 **SPRINT 1 — ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA**
 
-**SPRINT 2 — ✅ CONCLUÍDO**
-
-**SPRINT 3 — ⚠️ EM ANDAMENTO**
+**SPRINT 2 — ⚠️ EM ANDAMENTO**
 
 **CORE CONGELADO:**
 - mapa do embarque do motorista;
