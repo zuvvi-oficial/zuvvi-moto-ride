@@ -174,10 +174,18 @@ function HomeMotorista() {
     setGpsError(msg);
     toast.error(msg);
     // Fail-safe: colocar offline
-    if (status?.is_disponivel) {
+    if (isOnlineRef.current) {
       mutation.mutate(false);
     }
-  }, [status?.is_disponivel, stopGps, mutation]);
+  }, [stopGps, mutation]);
+
+  useEffect(() => {
+    isOnlineRef.current = isOnline;
+  }, [isOnline]);
+
+  useEffect(() => {
+    handleGpsErrorRef.current = handleGpsError;
+  }, [handleGpsError]);
 
   const shouldTrackLocation = isOnline || Boolean(activeRide);
 
