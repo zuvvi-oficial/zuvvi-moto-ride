@@ -401,12 +401,20 @@ function HomePassageiro({ nome }: { nome: string }) {
 function FavoritosDialog({ 
   open, 
   onOpenChange, 
-  location 
+  location,
+  onSelectFavorite
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void; 
   location: { lat: number; lng: number } | null;
+  onSelectFavorite: (fav: {
+    nome: string;
+    endereco: string;
+    latitude: number;
+    longitude: number;
+  }) => void;
 }) {
+
   const [mode, setMode] = useState<"list" | "add">("list");
   const [nome, setNome] = useState("");
   const [selectedAddress, setSelectedAddress] = useState<{
