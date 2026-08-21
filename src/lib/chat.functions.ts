@@ -7,6 +7,30 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * src/lib/chat.functions.ts
  */
 
+// Helper interno para mapear mensagem (camelCase)
+function mapearMensagem(
+  m: {
+    id: string;
+    client_message_id: string;
+    remetente_id: string;
+    conteudo: string;
+    created_at: string;
+    entregue_at: string | null;
+    lido_at: string | null;
+  } | null,
+) {
+  if (!m) return null;
+  return {
+    id: m.id,
+    clientMessageId: m.client_message_id,
+    remetenteId: m.remetente_id,
+    conteudo: m.conteudo,
+    createdAt: m.created_at,
+    entregueAt: m.entregue_at,
+    lidoAt: m.lido_at,
+  };
+}
+
 // Helper interno para resolver participante e validar ownership
 async function resolveParticipanteChat(corridaId: string, authUserId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -82,7 +106,7 @@ export const carregarChat = createServerFn({ method: "GET" })
     const { meuUsuarioId, interlocutor, status, podeEnviar, supabaseAdmin } =
       await resolveParticipanteChat(input.corridaId, context.userId);
 
-    // Buscar no máximo 100 mensagens da corrida (recentes, mas retorna em ordem cronológica crescente)
+    // Buscar no máximo 100 mensagens da corrida
     const { data: mensagens, error: msgError } = await supabaseAdmin
       .from("chat_mensagens")
       .select("id, client_message_id, remetente_id, conteudo, created_at, entregue_at, lido_at")
@@ -92,7 +116,7 @@ export const carregarChat = createServerFn({ method: "GET" })
 
     if (msgError) throw new Error("Erro ao carregar mensagens.");
 
-    // Buscar presença do interlocutor
+    // Buscar presença do interlocutor - Tratando erro explicitamente
     const { data: presenca, error: presError } = await supabaseAdmin
       .from("chat_presenca")
       .select("ultimo_visto_at, digitando_ate")
@@ -100,13 +124,21 @@ export const carregarChat = createServerFn({ method: "GET" })
       .eq("usuario_id", interlocutor.id)
       .maybeSingle();
 
-    // Calcular não lidas recebidas
+    if (presError) {
+      throw new Error("Não foi possível carregar a presença do participante.");
+    }
+
+    // Calcular não lidas recebidas - Tratando erro explicitamente
     const { count: naoLidas, error: countError } = await supabaseAdmin
       .from("chat_mensagens")
       .select("*", { count: "exact", head: true })
       .eq("corrida_id", input.corridaId)
       .eq("remetente_id", interlocutor.id)
       .is("lido_at", null);
+
+    if (countError) {
+      throw new Error("Não foi possível carregar as mensagens não lidas.");
+    }
 
     return {
       corridaId: input.corridaId,
@@ -121,15 +153,7 @@ export const carregarChat = createServerFn({ method: "GET" })
             digitandoAte: presenca.digitando_ate,
           }
         : null,
-      mensagens: (mensagens || []).reverse().map((m) => ({
-        id: m.id,
-        clientMessageId: m.client_message_id,
-        remetenteId: m.remetente_id,
-        conteudo: m.conteudo,
-        createdAt: m.created_at,
-        entregueAt: m.entregue_at,
-        lidoAt: m.lido_at,
-      })),
+      mensagens: (mensagens || []).reverse().map(mapearMensagem),
     };
   });
 
@@ -155,31 +179,39 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
       throw new Error("O chat não está mais disponível para novas mensagens nesta corrida.");
     }
 
-    // IDEMPOTÊNCIA: Verificar se já existe
-    const { data: existente } = await supabaseAdmin
+    // IDEMPOTÊNCIA: Verificar se já existe com erro real capturado
+    const { data: existente, error: existError } = await supabaseAdmin
       .from("chat_mensagens")
-      .select("*")
+      .select("id, client_message_id, remetente_id, conteudo, created_at, entregue_at, lido_at")
       .eq("corrida_id", input.corridaId)
       .eq("remetente_id", meuUsuarioId)
       .eq("client_message_id", input.clientMessageId)
       .maybeSingle();
 
-    if (existente) return existente;
+    if (existError) {
+      throw new Error("Não foi possível verificar o envio da mensagem.");
+    }
 
-    // ANTI-SPAM: Max 8 mensagens nos últimos 10 segundos
+    if (existente) return mapearMensagem(existente);
+
+    // ANTI-SPAM: Max 8 mensagens nos últimos 10 segundos com captura de erro
     const dezSegundosAtras = new Date(Date.now() - 10000).toISOString();
-    const { count: recentes } = await supabaseAdmin
+    const { count: recentes, error: antiSpamError } = await supabaseAdmin
       .from("chat_mensagens")
       .select("*", { count: "exact", head: true })
       .eq("corrida_id", input.corridaId)
       .eq("remetente_id", meuUsuarioId)
       .gte("created_at", dezSegundosAtras);
 
+    if (antiSpamError) {
+      throw new Error("Não foi possível validar o envio da mensagem.");
+    }
+
     if (recentes && recentes >= 8) {
       throw new Error("Você está enviando mensagens muito rápido. Aguarde alguns segundos.");
     }
 
-    // INSERT
+    // INSERT com select explícito
     const { data: criada, error: insError } = await supabaseAdmin
       .from("chat_mensagens")
       .insert({
@@ -188,25 +220,29 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
         client_message_id: input.clientMessageId,
         conteudo: input.conteudo,
       })
-      .select()
+      .select("id, client_message_id, remetente_id, conteudo, created_at, entregue_at, lido_at")
       .single();
 
     if (insError) {
       // Caso ocorra uma violação de unicidade concorrente
       if (insError.code === "23505") {
-        const { data: retry } = await supabaseAdmin
+        const { data: retry, error: retryError } = await supabaseAdmin
           .from("chat_mensagens")
-          .select("*")
+          .select("id, client_message_id, remetente_id, conteudo, created_at, entregue_at, lido_at")
           .eq("corrida_id", input.corridaId)
           .eq("remetente_id", meuUsuarioId)
           .eq("client_message_id", input.clientMessageId)
           .single();
-        return retry;
+
+        if (retryError || !retry) {
+          throw new Error("Não foi possível confirmar o envio da mensagem.");
+        }
+        return mapearMensagem(retry);
       }
       throw new Error("Erro ao enviar mensagem.");
     }
 
-    return criada;
+    return mapearMensagem(criada);
   });
 
 // 3. marcarMensagensEntregues
@@ -219,16 +255,20 @@ export const marcarMensagensEntregues = createServerFn({ method: "POST" })
       context.userId,
     );
 
-    const { error, count } = await supabaseAdmin
+    const { data: atualizadas, error } = await supabaseAdmin
       .from("chat_mensagens")
       .update({ entregue_at: new Date().toISOString() })
       .eq("corrida_id", input.corridaId)
       .neq("remetente_id", meuUsuarioId)
-      .is("entregue_at", null);
+      .is("entregue_at", null)
+      .select("id");
 
     if (error) throw new Error("Erro ao atualizar recibos de entrega.");
 
-    return { success: true, atualizadas: count || 0 };
+    return {
+      success: true,
+      atualizadas: atualizadas?.length ?? 0,
+    };
   });
 
 // 4. marcarMensagensLidas
@@ -243,25 +283,36 @@ export const marcarMensagensLidas = createServerFn({ method: "POST" })
 
     const agora = new Date().toISOString();
 
-    // 1. Garantir que estejam entregues
-    await supabaseAdmin
+    // 1. Garantir que estejam entregues primeiro
+    const { error: errorEntrega } = await supabaseAdmin
       .from("chat_mensagens")
       .update({ entregue_at: agora })
       .eq("corrida_id", input.corridaId)
       .neq("remetente_id", meuUsuarioId)
-      .is("entregue_at", null);
+      .is("entregue_at", null)
+      .select("id");
+
+    if (errorEntrega) {
+      throw new Error("Não foi possível atualizar a entrega das mensagens.");
+    }
 
     // 2. Marcar como lidas
-    const { error, count } = await supabaseAdmin
+    const { data: lidas, error: errorLido } = await supabaseAdmin
       .from("chat_mensagens")
       .update({ lido_at: agora })
       .eq("corrida_id", input.corridaId)
       .neq("remetente_id", meuUsuarioId)
-      .is("lido_at", null);
+      .is("lido_at", null)
+      .select("id");
 
-    if (error) throw new Error("Erro ao marcar mensagens como lidas.");
+    if (errorLido) {
+      throw new Error("Erro ao marcar mensagens como lidas.");
+    }
 
-    return { success: true, atualizadas: count || 0 };
+    return {
+      success: true,
+      atualizadas: lidas?.length ?? 0,
+    };
   });
 
 // 5. atualizarPresencaChat
