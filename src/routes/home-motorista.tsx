@@ -125,8 +125,9 @@ function HomeMotorista() {
       }
       toast.success(data.is_disponivel ? "Você está Online" : "Você está Offline");
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Erro ao mudar status");
+    onError: (err) => {
+      const error = err as Error;
+      toast.error(error.message || "Erro ao mudar status");
     },
     onSettled: () => {
       setIsToggling(false);
@@ -141,8 +142,9 @@ function HomeMotorista() {
       toast.success("Corrida aceita com sucesso.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: any) {
-      toast.error(err.message || "Falha ao aceitar corrida.");
+    } catch (err) {
+      const error = err as Error;
+      toast.error(error.message || "Falha ao aceitar corrida.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
     } finally {
       setProcessingRideId(null);
@@ -155,8 +157,9 @@ function HomeMotorista() {
     try {
       await recusarCorridaFn({ data: { rideId } });
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
-    } catch (err: any) {
-      toast.error(err.message || "Falha ao recusar corrida.");
+    } catch (err) {
+      const error = err as Error;
+      toast.error(error.message || "Falha ao recusar corrida.");
     } finally {
       setProcessingRideId(null);
     }
@@ -171,8 +174,9 @@ function HomeMotorista() {
       toast.success("Corrida cancelada com sucesso.");
       setShowCancelModal(false);
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao cancelar corrida.");
+    } catch (err) {
+      const error = err as Error;
+      toast.error(error.message || "Erro ao cancelar corrida.");
     } finally {
       setProcessingRideId(null);
     }
