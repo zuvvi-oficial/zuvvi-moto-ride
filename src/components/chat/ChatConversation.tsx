@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogHeader,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -315,7 +310,10 @@ export function ChatConversation({
                 <DialogTitle className="text-base font-bold truncate">
                   {interlocutor.nome}
                 </DialogTitle>
-                <div className="text-xs text-muted-foreground leading-none mt-0.5" aria-live="polite">
+                <div
+                  className="text-xs text-muted-foreground leading-none mt-0.5"
+                  aria-live="polite"
+                >
                   {formatStatus()}
                 </div>
               </div>
