@@ -96,7 +96,12 @@ function HomeMotorista() {
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
-  const lastRouteCoordsRef = useRef<{ dLat: number; dLng: number; pLat: number; pLng: number } | null>(null);
+  const lastRouteCoordsRef = useRef<{
+    dLat: number;
+    dLng: number;
+    pLat: number;
+    pLng: number;
+  } | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -295,8 +300,8 @@ function HomeMotorista() {
 
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["motorista-status"], (old: any) => ({
+    onSuccess: (data: { is_disponivel: boolean }) => {
+      queryClient.setQueryData(["motorista-status"], (old: { is_disponivel: boolean } | undefined) => ({
         ...old,
         is_disponivel: data.is_disponivel,
       }));
@@ -305,7 +310,7 @@ function HomeMotorista() {
       }
       toast.success(data.is_disponivel ? "Você está Online" : "Você está Offline");
     },
-    onError: (err: any) => {
+    onError: (err: { message?: string }) => {
       toast.error(err.message || "Erro ao mudar status");
     },
     onSettled: () => {
@@ -321,7 +326,7 @@ function HomeMotorista() {
       toast.success("Corrida aceita com sucesso.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: any) {
+    } catch (err: { message?: string }) {
       toast.error(err.message || "Falha ao aceitar corrida.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
     } finally {
@@ -335,7 +340,7 @@ function HomeMotorista() {
     try {
       await recusarCorridaFn({ data: { rideId } });
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
-    } catch (err: any) {
+    } catch (err: { message?: string }) {
       toast.error(err.message || "Falha ao recusar corrida.");
     } finally {
       setProcessingRideId(null);
@@ -351,7 +356,7 @@ function HomeMotorista() {
       toast.success("Corrida cancelada com sucesso.");
       setShowCancelModal(false);
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: any) {
+    } catch (err: { message?: string }) {
       toast.error(err.message || "Erro ao cancelar corrida.");
     } finally {
       setProcessingRideId(null);
@@ -365,7 +370,7 @@ function HomeMotorista() {
       await marcarACaminhoFn({ data: { rideId } });
       toast.success("Deslocamento iniciado.");
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: any) {
+    } catch (err: { message?: string }) {
       toast.error(err.message || "Não foi possível iniciar o deslocamento.");
     } finally {
       setProcessingRideId(null);
@@ -441,7 +446,7 @@ function HomeMotorista() {
                 setIsGpsActive(true);
                 setGpsError(null);
                 lastUpdateRef.current = now;
-              } catch (err: any) {
+              } catch (err: { message?: string }) {
                 // Se falhar no servidor, mas estiver em corrida, mantém o watcher ativo
                 if (hasActiveRideRef.current) {
                   setIsGpsActive(false);
@@ -513,10 +518,11 @@ function HomeMotorista() {
     // 4 & 5. Rota Directions
     const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou"];
     if (hasValidDriver && hasValidPickup && routeStatuses.includes(activeRide.status)) {
-      const coordsChanged = !lastRouteCoordsRef.current || 
-        lastRouteCoordsRef.current.dLat !== dLat || 
-        lastRouteCoordsRef.current.dLng !== dLng || 
-        lastRouteCoordsRef.current.pLat !== pLat || 
+      const coordsChanged =
+        !lastRouteCoordsRef.current ||
+        lastRouteCoordsRef.current.dLat !== dLat ||
+        lastRouteCoordsRef.current.dLng !== dLng ||
+        lastRouteCoordsRef.current.pLat !== pLat ||
         lastRouteCoordsRef.current.pLng !== pLng;
 
       if (coordsChanged && isPickupMapReady) {
@@ -531,8 +537,8 @@ function HomeMotorista() {
         const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${dLng},${dLat};${pLng},${pLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
 
         fetch(url, { signal: controller.signal })
-          .then(res => res.json())
-          .then(data => {
+          .then((res) => res.json())
+          .then((data) => {
             if (controller.signal.aborted) return;
             
             if (data.code !== "Ok" || !data.routes?.[0]) {
@@ -575,7 +581,7 @@ function HomeMotorista() {
               routeAbortRef.current = null;
             }
           })
-          .catch(err => {
+          .catch((err) => {
             if (err.name !== "AbortError") {
               setRouteError("Rota temporariamente indisponível.");
             }
@@ -884,7 +890,14 @@ function HomeMotorista() {
               </div>
             ) : (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {ofertas.map((oferta: any) => (
+                {ofertas.map((oferta: {
+                  id: string;
+                  distancia_aprox_m: number;
+                  origem_nome: string;
+                  destino_nome: string;
+                  valor_estimado: number | string;
+                  forma_pagamento: string;
+                }) => (
                   <div
                     key={oferta.id}
                     className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-6"
