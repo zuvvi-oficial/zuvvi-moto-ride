@@ -5,7 +5,7 @@
 **Sprint 0:** ✅ CONCLUÍDO  
 **Sprint 1:** ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA  
 **Data do fechamento funcional do Sprint 1:** 20/08/2026  
-**Último commit funcional de referência:** 647a0f7e1a764922ada0279ce00fbfd14eb7b777
+**Último commit funcional de referência:** f9d6f092ff5ad939cdfc39832e598aa6763a9500
 
 ## Regras obrigatórias
 1. Uma microetapa por vez.
