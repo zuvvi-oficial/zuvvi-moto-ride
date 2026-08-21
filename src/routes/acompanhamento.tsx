@@ -21,7 +21,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/acompanhamento")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
   component: AcompanhamentoCorrida,
 });
 
