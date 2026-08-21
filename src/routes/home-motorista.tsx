@@ -169,7 +169,9 @@ function HomeMotorista() {
     const currentRideId = activeRide.id;
 
     if (chatSessionRideIdRef.current !== currentRideId) return;
+    if (chatRefreshInFlightRef.current) return;
 
+    chatRefreshInFlightRef.current = true;
     try {
       const inicial = await carregarChatFn({ data: { corridaId: currentRideId } });
       if (activeChatRideIdRef.current !== currentRideId) return;
@@ -194,8 +196,10 @@ function HomeMotorista() {
       if (activeChatRideIdRef.current === currentRideId) {
         setChatLoading(false);
       }
+      chatRefreshInFlightRef.current = false;
     }
   }, [activeRide?.id, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
+
 
   useEffect(() => {
     activeChatRideIdRef.current = activeRide?.id;
