@@ -112,6 +112,153 @@ function HomeMotorista() {
   const marcarACaminhoFn = useServerFn(marcarMotoristaACaminho);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
+  const carregarChatFn = useServerFn(carregarChat);
+  const enviarMensagemFn = useServerFn(enviarMensagemChat);
+  const marcarEntreguesFn = useServerFn(marcarMensagensEntregues);
+  const marcarLidasFn = useServerFn(marcarMensagensLidas);
+  const atualizarPresencaFn = useServerFn(atualizarPresencaChat);
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const chatOpenRef = useRef(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [chatData, setChatData] = useState<ChatData | null>(null);
+  const [chatSending, setChatSending] = useState(false);
+  const digitandoRef = useRef(false);
+  const chatDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleChatOpenChange = (open: boolean) => {
+    if (open && !activeRide?.id) return;
+    chatOpenRef.current = open;
+    if (!open) {
+      digitandoRef.current = false;
+    }
+    setChatOpen(open);
+  };
+
+  const refreshChat = useCallback(async () => {
+    if (!activeRide?.id) return;
+
+    try {
+      const inicial = await carregarChatFn({ data: { corridaId: activeRide.id } });
+      setChatData(inicial as ChatData);
+
+      await marcarEntreguesFn({ data: { corridaId: activeRide.id } });
+      await marcarLidasFn({ data: { corridaId: activeRide.id } });
+
+      const atualizado = await carregarChatFn({ data: { corridaId: activeRide.id } });
+      setChatData(atualizado as ChatData);
+      setChatError(null);
+    } catch {
+      setChatError("Não foi possível carregar o chat.");
+    } finally {
+      setChatLoading(false);
+    }
+  }, [activeRide?.id, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
+
+  useEffect(() => {
+    if (!chatOpen || !activeRide?.id) return;
+
+    setChatLoading(true);
+    void refreshChat();
+
+    const heartbeatInterval = setInterval(() => {
+      void atualizarPresencaFn({
+        data: {
+          corridaId: activeRide.id,
+          digitando: digitandoRef.current,
+        },
+      }).catch(() => {});
+    }, 20000);
+
+    const chatChannel = supabase
+      .channel(`chat-motorista-${activeRide.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_mensagens",
+          filter: `corrida_id=eq.${activeRide.id}`,
+        },
+        () => {
+          if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
+          chatDebounceRef.current = setTimeout(() => {
+            if (chatOpenRef.current) void refreshChat();
+          }, 200);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_presenca",
+          filter: `corrida_id=eq.${activeRide.id}`,
+        },
+        () => {
+          if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
+          chatDebounceRef.current = setTimeout(() => {
+            if (chatOpenRef.current) void refreshChat();
+          }, 200);
+        },
+      )
+      .subscribe();
+
+    void atualizarPresencaFn({
+      data: {
+        corridaId: activeRide.id,
+        digitando: false,
+      },
+    }).catch(() => {});
+
+    return () => {
+      clearInterval(heartbeatInterval);
+      void supabase.removeChannel(chatChannel);
+      if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
+
+      void atualizarPresencaFn({
+        data: {
+          corridaId: activeRide.id,
+          digitando: false,
+        },
+      }).catch(() => {});
+    };
+  }, [chatOpen, activeRide?.id, atualizarPresencaFn, refreshChat]);
+
+  const handleEnviarMensagem = async (conteudo: string) => {
+    if (!activeRide?.id) return;
+    setChatSending(true);
+    try {
+      const clientMessageId = crypto.randomUUID();
+      await enviarMensagemFn({
+        data: {
+          corridaId: activeRide.id,
+          clientMessageId,
+          conteudo,
+        },
+      });
+      await refreshChat();
+    } catch {
+      setChatError("Erro ao enviar mensagem.");
+      throw new Error("Erro ao enviar");
+    } finally {
+      setChatSending(false);
+    }
+  };
+
+  const handleDigitandoChange = (digitando: boolean) => {
+    digitandoRef.current = digitando;
+    if (activeRide?.id) {
+      void atualizarPresencaFn({
+        data: {
+          corridaId: activeRide.id,
+          digitando,
+        },
+      }).catch(() => {});
+    }
+  };
+
   const {
     data: status,
     isLoading,
