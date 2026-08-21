@@ -326,8 +326,9 @@ function HomeMotorista() {
       toast.success("Corrida aceita com sucesso.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: any) {
-      toast.error(err?.message || "Falha ao aceitar corrida.");
+    } catch (err) {
+      const error = err as any;
+      toast.error(error?.message || "Falha ao aceitar corrida.");
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
     } finally {
       setProcessingRideId(null);
@@ -340,8 +341,9 @@ function HomeMotorista() {
     try {
       await recusarCorridaFn({ data: { rideId } });
       queryClient.invalidateQueries({ queryKey: ["motorista-ofertas"] });
-    } catch (err: any) {
-      toast.error(err?.message || "Falha ao recusar corrida.");
+    } catch (err) {
+      const error = err as any;
+      toast.error(error?.message || "Falha ao recusar corrida.");
     } finally {
       setProcessingRideId(null);
     }
@@ -356,8 +358,9 @@ function HomeMotorista() {
       toast.success("Corrida cancelada com sucesso.");
       setShowCancelModal(false);
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao cancelar corrida.");
+    } catch (err) {
+      const error = err as any;
+      toast.error(error?.message || "Erro ao cancelar corrida.");
     } finally {
       setProcessingRideId(null);
     }
@@ -370,8 +373,9 @@ function HomeMotorista() {
       await marcarACaminhoFn({ data: { rideId } });
       toast.success("Deslocamento iniciado.");
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
-    } catch (err: any) {
-      toast.error(err?.message || "Não foi possível iniciar o deslocamento.");
+    } catch (err) {
+      const error = err as any;
+      toast.error(error?.message || "Não foi possível iniciar o deslocamento.");
     } finally {
       setProcessingRideId(null);
     }
@@ -446,7 +450,9 @@ function HomeMotorista() {
                 setIsGpsActive(true);
                 setGpsError(null);
                 lastUpdateRef.current = now;
-              } catch (err: any) {
+              } catch (err) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const error = err as any;
                 // Se falhar no servidor, mas estiver em corrida, mantém o watcher ativo
                 if (hasActiveRideRef.current) {
                   setIsGpsActive(false);
