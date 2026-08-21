@@ -56,6 +56,7 @@ function HomeMotorista() {
   const [processingRideId, setProcessingRideId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [isPickupMapReady, setIsPickupMapReady] = useState(false);
 
   const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -321,15 +322,22 @@ function HomeMotorista() {
         lastRouteCoordsRef.current.pLat !== pLat || 
         lastRouteCoordsRef.current.pLng !== pLng;
 
-      if (coordsChanged) {
-        if (routeAbortRef.current) routeAbortRef.current.abort();
-        routeAbortRef.current = new AbortController();
+      if (coordsChanged && isPickupMapReady) {
+        if (routeAbortRef.current) {
+          routeAbortRef.current.abort();
+          routeAbortRef.current = null;
+        }
+        
+        const controller = new AbortController();
+        routeAbortRef.current = controller;
 
         const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${dLng},${dLat};${pLng},${pLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
 
-        fetch(url, { signal: routeAbortRef.current.signal })
+        fetch(url, { signal: controller.signal })
           .then(res => res.json())
           .then(data => {
+            if (controller.signal.aborted) return;
+            
             if (data.code !== "Ok" || !data.routes?.[0]) {
               setRouteError("Rota temporariamente indisponível.");
               return;
@@ -365,6 +373,10 @@ function HomeMotorista() {
             }
 
             lastRouteCoordsRef.current = { dLat: dLat!, dLng: dLng!, pLat: pLat!, pLng: pLng! };
+            
+            if (routeAbortRef.current === controller) {
+              routeAbortRef.current = null;
+            }
           })
           .catch(err => {
             if (err.name !== "AbortError") {
@@ -374,13 +386,19 @@ function HomeMotorista() {
       }
     } else {
       // Limpar rota se status mudar para em_andamento ou coordenadas sumirem
+      if (routeAbortRef.current) {
+        routeAbortRef.current.abort();
+        routeAbortRef.current = null;
+      }
+      
       const sourceId = "zuvvi-driver-pickup-route-source";
       const layerId = "zuvvi-driver-pickup-route-layer";
       if (map.getLayer(layerId)) map.removeLayer(layerId);
       if (map.getSource(sourceId)) map.removeSource(sourceId);
       lastRouteCoordsRef.current = null;
+      setRouteError(null);
     }
-  }, [status?.ultima_lat, status?.ultima_lng, activeRide, mapboxToken]);
+  }, [status?.ultima_lat, status?.ultima_lng, activeRide, mapboxToken, isPickupMapReady]);
 
   // 7. Cleanup
   useEffect(() => {
@@ -397,6 +415,10 @@ function HomeMotorista() {
   // Cleanup quando activeRide deixa de existir
   useEffect(() => {
     if (!activeRide) {
+      if (routeAbortRef.current) {
+        routeAbortRef.current.abort();
+        routeAbortRef.current = null;
+      }
       if (driverMarkerRef.current) {
         driverMarkerRef.current.remove();
         driverMarkerRef.current = null;
@@ -411,6 +433,7 @@ function HomeMotorista() {
       routeFittedRideRef.current = null;
       lastRouteCoordsRef.current = null;
       setRouteError(null);
+      setIsPickupMapReady(false);
     }
   }, [activeRide]);
 
@@ -506,6 +529,7 @@ function HomeMotorista() {
                     className="w-full h-full"
                     onMapInstance={(map) => {
                       pickupMapInstance.current = map;
+                      setIsPickupMapReady(true);
                     }}
                   />
                   {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
