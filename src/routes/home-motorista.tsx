@@ -67,12 +67,6 @@ export const Route = createFileRoute("/home-motorista")({
   },
   component: HomeMotorista,
 });
-      throw redirect({ to: dest.redirectTo });
-    }
-    return {};
-  },
-  component: HomeMotorista,
-});
 
 function HomeMotorista() {
   const queryClient = useQueryClient();
