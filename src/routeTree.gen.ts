@@ -25,8 +25,6 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthCompletarCadastroRouteImport } from './routes/auth.completar-cadastro'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthPerfilRouteImport } from './routes/auth.perfil'
-import { Route as HomeMotoristaBaselineRouteImport } from './routes/home-motorista.baseline'
-import { Route as HomeMotoristaChatRouteImport } from './routes/home-motorista.chat'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -108,23 +106,13 @@ const AuthPerfilRoute = AuthPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthRoute,
 } as any)
-const HomeMotoristaBaselineRoute = HomeMotoristaBaselineRouteImport.update({
-  id: '/baseline',
-  path: '/baseline',
-  getParentRoute: () => HomeMotoristaRoute,
-} as any)
-const HomeMotoristaChatRoute = HomeMotoristaChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
-  getParentRoute: () => HomeMotoristaRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
-  '/home-motorista': typeof HomeMotoristaRouteWithChildren
+  '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -135,8 +123,6 @@ export interface FileRoutesByFullPath {
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
-  '/home-motorista/baseline': typeof HomeMotoristaBaselineRoute
-  '/home-motorista/chat': typeof HomeMotoristaChatRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -144,7 +130,7 @@ export interface FileRoutesByTo {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
-  '/home-motorista': typeof HomeMotoristaRouteWithChildren
+  '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -155,8 +141,6 @@ export interface FileRoutesByTo {
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
-  '/home-motorista/baseline': typeof HomeMotoristaBaselineRoute
-  '/home-motorista/chat': typeof HomeMotoristaChatRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -165,7 +149,7 @@ export interface FileRoutesById {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
-  '/home-motorista': typeof HomeMotoristaRouteWithChildren
+  '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -176,8 +160,6 @@ export interface FileRoutesById {
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
-  '/home-motorista/baseline': typeof HomeMotoristaBaselineRoute
-  '/home-motorista/chat': typeof HomeMotoristaChatRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -198,8 +180,6 @@ export interface FileRouteTypes {
     | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
-    | '/home-motorista/baseline'
-    | '/home-motorista/chat'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -218,8 +198,6 @@ export interface FileRouteTypes {
     | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
-    | '/home-motorista/baseline'
-    | '/home-motorista/chat'
     | '/admin'
   id:
     | '__root__'
@@ -238,8 +216,6 @@ export interface FileRouteTypes {
     | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
-    | '/home-motorista/baseline'
-    | '/home-motorista/chat'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -248,7 +224,7 @@ export interface RootRouteChildren {
   AcompanhamentoRoute: typeof AcompanhamentoRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
-  HomeMotoristaRoute: typeof HomeMotoristaRouteWithChildren
+  HomeMotoristaRoute: typeof HomeMotoristaRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
@@ -371,20 +347,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthPerfilRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/home-motorista/baseline': {
-      id: '/home-motorista/baseline'
-      path: '/baseline'
-      fullPath: '/home-motorista/baseline'
-      preLoaderRoute: typeof HomeMotoristaBaselineRouteImport
-      parentRoute: typeof HomeMotoristaRoute
-    }
-    '/home-motorista/chat': {
-      id: '/home-motorista/chat'
-      path: '/chat'
-      fullPath: '/home-motorista/chat'
-      preLoaderRoute: typeof HomeMotoristaChatRouteImport
-      parentRoute: typeof HomeMotoristaRoute
-    }
   }
 }
 
@@ -406,26 +368,12 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
-interface HomeMotoristaRouteChildren {
-  HomeMotoristaBaselineRoute: typeof HomeMotoristaBaselineRoute
-  HomeMotoristaChatRoute: typeof HomeMotoristaChatRoute
-}
-
-const HomeMotoristaRouteChildren: HomeMotoristaRouteChildren = {
-  HomeMotoristaBaselineRoute: HomeMotoristaBaselineRoute,
-  HomeMotoristaChatRoute: HomeMotoristaChatRoute,
-}
-
-const HomeMotoristaRouteWithChildren = HomeMotoristaRoute._addFileChildren(
-  HomeMotoristaRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcompanhamentoRoute: AcompanhamentoRoute,
   AuthRoute: AuthRouteWithChildren,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
-  HomeMotoristaRoute: HomeMotoristaRouteWithChildren,
+  HomeMotoristaRoute: HomeMotoristaRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
