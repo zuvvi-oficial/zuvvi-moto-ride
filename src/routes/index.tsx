@@ -148,7 +148,6 @@ function HomePassageiro({ nome }: { nome: string }) {
           setOriginAddress(addressResult.address);
         } catch (err) {
           console.error("Erro ao verificar cidade ou endereço:", err);
-          setAvailabilityError(err instanceof Error ? err.message : String(err));
           setIsCityAvailable(false);
           setOriginAddress("Sua localização");
         }
