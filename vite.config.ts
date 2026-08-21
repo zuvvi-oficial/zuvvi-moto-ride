@@ -16,7 +16,9 @@ export default defineConfig({
   plugins: [
     VitePWA({
       strategies: "generateSW",
-      registerType: "autoUpdate",
+      // "prompt": the reload is user-triggered so an active ride is never
+      // interrupted by a destructive automatic refresh.
+      registerType: "prompt",
       // The registration wrapper in src/lib/pwa/register-sw.ts is the only registrar.
       injectRegister: null,
       // Never emit/register a service worker in dev or Lovable preview.
