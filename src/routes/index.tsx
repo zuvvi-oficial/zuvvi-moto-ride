@@ -455,11 +455,13 @@ function FavoritosDialog({
             {mode === "add" && (
               <button 
                 onClick={() => setMode("list")}
-                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-all active:scale-95"
+                aria-label="Voltar para favoritos"
+                className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-all active:scale-95"
               >
-                <ChevronLeft className="w-4 h-4 text-zuvvi-volt" />
+                <ChevronLeft className="w-5 h-5 text-zuvvi-volt" />
               </button>
             )}
+
             <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center">
               <Star className="text-zuvvi-volt w-5 h-5" />
             </div>
@@ -486,10 +488,11 @@ function FavoritosDialog({
             <p className="text-sm font-medium text-muted-foreground">Não foi possível carregar seus favoritos.</p>
             <button 
               onClick={() => refetch()}
-              className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors"
+              className="px-6 py-4 min-h-[44px] bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors"
             >
               TENTAR NOVAMENTE
             </button>
+
           </div>
         ) : mode === "list" ? (
           <div className="space-y-4">
@@ -502,11 +505,12 @@ function FavoritosDialog({
                 </div>
                 <button 
                   onClick={() => setMode("add")}
-                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2"
+                  className="bg-zuvvi-volt text-zuvvi-indigo px-6 py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-transform active:scale-95 flex items-center gap-2"
                 >
                   <Plus className="w-3 h-3" strokeWidth={3} />
                   ADICIONAR ENDEREÇO
                 </button>
+
               </div>
             ) : (
               <>
@@ -536,41 +540,46 @@ function FavoritosDialog({
                         <div className="flex items-center gap-2 shrink-0">
                           <button 
                             onClick={() => setConfirmDeleteId(null)}
-                            className="p-2 rounded-full hover:bg-white/5 transition-colors"
+                            aria-label="Cancelar exclusão"
+                            className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center"
                           >
-                            <X className="w-4 h-4 text-muted-foreground" />
+                            <X className="w-5 h-5 text-muted-foreground" />
                           </button>
                           <button 
                             onClick={() => deleteMutation.mutate(fav.id)}
                             disabled={deleteMutation.isPending}
-                            className="p-2 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center"
+                            aria-label={`Confirmar exclusão de ${fav.nome}`}
+                            className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors flex items-center justify-center"
                           >
                             {deleteMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                              <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
                             ) : (
-                              <Trash2 className="w-4 h-4 text-red-500" />
+                              <Trash2 className="w-5 h-5 text-red-500" />
                             )}
                           </button>
+
                         </div>
                       ) : (
                         <button 
                           onClick={() => setConfirmDeleteId(fav.id)}
                           aria-label={`Excluir favorito ${fav.nome}`}
-                          className="w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-white/5 transition-all shrink-0"
+                          className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/5 transition-all shrink-0"
                         >
-                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-500" />
+                          <Trash2 className="w-5 h-5 text-muted-foreground hover:text-red-500" />
                         </button>
+
                       )}
                     </div>
                   ))}
                 </div>
                 <button 
                   onClick={() => setMode("add")}
-                  className="w-full bg-white/5 border border-white/10 text-foreground py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                  className="w-full bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                 >
                   <Plus className="w-3 h-3" strokeWidth={3} />
                   ADICIONAR ENDEREÇO
                 </button>
+
               </>
             )}
           </div>
