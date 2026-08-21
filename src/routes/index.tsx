@@ -606,7 +606,24 @@ function FavoritosDialog({
           </div>
         ) : mode === "list" ? (
           <div className="space-y-4">
-            {favoritos.length >= 10 ? (
+            {favoritos.length === 0 ? (
+              <div className="py-10 flex flex-col items-center justify-center text-center space-y-6 bg-white/5 rounded-[2rem] border border-white/10 px-6 mx-auto w-full max-w-full box-border">
+                <div className="w-16 h-16 rounded-3xl bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20">
+                  <Star className="text-zuvvi-volt w-8 h-8" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-bold">Nenhum favorito ainda</h3>
+                  <p className="text-xs text-muted-foreground px-4">Salve Casa, Trabalho ou qualquer lugar importante.</p>
+                </div>
+                <button 
+                  onClick={() => setMode("add")}
+                  className="w-full max-w-full box-border bg-zuvvi-volt text-zuvvi-indigo py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                >
+                  <Plus className="w-3 h-3" strokeWidth={3} />
+                  ADICIONAR ENDEREÇO
+                </button>
+              </div>
+            ) : favoritos.length >= 10 ? (
               <div className="py-6 flex flex-col items-center justify-center text-center space-y-2 bg-white/5 rounded-2xl border border-white/10 px-4">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] volt-text">LIMITE DE 10 FAVORITOS</h3>
                 <p className="text-[10px] text-muted-foreground">Exclua um favorito para adicionar outro.</p>
