@@ -73,7 +73,6 @@ function AcompanhamentoCorrida() {
     message: string;
   } | null>(null);
 
-  // Estados do Chat
   const [chatOpen, setChatOpen] = useState(false);
   const chatOpenRef = useRef(false);
   const [chatLoading, setChatLoading] = useState(false);
@@ -86,7 +85,6 @@ function AcompanhamentoCorrida() {
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
-  // Server Functions do Chat
   const carregarChatFn = useServerFn(carregarChat);
   const enviarMensagemFn = useServerFn(enviarMensagemChat);
   const marcarEntreguesFn = useServerFn(marcarMensagensEntregues);
@@ -98,9 +96,9 @@ function AcompanhamentoCorrida() {
       try {
         const [data, token] = await Promise.all([
           getAcompanhamentoFn({ data: { rideId } }),
-          getMapboxTokenFn()
+          getMapboxTokenFn(),
         ]);
-        
+
         setCorrida(data.ride);
         setMotorista(data.driver);
         setVeiculo(data.vehicle);
@@ -108,16 +106,16 @@ function AcompanhamentoCorrida() {
 
         if (!data.handoffAvailable) {
           toast.error("Acompanhamento ainda não disponível para esta corrida.");
-          navigate({ to: "/" });
+          void navigate({ to: "/" });
         }
       } catch {
         toast.error("Não foi possível carregar os dados do acompanhamento.");
-        navigate({ to: "/" });
+        void navigate({ to: "/" });
       } finally {
         setIsLoading(false);
       }
     }
-    init();
+    void init();
   }, [rideId, getAcompanhamentoFn, getMapboxTokenFn, navigate]);
 
   useEffect(() => {
@@ -134,10 +132,7 @@ function AcompanhamentoCorrida() {
           filter: `id=eq.${rideId}`,
         },
         (payload: { new: { status: string; cancelado_por?: string } }) => {
-          if (
-            payload.new?.status === "cancelada" &&
-            !hasHandledCancellation.current
-          ) {
+          if (payload.new?.status === "cancelada" && !hasHandledCancellation.current) {
             hasHandledCancellation.current = true;
 
             const isMotorista = payload.new?.cancelado_por === "motorista";
@@ -161,7 +156,7 @@ function AcompanhamentoCorrida() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
       if (cancellationRedirectTimeoutRef.current) {
         clearTimeout(cancellationRedirectTimeoutRef.current);
       }
@@ -174,7 +169,6 @@ function AcompanhamentoCorrida() {
       setChatData(data as ChatData);
       setChatError(null);
 
-      // Após carregar, marcar como entregue e lida (server-side)
       await Promise.all([
         marcarEntreguesFn({ data: { corridaId: rideId } }),
         marcarLidasFn({ data: { corridaId: rideId } }),
@@ -191,21 +185,17 @@ function AcompanhamentoCorrida() {
 
     if (chatOpen) {
       setChatLoading(true);
-      refreshChat();
+      void refreshChat();
 
-      // Heartbeat a cada 20 segundos
       const heartbeatInterval = setInterval(() => {
-        atualizarPresencaFn({
+        void atualizarPresencaFn({
           data: {
             corridaId: rideId,
             digitando: digitandoRef.current,
           },
-        }).catch(() => {
-          /* Falha silenciosa de presença */
-        });
+        }).catch(() => {});
       }, 20000);
 
-      // Subscrever Realtime do Chat
       const chatChannel = supabase
         .channel(`chat-passageiro-${rideId}`)
         .on(
@@ -219,9 +209,9 @@ function AcompanhamentoCorrida() {
           () => {
             if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
             debounceTimeoutRef.current = setTimeout(() => {
-              if (chatOpenRef.current) refreshChat();
+              if (chatOpenRef.current) void refreshChat();
             }, 200);
-          }
+          },
         )
         .on(
           "postgres_changes",
@@ -234,14 +224,13 @@ function AcompanhamentoCorrida() {
           () => {
             if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
             debounceTimeoutRef.current = setTimeout(() => {
-              if (chatOpenRef.current) refreshChat();
+              if (chatOpenRef.current) void refreshChat();
             }, 200);
-          }
+          },
         )
         .subscribe();
 
-      // Presença inicial
-      atualizarPresencaFn({
+      void atualizarPresencaFn({
         data: {
           corridaId: rideId,
           digitando: false,
@@ -250,11 +239,10 @@ function AcompanhamentoCorrida() {
 
       return () => {
         clearInterval(heartbeatInterval);
-        supabase.removeChannel(chatChannel);
+        void supabase.removeChannel(chatChannel);
         if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
 
-        // Best effort: avisar que parou de digitar ao fechar
-        atualizarPresencaFn({
+        void atualizarPresencaFn({
           data: {
             corridaId: rideId,
             digitando: false,
@@ -279,7 +267,7 @@ function AcompanhamentoCorrida() {
       await refreshChat();
     } catch {
       setChatError("Erro ao enviar mensagem.");
-      throw new Error("Erro ao enviar"); // ChatConversation manterá o draft
+      throw new Error("Erro ao enviar");
     } finally {
       setChatSending(false);
     }
@@ -287,7 +275,7 @@ function AcompanhamentoCorrida() {
 
   const handleDigitandoChange = (digitando: boolean) => {
     digitandoRef.current = digitando;
-    atualizarPresencaFn({
+    void atualizarPresencaFn({
       data: {
         corridaId: rideId,
         digitando,
@@ -305,20 +293,18 @@ function AcompanhamentoCorrida() {
 
   return (
     <div className="relative min-h-[100dvh] bg-zuvvi-indigo overflow-hidden font-poppins">
-      {/* Mapa */}
       <div className="absolute inset-0 z-0">
         {mapboxToken && (
-          <MapView 
-            center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }} 
-            token={mapboxToken} 
+          <MapView
+            center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }}
+            token={mapboxToken}
           />
         )}
       </div>
 
-      {/* Overlay Superior */}
       <div className="relative z-10 p-6 flex items-center justify-between pointer-events-none">
-        <button 
-          onClick={() => navigate({ to: "/" })}
+        <button
+          onClick={() => void navigate({ to: "/" })}
           className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 pointer-events-auto active:scale-95 transition-transform"
         >
           <ChevronLeft className="w-6 h-6" />
@@ -331,7 +317,6 @@ function AcompanhamentoCorrida() {
         <div className="w-12" />
       </div>
 
-      {/* Card do Motorista Real - Só exibe se houver motorista e veículo válidos */}
       {motorista && veiculo && (
         <div className="absolute bottom-0 left-0 right-0 p-6 z-10 pointer-events-none">
           <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl pointer-events-auto animate-rise space-y-6">
@@ -387,7 +372,6 @@ function AcompanhamentoCorrida() {
         </div>
       )}
 
-      {/* Aviso de Cancelamento */}
       {cancellationNotice && (
         <div className="absolute inset-0 z-[100] bg-zuvvi-indigo/95 backdrop-blur-md flex items-center justify-center p-6 text-center animate-in fade-in duration-300">
           <div className="max-w-xs w-full space-y-6">
@@ -410,7 +394,6 @@ function AcompanhamentoCorrida() {
         </div>
       )}
 
-      {/* Componente de Chat */}
       <ChatConversation
         open={chatOpen}
         onOpenChange={setChatOpen}
@@ -431,7 +414,6 @@ function AcompanhamentoCorrida() {
         onDigitandoChange={handleDigitandoChange}
         onRetry={refreshChat}
       />
-
     </div>
   );
 }
