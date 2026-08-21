@@ -1,5 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -18,7 +24,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   getMotoristaStatusHome,
@@ -33,6 +38,19 @@ import {
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
+
+interface MotoristaStatus {
+  is_disponivel: boolean;
+  nome: string | null;
+  active_ride: {
+    id: string;
+    origem_nome: string | null;
+    destino_nome: string | null;
+    valor_estimado: number;
+    forma_pagamento: string;
+    status: string;
+  } | null;
+}
 
 export const Route = createFileRoute("/home-motorista")({
   loader: async () => {
