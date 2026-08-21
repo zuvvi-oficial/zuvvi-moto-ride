@@ -176,25 +176,6 @@ function HomePassageiro({ nome }: { nome: string }) {
         className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-y-auto"
         style={{ height: '100dvh' }}
       >
-        {/* Etiqueta de status temporária para depuração */}
-        <div className="absolute top-2 right-2 z-[9999] bg-black/90 text-white text-[10px] px-3 py-2 rounded-lg border border-white/20 pointer-events-none uppercase tracking-tighter flex flex-col gap-1 shadow-2xl backdrop-blur-md min-w-[200px]">
-          <div className="font-bold border-b border-white/10 pb-1 flex justify-between">
-            <span>Debug Info</span>
-            <span className={debugStatus.includes('✓') ? 'text-zuvvi-volt' : 'text-yellow-500'}>●</span>
-          </div>
-          <div className="flex flex-col gap-0.5 opacity-80">
-            <p><span className="text-zuvvi-volt/70">Status:</span> {debugStatus}</p>
-            <p><span className="text-zuvvi-volt/70">Nome (prop):</span> {nome || 'Vazio'}</p>
-            <p><span className="text-zuvvi-volt/70">Disponível:</span> {String(isCityAvailable)}</p>
-            <p><span className="text-zuvvi-volt/70">Buscando Loc:</span> {String(isLocating)}</p>
-            {availabilityError && (
-              <p className="text-red-400 normal-case mt-1 bg-red-500/10 p-1 rounded border border-red-500/20">
-                <span className="font-bold">Erro CheckCity:</span> {availabilityError}
-              </p>
-            )}
-          </div>
-        </div>
-
         {/* Header */}
         <header className="px-5 py-4 pointer-events-auto shrink-0">
           <div className="mx-auto max-w-md flex items-center justify-between bg-zuvvi-indigo/60 backdrop-blur-lg border border-white/10 rounded-3xl px-4 py-3 shadow-2xl">
