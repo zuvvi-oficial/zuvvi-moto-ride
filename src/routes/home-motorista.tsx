@@ -180,13 +180,17 @@ function HomeMotorista() {
   const shouldTrackLocation = isOnline || Boolean(activeRide);
 
   useEffect(() => {
+    hasActiveRideRef.current = Boolean(activeRide);
+  }, [activeRide]);
+
+  useEffect(() => {
     if (shouldTrackLocation) {
       if (!navigator.geolocation) {
         handleGpsError("Seu navegador não suporta geolocalização.");
         return;
       }
 
-      // Evita recriar se o watchId já existe, mas limpa se shouldTrackLocation mudar
+      // Evita recriar se o watchId já existe
       if (watchIdRef.current === null) {
         watchIdRef.current = navigator.geolocation.watchPosition(
           async (position) => {
@@ -208,9 +212,10 @@ function HomeMotorista() {
                 setGpsError(null);
                 lastUpdateRef.current = now;
               } catch (err: any) {
-                // Se falhar no servidor, mas estiver em corrida, apenas loga (não desliga)
-                if (activeRide) {
-                  console.warn("Falha ao atualizar localização durante corrida ativa.");
+                // Se falhar no servidor, mas estiver em corrida, apenas sinaliza erro visual sem matar o watcher
+                if (hasActiveRideRef.current) {
+                  setIsGpsActive(false);
+                  setGpsError("Conexão instável. Tentando reconectar GPS...");
                 } else {
                   handleGpsError("Não foi possível ativar sua localização. Permita o acesso ao GPS para ficar online.");
                 }
@@ -234,12 +239,10 @@ function HomeMotorista() {
     }
 
     return () => {
-      // Se pararmos de rastrear, limpamos
-      if (!shouldTrackLocation) {
-        stopGps();
-      }
+      // Cleanup REAL de desmontagem ou quando para de rastrear
+      stopGps();
     };
-  }, [shouldTrackLocation, activeRide]);
+  }, [shouldTrackLocation, handleGpsError, stopGps, updateLocationFn]);
 
   const handleToggleOnline = () => {
     if (isToggling || activeRide) return;
