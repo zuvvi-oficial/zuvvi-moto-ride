@@ -508,7 +508,7 @@ function HomeMotorista() {
                       pickupMapInstance.current = map;
                     }}
                   />
-                  {(!status.ultima_lat || !status.ultima_lng) && !routeError && (
+                  {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
                     <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
                       <div className="bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
                         <p className="text-[9px] text-white/80 font-bold uppercase tracking-widest flex items-center gap-2">
