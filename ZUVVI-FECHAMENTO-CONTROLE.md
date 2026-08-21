@@ -511,30 +511,8 @@ IMPORTANTE:
 Isso é PLANEJAMENTO.
 NÃO declarar implementado.
 
-**STATUS: DRIFT DE HISTÓRICO DE MIGRATIONS PENDENTE DE RECONCILIAÇÃO.**
-
-O Supabase possui em `supabase_migrations.schema_migrations` as versões abaixo, que não possuem arquivos correspondentes na branch `main`:
-- `20260819113539` — fix_usuarios_auth_user_id_unique_constraint
-- `20260819114735` — complete_tipo_chave_pix_migration
-
-**REGRA:** Nenhuma nova alteração de banco deverá ser executada até que esse drift seja tratado em microetapa própria.
-
-### 2.7 — Cancelamento de Corrida pelo Motorista — ✅ FECHADA
-- Implementado botão "CANCELAR CORRIDA" na Home do Motorista.
-- Server function `cancelarCorridaMotorista` valida ownership e status da corrida.
-- Corrida é marcada como `cancelada` com `cancelado_por = 'motorista'`.
-- Motorista é mantido offline após o cancelamento por segurança.
-- Design alinhado com a identidade visual Zuvvi.
-- Nenhuma alteração no core ou no banco de dados necessária (aproveitamento de estrutura existente).
-
-#### 2.7-A — Modal Profissional de Cancelamento — ✅ FECHADA
-- Substituído `window.confirm` nativo (branco/básico) por modal personalizado Zuvvi.
-- Design alinhado: Fundo indigo, bordas 2.5rem, tipografia Poppins e ícones Lucide.
-- Feedback de processamento integrado no botão de confirmação.
-- Travas de segurança preservadas (não altera o core do cancelamento).
-- Experiência profissional de confirmação/desistência.
-
 ---
+
 
 ## Reconciliação oficial do Sprint 2 — Baseline 21/08/2026
 
