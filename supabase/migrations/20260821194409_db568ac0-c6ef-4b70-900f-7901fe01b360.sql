@@ -1,0 +1,1 @@
+REVOKE ALL PRIVILEGES ON TABLE public.enderecos_favoritos FROM anon;
