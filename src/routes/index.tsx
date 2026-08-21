@@ -660,7 +660,9 @@ function FavoritosDialog({
             )}
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar space-y-6">
+          <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar ${
+            mode === "add" && viewport && viewport.width < 640 ? "space-y-4" : "space-y-6"
+          }`}>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
               <input 
@@ -669,7 +671,9 @@ function FavoritosDialog({
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Ex.: Casa, Trabalho, Academia"
                 maxLength={40}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-5 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                className={`w-full bg-white/5 border border-white/10 rounded-2xl px-5 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 ${
+                  mode === "add" && viewport && viewport.width < 640 ? "h-12 py-0" : "py-4"
+                }`}
               />
             </div>
 
@@ -678,6 +682,7 @@ function FavoritosDialog({
               <DestinoSearch 
                 location={location}
                 placeholder="Buscar endereço..."
+                compact={mode === "add" && viewport && viewport.width < 640}
                 onSelect={(res) => setSelectedAddress({
                   endereco: res.place_name,
                   latitude: res.center[1],
@@ -687,7 +692,9 @@ function FavoritosDialog({
             </div>
 
             {selectedAddress && (
-              <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2">
+              <div className={`bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
+                mode === "add" && viewport && viewport.width < 640 ? "p-3" : "p-4"
+              }`}>
                 <p className="text-[8px] font-black uppercase tracking-widest text-zuvvi-volt mb-1">ENDEREÇO SELECIONADO</p>
                 <p className="text-xs font-bold leading-tight">{selectedAddress.endereco}</p>
               </div>
@@ -701,7 +708,9 @@ function FavoritosDialog({
                 latitude: selectedAddress?.latitude,
                 longitude: selectedAddress?.longitude
               })}
-              className="w-full bg-zuvvi-volt text-zuvvi-indigo py-4 rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+              className={`w-full bg-zuvvi-volt text-zuvvi-indigo rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 ${
+                mode === "add" && viewport && viewport.width < 640 ? "h-12" : "py-4"
+              }`}
             >
               {createMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
