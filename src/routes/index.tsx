@@ -1000,7 +1000,6 @@ function RecentesDialog({
     queryKey: ["destinos-recentes-passageiro"],
     queryFn: () => listarDestinosRecentesFn(),
     enabled: open,
-    staleTime: 1000 * 60, // 1 minute
   });
 
   return (
