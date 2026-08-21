@@ -574,11 +574,12 @@ function FavoritosDialog({
                 </div>
                 <button 
                   onClick={() => setMode("add")}
-                  className="w-full bg-white/5 border border-white/10 text-foreground py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                  className="w-full bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                 >
                   <Plus className="w-3 h-3" strokeWidth={3} />
                   ADICIONAR ENDEREÇO
                 </button>
+
               </>
             )}
           </div>
