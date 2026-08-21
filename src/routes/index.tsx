@@ -1004,8 +1004,10 @@ function RecentesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[92vw] w-full sm:max-w-[400px] rounded-[2rem] border-white/10 bg-zuvvi-indigo-dark p-6 shadow-2xl overflow-hidden overscroll-none animate-in fade-in zoom-in-95 duration-200">
-        <div className="absolute inset-0 bg-black/[0.86] z-[-1]" />
+      <DialogContent 
+        overlayClassName="bg-black/[0.86]"
+        className="max-w-[92vw] w-full sm:max-w-[400px] rounded-[2rem] border-white/10 bg-zuvvi-indigo-dark p-6 shadow-2xl overflow-hidden overscroll-none animate-in fade-in zoom-in-95 duration-200"
+      >
         
         <DialogHeader className="mb-6">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
