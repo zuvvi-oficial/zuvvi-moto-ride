@@ -146,6 +146,8 @@ function HomeMotorista() {
   const chatDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const activeChatRideIdRef = useRef<string | undefined>(undefined);
   const chatSessionRideIdRef = useRef<string | undefined>(undefined);
+  const chatRefreshInFlightRef = useRef(false);
+
 
   const handleChatOpenChange = (open: boolean) => {
     if (open && !activeRide?.id) return;
