@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getMapboxToken, getAcompanhamentoPassageiro } from "@/lib/user.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Bike, Loader2, ChevronLeft, User, Star } from "lucide-react";
+import { Bike, Loader2, ChevronLeft, User, Star, XCircle, AlertTriangle } from "lucide-react";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ function AcompanhamentoCorrida() {
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const hasHandledCancellation = useRef(false);
+  const cancellationRedirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [cancellationNotice, setCancellationNotice] = useState<{ title: string; message: string } | null>(null);
 
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
@@ -74,13 +76,15 @@ function AcompanhamentoCorrida() {
           if (payload.new?.status === "cancelada" && !hasHandledCancellation.current) {
             hasHandledCancellation.current = true;
             
-            if (payload.new?.cancelado_por === "motorista") {
-              toast.info("O motorista cancelou a corrida.");
-            } else {
-              toast.info("Esta corrida foi cancelada.");
-            }
-            
-            navigate({ to: "/" });
+            const isMotorista = payload.new?.cancelado_por === "motorista";
+            setCancellationNotice({
+              title: "Corrida cancelada",
+              message: isMotorista ? "O motorista cancelou a corrida." : "Esta corrida foi cancelada."
+            });
+
+            cancellationRedirectTimeoutRef.current = setTimeout(() => {
+              navigate({ to: "/" });
+            }, 1800);
           }
         }
       )
@@ -88,6 +92,9 @@ function AcompanhamentoCorrida() {
 
     return () => {
       supabase.removeChannel(channel);
+      if (cancellationRedirectTimeoutRef.current) {
+        clearTimeout(cancellationRedirectTimeoutRef.current);
+      }
     };
   }, [rideId, navigate]);
 
@@ -165,6 +172,27 @@ function AcompanhamentoCorrida() {
               <div className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl">
                  <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">Em breve: Chat</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Aviso de Cancelamento */}
+      {cancellationNotice && (
+        <div className="absolute inset-0 z-[100] bg-zuvvi-indigo/95 backdrop-blur-md flex items-center justify-center p-6 text-center animate-in fade-in duration-300">
+          <div className="max-w-xs w-full space-y-6">
+            <div className="flex justify-center">
+              <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                <XCircle className="w-10 h-10 text-red-500" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-white">{cancellationNotice.title}</h2>
+              <p className="text-white/70 leading-relaxed">{cancellationNotice.message}</p>
+            </div>
+            <div className="pt-4 flex flex-col items-center gap-3">
+              <Loader2 className="w-5 h-5 text-zuvvi-volt animate-spin" />
+              <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.2em]">Voltando para a tela inicial...</p>
             </div>
           </div>
         </div>
