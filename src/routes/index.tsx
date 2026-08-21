@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { getMapboxToken, checkCityAvailability, getReverseGeocoding } from "@/lib/user.functions";
 import { listarFavoritos, criarFavorito, excluirFavorito } from "@/lib/favoritos.functions";
+import { listarDestinosRecentes } from "@/lib/recentes.functions";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -84,6 +85,7 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [manualAddress, setManualAddress] = useState<string | null>(null);
   const [isEditingOrigin, setIsEditingOrigin] = useState(false);
   const [favoritosOpen, setFavoritosOpen] = useState(false);
+  const [recentesOpen, setRecentesOpen] = useState(false);
   
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
@@ -347,7 +349,10 @@ function HomePassageiro({ nome }: { nome: string }) {
                   <span className="text-[10px] font-bold uppercase tracking-widest">Favoritos</span>
                 </button>
 
-                <button className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]">
+                <button 
+                  onClick={() => setRecentesOpen(true)}
+                  className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]"
+                >
                   <div className="w-8 h-8 rounded-lg bg-zuvvi-volt/10 flex items-center justify-center">
                     <Clock className="text-zuvvi-volt w-4 h-4" />
                   </div>
@@ -365,6 +370,18 @@ function HomePassageiro({ nome }: { nome: string }) {
                 latitude: Number(fav.latitude),
                 longitude: Number(fav.longitude),
                 endereco: fav.endereco
+              });
+            }}
+          />
+          
+          <RecentesDialog 
+            open={recentesOpen}
+            onOpenChange={setRecentesOpen}
+            onSelectRecente={(recente) => {
+              handleDestinationSelected({
+                latitude: Number(recente.latitude),
+                longitude: Number(recente.longitude),
+                endereco: recente.nome
               });
             }}
           />
@@ -962,5 +979,101 @@ function LandingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+function RecentesDialog({ 
+  open, 
+  onOpenChange, 
+  onSelectRecente 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+  onSelectRecente: (recente: { 
+    nome: string; 
+    latitude: number; 
+    longitude: number; 
+  }) => void; 
+}) {
+  const listarDestinosRecentesFn = useServerFn(listarDestinosRecentes);
+
+  const { data: recentes, isLoading, error } = useQuery({
+    queryKey: ["destinos-recentes-passageiro"],
+    queryFn: () => listarDestinosRecentesFn(),
+    enabled: open,
+    staleTime: 1000 * 60, // 1 minute
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[92vw] w-full sm:max-w-[400px] rounded-[2rem] border-white/10 bg-zuvvi-indigo-dark p-6 shadow-2xl overflow-hidden overscroll-none animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute inset-0 bg-black/[0.86] z-[-1]" />
+        
+        <DialogHeader className="mb-6">
+          <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <Clock className="w-5 h-5 text-zuvvi-volt" />
+            Destinos recentes
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground text-xs">
+            Escolha um destino usado recentemente.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[60vh] overflow-y-auto overscroll-contain pr-1 scrollbar-hide space-y-3">
+          {isLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center space-y-4 animate-pulse">
+              <Loader2 className="w-8 h-8 text-zuvvi-volt/40 animate-spin" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Carregando destinos...</p>
+            </div>
+          ) : error ? (
+            <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-500/60" />
+              </div>
+              <p className="text-sm font-medium text-white/60">Não foi possível carregar seus destinos recentes.</p>
+            </div>
+          ) : recentes && recentes.length > 0 ? (
+            recentes.map((recente, idx) => (
+              <button
+                key={`${recente.latitude}-${recente.longitude}-${idx}`}
+                onClick={() => {
+                  onSelectRecente(recente);
+                  onOpenChange(false);
+                }}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-left transition-all active:scale-[0.98] active:bg-white/10 hover:bg-white/[0.08] group min-h-[44px]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-zuvvi-volt/10 transition-colors">
+                  <MapPin className="w-5 h-5 text-white/40 group-hover:text-zuvvi-volt transition-colors" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold truncate group-hover:text-zuvvi-volt transition-colors">
+                    {recente.nome}
+                  </p>
+                  <p className="text-[10px] text-white/30 font-medium uppercase tracking-wider mt-0.5">
+                    {new Date(recente.usadoEm).toLocaleDateString('pt-BR', { 
+                      day: '2-digit', 
+                      month: '2-digit',
+                      year: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-zuvvi-volt group-hover:translate-x-1 transition-all" />
+              </button>
+            ))
+          ) : (
+            <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                <Clock className="w-8 h-8 text-white/10" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white/80">Nenhum destino recente</h3>
+                <p className="text-xs text-white/40 max-w-[200px] mx-auto mt-1 leading-relaxed">
+                  Seus próximos destinos aparecerão aqui.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
