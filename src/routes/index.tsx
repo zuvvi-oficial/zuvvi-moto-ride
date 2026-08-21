@@ -488,10 +488,11 @@ function FavoritosDialog({
             <p className="text-sm font-medium text-muted-foreground">Não foi possível carregar seus favoritos.</p>
             <button 
               onClick={() => refetch()}
-              className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors"
+              className="px-6 py-4 min-h-[44px] bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors"
             >
               TENTAR NOVAMENTE
             </button>
+
           </div>
         ) : mode === "list" ? (
           <div className="space-y-4">
