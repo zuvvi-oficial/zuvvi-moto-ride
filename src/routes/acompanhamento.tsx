@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { getMapboxToken, getAcompanhamentoPassageiro } from '@/lib/user.functions';
+import { supabase } from '@/integrations/supabase/client';
 import { Bike, Loader2, ChevronLeft, User, Star } from 'lucide-react';
 import { z } from 'zod';
 import { MapView } from '@/components/MapView';
