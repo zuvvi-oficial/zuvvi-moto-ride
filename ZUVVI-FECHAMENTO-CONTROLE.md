@@ -514,155 +514,17 @@ NÃO declarar implementado.
 ---
 
 
-## Reconciliação oficial do Sprint 2 — Baseline 21/08/2026
-
-### Estado operacional
-
-*   **Sprint 1:** ✅ FECHADO.
-*   **Sprint 2:** ⚠️ EM ANDAMENTO.
-*   **Implementação mais recente:** Microetapa 2.7-A — Modal Profissional de Cancelamento.
-*   **Principal bloqueador funcional:** GPS pós-aceite da corrida (o motorista deixa de transmitir localização após aceitar a corrida).
-*   **Interface:** A Home do Motorista ainda não possui mapa operacional da corrida.
-*   **Fluxo:** Os estados posteriores ao aceite (a caminho, chegou, em andamento) ainda não estão completamente fechados.
-*   **Passageiro:** O acompanhamento do passageiro existe, porém o rastreamento vivo completo (realtime GPS) ainda não está fechado.
-
-### Reconciliação do histórico de migrations
-
-Anteriormente, este documento registrava que as migrations:
-*   `20260819113539_fix_usuarios_auth_user_id_unique_constraint.sql`
-*   `20260819114735_complete_tipo_chave_pix_migration.sql`
-
-não existiam na branch `main`.
-
-**ATUALIZAÇÃO:** Esta divergência foi superada. Ambos os arquivos estão presentes em `supabase/migrations/`.
-
-**PRÓXIMO PASSO DE INFRAESTRUTURA:** Antes de qualquer nova migration de funcionalidade, deve ser executada uma etapa final de **RECONCILIAÇÃO DO HISTÓRICO DE MIGRATIONS GitHub × Supabase** para garantir paridade total e evitar novos drifts.
-
-### MICROETAPA 2.8 — GPS Pós-Aceite — ✅ FECHADA
-
-Comprovada funcionalmente em 21/08/2026.
-
-**Evidências comprovadas:**
-
-1. **Antes do aceite:**
-   - motorista `is_disponivel=true`;
-   - nenhuma corrida ativa;
-   - GPS atualizando normalmente.
-
-2. **Após o aceite:**
-   - corrida `status=aceita`;
-   - motorista `is_disponivel=false`;
-   - exatamente 1 corrida ativa;
-   - GPS continuou atualizando mesmo com `is_disponivel=false`.
-
-**Prova temporal:**
-- `data_aceite`: 21/08/2026 12:13:31 horário local;
-- `ultima_localizacao_at` posterior ao aceite: 21/08/2026 12:15:13 horário local.
-
-**Portanto:** GPS permaneceu transmitindo após o aceite.
-
-3. **Após cancelamento pelo motorista:**
-   - corrida `status=cancelada`;
-   - `cancelado_por=motorista`;
-   - motorista permaneceu offline;
-   - último GPS: 12:16:16;
-   - cancelamento: 12:16:24;
-   - após mais de 2 minutos o timestamp de GPS não avançou.
-
-**Portanto:** GPS parou corretamente quando não havia mais corrida ativa.
-
----
-
-## Bloqueadores Críticos Descobertos
-
-### PASSAGEIRO — CANCELAMENTO PÓS-ACEITE NÃO PROPAGADO — ⚠️ BLOQUEADOR
-Registrado em 21/08/2026 como PENDÊNCIA (não falha da 2.8).
-
-**Comportamento comprovado:**
-- motorista cancela corrida aceita;
-- banco registra corretamente `status=cancelada`;
-- tela do motorista fecha a corrida e permanece offline;
-- passageiro permanece na tela `/acompanhamento` exibindo o estado anterior da corrida.
-
-**Auditoria técnica:**
-`src/routes/acompanhamento.tsx` atualmente carrega a corrida somente na inicialização e não possui atualização Realtime/polling para mudanças posteriores do status. A tela também mantém o rótulo "Motorista Aceitou" de forma fixa.
-
-**Status:** ✅ RESOLVIDO (Microetapa 2.9).
-
-### MICROETAPA 2.9 — Cancelamento no Passageiro — ✅ FECHADA
-
-Comprovada funcionalmente em 21/08/2026.
-
-- Tela `/acompanhamento` reage em tempo real ao cancelamento da corrida.
-- Exibe overlay visual "Corrida cancelada" com motivo.
-- Redireciona para a Home após 1.8s.
-
----
-
-### Microetapa 3.0 — Mapa do Local de Embarque — ✅ FECHADA
-
-Implementação comprovada:
-
-- após o motorista aceitar a corrida, a Home Motorista exibe mapa Mapbox dentro do card da corrida ativa;
-- o mapa utiliza as coordenadas reais: corridas.origem_lat, corridas.origem_lng;
-- o marcador representa o local de embarque do passageiro;
-- MapView existente foi reutilizado sem alteração;
-- getMapboxToken existente foi reutilizado;
-- o mapa possui container com dimensão real para celular;
-- card de origem, destino, valor e pagamento foi preservado;
-- GPS pós-aceite da Microetapa 2.8 permaneceu intacto;
-- fluxo do passageiro permaneceu intacto;
-- nenhuma migration ou alteração Supabase foi necessária.
-
-TESTE MANUAL APROVADO EM 21/08/2026:
-
-Fluxo comprovado:
-Passageiro solicita corrida
-→ motorista recebe
-→ motorista aceita
-→ Home Motorista entra em estado EM CORRIDA
-→ seção LOCAL DE EMBARQUE aparece
-→ mapa Mapbox carrega corretamente
-→ marcador aparece no local de embarque.
-
-CONTRA-PROVA:
-
-GitHub final:
-13a44281a55df2257b57c3a32fdfccc106efbdb7
-
-Commit funcional da implementação:
-6bd1603cf7aab3ad0e2eb944580f8ad31e64f606
-
-Supabase:
-42 migrations
-última migration:
-20260820183150
-
-MICROETAPA 3.0 — ✅ FECHADA
-
----
-
-## Status final consolidado
+## Status final
 
 **SPRINT 0 — ✅ CONCLUÍDO**
 
 **SPRINT 1 — ✅ CONCLUÍDO E COMPROVADO PONTA A PONTA**
 
-**SPRINT 2 — ⚠️ EM ANDAMENTO**
+**FECHAMENTO FUNCIONAL:** 21/08/2026
+**Último commit funcional de referência:** f9d6f092ff5ad939cdfc39832e598aa6763a9500
 
-**CORE CONGELADO:**
-- mapa do embarque do motorista;
-- origem_lat/origem_lng no activeRide;
-- MapView utilizado nessa tela;
-- getMapboxToken utilizado nessa tela;
-- GPS pós-aceite já aprovado.
+---
 
-**FECHAMENTO FUNCIONAL ATUAL:** 21/08/2026
-**BASELINE GITHUB:** f9d6f092ff5ad939cdfc39832e598aa6763a9500
-
-**PRÓXIMA MICROETAPA PLANEJADA:**
-
-Microetapa 3.1 — Posição do motorista + rota até o local de embarque.
 
 ## Favoritos do Passageiro — ✅ FECHADO E CONGELADO
 
