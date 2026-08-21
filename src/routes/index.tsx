@@ -303,24 +303,14 @@ function HomePassageiro({ nome }: { nome: string }) {
               <DestinoSearch 
                 location={isManualOrigin ? manualLocation : location} 
                 onSelect={(dest) => {
-                  const currentOrigin = isManualOrigin ? manualLocation : location;
-                  const currentOriginName = isManualOrigin ? manualAddress : originAddress;
-                  
-                  if (currentOrigin && currentOriginName) {
-                    navigate({
-                      to: '/confirmar-corrida',
-                      search: {
-                        originLat: currentOrigin.lat,
-                        originLng: currentOrigin.lng,
-                        destLat: dest.center[1],
-                        destLng: dest.center[0],
-                        destName: dest.place_name.split(',')[0],
-                        originName: currentOriginName.split(',')[0] + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
-                      }
-                    });
-                  }
+                  handleDestinationSelected({
+                    latitude: dest.center[1],
+                    longitude: dest.center[0],
+                    endereco: dest.place_name
+                  });
                 }}
               />
+
               
               <div className="grid grid-cols-2 gap-3 pb-4">
                 <button 
