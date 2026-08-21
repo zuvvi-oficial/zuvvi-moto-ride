@@ -180,6 +180,93 @@ export type Database = {
           },
         ]
       }
+      chat_mensagens: {
+        Row: {
+          client_message_id: string
+          conteudo: string
+          corrida_id: string
+          created_at: string
+          entregue_at: string | null
+          id: string
+          lido_at: string | null
+          remetente_id: string
+        }
+        Insert: {
+          client_message_id: string
+          conteudo: string
+          corrida_id: string
+          created_at?: string
+          entregue_at?: string | null
+          id?: string
+          lido_at?: string | null
+          remetente_id: string
+        }
+        Update: {
+          client_message_id?: string
+          conteudo?: string
+          corrida_id?: string
+          created_at?: string
+          entregue_at?: string | null
+          id?: string
+          lido_at?: string | null
+          remetente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_mensagens_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: false
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_mensagens_remetente_id_fkey"
+            columns: ["remetente_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_presenca: {
+        Row: {
+          corrida_id: string
+          digitando_ate: string | null
+          ultimo_visto_at: string
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          corrida_id: string
+          digitando_ate?: string | null
+          ultimo_visto_at?: string
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          corrida_id?: string
+          digitando_ate?: string | null
+          ultimo_visto_at?: string
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_presenca_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: false
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_presenca_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cidades: {
         Row: {
           bandeirada: number
