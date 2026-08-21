@@ -415,6 +415,10 @@ function HomeMotorista() {
   // Cleanup quando activeRide deixa de existir
   useEffect(() => {
     if (!activeRide) {
+      if (routeAbortRef.current) {
+        routeAbortRef.current.abort();
+        routeAbortRef.current = null;
+      }
       if (driverMarkerRef.current) {
         driverMarkerRef.current.remove();
         driverMarkerRef.current = null;
@@ -429,6 +433,7 @@ function HomeMotorista() {
       routeFittedRideRef.current = null;
       lastRouteCoordsRef.current = null;
       setRouteError(null);
+      setIsPickupMapReady(false);
     }
   }, [activeRide]);
 
