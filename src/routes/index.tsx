@@ -393,6 +393,37 @@ function FavoritosDialog({
     longitude: number;
   } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [viewportOffsetTop, setViewportOffsetTop] = useState<number | null>(null);
+
+  useEffect(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    if (!open || mode !== "add" || !isMobile || typeof window === 'undefined' || !window.visualViewport) {
+      if (!open) {
+        setViewportHeight(null);
+        setViewportOffsetTop(null);
+      }
+      return;
+    }
+
+    const syncViewport = () => {
+      if (window.visualViewport) {
+        setViewportHeight(window.visualViewport.height);
+        setViewportOffsetTop(window.visualViewport.offsetTop);
+      }
+    };
+
+    const viewport = window.visualViewport;
+    viewport.addEventListener('resize', syncViewport);
+    viewport.addEventListener('scroll', syncViewport);
+    syncViewport();
+
+    return () => {
+      viewport.removeEventListener('resize', syncViewport);
+      viewport.removeEventListener('scroll', syncViewport);
+    };
+  }, [open, mode]);
+
 
   const listarFavoritosFn = useServerFn(listarFavoritos);
   const criarFavoritoFn = useServerFn(criarFavorito);
