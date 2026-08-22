@@ -818,7 +818,7 @@ function HomeMotorista() {
         const targetLat = isEmAndamento ? Number(activeRide.destino_lat) : Number(activeRide.origem_lat);
         const targetLng = isEmAndamento ? Number(activeRide.destino_lng) : Number(activeRide.origem_lng);
 
-        if (isNaN(targetLat) || isNaN(targetLng)) return;
+        if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng)) return;
 
         const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${status.ultima_lng},${status.ultima_lat};${targetLng},${targetLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
 
@@ -853,12 +853,13 @@ function HomeMotorista() {
               });
             }
 
-            // 6. Enquadramento fitBounds (uma vez por rideId)
-            if (routeFittedRideRef.current !== activeRide.id) {
+            // 6. Enquadramento fitBounds (baseado em status e ID)
+            const fitKey = `${activeRide.id}:${activeRide.status === "em_andamento" ? "destination" : "pickup"}`;
+            if (routeFittedRideRef.current !== fitKey) {
               const bounds = new mapboxgl.LngLatBounds();
               route.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
               map.fitBounds(bounds, { padding: 40, duration: 2000 });
-              routeFittedRideRef.current = activeRide.id;
+              routeFittedRideRef.current = fitKey;
             }
 
             lastRouteCoordsRef.current = { dLat: dLat!, dLng: dLng!, pLat: pLat!, pLng: pLng! };
@@ -1342,6 +1343,61 @@ function HomeMotorista() {
           </div>
         )}
       </main>
+
+      {showFinalizeConfirmation && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-zuvvi-indigo/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-zuvvi-indigo border border-white/10 rounded-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-8 duration-500 space-y-8">
+            <div className="flex justify-center">
+              <div className="w-20 h-20 bg-zuvvi-volt/10 rounded-full flex items-center justify-center border border-zuvvi-volt/20">
+                <CheckCircle2 className="w-10 h-10 text-zuvvi-volt" />
+              </div>
+            </div>
+            
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+                FINALIZAR CORRIDA?
+              </h2>
+              <p className="text-sm text-white/60">
+                Confirme somente após chegar ao destino do passageiro.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => setShowFinalizeConfirmation(false)}
+                disabled={!!processingRideId}
+                className="py-5 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+              >
+                VOLTAR
+              </button>
+              <button
+                onClick={async () => {
+                  if (!activeRide?.id || processingRideId) return;
+                  setProcessingRideId(activeRide.id);
+                  try {
+                    await finalizarCorridaFn({ data: { rideId: activeRide.id } });
+                    setShowFinalizeConfirmation(false);
+                    toast.success("Corrida finalizada!");
+                    queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
+                  } catch (err: any) {
+                    toast.error(err.message || "Erro ao finalizar corrida.");
+                  } finally {
+                    setProcessingRideId(null);
+                  }
+                }}
+                disabled={!!processingRideId}
+                className="py-5 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {processingRideId === activeRide?.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "SIM, FINALIZAR"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <nav className="fixed bottom-0 left-0 right-0 p-6 z-50 pointer-events-none">
         <div className="max-w-md mx-auto bg-zuvvi-indigo/80 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 flex items-center justify-around pointer-events-auto shadow-2xl">
