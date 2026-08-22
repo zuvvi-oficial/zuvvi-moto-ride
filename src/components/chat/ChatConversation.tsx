@@ -173,7 +173,7 @@ export function ChatConversation({
   const formatStatus = () => {
     if (!presenca) return "Disponível no chat";
 
-    const agora = new Date();
+    const agora = now;
     const digitandoAte = presenca.digitandoAte ? new Date(presenca.digitandoAte) : null;
     if (digitandoAte && digitandoAte > agora) {
       return <span className="text-primary font-medium animate-pulse">Escrevendo...</span>;
