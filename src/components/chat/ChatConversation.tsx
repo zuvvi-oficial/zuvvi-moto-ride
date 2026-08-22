@@ -333,7 +333,7 @@ export function ChatConversation({
           <div className="flex items-center justify-center p-2 mb-2 bg-destructive/10 text-destructive text-[11px] rounded-lg animate-in fade-in slide-in-from-top-2">
             Falha na sincronização.
             {onRetry && (
-             <button 
+              <button
                 onClick={async () => {
                   setRetrying(true);
                   try {
