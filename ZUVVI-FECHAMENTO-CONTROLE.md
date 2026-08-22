@@ -1026,6 +1026,15 @@ Permanecem pendentes:
 - Tratamento amigável do erro 23505 (unique violation) no frontend reservado para a Microetapa 3.8-B2-B.
 - Timeout automático ainda NÃO implementado.
 
+### MICROETAPA 3.8-B2-B — Tratamento amigável da violação atômica — ✅ IMPLEMENTADA — CONTRA-PROVA PENDENTE
+- 23505 tratado somente para idx_corridas_passageiro_aberta_unique;
+- mesma mensagem da 3.8-A;
+- demais erros continuam genéricos;
+- nenhum banco alterado;
+- nenhuma migration;
+- pagamento intacto;
+- timeout ainda não implementado.
+
 ### Próxima microetapa oficial
 Sprint 3 — Auditoria e Finalização de Bloqueadores Financeiros.
 
