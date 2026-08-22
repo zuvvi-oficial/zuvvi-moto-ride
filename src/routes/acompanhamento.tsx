@@ -48,6 +48,7 @@ interface ChatData {
     digitandoAte: string | null;
   } | null;
   podeEnviar: boolean;
+  naoLidas?: number;
 }
 
 function AcompanhamentoCorrida() {
