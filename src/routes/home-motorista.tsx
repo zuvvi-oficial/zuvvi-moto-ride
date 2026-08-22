@@ -289,15 +289,6 @@ function HomeMotorista() {
 
     void startRealtime();
 
-    const heartbeatInterval = setInterval(() => {
-      if (cancelled) return;
-      void atualizarPresencaFn({
-        data: {
-          corridaId: corridaId,
-          digitando: digitandoRef.current,
-        },
-      }).catch(() => {});
-    }, 20000);
 
     const safetySyncInterval = setInterval(() => {
       if (
