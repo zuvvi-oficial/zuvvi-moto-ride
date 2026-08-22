@@ -310,7 +310,7 @@ function HomeMotorista() {
 
     return () => {
       cancelled = true;
-      clearInterval(heartbeatInterval);
+      
       clearInterval(safetySyncInterval);
       if (chatChannel) {
         void supabase.removeChannel(chatChannel);
