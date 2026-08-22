@@ -137,42 +137,55 @@ function AcompanhamentoCorrida() {
   useEffect(() => {
     if (!rideId) return;
 
-    const channel = supabase
-      .channel(`acompanhamento-${rideId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "corridas",
-          filter: `id=eq.${rideId}`,
-        },
-        (payload: { new: { status: string; cancelado_por?: string } }) => {
-          if (payload.new?.status === "cancelada" && !hasHandledCancellation.current) {
-            hasHandledCancellation.current = true;
+    let channel: any;
 
-            const isMotorista = payload.new?.cancelado_por === "motorista";
-            setCancellationNotice({
-              title: "Corrida cancelada",
-              message: isMotorista
-                ? "O motorista cancelou a corrida."
-                : "Esta corrida foi cancelada.",
-            });
+    async function setupRealtime() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
 
-            cancellationRedirectTimeoutRef.current = setTimeout(() => {
-              void navigate({ to: "/" });
-            }, 1800);
-          } else if (payload.new?.status === "motorista_a_caminho") {
-            setCorrida((current) =>
-              current ? { ...current, status: "motorista_a_caminho" } : current,
-            );
-          }
-        },
-      )
-      .subscribe();
+      channel = supabase
+        .channel(`acompanhamento-${rideId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "corridas",
+            filter: `id=eq.${rideId}`,
+          },
+          (payload: { new: { status: string; cancelado_por?: string } }) => {
+            if (payload.new?.status === "cancelada" && !hasHandledCancellation.current) {
+              hasHandledCancellation.current = true;
+
+              const isMotorista = payload.new?.cancelado_por === "motorista";
+              setCancellationNotice({
+                title: "Corrida cancelada",
+                message: isMotorista
+                  ? "O motorista cancelou a corrida."
+                  : "Esta corrida foi cancelada.",
+              });
+
+              cancellationRedirectTimeoutRef.current = setTimeout(() => {
+                void navigate({ to: "/" });
+              }, 1800);
+            } else if (payload.new?.status === "motorista_a_caminho") {
+              setCorrida((current) =>
+                current ? { ...current, status: "motorista_a_caminho" } : current,
+              );
+            }
+          },
+        )
+        .subscribe();
+    }
+
+    setupRealtime();
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
       if (cancellationRedirectTimeoutRef.current) {
         clearTimeout(cancellationRedirectTimeoutRef.current);
       }
