@@ -95,9 +95,32 @@ export function ChatConversation({
 
     return () => {
       clearInterval(interval);
+      // O cleanup de false é tratado explicitamente nos eventos (blur, send, inactivity)
+      // Mas garantimos aqui também para segurança no unmount
       onDigitandoChangeRef.current?.(false);
     };
   }, [open, isLocalDigitando]);
+
+  // Cleanup de timers no fechamento/unmount
+  React.useEffect(() => {
+    return () => {
+      if (typingIdleTimeoutRef.current) {
+        clearTimeout(typingIdleTimeoutRef.current);
+        typingIdleTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) {
+      if (typingIdleTimeoutRef.current) {
+        clearTimeout(typingIdleTimeoutRef.current);
+        typingIdleTimeoutRef.current = null;
+      }
+      setIsLocalDigitando(false);
+      onDigitandoChangeRef.current?.(false);
+    }
+  }, [open]);
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
