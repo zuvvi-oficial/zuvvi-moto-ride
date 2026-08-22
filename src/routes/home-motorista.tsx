@@ -99,6 +99,14 @@ function HomeMotorista() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
+  
+  // Estado explícito para corrida finalizada
+  const [completedRideNotice, setCompletedRideNotice] = useState<{
+    id: string;
+    valorEstimado: number;
+    formaPagamento: string;
+    destinoNome: string;
+  } | null>(null);
 
   const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -907,28 +915,33 @@ function HomeMotorista() {
     };
   }, []);
 
-  // Cleanup quando activeRide deixa de existir
+  // Cleanup seguro quando activeRide deixa de existir
   useEffect(() => {
     if (!activeRide) {
+      // 1. Abortar rota em andamento
       if (routeAbortRef.current) {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
       }
+      // 2. Remover marcador com segurança
       if (driverMarkerRef.current) {
-        driverMarkerRef.current.remove();
+        try {
+          driverMarkerRef.current.remove();
+        } catch (e) {
+          // Ignorar se já removido ou falhar
+        }
         driverMarkerRef.current = null;
       }
-      const map = pickupMapInstance.current;
-      if (map) {
-        const sourceId = "zuvvi-driver-pickup-route-source";
-        const layerId = "zuvvi-driver-pickup-route-layer";
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
-      }
+      
+      // 3. Resetar referências operacionais
       routeFittedRideRef.current = null;
       lastRouteCoordsRef.current = null;
       setRouteError(null);
       setIsPickupMapReady(false);
+      
+      // 4. IMPORTANTE: Não tentar acessar layers/sources aqui 
+      // O componente MapView cuida do map.remove() que já limpa tudo.
+      // Apenas anulamos a referência da instância.
       pickupMapInstance.current = null;
     }
   }, [activeRide]);
@@ -1378,12 +1391,36 @@ function HomeMotorista() {
               <button
                 onClick={async () => {
                   if (!activeRide?.id || processingRideId) return;
+                  
+                  // Capturar dados para o notice antes da finalização
+                  const rideData = {
+                    id: activeRide.id,
+                    valorEstimado: Number(activeRide.valor_estimado),
+                    formaPagamento: activeRide.forma_pagamento,
+                    destinoNome: activeRide.destino_nome || "Destino",
+                  };
+
                   setProcessingRideId(activeRide.id);
                   try {
+                    // 1. Backend
                     await finalizarCorridaFn({ data: { rideId: activeRide.id } });
+                    
+                    // 2. Fechar modal
                     setShowFinalizeConfirmation(false);
-                    toast.success("Corrida finalizada!");
-                    queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
+                    
+                    // 3. Sucesso visual desacoplado
+                    setCompletedRideNotice(rideData);
+                    
+                    // 4. Limpar estados locais de chat para a corrida encerrada
+                    setChatOpen(false);
+                    chatOpenRef.current = false;
+                    setChatData(null);
+                    setChatUnreadCount(0);
+                    
+                    // 5. Invalidação best-effort (não derruba a página)
+                    void queryClient.invalidateQueries({ queryKey: ["motorista-status"] })
+                      .catch(err => console.error("Erro ao sincronizar status pós-finalização:", err));
+                    
                   } catch (err: any) {
                     toast.error(err.message || "Erro ao finalizar corrida.");
                   } finally {
@@ -1400,6 +1437,68 @@ function HomeMotorista() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {completedRideNotice && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-zuvvi-indigo/95 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-sm bg-zuvvi-indigo border border-white/10 rounded-[2.5rem] p-8 space-y-8 shadow-2xl animate-in zoom-in-95 duration-500">
+            <div className="flex flex-col items-center text-center space-y-6">
+              <div className="w-24 h-24 rounded-[2.5rem] bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20">
+                <CheckCircle2 className="w-12 h-12 text-zuvvi-volt" />
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+                  CORRIDA FINALIZADA
+                </h2>
+                <p className="text-sm text-white/40">
+                  Corrida concluída com sucesso.
+                </p>
+              </div>
+
+              <div className="w-full bg-white/5 rounded-3xl p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Valor da corrida</span>
+                  <span className="text-xl font-black text-zuvvi-volt">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                      completedRideNotice.valorEstimado
+                    )}
+                  </span>
+                </div>
+                
+                <div className="h-px bg-white/5 w-full" />
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Pagamento</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white">
+                    {completedRideNotice.formaPagamento}
+                  </span>
+                </div>
+
+                <div className="h-px bg-white/5 w-full" />
+
+                <div className="space-y-1 text-left">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-white/40">Destino</span>
+                  <p className="text-[10px] font-bold text-white line-clamp-1">{completedRideNotice.destinoNome}</p>
+                </div>
+              </div>
+
+              <div className="bg-zuvvi-indigo border border-white/5 rounded-2xl p-4 w-full">
+                <p className="text-[10px] text-white/60 leading-relaxed font-medium">
+                  Você está <span className="text-white font-bold">OFFLINE</span>.<br/>
+                  Fique online quando quiser receber novas corridas.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setCompletedRideNotice(null)}
+              className="w-full py-5 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-zuvvi-volt/10"
+            >
+              VOLTAR À HOME
+            </button>
           </div>
         </div>
       )}
