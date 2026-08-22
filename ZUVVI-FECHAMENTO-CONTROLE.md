@@ -417,23 +417,11 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - 13 registros legados identificados e saneados (solicitada → sem_motorista).
 - 0 legadas em solicitada; 13 em sem_motorista.
 - Pagamentos intactos.
-- Migration count: 56.
+- Migration count: 50.
 - Latest migration: 20260822044703_4c09eb6a-631d-415e-949a-19286faeaccd.sql.
 - Hash GitHub: f7122f5a487ca5ca96766eaffe2ea9a959e801d5
 - B2 ainda NÃO implementada.
 - Timeout ainda NÃO implementado.
-
-
-
-
-### MICROCORREÇÃO 3.8-A1 — Trava síncrona client-side contra duplo envio — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
-- `useRef` (createInFlightRef) usado como lock imediato para ignorar cliques concorrentes antes do re-render do React;
-- `isCreating` preservado exclusivamente para controle visual de UI (loading states);
-- Nenhuma alteração no arquivo `src/lib/user.functions.ts` (servidor intacto);
-- Nenhuma migration de banco de dados;
-- Core operacional (motorista, GPS, Realtime) congelado;
-- Bloqueio funcional server-side (3.8-A) mantido como segunda camada;
-- Unicidade atômica de banco (transacional) continua reservada à microetapa 3.8-B.
 
 
 ### MICROETAPA 3.8-A — Bloqueio funcional de solicitação duplicada — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
@@ -1054,5 +1042,3 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 **OBSERVAÇÃO PARA O FUTURO:** MATRIZ DE CANCELAMENTO PENDENTE: quando os estados em_andamento e concluida forem implementados, a matriz de estados canceláveis do motorista E do passageiro deverá ser revisada em microetapa própria. A falha G1 (passageiro cancela sem filtro de status) permanece ABERTA e NÃO foi tocada nesta etapa.
 
 **STATUS:** ABERTOS. Não corrigir nenhum deles nesta etapa.
-
-
