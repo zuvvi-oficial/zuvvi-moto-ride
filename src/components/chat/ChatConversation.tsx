@@ -66,6 +66,7 @@ export function ChatConversation({
   const [draft, setDraft] = React.useState("");
   const [isLocalDigitando, setIsLocalDigitando] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const typingIdleTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const [showScrollBottom, setShowScrollBottom] = React.useState(false);
   const [now, setNow] = React.useState(new Date());
   const [retrying, setRetrying] = React.useState(false);
