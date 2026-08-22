@@ -272,6 +272,19 @@ export const criarCorrida = createServerFn({ method: "POST" })
 
     if (insertError) {
       console.error("Erro ao inserir corrida:", insertError);
+      
+      // [3.8-B2-B] — TRATAMENTO AMIGÁVEL DA COLISÃO ATÔMICA
+      // Se for violação de unicidade (23505) no índice de corrida aberta do passageiro
+      const isUniqueViolation = insertError.code === "23505";
+      const isRideUniqueIndex = 
+        insertError.message?.includes("idx_corridas_passageiro_aberta_unique") ||
+        (insertError as any).details?.includes("idx_corridas_passageiro_aberta_unique") ||
+        (insertError as any).hint?.includes("idx_corridas_passageiro_aberta_unique");
+
+      if (isUniqueViolation && isRideUniqueIndex) {
+        throw new Error("Você já possui uma corrida em andamento ou aguardando motorista.");
+      }
+
       throw new Error("Falha ao registrar a corrida no sistema.");
     }
 
