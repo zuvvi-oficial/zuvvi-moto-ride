@@ -188,7 +188,9 @@ function AcompanhamentoCorrida() {
       await marcarLidasFn({ data: { corridaId: rideId } });
 
       const atualizado = await carregarChatFn({ data: { corridaId: rideId } });
-      setChatData(atualizado as ChatData);
+      const data = atualizado as ChatData;
+      setChatData(data);
+      setChatUnreadCount(data.naoLidas ?? 0);
       setChatError(null);
     } catch {
       setChatError("Não foi possível carregar o chat.");
@@ -196,6 +198,30 @@ function AcompanhamentoCorrida() {
       setChatLoading(false);
     }
   }, [rideId, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
+
+  const syncChatFechado = React.useCallback(async () => {
+    if (!rideId || chatOpenRef.current) return;
+
+    if (chatClosedSyncInFlightRef.current) {
+      chatClosedSyncPendingRef.current = true;
+      return;
+    }
+
+    chatClosedSyncInFlightRef.current = true;
+    try {
+      do {
+        chatClosedSyncPendingRef.current = false;
+        await marcarEntreguesFn({ data: { corridaId: rideId } });
+        const res = await carregarChatFn({ data: { corridaId: rideId } });
+        const data = res as ChatData;
+        setChatUnreadCount(data.naoLidas ?? 0);
+      } while (chatClosedSyncPendingRef.current && !chatOpenRef.current);
+    } catch {
+      // Best effort
+    } finally {
+      chatClosedSyncInFlightRef.current = false;
+    }
+  }, [rideId, carregarChatFn, marcarEntreguesFn]);
 
   useEffect(() => {
     if (!rideId) return undefined;
