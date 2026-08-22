@@ -185,7 +185,7 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
         .from("corridas")
         .select("id")
         .eq("motorista_id", motoristaInfo.id)
-        .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou', 'em_andamento']);
+        .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou']);
 
       if (rideError) throw new Error("Erro ao validar estado da corrida.");
       
@@ -1129,11 +1129,12 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
 
 export const finalizarCorrida = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .validator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const authUserId = context.userId;
 
+    // 1. Localizar o perfil do motorista
     const { data: user, error: userError } = await supabaseAdmin
       .from("usuarios")
       .select("id, is_motorista")
@@ -1144,27 +1145,49 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
     if (!user.is_motorista) throw new Error("Acesso restrito a motoristas.");
     const motoristaId = user.id;
 
-    const { data: corrida, error: updateError } = await supabaseAdmin
+    // 2. Buscar a corrida para validar estado e obter valor_estimado
+    const { data: rideCheck, error: fetchError } = await supabaseAdmin
+      .from("corridas")
+      .select("id, motorista_id, status, data_inicio, valor_estimado")
+      .eq("id", data.rideId)
+      .eq("motorista_id", motoristaId)
+      .maybeSingle();
+
+    if (fetchError) throw new Error("Erro ao validar dados da corrida.");
+    if (!rideCheck) throw new Error("Corrida não encontrada ou não pertence a você.");
+
+    // Validar status e data_inicio
+    if (rideCheck.status !== "em_andamento") {
+      throw new Error(`Status inválido para finalização: ${rideCheck.status}`);
+    }
+    if (!rideCheck.data_inicio) {
+      throw new Error("A corrida não pode ser finalizada sem uma data de início.");
+    }
+
+    const valorFinal = Number(rideCheck.valor_estimado);
+
+    // 3. Executar update condicionado
+    const { data: updatedCorrida, error: updateError } = await supabaseAdmin
       .from("corridas")
       .update({
         status: 'concluida',
         data_finalizacao: new Date().toISOString(),
-        valor_final: supabaseAdmin.raw('valor_estimado')
+        valor_final: valorFinal
       } as any)
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
       .eq("status", 'em_andamento')
       .not("data_inicio", "is", null)
-      .select()
+      .select('id, status')
       .maybeSingle();
 
     if (updateError) {
       console.error("Erro ao finalizar corrida:", updateError);
-      throw new Error("Falha ao finalizar a corrida no servidor.");
+      throw new Error("Falha ao gravar conclusão da corrida.");
     }
 
-    if (!corrida) {
-      throw new Error("Não foi possível finalizar esta corrida. Verifique se ela ainda está em andamento.");
+    if (!updatedCorrida) {
+      throw new Error("Não foi possível finalizar. A corrida pode ter sido alterada por outro processo.");
     }
 
     return { success: true };
