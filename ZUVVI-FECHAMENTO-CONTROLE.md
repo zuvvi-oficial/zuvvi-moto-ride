@@ -908,7 +908,9 @@ Permanecem pendentes:
 - **ALERTA**: Esta liberação é temporária e PRECISA ser revertida antes do piloto real em Jacarezinho. Adicionado ao "Checklist Pré-Produção".
 - Arquivos tocados: `src/lib/motorista.functions.ts`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
 
-### Microetapa 3.6-D — Passageiro: Motorista Chegou + Código de Embarque — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+### Microetapa 3.6-D — FECHADA / COMPROVADA PONTA A PONTA
+- Prova: motorista_chegou → código → em_andamento.
+- Validação server-side do código e Realtime confirmados.
 - Implementada entrega segura do `codigo_embarque` via server-side `getAcompanhamentoPassageiro` estritamente no status `motorista_chegou`.
 - Atualizado Realtime do passageiro para reagir aos estados `motorista_chegou` e `em_andamento` com sincronização server-side garantida.
 - Cabeçalho de acompanhamento atualizado com estados explícitos: MOTORISTA A CAMINHO, MOTORISTA CHEGOU, CORRIDA EM ANDAMENTO.
@@ -934,9 +936,20 @@ Permanecem pendentes:
 - Preservadas as proteções de race condition, regex de código de embarque e fail-safes visuais da etapa anterior.
 - Resultado: Carregamento mais resiliente e sem risco de spinner infinito por falhas colaterais.
 
-### Próxima microetapa oficial
+### Microetapa 3.7 — Viagem ao destino e conclusão — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- Implementada a transição `em_andamento` → `concluida`.
+- A Home do Motorista agora reconhece o estado `em_andamento` e altera a rota do mapa para o destino final.
+- Botão "FINALIZAR CORRIDA" adicionado com modal de confirmação.
+- Server function `finalizarCorrida` implementada com travas de ownership, status e data_inicio.
+- Regra `valor_final = valor_estimado` aplicada no servidor (sem recalcular tarifa).
+- Reversão da exceção temporária 3.6-C: cancelamento do motorista não é mais permitido em `em_andamento`.
+- O motorista permanece OFFLINE após a conclusão.
+- O passageiro recebe o status `concluida` via Realtime e visualiza a tela de encerramento.
+- Pagamentos permanecem intactos (fluxo financeiro separado).
+- Nenhuma migration criada.
 
-Próxima microetapa oficial: 3.7 — Conclusão da corrida (em_andamento → concluida)
+### Próxima microetapa oficial
+Sprint 3 — Auditoria e Finalização de Bloqueadores Financeiros.
 
 
 

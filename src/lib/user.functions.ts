@@ -438,7 +438,8 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
       "aceita",
       "motorista_a_caminho",
       "motorista_chegou",
-      "em_andamento"
+      "em_andamento",
+      "concluida"
     ];
 
     // Status deve estar entre os autorizados
