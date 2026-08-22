@@ -4,7 +4,10 @@ import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 
+const RIDE_SEARCH_TIMEOUT_MS = 120_000;
+
 type UserRow = Database["public"]["Tables"]["usuarios"]["Row"];
+
 type MotoristaRow = Database["public"]["Tables"]["motoristas"]["Row"];
 
 export type UserWithMotorista = UserRow & {
@@ -170,7 +173,18 @@ export const criarCorrida = createServerFn({ method: "POST" })
       throw new Error("Perfil de usuário não encontrado para criar corrida.");
     }
 
+    // [3.8-C1] — LIMPEZA SERVER-SIDE DE SOLICITAÇÃO VENCIDA DO PASSAGEIRO
+    const timeoutCutoff = new Date(Date.now() - RIDE_SEARCH_TIMEOUT_MS).toISOString();
+    await supabaseAdmin
+      .from("corridas")
+      .update({ status: 'sem_motorista' } as any)
+      .eq("passageiro_id", usuario.id)
+      .eq("status", "solicitada")
+      .is("motorista_id", null)
+      .lte("created_at", timeoutCutoff);
+
     // [3.8-A] — VERIFICAÇÃO DE CORRIDA ABERTA (SERVER-SIDE)
+
     // Impedir criação de nova corrida se já existir uma nos status bloqueadores.
     const statusBloqueadores: Database["public"]["Enums"]["corrida_status"][] = [
       'solicitada',
@@ -387,7 +401,68 @@ export const getReverseGeocoding = createServerFn({ method: "POST" })
     }
   });
 
+export const verificarTimeoutCorrida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    const { data: usuario, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle();
+
+    if (userError || !usuario) throw new Error("Usuário não encontrado");
+
+    const { data: corrida, error: rideError } = await supabaseAdmin
+      .from("corridas")
+      .select("id, status, motorista_id, created_at, passageiro_id")
+      .eq("id", data.rideId)
+      .maybeSingle();
+
+    if (rideError || !corrida) throw new Error("Corrida não encontrada");
+    if (corrida.passageiro_id !== usuario.id) throw new Error("Corrida não encontrada");
+
+    if (corrida.status !== "solicitada" || corrida.motorista_id !== null) {
+      return { expired: false, status: corrida.status };
+    }
+
+    const createdAt = new Date(corrida.created_at).getTime();
+    const now = Date.now();
+    const isExpired = (now - createdAt) >= RIDE_SEARCH_TIMEOUT_MS;
+
+    if (!isExpired) return { expired: false, status: corrida.status };
+
+    const cutoff = new Date(now - RIDE_SEARCH_TIMEOUT_MS).toISOString();
+    const { data: updatedRide, error: updateError } = await supabaseAdmin
+      .from("corridas")
+      .update({ status: "sem_motorista" } as any)
+      .eq("id", data.rideId)
+      .eq("passageiro_id", usuario.id)
+      .eq("status", "solicitada")
+      .is("motorista_id", null)
+      .lte("created_at", cutoff)
+      .select("status")
+      .maybeSingle();
+
+    if (updateError) throw new Error("Falha ao processar expiração.");
+
+    if (!updatedRide) {
+      const { data: finalRide } = await supabaseAdmin
+        .from("corridas")
+        .select("status")
+        .eq("id", data.rideId)
+        .maybeSingle();
+      return { expired: false, status: finalRide?.status || corrida.status };
+    }
+
+    return { expired: true, status: "sem_motorista" };
+  });
+
 export const cancelarCorrida = createServerFn({ method: "POST" })
+
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
