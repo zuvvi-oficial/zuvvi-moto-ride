@@ -452,9 +452,21 @@ Anteriormente, este documento registrava que as migrations:
 
 não existiam na branch `main`.
 
-**ATUALIZAÇÃO:** Esta divergência foi superada. Ambos os arquivos estão presentes em `supabase/migrations/`.
+**ATUALIZAÇÃO 21/08/2026:** O drift de migrations NÃO foi resolvido e permanece aberto.
+- GitHub: 55 arquivos em `supabase/migrations/`
+- Supabase: 49 versões em `supabase_migrations.schema_migrations`
+- última migration real no banco: 20260821224348
 
-**PRÓXIMO PASSO DE INFRAESTRUTURA:** Antes de qualquer nova migration de funcionalidade, deve ser executada uma etapa final de **RECONCILIAÇÃO DO HISTÓRICO DE MIGRATIONS GitHub × Supabase** para garantir paridade total e evitar novos drifts.
+Os 6 arquivos abaixo existem no GitHub e NÃO possuem registro no histórico do Supabase:
+1. 20240321000000_create_cidades.sql
+2. 20240321000001_create_usuarios.sql
+3. 20240818000000_full_cities_load.sql
+4. 20260818190000_consolidate_motorista_recusas.sql
+5. 20260818190500_ensure_realtime_corridas.sql
+6. 20260818231000_add_tipo_chave_pix.sql
+
+**STATUS: DRIFT AINDA ABERTO.** Reconstruir o banco do zero pelo GitHub pode não produzir o banco que está no ar. A reconciliação deve virar microetapa própria, futura, e NÃO faz parte desta.
+
 
 ### MICROETAPA 2.8 — GPS Pós-Aceite — ✅ FECHADA
 
@@ -710,13 +722,17 @@ FAVORITOS DO PASSAGEIRO:
 
 ### Supabase REAL
 
-- 15 tabelas públicas;
-- 45 migrations;
-- última migration: 20260821212540;
-- public.corridas está no Supabase Realtime;
-- nenhuma tabela de chat, mensagens ou conversas existe;
+Estado real auditado em 21/08/2026:
+- 17 tabelas públicas, todas com RLS ativo;
+- 31 policies;
+- 49 migrations aplicadas;
+- última migration: 20260821224348;
+- Realtime: corridas, chat_mensagens, chat_presenca;
+- Security Advisor: 1 único alerta, severidade baixa (proteção contra senha vazada desligada);
+- bucket documentos-motorista privado;
 - 0 corridas ativas no momento da auditoria;
 - enderecos_favoritos preservada.
+
 
 ### Estado atual do fluxo
 
@@ -800,23 +816,17 @@ permanece como fonte de detalhe.
 NÃO duplicar nem reescrever seus dados.
 
 ### Chat Passageiro ↔ Motorista
-❌ NÃO IMPLEMENTADO
+✅ IMPLEMENTADO
 
-Estado real:
+Estado real auditado no Supabase em 21/08/2026:
+- `public.chat_mensagens` existe, com RLS ativo, 22 registros;
+- `public.chat_presenca` existe, com RLS ativo, 8 registros;
+- ambas estão na publicação `supabase_realtime`;
+- migrations reais aplicadas: `20260821223450` (chat_foundation) e `20260821223540` (chat_search_path_hardening);
+- o chat já está integrado na Home do Motorista com Realtime, presença, "digitando", entregues/lidas e contador de não lidas.
 
-- nenhuma tabela de chat existe;
-- nenhuma estrutura de mensagens existe;
-- nenhuma presença de chat existe;
-- nenhum Realtime específico de chat existe;
-- /acompanhamento ainda contém "Em breve: Chat".
+**Status:** IMPLEMENTADO, com prova manual ponta a ponta ainda pendente.
 
-Próxima funcionalidade planejada:
-
-CHAT 1 —
-Banco + ownership + RLS + segurança + Realtime.
-
-Isto é planejamento.
-NÃO declarar implementado.
 
 ### Pendências do fluxo da corrida
 
@@ -859,5 +869,26 @@ CHAT 1 —
 Fundação de banco, ownership, RLS,
 segurança e Realtime.
 
-A implementação do Chat NÃO faz parte desta
-microcorreção documental.
+A implementação do Chat foi realizada, aguardando prova manual completa.
+
+## BLOQUEADORES ABERTOS PARA O PILOTO — auditoria 21/08/2026
+
+B1. A corrida não termina. Não existe botão CHEGUEI. Os estados motorista_chegou, em_andamento e concluida existem no enum e nenhum código os grava. O codigo_embarque é gerado em toda corrida e nunca é mostrado ao passageiro nem validado pelo motorista. Prova: 1 corrida presa em motorista_a_caminho, 1 concluída em 53.
+B2. Pagamento inexistente. Mercado Pago não está no código. 36 pagamentos, 100% no status pendente.
+B3. O passageiro não recebe a posição do motorista. getAcompanhamentoPassageiro não retorna ultima_lat / ultima_lng. Aviso de 500 metros não existe.
+B4. Avaliações: tabela vazia, nenhum código.
+B5. Notificações push e SMS não existem.
+B6. Corridas órfãs: 13 presas em "solicitada", sem timeout. Estados buscando_motorista e sem_motorista nunca usados.
+
+### FALHAS GRAVES ABERTAS
+
+G1. cancelarCorrida (passageiro) não filtra status — permite cancelar corrida em_andamento e até concluida.
+G2. Duas fórmulas de preço separadas (calcularValorCorrida e criarCorrida).
+G3. corridas não guarda distância, tempo nem tarifa aplicada.
+G4. getUploadUrl aceita qualquer arquivo, sem limite de tamanho nem verificação de imagem.
+G5. criarVeiculo derruba aprovação de veículo já aprovado.
+G6. Não existe trava de corrida ativa única para o passageiro.
+G7. codigo_embarque gerado com Math.random(), 4 dígitos.
+
+**STATUS:** ABERTOS. Não corrigir nenhum deles nesta etapa.
+
