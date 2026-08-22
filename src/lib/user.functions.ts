@@ -455,12 +455,16 @@ export const verificarTimeoutCorrida = createServerFn({ method: "POST" })
     if (updateError) throw new Error("Falha ao processar expiração.");
 
     if (!updatedRide) {
-      const { data: finalRide } = await supabaseAdmin
+      const { data: finalRide, error: finalError } = await supabaseAdmin
         .from("corridas")
         .select("status")
         .eq("id", data.rideId)
         .maybeSingle();
-      return { expired: false, status: finalRide?.status || corrida.status };
+
+      if (finalError) throw new Error("Falha ao consultar estado da corrida.");
+      if (!finalRide) throw new Error("Corrida não encontrada");
+
+      return { expired: false, status: finalRide.status };
     }
 
     return { expired: true, status: "sem_motorista" };
