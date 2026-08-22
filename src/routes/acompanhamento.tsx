@@ -60,6 +60,10 @@ function AcompanhamentoCorrida() {
     origem_lng: number;
     codigo_embarque?: string | null;
   } | null>(null);
+  const [rideSyncing, setRideSyncing] = useState(false);
+  const [rideSyncError, setRideSyncError] = useState(false);
+  const syncCounterRef = useRef(0);
+
   const [motorista, setMotorista] = useState<{
     id?: string;
     nome: string;
@@ -108,32 +112,57 @@ function AcompanhamentoCorrida() {
     setChatOpen(open);
   };
 
-  useEffect(() => {
-    async function init() {
-      try {
-        const [data, token] = await Promise.all([
-          getAcompanhamentoFn({ data: { rideId } }),
-          getMapboxTokenFn(),
-        ]);
+  const syncRide = React.useCallback(
+    async (showLoading = false) => {
+      const currentGen = ++syncCounterRef.current;
+      if (showLoading) setRideSyncing(true);
+      setRideSyncError(false);
 
-        setCorrida(data.ride);
-        setMotorista(data.driver);
-        setVeiculo(data.vehicle);
-        setMapboxToken(token);
+      try {
+        const data = await getAcompanhamentoFn({ data: { rideId } });
+
+        // Proteção contra resposta antiga sobrescrevendo estado novo
+        if (currentGen < syncCounterRef.current) return;
+
+        if (data.ride) {
+          setCorrida(data.ride);
+          setMotorista(data.driver);
+          setVeiculo(data.vehicle);
+        }
 
         if (!data.handoffAvailable) {
           toast.error("Acompanhamento ainda não disponível para esta corrida.");
           void navigate({ to: "/" });
         }
-      } catch {
-        toast.error("Não foi possível carregar os dados do acompanhamento.");
-        void navigate({ to: "/" });
+      } catch (err) {
+        if (currentGen < syncCounterRef.current) return;
+        console.error("Erro ao sincronizar corrida:", err);
+        setRideSyncError(true);
+        toast.error("Erro ao atualizar dados da corrida.");
       } finally {
+        if (currentGen === syncCounterRef.current) {
+          if (showLoading) setRideSyncing(false);
+          setIsLoading(false);
+        }
+      }
+    },
+    [rideId, getAcompanhamentoFn, navigate],
+  );
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const token = await getMapboxTokenFn();
+        setMapboxToken(token);
+        await syncRide();
+      } catch {
+        toast.error("Não foi possível carregar o mapa.");
         setIsLoading(false);
       }
     }
     void init();
-  }, [rideId, getAcompanhamentoFn, getMapboxTokenFn, navigate]);
+  }, [getMapboxTokenFn, syncRide]);
+
 
   useEffect(() => {
     if (!rideId) return;
@@ -171,17 +200,15 @@ function AcompanhamentoCorrida() {
               cancellationRedirectTimeoutRef.current = setTimeout(() => {
                 void navigate({ to: "/" });
               }, 1800);
-            } else if (payload.new?.status === "motorista_a_caminho" || 
-                       payload.new?.status === "motorista_chegou" || 
-                       payload.new?.status === "em_andamento") {
-              // Quando o status muda via Realtime, forçamos um refresh do server-side 
+            } else if (
+              payload.new?.status === "motorista_a_caminho" ||
+              payload.new?.status === "motorista_chegou" ||
+              payload.new?.status === "em_andamento"
+            ) {
+              // Quando o status muda via Realtime, forçamos um refresh do server-side
               // para garantir que recebemos o codigo_embarque ou limpamos ele corretamente
-              void getAcompanhamentoFn({ data: { rideId } }).then((data) => {
-                if (data.ride) {
-                  setCorrida(data.ride);
-                  setMotorista(data.driver);
-                  setVeiculo(data.vehicle);
-                }
+              void syncRide().catch(() => {
+                /* Erro já tratado no syncRide */
               });
             }
           },
@@ -419,13 +446,15 @@ function AcompanhamentoCorrida() {
         </button>
         <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
           <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">
-            {corrida.status === "motorista_a_caminho" 
-              ? "Motorista a Caminho" 
+            {corrida.status === "aceita"
+              ? "Motorista Aceitou"
+              : corrida.status === "motorista_a_caminho"
+              ? "Motorista a Caminho"
               : corrida.status === "motorista_chegou"
               ? "Motorista Chegou"
               : corrida.status === "em_andamento"
               ? "Corrida em Andamento"
-              : "Motorista Aceitou"}
+              : "Atualizando corrida"}
           </p>
         </div>
         <div className="w-12" />
