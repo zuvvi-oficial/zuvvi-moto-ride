@@ -58,6 +58,7 @@ function AcompanhamentoCorrida() {
     status: string;
     origem_lat: number;
     origem_lng: number;
+    codigo_embarque?: string | null;
   } | null>(null);
   const [motorista, setMotorista] = useState<{
     id?: string;
@@ -170,10 +171,18 @@ function AcompanhamentoCorrida() {
               cancellationRedirectTimeoutRef.current = setTimeout(() => {
                 void navigate({ to: "/" });
               }, 1800);
-            } else if (payload.new?.status === "motorista_a_caminho") {
-              setCorrida((current) =>
-                current ? { ...current, status: "motorista_a_caminho" } : current,
-              );
+            } else if (payload.new?.status === "motorista_a_caminho" || 
+                       payload.new?.status === "motorista_chegou" || 
+                       payload.new?.status === "em_andamento") {
+              // Quando o status muda via Realtime, forçamos um refresh do server-side 
+              // para garantir que recebemos o codigo_embarque ou limpamos ele corretamente
+              void getAcompanhamentoFn({ data: { rideId } }).then((data) => {
+                if (data.ride) {
+                  setCorrida(data.ride);
+                  setMotorista(data.driver);
+                  setVeiculo(data.vehicle);
+                }
+              });
             }
           },
         )
@@ -410,7 +419,13 @@ function AcompanhamentoCorrida() {
         </button>
         <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
           <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">
-            {corrida.status === "motorista_a_caminho" ? "Motorista a Caminho" : "Motorista Aceitou"}
+            {corrida.status === "motorista_a_caminho" 
+              ? "Motorista a Caminho" 
+              : corrida.status === "motorista_chegou"
+              ? "Motorista Chegou"
+              : corrida.status === "em_andamento"
+              ? "Corrida em Andamento"
+              : "Motorista Aceitou"}
           </p>
         </div>
         <div className="w-12" />
@@ -474,6 +489,35 @@ function AcompanhamentoCorrida() {
                 </p>
               </button>
             </div>
+            {corrida.status === "motorista_chegou" && corrida.codigo_embarque && (
+              <div className="pt-4 border-t border-white/5 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-zuvvi-volt/5 border border-zuvvi-volt/20 rounded-2xl p-4 text-center space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest">
+                      Motorista Chegou
+                    </p>
+                    <p className="text-[11px] text-white/70 font-medium">
+                      Seu código de embarque
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-center gap-2">
+                    {corrida.codigo_embarque.split("").map((digit, i) => (
+                      <div 
+                        key={i} 
+                        className="w-12 h-14 bg-zuvvi-indigo border border-white/10 rounded-xl flex items-center justify-center text-2xl font-black text-zuvvi-volt shadow-lg"
+                      >
+                        {digit}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] text-white/50 font-medium leading-tight">
+                    Informe este código ao motorista para iniciar a corrida.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

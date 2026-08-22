@@ -419,7 +419,8 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
         valor_estimado,
         forma_pagamento,
         passageiro_id,
-        motorista_id
+        motorista_id,
+        codigo_embarque
       `)
       .eq("id", data.rideId)
       .maybeSingle();
@@ -525,7 +526,8 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
         destino_lng: corrida.destino_lng,
         destino_nome: corrida.destino_nome,
         valor_estimado: corrida.valor_estimado,
-        forma_pagamento: corrida.forma_pagamento
+        forma_pagamento: corrida.forma_pagamento,
+        codigo_embarque: corrida.status === 'motorista_chegou' ? corrida.codigo_embarque : null
       },
       driver: driverInfo,
       vehicle: vehicleInfo,
