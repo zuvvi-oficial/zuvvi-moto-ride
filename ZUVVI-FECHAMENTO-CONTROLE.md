@@ -395,12 +395,25 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - `em_andamento`;
 - conclusão real da corrida.
 
-### MICROCORREÇÃO 3.7-C — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+### MICROCORREÇÃO 3.7-C — ✅ FECHADA
 - Adicionada validação `Number.isFinite(valorFinal)` server-side em `finalizarCorrida`.
 - Refatorada a detecção de mudança de rota para usar `phase` (pickup/destination) e `targetLat/Lng`.
 - O status `em_andamento` agora força a atualização do alvo da rota para o destino do passageiro.
-- `lastRouteCoordsRef` atualizado para conter a estrutura atômica de fase e alvo real.
-- Build verificado.
+- `lastRouteCoordsRef` updated to contain the atomic structure of phase and real target.
+- Build verified.
+- Commit funcional: `74cc66c1f715e21908221804b77f884a44b7d159`.
+
+### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- **Causa da falha identificada:** Double-cleanup no Mapbox. O cleanup pós-finalização da Home tentava remover layers/sources de uma instância que o MapView (proprietário do lifecycle) já estava destruindo via `map.remove()`.
+- **Ownership do lifecycle do mapa:** MapView permanece único responsável por `map.remove()`. O cleanup da Home foi refatorado para ser fail-safe e não tocar no mapa se ele estiver sendo desmontado.
+- **Desacoplamento de dados:** Criado estado `completedRideNotice` que captura os dados necessários antes da corrida ser removida do `active_ride`, garantindo feedback visual consistente.
+- **Fluxo de Sucesso do Motorista:** Implementado overlay Zuvvi completo após sucesso do backend, exibindo valor final, forma de pagamento e mensagem de status OFFLINE.
+- **Hardening Pós-Finalização:** Invalidação de cache (`invalidateQueries`) agora é best-effort e não bloqueante, impedindo que falhas de rede/sincronização pós-sucesso derrubem a aplicação.
+- **Estado do Chat:** Chat é encerrado visualmente e limpo imediatamente após a finalização do backend.
+- **Status do Motorista:** Confirmado que o motorista permanece OFFLINE após a conclusão.
+- **Contra-prova do teste anterior:** Backend concluiu corretamente; Supabase gravou `concluida`, `data_finalizacao` e `valor_final`. Falha era estritamente client-side.
+- Nenhuma migration ou alteração em banco/pagamentos realizada.
+- Build verificado com `bun run build`.
 
 ### MICROETAPA 3.7 — CONCLUSÃO DA CORRIDA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
 - `finalizarCorrida` server-side com validações de ownership, status e `data_inicio`.
