@@ -403,7 +403,27 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - Build verified.
 - Commit funcional: `74cc66c1f715e21908221804b77f884a44b7d159`.
 
-### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ FECHADA
+- Resolvido ErrorComponent global client-side após finalização.
+- Eliminado double-cleanup do Mapbox.
+- Feedback visual (overlay de sucesso) desacoplado da activeRide.
+- Motorista permanece OFFLINE após finalizar.
+
+### MICROETAPA 3.8-A — BLOQUEIO DE SOLICITAÇÃO DUPLICADA — ✅ IMPLEMENTADA
+- Proteção contra criação de nova corrida se já houver uma ativa.
+- Trava síncrona `createInFlightRef` no frontend.
+
+### MICROETAPA 3.8-B1 — SANEAMENTO CONTROLADO DAS SOLICITAÇÕES LEGADAS — ✅ IMPLEMENTADA — CONTRA-PROVA PENDENTE
+- 13 registros legados identificados (solicitada, motorista_id IS NULL, criadas em 18/08/2026).
+- Mudança realizada: `solicitada` -> `sem_motorista`.
+- Critério fail-closed rigoroso (RAISE EXCEPTION se count != 13).
+- Proteção explícita da corrida real `2251e1de-f717-452b-ae37-297ebc2ab7de`.
+- Nenhuma exclusão realizada.
+- Nenhum pagamento alterado.
+- Core (src/) completamente congelado.
+- Nenhuma unicidade atômica ou timeout criado.
+- Migration: `20260822045500_saneamento_solicitacoes_legadas.sql`.
+
 
 ### MICROCORREÇÃO 3.8-A1 — Trava síncrona client-side contra duplo envio — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
 - `useRef` (createInFlightRef) usado como lock imediato para ignorar cliques concorrentes antes do re-render do React;
