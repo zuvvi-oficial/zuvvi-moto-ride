@@ -76,9 +76,26 @@ function ProcurandoMotorista() {
     try {
       const result = await verificarTimeoutCorridaFn({ data: { rideId } }) as any;
 
+      const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+
       if (result.expired === true || result.status === 'sem_motorista') {
-        // Servidor confirmou expiração
+        // Servidor confirmou expiração — limpar retry pendente antes do estado final
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = null;
+        }
         setSemMotorista(true);
+      } else if (assignedStatuses.includes(result.status)) {
+        // MICROCORREÇÃO 3.8-C2-A: reconciliação server-side.
+        // O servidor é autoritativo — não depender exclusivamente do Realtime.
+        // Evita passageiro preso em 00:00 caso o evento Realtime seja perdido/atrasado.
+        motoristaEncontradoRef.current = true;
+        setMotoristaEncontrado(true);
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = null;
+        }
+        navigate({ to: '/acompanhamento', search: { rideId } });
       } else if (result.status === 'solicitada') {
         // Servidor diz que ainda não expirou (diferença de relógio)
         // Não declarar sem_motorista localmente. Aguardar e verificar novamente.
@@ -86,7 +103,7 @@ function ProcurandoMotorista() {
           runTimeoutCheck.current();
         }, 3000);
       }
-      // else: status mudou (aceita etc.) — Realtime trata a navegação
+      // else: qualquer outro status — Realtime trata como caminho rápido
     } catch (err) {
       console.error('Timeout check failed:', err);
       toast.error('Não foi possível confirmar o status da corrida. Tentando novamente.');
