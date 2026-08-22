@@ -289,15 +289,6 @@ function HomeMotorista() {
 
     void startRealtime();
 
-    const heartbeatInterval = setInterval(() => {
-      if (cancelled) return;
-      void atualizarPresencaFn({
-        data: {
-          corridaId: corridaId,
-          digitando: digitandoRef.current,
-        },
-      }).catch(() => {});
-    }, 20000);
 
     const safetySyncInterval = setInterval(() => {
       if (
@@ -319,7 +310,7 @@ function HomeMotorista() {
 
     return () => {
       cancelled = true;
-      clearInterval(heartbeatInterval);
+      
       clearInterval(safetySyncInterval);
       if (chatChannel) {
         void supabase.removeChannel(chatChannel);
@@ -334,6 +325,82 @@ function HomeMotorista() {
       }).catch(() => {});
     };
   }, [chatOpen, activeRide?.id, atualizarPresencaFn, refreshChat]);
+
+  useEffect(() => {
+    const corridaId = activeRide?.id;
+    if (!corridaId) return;
+
+    let heartbeatTimer: NodeJS.Timeout | null = null;
+
+    const runHeartbeat = async () => {
+      if (document.visibilityState !== "visible") return;
+
+      const isDigitando = 
+        chatOpenRef.current && 
+        chatSessionRideIdRef.current === corridaId;
+
+      try {
+        await atualizarPresencaFn({
+          data: {
+            corridaId,
+            digitando: isDigitando ? digitandoRef.current : false
+          }
+        });
+      } catch (err) {
+        // Silently fail
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void runHeartbeat();
+        if (
+          chatOpenRef.current &&
+          chatSessionRideIdRef.current === corridaId &&
+          activeChatRideIdRef.current === corridaId
+        ) {
+          void refreshChat();
+        }
+      } else {
+        // Hidden: send digitando=false best effort
+        void atualizarPresencaFn({
+          data: {
+            corridaId,
+            digitando: false
+          }
+        }).catch(() => {});
+      }
+    };
+
+    const handlePageShow = () => {
+      if (document.visibilityState === "visible") {
+        void runHeartbeat();
+        if (
+          chatOpenRef.current &&
+          chatSessionRideIdRef.current === corridaId &&
+          activeChatRideIdRef.current === corridaId
+        ) {
+          void refreshChat();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", handlePageShow);
+
+    // Initial run
+    void runHeartbeat();
+
+    heartbeatTimer = setInterval(() => {
+      void runHeartbeat();
+    }, 20000);
+
+    return () => {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [activeRide?.id, atualizarPresencaFn, refreshChat]);
 
 
 
