@@ -284,7 +284,7 @@ function AcompanhamentoCorrida() {
       window.removeEventListener("pageshow", handlePageShow);
       void atualizarPresenca(false);
     };
-  }, [rideId, atualizarPresencaFn, refreshChat]);
+  }, [rideId, atualizarPresencaFn, refreshChat, syncChatFechado]);
 
   useEffect(() => {
     if (!rideId) return undefined;
