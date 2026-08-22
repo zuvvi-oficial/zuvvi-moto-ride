@@ -141,6 +141,7 @@ function HomeMotorista() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [chatData, setChatData] = useState<ChatData | null>(null);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [chatSending, setChatSending] = useState(false);
   const digitandoRef = useRef(false);
   const chatDebounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -148,6 +149,9 @@ function HomeMotorista() {
   const chatSessionRideIdRef = useRef<string | undefined>(undefined);
   const chatRefreshInFlightRef = useRef(false);
   const chatRefreshPendingRef = useRef(false);
+  const chatClosedSyncInFlightRef = useRef(false);
+  const chatClosedSyncPendingRef = useRef(false);
+
 
 
   const handleChatOpenChange = (open: boolean) => {
@@ -184,6 +188,7 @@ function HomeMotorista() {
         const inicial = await carregarChatFn({ data: { corridaId: currentRideId } });
         if (activeChatRideIdRef.current !== currentRideId) break;
         setChatData(inicial as ChatData);
+        setChatUnreadCount((inicial as ChatData).naoLidas ?? 0);
 
         await marcarEntreguesFn({ data: { corridaId: currentRideId } });
         if (activeChatRideIdRef.current !== currentRideId) break;
@@ -195,6 +200,7 @@ function HomeMotorista() {
         if (activeChatRideIdRef.current !== currentRideId) break;
         
         setChatData(atualizado as ChatData);
+        setChatUnreadCount((atualizado as ChatData).naoLidas ?? 0);
         setChatError(null);
       } while (
         chatRefreshPendingRef.current &&
@@ -202,6 +208,7 @@ function HomeMotorista() {
         chatSessionRideIdRef.current === currentRideId &&
         activeChatRideIdRef.current === currentRideId
       );
+
     } catch {
       if (activeChatRideIdRef.current === currentRideId) {
         setChatError("Não foi possível carregar o chat.");
@@ -217,6 +224,46 @@ function HomeMotorista() {
     }
   }, [activeRide?.id, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
 
+  const syncChatFechado = useCallback(async () => {
+    if (!activeRide?.id) return;
+    const currentRideId = activeRide.id;
+
+    if (chatOpenRef.current === true) return;
+    if (activeChatRideIdRef.current !== currentRideId) return;
+
+    if (chatClosedSyncInFlightRef.current) {
+      chatClosedSyncPendingRef.current = true;
+      return;
+    }
+
+    chatClosedSyncInFlightRef.current = true;
+    try {
+      do {
+        chatClosedSyncPendingRef.current = false;
+
+        await marcarEntreguesFn({ data: { corridaId: currentRideId } });
+        if (activeChatRideIdRef.current !== currentRideId) break;
+
+        const resultado = await carregarChatFn({ data: { corridaId: currentRideId } });
+        if (activeChatRideIdRef.current !== currentRideId) break;
+
+        if (activeChatRideIdRef.current === currentRideId && chatOpenRef.current === false) {
+          setChatUnreadCount((resultado as ChatData).naoLidas ?? 0);
+        }
+      } while (
+        chatClosedSyncPendingRef.current &&
+        chatOpenRef.current === false &&
+        activeChatRideIdRef.current === currentRideId
+      );
+    } catch {
+      // Silently fail for background sync
+    } finally {
+      chatClosedSyncInFlightRef.current = false;
+      if (activeChatRideIdRef.current !== currentRideId) {
+        chatClosedSyncPendingRef.current = false;
+      }
+    }
+  }, [activeRide?.id, carregarChatFn, marcarEntreguesFn]);
 
   useEffect(() => {
     activeChatRideIdRef.current = activeRide?.id;
@@ -225,22 +272,24 @@ function HomeMotorista() {
     digitandoRef.current = false;
     setChatOpen(false);
     setChatData(null);
+    setChatUnreadCount(0);
     setChatError(null);
     setChatLoading(false);
     setChatSending(false);
+    chatClosedSyncInFlightRef.current = false;
+    chatClosedSyncPendingRef.current = false;
   }, [activeRide?.id]);
+
 
   useEffect(() => {
     const corridaId = activeRide?.id;
-    if (!chatOpen || !corridaId || chatSessionRideIdRef.current !== corridaId) return;
+    if (!corridaId) return;
 
     let cancelled = false;
     let chatChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    setChatLoading(true);
-    
     const startRealtime = async () => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (cancelled) return;
 
       if (session?.access_token) {
@@ -258,10 +307,15 @@ function HomeMotorista() {
             table: "chat_mensagens",
             filter: `corrida_id=eq.${corridaId}`,
           },
-          () => {
+          (payload) => {
             if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
             chatDebounceRef.current = setTimeout(() => {
-              if (chatOpenRef.current && !cancelled) void refreshChat();
+              if (cancelled) return;
+              if (chatOpenRef.current) {
+                void refreshChat();
+              } else if (payload.eventType === "INSERT") {
+                void syncChatFechado();
+              }
             }, 200);
           },
         )
@@ -282,13 +336,32 @@ function HomeMotorista() {
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED" && !cancelled) {
-            void refreshChat();
+            if (chatOpenRef.current) {
+              void refreshChat();
+            } else {
+              void syncChatFechado();
+            }
           }
         });
     };
 
     void startRealtime();
 
+    return () => {
+      cancelled = true;
+      if (chatChannel) {
+        void supabase.removeChannel(chatChannel);
+      }
+      if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
+    };
+  }, [activeRide?.id, refreshChat, syncChatFechado]);
+
+  useEffect(() => {
+    const corridaId = activeRide?.id;
+    if (!chatOpen || !corridaId || chatSessionRideIdRef.current !== corridaId) return;
+
+    let cancelled = false;
+    setChatLoading(true);
 
     const safetySyncInterval = setInterval(() => {
       if (
@@ -310,12 +383,7 @@ function HomeMotorista() {
 
     return () => {
       cancelled = true;
-      
       clearInterval(safetySyncInterval);
-      if (chatChannel) {
-        void supabase.removeChannel(chatChannel);
-      }
-      if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
 
       void atualizarPresencaFn({
         data: {
@@ -325,6 +393,7 @@ function HomeMotorista() {
       }).catch(() => {});
     };
   }, [chatOpen, activeRide?.id, atualizarPresencaFn, refreshChat]);
+
 
   useEffect(() => {
     const corridaId = activeRide?.id;
@@ -360,7 +429,10 @@ function HomeMotorista() {
           activeChatRideIdRef.current === corridaId
         ) {
           void refreshChat();
+        } else if (activeChatRideIdRef.current === corridaId) {
+          void syncChatFechado();
         }
+
       } else {
         // Hidden: send digitando=false best effort
         void atualizarPresencaFn({
@@ -381,7 +453,10 @@ function HomeMotorista() {
           activeChatRideIdRef.current === corridaId
         ) {
           void refreshChat();
+        } else if (activeChatRideIdRef.current === corridaId) {
+          void syncChatFechado();
         }
+
       }
     };
 
@@ -400,7 +475,7 @@ function HomeMotorista() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("pageshow", handlePageShow);
     };
-  }, [activeRide?.id, atualizarPresencaFn, refreshChat]);
+  }, [activeRide?.id, atualizarPresencaFn, refreshChat, syncChatFechado]);
 
 
 
@@ -828,6 +903,11 @@ function HomeMotorista() {
 
   const chatDataAtual = chatData?.corridaId === activeRide?.id ? chatData : null;
   const chatOpenAtual = chatOpen && chatSessionRideIdRef.current === activeRide?.id;
+  const unreadCountDisplay = chatUnreadCount > 99 ? "99+" : chatUnreadCount.toString();
+  const chatButtonAria = chatUnreadCount > 0 
+    ? `Chat com passageiro, ${chatUnreadCount} mensagens não lidas`
+    : "Chat com passageiro";
+
 
 
   return (
@@ -1005,12 +1085,18 @@ function HomeMotorista() {
 
             <button
               onClick={() => handleChatOpenChange(true)}
-              className="w-full py-4 rounded-2xl bg-zuvvi-volt/10 border border-zuvvi-volt/20 text-zuvvi-volt text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[44px]"
-              aria-label="Chat com passageiro"
+              className="w-full py-4 rounded-2xl bg-zuvvi-volt/10 border border-zuvvi-volt/20 text-zuvvi-volt text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[44px] relative"
+              aria-label={chatButtonAria}
             >
               <MessageCircle className="w-4 h-4" />
               CHAT COM PASSAGEIRO
+              {chatUnreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-zuvvi-indigo animate-in zoom-in duration-300">
+                  {unreadCountDisplay}
+                </span>
+              )}
             </button>
+
 
             <button
               onClick={() => setShowCancelModal(true)}
