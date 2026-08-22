@@ -66,6 +66,7 @@ export function ChatConversation({
   const [draft, setDraft] = React.useState("");
   const [isLocalDigitando, setIsLocalDigitando] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const typingIdleTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const [showScrollBottom, setShowScrollBottom] = React.useState(false);
   const [now, setNow] = React.useState(new Date());
   const [retrying, setRetrying] = React.useState(false);
@@ -87,16 +88,39 @@ export function ChatConversation({
   // Heartbeat de digitação (3000ms)
   React.useEffect(() => {
     if (!open || !isLocalDigitando) return;
-    
+
     const interval = setInterval(() => {
       onDigitandoChangeRef.current?.(true);
     }, 3000);
 
     return () => {
       clearInterval(interval);
+      // O cleanup de false é tratado explicitamente nos eventos (blur, send, inactivity)
+      // Mas garantimos aqui também para segurança no unmount
       onDigitandoChangeRef.current?.(false);
     };
   }, [open, isLocalDigitando]);
+
+  // Cleanup de timers no fechamento/unmount
+  React.useEffect(() => {
+    return () => {
+      if (typingIdleTimeoutRef.current) {
+        clearTimeout(typingIdleTimeoutRef.current);
+        typingIdleTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) {
+      if (typingIdleTimeoutRef.current) {
+        clearTimeout(typingIdleTimeoutRef.current);
+        typingIdleTimeoutRef.current = null;
+      }
+      setIsLocalDigitando(false);
+      onDigitandoChangeRef.current?.(false);
+    }
+  }, [open]);
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
@@ -134,11 +158,16 @@ export function ChatConversation({
     const content = draft.trim();
     if (!content || content.length > 1000 || enviando) return;
 
+    if (typingIdleTimeoutRef.current) {
+      clearTimeout(typingIdleTimeoutRef.current);
+      typingIdleTimeoutRef.current = null;
+    }
+
     try {
       await onEnviar(content);
       setDraft("");
       setIsLocalDigitando(false);
-      onDigitandoChange?.(false);
+      onDigitandoChangeRef.current?.(false);
       scrollToBottom();
     } catch (err) {
       // Draft mantido em caso de erro conforme requisito
@@ -146,9 +175,13 @@ export function ChatConversation({
   };
 
   const handleBlur = () => {
+    if (typingIdleTimeoutRef.current) {
+      clearTimeout(typingIdleTimeoutRef.current);
+      typingIdleTimeoutRef.current = null;
+    }
     if (isLocalDigitando) {
       setIsLocalDigitando(false);
-      onDigitandoChange?.(false);
+      onDigitandoChangeRef.current?.(false);
     }
   };
 
@@ -163,11 +196,32 @@ export function ChatConversation({
     const value = e.target.value;
     setDraft(value);
 
-    const isNowDigitando = value.trim().length > 0;
-    if (isNowDigitando !== isLocalDigitando) {
-      setIsLocalDigitando(isNowDigitando);
-      onDigitandoChange?.(isNowDigitando);
+    // Limpar timeout anterior de inatividade
+    if (typingIdleTimeoutRef.current) {
+      clearTimeout(typingIdleTimeoutRef.current);
+      typingIdleTimeoutRef.current = null;
     }
+
+    const trimmedValue = value.trim();
+    if (trimmedValue.length === 0) {
+      // Campo vazio: false imediato
+      setIsLocalDigitando(false);
+      onDigitandoChangeRef.current?.(false);
+      return;
+    }
+
+    // Se estava inativo e começou a digitar
+    if (!isLocalDigitando) {
+      setIsLocalDigitando(true);
+      onDigitandoChangeRef.current?.(true);
+    }
+
+    // Iniciar novo timeout de inatividade (2500ms)
+    typingIdleTimeoutRef.current = setTimeout(() => {
+      setIsLocalDigitando(false);
+      onDigitandoChangeRef.current?.(false);
+      typingIdleTimeoutRef.current = null;
+    }, 2500);
   };
 
   const formatStatus = () => {
@@ -225,9 +279,9 @@ export function ChatConversation({
         <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-4">
           <p className="text-muted-foreground">Não foi possível carregar a conversa.</p>
           {onRetry && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={async () => {
                 setRetrying(true);
                 try {
@@ -279,7 +333,7 @@ export function ChatConversation({
           <div className="flex items-center justify-center p-2 mb-2 bg-destructive/10 text-destructive text-[11px] rounded-lg animate-in fade-in slide-in-from-top-2">
             Falha na sincronização.
             {onRetry && (
-              <button 
+              <button
                 onClick={async () => {
                   setRetrying(true);
                   try {
