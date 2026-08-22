@@ -462,12 +462,9 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
       } as any)
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
-      // ⚠️ TEMPORÁRIO — LIBERADO PARA FASE DE TESTES (Microetapa 3.6-C)
-      // Motivo: permitir reiniciar o fluxo de teste sem travar em
-      // motorista_chegou / em_andamento antes da 3.7 existir.
-      // OBRIGATÓRIO: restringir de volta para ['aceita', 'motorista_a_caminho']
-      // antes de qualquer piloto real. Ver ZUVVI-FECHAMENTO-CONTROLE.md.
-      .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou', 'em_andamento'])
+      // Regra: motorista só pode cancelar ANTES de iniciar a viagem (em_andamento).
+      // A permissão temporária 3.6-C para cancelar em_andamento foi revogada na 3.7.
+      .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou'])
       .select()
       .maybeSingle();
 
