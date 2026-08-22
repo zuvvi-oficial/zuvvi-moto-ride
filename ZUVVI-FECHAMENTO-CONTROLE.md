@@ -1062,3 +1062,15 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 **OBSERVAÇÃO PARA O FUTURO:** MATRIZ DE CANCELAMENTO PENDENTE: quando os estados em_andamento e concluida forem implementados, a matriz de estados canceláveis do motorista E do passageiro deverá ser revisada em microetapa própria. A falha G1 (passageiro cancela sem filtro de status) permanece ABERTA e NÃO foi tocada nesta etapa.
 
 **STATUS:** ABERTOS. Não corrigir nenhum deles nesta etapa.
+
+### MICROETAPA 3.8-C1 — Fundação server-side do timeout de busca — ✅ IMPLEMENTADA — CONTRA-PROVA PENDENTE
+- timeout oficial inicial = 120 segundos;
+- solicitada sem motorista pode virar sem_motorista;
+- update condicionado contra race com aceite;
+- ownership do passageiro validado;
+- solicitação vencida não bloqueia nova criação;
+- pagamentos não alterados;
+- nenhuma migration;
+- UI ainda não implementada;
+- filtro das ofertas ainda não implementado.
+
