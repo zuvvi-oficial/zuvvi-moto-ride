@@ -927,9 +927,17 @@ Permanecem pendentes:
 - Confirmado que `iniciarCorrida` e regras de banco/RLS não foram alteradas.
 - Arquivos tocados: `src/routes/acompanhamento.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
 
+### Microcorreção 3.6-D-B — Dependências e regressão de carregamento — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- Corrigida a dependency array do `useEffect` de Realtime em `acompanhamento.tsx` para incluir `syncRide`.
+- Refatorada a inicialização da tela para carregar a corrida (`syncRide`) e o token do mapa (`getMapboxTokenFn`) de forma independente, eliminando o bloqueio da tela por falha no mapa.
+- Removido o estado morto `rideSyncError`.
+- Preservadas as proteções de race condition, regex de código de embarque e fail-safes visuais da etapa anterior.
+- Resultado: Carregamento mais resiliente e sem risco de spinner infinito por falhas colaterais.
+
 ### Próxima microetapa oficial
 
 Próxima microetapa oficial: 3.7 — Conclusão da corrida (em_andamento → concluida)
+
 
 
 ## BLOQUEADORES ABERTOS PARA O PILOTO — auditoria 21/08/2026

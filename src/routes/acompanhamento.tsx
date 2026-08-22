@@ -61,8 +61,8 @@ function AcompanhamentoCorrida() {
     codigo_embarque?: string | null;
   } | null>(null);
   const [rideSyncing, setRideSyncing] = useState(false);
-  const [rideSyncError, setRideSyncError] = useState(false);
   const syncCounterRef = useRef(0);
+
 
   const [motorista, setMotorista] = useState<{
     id?: string;
@@ -116,7 +116,6 @@ function AcompanhamentoCorrida() {
     async (showLoading = false) => {
       const currentGen = ++syncCounterRef.current;
       if (showLoading) setRideSyncing(true);
-      setRideSyncError(false);
 
       try {
         const data = await getAcompanhamentoFn({ data: { rideId } });
@@ -137,7 +136,6 @@ function AcompanhamentoCorrida() {
       } catch (err) {
         if (currentGen < syncCounterRef.current) return;
         console.error("Erro ao sincronizar corrida:", err);
-        setRideSyncError(true);
         toast.error("Erro ao atualizar dados da corrida.");
       } finally {
         if (currentGen === syncCounterRef.current) {
@@ -150,18 +148,21 @@ function AcompanhamentoCorrida() {
   );
 
   useEffect(() => {
-    async function init() {
+    // Inicialização independente: falha do mapa não bloqueia a corrida
+    void syncRide();
+    
+    async function loadMapToken() {
       try {
         const token = await getMapboxTokenFn();
         setMapboxToken(token);
-        await syncRide();
-      } catch {
+      } catch (err) {
+        console.error("Erro ao carregar token do Mapbox:", err);
         toast.error("Não foi possível carregar o mapa.");
-        setIsLoading(false);
       }
     }
-    void init();
-  }, [getMapboxTokenFn, syncRide]);
+    void loadMapToken();
+  }, [syncRide, getMapboxTokenFn]);
+
 
 
   useEffect(() => {
@@ -226,7 +227,7 @@ function AcompanhamentoCorrida() {
         clearTimeout(cancellationRedirectTimeoutRef.current);
       }
     };
-  }, [rideId, navigate]);
+  }, [rideId, navigate, syncRide]);
 
   const refreshChat = React.useCallback(async () => {
     try {
