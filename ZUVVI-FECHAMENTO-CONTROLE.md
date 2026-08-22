@@ -403,7 +403,20 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - Build verified.
 - Commit funcional: `74cc66c1f715e21908221804b77f884a44b7d159`.
 
-### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ FECHADA
+
+### MICROETAPA 3.8-A — Bloqueio funcional de solicitação duplicada — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- Implementada validação server-side em `criarCorrida` ANTES de qualquer chamada externa (Mapbox) ou escrita (INSERT).
+- Status bloqueadores: `solicitada`, `buscando_motorista`, `aceita`, `motorista_a_caminho`, `motorista_chegou`, `em_andamento`.
+- Status terminais (não bloqueiam): `concluida`, `cancelada`, `sem_motorista`.
+- Proteção contra duplo clique no cliente via guarda atômica `if (isCreating) return;`.
+- Erro de corrida aberta retorna mensagem segura: "Você já possui uma corrida em andamento ou aguardando motorista."
+- Core da corrida, motorista, chat e GPS permanecem intactos.
+- Nenhuma migration aplicada; nenhum dado legado alterado.
+- Timeout e lógica de `sem_motorista` ainda NÃO implementados.
+- Unicidade atômica no banco (constraint/trigger) ainda NÃO implementada.
+- Build verificado com sucesso.
+
 - **Causa da falha identificada:** Double-cleanup no Mapbox. O cleanup pós-finalização da Home tentava remover layers/sources de uma instância que o MapView (proprietário do lifecycle) já estava destruindo via `map.remove()`.
 - **Ownership do lifecycle do mapa:** MapView permanece único responsável por `map.remove()`. O cleanup da Home foi refatorado para ser fail-safe e não tocar no mapa se ele estiver sendo desmontado.
 - **Desacoplamento de dados:** Criado estado `completedRideNotice` que captura os dados necessários antes da corrida ser removida do `active_ride`, garantindo feedback visual consistente.

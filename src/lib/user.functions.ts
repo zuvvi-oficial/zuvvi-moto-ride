@@ -170,6 +170,37 @@ export const criarCorrida = createServerFn({ method: "POST" })
       throw new Error("Perfil de usuário não encontrado para criar corrida.");
     }
 
+    // [3.8-A] — VERIFICAÇÃO DE CORRIDA ABERTA (SERVER-SIDE)
+    // Impedir criação de nova corrida se já existir uma nos status bloqueadores.
+    const statusBloqueadores: Database["public"]["Enums"]["corrida_status"][] = [
+      'solicitada',
+      'buscando_motorista',
+      'aceita',
+      'motorista_a_caminho',
+      'motorista_chegou',
+      'em_andamento'
+    ];
+
+
+    const { data: corridaAberta, error: checkError } = await supabaseAdmin
+      .from("corridas")
+      .select("id, status, created_at")
+      .eq("passageiro_id", usuario.id)
+      .in("status", statusBloqueadores)
+      .limit(1)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Erro ao verificar corridas abertas:", checkError);
+      throw new Error("Falha ao validar estado da conta. Tente novamente.");
+    }
+
+    if (corridaAberta) {
+      // Retorno operacional seguro conforme missão 3.8-A
+      throw new Error("Você já possui uma corrida em andamento ou aguardando motorista.");
+    }
+
+
     if (!usuario.cidade_id) {
       throw new Error("Cidade do usuário não configurada.");
     }
