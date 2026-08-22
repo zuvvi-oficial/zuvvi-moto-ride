@@ -194,20 +194,56 @@ function AcompanhamentoCorrida() {
   }, [rideId, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
 
   useEffect(() => {
+    if (!rideId) return undefined;
+
+    const atualizarPresenca = async (isDigitando: boolean) => {
+      try {
+        await atualizarPresencaFn({
+          data: {
+            corridaId: rideId,
+            digitando: isDigitando,
+          },
+        });
+      } catch (err) {
+        // Best effort
+      }
+    };
+
+    const heartbeat = () => {
+      if (document.visibilityState === "visible") {
+        void atualizarPresenca(chatOpenRef.current ? digitandoRef.current : false);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        heartbeat();
+      } else {
+        void atualizarPresenca(false);
+      }
+    };
+
+    // Inicial imediato se visível
+    if (document.visibilityState === "visible") {
+      heartbeat();
+    }
+
+    const interval = setInterval(heartbeat, 20000);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      void atualizarPresenca(false);
+    };
+  }, [rideId, atualizarPresencaFn]);
+
+  useEffect(() => {
     chatOpenRef.current = chatOpen;
 
     if (chatOpen) {
       setChatLoading(true);
       void refreshChat();
-
-      const heartbeatInterval = setInterval(() => {
-        void atualizarPresencaFn({
-          data: {
-            corridaId: rideId,
-            digitando: digitandoRef.current,
-          },
-        }).catch(() => {});
-      }, 20000);
 
       const chatChannel = supabase
         .channel(`chat-passageiro-${rideId}`)
@@ -243,28 +279,13 @@ function AcompanhamentoCorrida() {
         )
         .subscribe();
 
-      void atualizarPresencaFn({
-        data: {
-          corridaId: rideId,
-          digitando: false,
-        },
-      }).catch(() => {});
-
       return () => {
-        clearInterval(heartbeatInterval);
         void supabase.removeChannel(chatChannel);
         if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-
-        void atualizarPresencaFn({
-          data: {
-            corridaId: rideId,
-            digitando: false,
-          },
-        }).catch(() => {});
       };
     }
     return undefined;
-  }, [chatOpen, rideId, carregarChatFn, atualizarPresencaFn, refreshChat]);
+  }, [chatOpen, rideId, refreshChat]);
 
   const handleEnviarMensagem = async (conteudo: string) => {
     setChatSending(true);
