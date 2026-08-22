@@ -43,6 +43,7 @@ import {
   recusarCorrida,
   cancelarCorridaMotorista,
   marcarMotoristaACaminho,
+  marcarMotoristaChegou,
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
