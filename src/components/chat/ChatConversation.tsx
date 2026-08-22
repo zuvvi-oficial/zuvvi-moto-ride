@@ -67,6 +67,36 @@ export function ChatConversation({
   const [isLocalDigitando, setIsLocalDigitando] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [showScrollBottom, setShowScrollBottom] = React.useState(false);
+  const [now, setNow] = React.useState(new Date());
+  const [retrying, setRetrying] = React.useState(false);
+
+  // Clock local para expiração visual
+  React.useEffect(() => {
+    if (!open) return;
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [open]);
+
+  // Heartbeat de digitação (3000ms)
+  React.useEffect(() => {
+    if (!open || !isLocalDigitando || !draft.trim()) return;
+    
+    const interval = setInterval(() => {
+      onDigitandoChange?.(true);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [open, isLocalDigitando, draft, onDigitandoChange]);
+
+  // Cleanup digitação ao fechar ou desmontar
+  React.useEffect(() => {
+    if (!open && isLocalDigitando) {
+      setIsLocalDigitando(false);
+      onDigitandoChange?.(false);
+    }
+  }, [open, isLocalDigitando, onDigitandoChange]);
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
