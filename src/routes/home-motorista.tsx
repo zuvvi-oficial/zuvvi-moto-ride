@@ -783,33 +783,38 @@ function HomeMotorista() {
     const map = pickupMapInstance.current;
     if (!map || !activeRide || !mapboxToken || !status) return;
 
-    const dLat = status.ultima_lat;
-    const dLng = status.ultima_lng;
-    const pLat = activeRide.origem_lat;
-    const pLng = activeRide.origem_lng;
+    const driverLat = status.ultima_lat;
+    const driverLng = status.ultima_lng;
+    
+    const isTrip = activeRide.status === "em_andamento";
+    const phase = isTrip ? "destination" : "pickup";
+    
+    const targetLat = isTrip ? activeRide.destino_lat : activeRide.origem_lat;
+    const targetLng = isTrip ? activeRide.destino_lng : activeRide.origem_lng;
 
-    const hasValidDriver = Number.isFinite(dLat) && Number.isFinite(dLng);
-    const hasValidPickup = Number.isFinite(pLat) && Number.isFinite(pLng);
+    const hasValidDriver = Number.isFinite(driverLat) && Number.isFinite(driverLng);
+    const hasValidTarget = Number.isFinite(targetLat) && Number.isFinite(targetLng);
 
     // 3. Marcador do Motorista
     if (hasValidDriver) {
       if (!driverMarkerRef.current) {
         driverMarkerRef.current = new mapboxgl.Marker({ color: "#6C3CE9" })
-          .setLngLat([dLng!, dLat!])
+          .setLngLat([driverLng!, driverLat!])
           .addTo(map);
       } else {
-        driverMarkerRef.current.setLngLat([dLng!, dLat!]);
+        driverMarkerRef.current.setLngLat([driverLng!, driverLat!]);
       }
     }
 
     // 4 & 5. Rota Directions
     const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
-    if (hasValidDriver && hasValidPickup && routeStatuses.includes(activeRide.status)) {
+    if (hasValidDriver && hasValidTarget && routeStatuses.includes(activeRide.status)) {
       const coordsChanged = !lastRouteCoordsRef.current || 
-        lastRouteCoordsRef.current.dLat !== dLat || 
-        lastRouteCoordsRef.current.dLng !== dLng || 
-        lastRouteCoordsRef.current.pLat !== pLat || 
-        lastRouteCoordsRef.current.pLng !== pLng;
+        lastRouteCoordsRef.current.driverLat !== driverLat || 
+        lastRouteCoordsRef.current.driverLng !== driverLng || 
+        lastRouteCoordsRef.current.targetLat !== targetLat || 
+        lastRouteCoordsRef.current.targetLng !== targetLng ||
+        lastRouteCoordsRef.current.phase !== phase;
 
       if (coordsChanged && isPickupMapReady) {
         if (routeAbortRef.current) {
@@ -820,13 +825,7 @@ function HomeMotorista() {
         const controller = new AbortController();
         routeAbortRef.current = controller;
 
-        const isEmAndamento = activeRide.status === "em_andamento";
-        const targetLat = isEmAndamento ? Number(activeRide.destino_lat) : Number(activeRide.origem_lat);
-        const targetLng = isEmAndamento ? Number(activeRide.destino_lng) : Number(activeRide.origem_lng);
-
-        if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng)) return;
-
-        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${status.ultima_lng},${status.ultima_lat};${targetLng},${targetLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${driverLng},${driverLat};${targetLng},${targetLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
 
         fetch(url, { signal: controller.signal })
           .then(res => res.json())
@@ -868,7 +867,7 @@ function HomeMotorista() {
               routeFittedRideRef.current = fitKey;
             }
 
-            lastRouteCoordsRef.current = { dLat: dLat!, dLng: dLng!, pLat: pLat!, pLng: pLng! };
+            lastRouteCoordsRef.current = { driverLat: driverLat!, driverLng: driverLng!, targetLat: targetLat!, targetLng: targetLng!, phase };
             
             if (routeAbortRef.current === controller) {
               routeAbortRef.current = null;

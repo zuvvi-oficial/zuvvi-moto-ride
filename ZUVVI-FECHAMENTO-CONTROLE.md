@@ -395,6 +395,13 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - `em_andamento`;
 - conclusão real da corrida.
 
+### MICROCORREÇÃO 3.7-C — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- Adicionada validação `Number.isFinite(valorFinal)` server-side em `finalizarCorrida`.
+- Refatorada a detecção de mudança de rota para usar `phase` (pickup/destination) e `targetLat/Lng`.
+- O status `em_andamento` agora força a atualização do alvo da rota para o destino do passageiro.
+- `lastRouteCoordsRef` atualizado para conter a estrutura atômica de fase e alvo real.
+- Build verificado.
+
 ### MICROETAPA 3.7 — CONCLUSÃO DA CORRIDA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
 - `finalizarCorrida` server-side com validações de ownership, status e `data_inicio`.
 - Reversão da permissão temporária de cancelamento (3.6-C).
