@@ -287,53 +287,58 @@ function AcompanhamentoCorrida() {
   }, [rideId, atualizarPresencaFn, refreshChat]);
 
   useEffect(() => {
+    if (!rideId) return undefined;
     chatOpenRef.current = chatOpen;
 
-    if (chatOpen) {
-      setChatLoading(true);
-      void refreshChat();
-
-      const chatChannel = supabase
-        .channel(`chat-passageiro-${rideId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "chat_mensagens",
-            filter: `corrida_id=eq.${rideId}`,
-          },
-          () => {
-            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-            debounceTimeoutRef.current = setTimeout(() => {
-              if (chatOpenRef.current) void refreshChat();
-            }, 200);
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "chat_presenca",
-            filter: `corrida_id=eq.${rideId}`,
-          },
-          () => {
-            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-            debounceTimeoutRef.current = setTimeout(() => {
-              if (chatOpenRef.current) void refreshChat();
-            }, 200);
-          },
-        )
-        .subscribe();
-
-      return () => {
-        void supabase.removeChannel(chatChannel);
-        if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-      };
+    if (!chatOpen && document.visibilityState === "visible") {
+      void syncChatFechado();
     }
-    return undefined;
-  }, [chatOpen, rideId, refreshChat]);
+
+    const chatChannel = supabase
+      .channel(`chat-passageiro-${rideId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_mensagens",
+          filter: `corrida_id=eq.${rideId}`,
+        },
+        (payload) => {
+          if (chatOpenRef.current) {
+            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+            debounceTimeoutRef.current = setTimeout(() => {
+              if (chatOpenRef.current) void refreshChat();
+            }, 200);
+          } else if (payload.eventType === "INSERT") {
+            void syncChatFechado();
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_presenca",
+          filter: `corrida_id=eq.${rideId}`,
+        },
+        () => {
+          if (chatOpenRef.current) {
+            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+            debounceTimeoutRef.current = setTimeout(() => {
+              if (chatOpenRef.current) void refreshChat();
+            }, 200);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(chatChannel);
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    };
+  }, [chatOpen, rideId, refreshChat, syncChatFechado]);
 
   const handleEnviarMensagem = async (conteudo: string) => {
     setChatSending(true);
