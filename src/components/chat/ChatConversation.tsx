@@ -359,6 +359,16 @@ export function ChatConversation({
                 </div>
               </div>
             </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden sm:flex h-11 w-11 rounded-full shrink-0 ml-auto"
+              onClick={() => onOpenChange(false)}
+              aria-label="Fechar chat"
+            >
+              <X className="w-6 h-6" />
+            </Button>
           </div>
         </DialogHeader>
 
