@@ -908,6 +908,15 @@ Permanecem pendentes:
 - **ALERTA**: Esta liberação é temporária e PRECISA ser revertida antes do piloto real em Jacarezinho. Adicionado ao "Checklist Pré-Produção".
 - Arquivos tocados: `src/lib/motorista.functions.ts`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
 
+### Microetapa 3.6-D — Passageiro: Motorista Chegou + Código de Embarque — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- Implementada entrega segura do `codigo_embarque` via server-side `getAcompanhamentoPassageiro` estritamente no status `motorista_chegou`.
+- Atualizado Realtime do passageiro para reagir aos estados `motorista_chegou` e `em_andamento` com sincronização server-side garantida.
+- Cabeçalho de acompanhamento atualizado com estados explícitos: MOTORISTA A CAMINHO, MOTORISTA CHEGOU, CORRIDA EM ANDAMENTO.
+- Implementado Card de Código de Embarque Zuvvi com destaque visual (4 dígitos) e sumiço automático após início da corrida.
+- Segurança: O código nunca é exposto fora do status correto e o controle de início permanece 100% no motorista (validado pelo backend).
+- Fail-safe: A UI protege contra códigos inexistentes ou inconsistentes sem travar o fluxo.
+- Arquivos tocados: `src/lib/user.functions.ts`, `src/routes/acompanhamento.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
+
 ### Próxima microetapa oficial
 
 Próxima microetapa oficial: 3.7 — Conclusão da corrida (em_andamento → concluida)
