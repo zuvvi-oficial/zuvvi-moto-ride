@@ -147,6 +147,7 @@ function HomeMotorista() {
   const activeChatRideIdRef = useRef<string | undefined>(undefined);
   const chatSessionRideIdRef = useRef<string | undefined>(undefined);
   const chatRefreshInFlightRef = useRef(false);
+  const chatRefreshPendingRef = useRef(false);
 
 
   const handleChatOpenChange = (open: boolean) => {
