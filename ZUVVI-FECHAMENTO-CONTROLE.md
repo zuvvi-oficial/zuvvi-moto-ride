@@ -395,6 +395,21 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - `em_andamento`;
 - conclusão real da corrida.
 
+### MICROETAPA 3.7 — CONCLUSÃO DA CORRIDA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- `finalizarCorrida` server-side com validações de ownership, status e `data_inicio`.
+- Reversão da permissão temporária de cancelamento (3.6-C).
+- Atualização do `valor_final` como `Number(valor_estimado)`.
+
+### MICROCORREÇÃO 3.7-A — REPROVADA POR DIVERGÊNCIAS FUNCIONAIS
+- Falhas identificadas no GPS e modal de confirmação.
+
+### MICROCORREÇÃO 3.7-B — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- Restaurado envio de GPS no status `em_andamento`.
+- Implementado Modal de Finalização funcional na Home Motorista.
+- Ajustada lógica de alvo da rota (Target Lat/Lng) para `destino` durante `em_andamento`.
+- Adicionada `concluida` ao Realtime do passageiro e overlay final de sucesso.
+- Build verificado.
+
 > **REGISTRO HISTÓRICO — SUPERADO EM 21/08/2026**
 > O diagnóstico abaixo registra o estado encontrado na auditoria
 > anterior e é preservado exclusivamente como evidência histórica.
