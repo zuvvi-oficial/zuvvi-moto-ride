@@ -1015,6 +1015,17 @@ Permanecem pendentes:
 - Pagamentos permanecem intactos (fluxo financeiro separado).
 - Nenhuma migration criada.
 
+### MICROETAPA 3.8-B2-A — Unicidade atômica de corrida aberta por passageiro — ✅ IMPLEMENTADA — CONTRA-PROVA PENDENTE
+- Criado índice único parcial `idx_corridas_passageiro_aberta_unique` na tabela `public.corridas`.
+- Estados protegidos (unicidade exigida): `solicitada`, `buscando_motorista`, `aceita`, `motorista_a_caminho`, `motorista_chegou`, `em_andamento`.
+- Estados terminais ignorados (permitidos duplicados): `concluida`, `cancelada`, `sem_motorista`.
+- Proteção atômica independente do frontend, garantindo integridade contra race conditions e requisições simultâneas.
+- Validação fail-closed na migration: aborta se houver duplicidade prévia ou índice conflitante.
+- Nenhum dado ou pagamento alterado.
+- Nenhum arquivo `src/` alterado.
+- Tratamento amigável do erro 23505 (unique violation) no frontend reservado para a Microetapa 3.8-B2-B.
+- Timeout automático ainda NÃO implementado.
+
 ### Próxima microetapa oficial
 Sprint 3 — Auditoria e Finalização de Bloqueadores Financeiros.
 
