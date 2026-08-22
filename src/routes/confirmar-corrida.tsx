@@ -40,6 +40,9 @@ function ConfirmarCorrida() {
   const criarCorridaFn = useServerFn(criarCorrida);
 
   const handleConfirmarCorrida = async () => {
+    // 3. PROTEÇÃO CONTRA DUPLO CLIQUE NO CLIENTE
+    if (isCreating) return;
+
     if (!metodoPagamento || !estimatedFare) {
       toast.error("Selecione uma forma de pagamento para continuar.");
       return;
@@ -68,11 +71,14 @@ function ConfirmarCorrida() {
       }
     } catch (err: any) {
       console.error(err);
+      // TRATAMENTO DE CORRIDA JÁ ABERTA (3.8-A)
+      // Mostra mensagem clara, não destrói tela, libera o botão no finally.
       toast.error(err.message || "Erro ao solicitar corrida. Tente novamente.");
     } finally {
       setIsCreating(false);
     }
   };
+
 
   useEffect(() => {
     async function init() {
