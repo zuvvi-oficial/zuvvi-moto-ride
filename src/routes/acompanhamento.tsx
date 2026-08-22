@@ -263,6 +263,8 @@ function AcompanhamentoCorrida() {
         heartbeat();
         if (chatOpenRef.current) {
           void refreshChat();
+        } else {
+          void syncChatFechado();
         }
       }
     };
