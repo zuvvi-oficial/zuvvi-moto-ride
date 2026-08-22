@@ -419,8 +419,10 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - Pagamentos intactos.
 - Migration count: 56.
 - Latest migration: 20260822044703_4c09eb6a-631d-415e-949a-19286faeaccd.sql.
+- Hash GitHub: f7122f5a487ca5ca96766eaffe2ea9a959e801d5
 - B2 ainda NÃO implementada.
 - Timeout ainda NÃO implementado.
+
 
 
 
