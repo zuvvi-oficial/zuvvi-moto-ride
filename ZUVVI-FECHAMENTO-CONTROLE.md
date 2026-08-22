@@ -854,8 +854,10 @@ Permanecem pendentes:
 - Carteira;
 - Perfil do passageiro.
 
-### Hardening futuro já identificado
+### Checklist Pré-Produção (Obrigatório)
+- **REVERTER Microetapa 3.6-C**: Restringir `cancelarCorridaMotorista` apenas para `['aceita', 'motorista_a_caminho']`.
 
+### Hardening futuro já identificado
 - proteção de corrida ativa única existe para motorista;
 - equivalente para passageiro ainda deve ser fechado;
 - cancelamento do passageiro precisa de matriz explícita
@@ -898,6 +900,13 @@ Permanecem pendentes:
 - Canal de chat em `acompanhamento.tsx` permaneceu intocado por já possuir lógica própria ou estar fora do escopo de "corridas".
 - Prova manual pendente.
 - Arquivos tocados: `src/routes/procurando-motorista.tsx`, `src/routes/acompanhamento.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
+
+### Microetapa 3.6-C — ⚠️ TEMPORÁRIA (liberação de teste) — ✅ IMPLEMENTADA
+- Autorizada diretamente pelo responsável do projeto em 22/08/2026.
+- A função `cancelarCorridaMotorista` agora aceita os status: 'aceita', 'motorista_a_caminho', 'motorista_chegou' e 'em_andamento'.
+- Motivo: Evitar travamentos em fluxos de teste manuais enquanto a conclusão da corrida (3.7) não está finalizada.
+- **ALERTA**: Esta liberação é temporária e PRECISA ser revertida antes do piloto real em Jacarezinho. Adicionado ao "Checklist Pré-Produção".
+- Arquivos tocados: `src/lib/motorista.functions.ts`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
 
 ### Próxima microetapa oficial
 
