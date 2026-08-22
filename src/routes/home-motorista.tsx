@@ -797,7 +797,7 @@ function HomeMotorista() {
     }
 
     // 4 & 5. Rota Directions
-    const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou"];
+    const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
     if (hasValidDriver && hasValidPickup && routeStatuses.includes(activeRide.status)) {
       const coordsChanged = !lastRouteCoordsRef.current || 
         lastRouteCoordsRef.current.dLat !== dLat || 
@@ -814,13 +814,13 @@ function HomeMotorista() {
         const controller = new AbortController();
         routeAbortRef.current = controller;
 
-        const isEmAndamento = activeRide?.status === "em_andamento";
-        const dLat = isEmAndamento ? activeRide.destino_lat : activeRide.origem_lat;
-        const dLng = isEmAndamento ? activeRide.destino_lng : activeRide.origem_lng;
+        const isEmAndamento = activeRide.status === "em_andamento";
+        const targetLat = isEmAndamento ? Number(activeRide.destino_lat) : Number(activeRide.origem_lat);
+        const targetLng = isEmAndamento ? Number(activeRide.destino_lng) : Number(activeRide.origem_lng);
 
-        if (dLat === null || dLng === null) return;
+        if (isNaN(targetLat) || isNaN(targetLng)) return;
 
-        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${status.ultima_lng},${status.ultima_lat};${dLng},${dLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${status.ultima_lng},${status.ultima_lat};${targetLng},${targetLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
 
         fetch(url, { signal: controller.signal })
           .then(res => res.json())
