@@ -48,6 +48,7 @@ interface ChatData {
     digitandoAte: string | null;
   } | null;
   podeEnviar: boolean;
+  naoLidas?: number;
 }
 
 function AcompanhamentoCorrida() {
@@ -85,6 +86,9 @@ function AcompanhamentoCorrida() {
   const [chatSending, setChatSending] = useState(false);
   const digitandoRef = useRef(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const chatClosedSyncInFlightRef = useRef(false);
+  const chatClosedSyncPendingRef = useRef(false);
 
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
@@ -184,7 +188,9 @@ function AcompanhamentoCorrida() {
       await marcarLidasFn({ data: { corridaId: rideId } });
 
       const atualizado = await carregarChatFn({ data: { corridaId: rideId } });
-      setChatData(atualizado as ChatData);
+      const data = atualizado as ChatData;
+      setChatData(data);
+      setChatUnreadCount(data.naoLidas ?? 0);
       setChatError(null);
     } catch {
       setChatError("Não foi possível carregar o chat.");
@@ -192,6 +198,30 @@ function AcompanhamentoCorrida() {
       setChatLoading(false);
     }
   }, [rideId, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
+
+  const syncChatFechado = React.useCallback(async () => {
+    if (!rideId || chatOpenRef.current) return;
+
+    if (chatClosedSyncInFlightRef.current) {
+      chatClosedSyncPendingRef.current = true;
+      return;
+    }
+
+    chatClosedSyncInFlightRef.current = true;
+    try {
+      do {
+        chatClosedSyncPendingRef.current = false;
+        await marcarEntreguesFn({ data: { corridaId: rideId } });
+        const res = await carregarChatFn({ data: { corridaId: rideId } });
+        const data = res as ChatData;
+        setChatUnreadCount(data.naoLidas ?? 0);
+      } while (chatClosedSyncPendingRef.current && !chatOpenRef.current);
+    } catch {
+      // Best effort
+    } finally {
+      chatClosedSyncInFlightRef.current = false;
+    }
+  }, [rideId, carregarChatFn, marcarEntreguesFn]);
 
   useEffect(() => {
     if (!rideId) return undefined;
@@ -220,6 +250,8 @@ function AcompanhamentoCorrida() {
         heartbeat();
         if (chatOpenRef.current) {
           void refreshChat();
+        } else {
+          void syncChatFechado();
         }
       } else {
         void atualizarPresenca(false);
@@ -231,6 +263,8 @@ function AcompanhamentoCorrida() {
         heartbeat();
         if (chatOpenRef.current) {
           void refreshChat();
+        } else {
+          void syncChatFechado();
         }
       }
     };
@@ -253,53 +287,58 @@ function AcompanhamentoCorrida() {
   }, [rideId, atualizarPresencaFn, refreshChat]);
 
   useEffect(() => {
+    if (!rideId) return undefined;
     chatOpenRef.current = chatOpen;
 
-    if (chatOpen) {
-      setChatLoading(true);
-      void refreshChat();
-
-      const chatChannel = supabase
-        .channel(`chat-passageiro-${rideId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "chat_mensagens",
-            filter: `corrida_id=eq.${rideId}`,
-          },
-          () => {
-            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-            debounceTimeoutRef.current = setTimeout(() => {
-              if (chatOpenRef.current) void refreshChat();
-            }, 200);
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "chat_presenca",
-            filter: `corrida_id=eq.${rideId}`,
-          },
-          () => {
-            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-            debounceTimeoutRef.current = setTimeout(() => {
-              if (chatOpenRef.current) void refreshChat();
-            }, 200);
-          },
-        )
-        .subscribe();
-
-      return () => {
-        void supabase.removeChannel(chatChannel);
-        if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-      };
+    if (!chatOpen && document.visibilityState === "visible") {
+      void syncChatFechado();
     }
-    return undefined;
-  }, [chatOpen, rideId, refreshChat]);
+
+    const chatChannel = supabase
+      .channel(`chat-passageiro-${rideId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_mensagens",
+          filter: `corrida_id=eq.${rideId}`,
+        },
+        (payload) => {
+          if (chatOpenRef.current) {
+            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+            debounceTimeoutRef.current = setTimeout(() => {
+              if (chatOpenRef.current) void refreshChat();
+            }, 200);
+          } else if (payload.eventType === "INSERT") {
+            void syncChatFechado();
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_presenca",
+          filter: `corrida_id=eq.${rideId}`,
+        },
+        () => {
+          if (chatOpenRef.current) {
+            if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+            debounceTimeoutRef.current = setTimeout(() => {
+              if (chatOpenRef.current) void refreshChat();
+            }, 200);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(chatChannel);
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    };
+  }, [chatOpen, rideId, refreshChat, syncChatFechado]);
 
   const handleEnviarMensagem = async (conteudo: string) => {
     setChatSending(true);
@@ -407,10 +446,17 @@ function AcompanhamentoCorrida() {
               </div>
               <button
                 onClick={() => handleChatOpenChange(true)}
-                className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px]"
-                aria-label="Chat com motorista"
+                className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px] relative"
+                aria-label={`Chat com motorista${chatUnreadCount > 0 ? `, ${chatUnreadCount} mensagens não lidas` : ""}`}
               >
-                <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
+                <div className="relative">
+                  <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
+                  {chatUnreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-zuvvi-volt text-zuvvi-indigo text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-zuvvi-indigo/50 animate-in zoom-in duration-300">
+                      {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+                    </span>
+                  )}
+                </div>
                 <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">
                   Chat
                 </p>
