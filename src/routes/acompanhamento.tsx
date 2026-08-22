@@ -518,35 +518,52 @@ function AcompanhamentoCorrida() {
                 </p>
               </button>
             </div>
-            {corrida.status === "motorista_chegou" && corrida.codigo_embarque && (
+            {corrida.status === "motorista_chegou" && (
               <div className="pt-4 border-t border-white/5 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-zuvvi-volt/5 border border-zuvvi-volt/20 rounded-2xl p-4 text-center space-y-3">
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest">
-                      Motorista Chegou
-                    </p>
-                    <p className="text-[11px] text-white/70 font-medium">
-                      Seu código de embarque
-                    </p>
+                {corrida.codigo_embarque && /^\d{4}$/.test(corrida.codigo_embarque) ? (
+                  <div className="bg-zuvvi-volt/5 border border-zuvvi-volt/20 rounded-2xl p-4 text-center space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest">
+                        Motorista Chegou
+                      </p>
+                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">
+                        Informe o código abaixo ao motorista
+                      </p>
+                    </div>
+                    <div className="flex justify-center gap-2">
+                      {corrida.codigo_embarque.split("").map((digit, i) => (
+                        <div
+                          key={i}
+                          className="w-12 h-14 bg-zuvvi-indigo border border-zuvvi-volt/30 rounded-xl flex items-center justify-center text-2xl font-black text-zuvvi-volt shadow-inner"
+                        >
+                          {digit}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  
-                  <div className="flex justify-center gap-2">
-                    {corrida.codigo_embarque.split("").map((digit, i) => (
-                      <div 
-                        key={i} 
-                        className="w-12 h-14 bg-zuvvi-indigo border border-white/10 rounded-xl flex items-center justify-center text-2xl font-black text-zuvvi-volt shadow-lg"
-                      >
-                        {digit}
-                      </div>
-                    ))}
+                ) : (
+                  <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 text-center space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-red-400 font-black uppercase tracking-widest">
+                        Motorista Chegou
+                      </p>
+                      <p className="text-[9px] text-white/60 uppercase font-bold tracking-tighter">
+                        Não foi possível carregar seu código de embarque.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => void syncRide(true)}
+                      disabled={rideSyncing}
+                      className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {rideSyncing && <Loader2 className="w-3 h-3 animate-spin" />}
+                      Tentar Novamente
+                    </button>
                   </div>
-
-                  <p className="text-[10px] text-white/50 font-medium leading-tight">
-                    Informe este código ao motorista para iniciar a corrida.
-                  </p>
-                </div>
+                )}
               </div>
             )}
+
           </div>
         </div>
       )}
