@@ -573,6 +573,69 @@ export const marcarMotoristaChegou = createServerFn({ method: "POST" })
     };
   });
 
+export const iniciarCorrida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string(), codigo: z.string().length(4) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    // 1. Resolver o motorista pelo servidor
+    const { data: user, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !user) throw new Error("Motorista não identificado.");
+    const motoristaId = user.id;
+
+    // 2. Buscar a corrida e validar o código
+    const { data: corrida, error: corridaError } = await supabaseAdmin
+      .from("corridas")
+      .select("id, codigo_embarque, status")
+      .eq("id", data.rideId)
+      .eq("motorista_id", motoristaId)
+      .single();
+
+    if (corridaError || !corrida) throw new Error("Corrida não encontrada.");
+    
+    if (corrida.status !== 'motorista_chegou') {
+      throw new Error("A corrida deve estar no estado 'motorista_chegou' para ser iniciada.");
+    }
+
+    if (corrida.codigo_embarque !== data.codigo) {
+      throw new Error("Código incorreto. Confira com o passageiro.");
+    }
+
+    // 3. Update condicionado
+    const { data: updatedRide, error: updateError } = await supabaseAdmin
+      .from("corridas")
+      .update({
+        status: 'em_andamento',
+        data_inicio: new Date().toISOString()
+      } as any)
+      .eq("id", data.rideId)
+      .eq("motorista_id", motoristaId)
+      .eq("status", 'motorista_chegou')
+      .select("id, status")
+      .maybeSingle();
+
+    if (updateError) {
+      console.error("Erro ao iniciar corrida (backend):", updateError);
+      throw new Error("Falha ao iniciar a corrida no servidor.");
+    }
+
+    if (!updatedRide) {
+      throw new Error("Não foi possível iniciar a corrida. Verifique o estado atual.");
+    }
+
+    return {
+      success: true,
+      status: updatedRide.status
+    };
+  });
+
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ tipo: z.string() }).parse(data))

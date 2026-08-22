@@ -44,6 +44,7 @@ import {
   cancelarCorridaMotorista,
   marcarMotoristaACaminho,
   marcarMotoristaChegou,
+  iniciarCorrida,
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
@@ -93,6 +94,7 @@ function HomeMotorista() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [processingRideId, setProcessingRideId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [codigoEmbarque, setCodigoEmbarque] = useState("");
   const [routeError, setRouteError] = useState<string | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
 
@@ -116,6 +118,7 @@ function HomeMotorista() {
   const marcarACaminhoFn = useServerFn(marcarMotoristaACaminho);
   const marcarChegouFn = useServerFn(marcarMotoristaChegou);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
+  const iniciarCorridaFn = useServerFn(iniciarCorrida);
 
   const {
     data: status,
@@ -632,6 +635,26 @@ function HomeMotorista() {
     }
   };
 
+  const handleIniciarCorrida = async (rideId: string) => {
+    if (codigoEmbarque.length !== 4) return;
+    
+    if (processingRideId) return;
+    setProcessingRideId(rideId);
+    try {
+      const result = await iniciarCorridaFn({ data: { rideId, codigo: codigoEmbarque } });
+      if (result.success) {
+        toast.success("Corrida iniciada!");
+        setCodigoEmbarque("");
+        queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao iniciar corrida.");
+      setCodigoEmbarque("");
+    } finally {
+      setProcessingRideId(null);
+    }
+  };
+
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
 
   const stopGps = useCallback(() => {
@@ -1106,9 +1129,36 @@ function HomeMotorista() {
                     "CHEGUEI NO LOCAL"
                   )}
                 </button>
+              ) : activeRide.status === "motorista_chegou" ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt">
+                      DIGITE O CÓDIGO DE EMBARQUE
+                    </p>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={codigoEmbarque}
+                      onChange={(e) => setCodigoEmbarque(e.target.value.replace(/\D/g, ""))}
+                      placeholder="0000"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-center text-xl font-bold tracking-[0.5em] text-white focus:outline-none focus:border-zuvvi-volt/50 transition-colors"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleIniciarCorrida(activeRide.id)}
+                    disabled={!!processingRideId || codigoEmbarque.length !== 4}
+                    className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-zuvvi-volt disabled:opacity-50"
+                  >
+                    {processingRideId === activeRide.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "INICIAR CORRIDA"
+                    )}
+                  </button>
+                </div>
               ) : (
                 <p className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt">
-                  {activeRide.status === "motorista_chegou" && "NO LOCAL DE EMBARQUE"}
                   {activeRide.status === "em_andamento" && "CORRIDA EM ANDAMENTO"}
                 </p>
               )}
