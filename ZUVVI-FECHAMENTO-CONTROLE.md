@@ -403,7 +403,17 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - Build verified.
 - Commit funcional: `74cc66c1f715e21908221804b77f884a44b7d159`.
 
-### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ FECHADA
+### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+
+### MICROCORREÇÃO 3.8-A1 — Trava síncrona client-side contra duplo envio — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- `useRef` (createInFlightRef) usado como lock imediato para ignorar cliques concorrentes antes do re-render do React;
+- `isCreating` preservado exclusivamente para controle visual de UI (loading states);
+- Nenhuma alteração no arquivo `src/lib/user.functions.ts` (servidor intacto);
+- Nenhuma migration de banco de dados;
+- Core operacional (motorista, GPS, Realtime) congelado;
+- Bloqueio funcional server-side (3.8-A) mantido como segunda camada;
+- Unicidade atômica de banco (transacional) continua reservada à microetapa 3.8-B.
+
 
 ### MICROETAPA 3.8-A — Bloqueio funcional de solicitação duplicada — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
 - Implementada validação server-side em `criarCorrida` ANTES de qualquer chamada externa (Mapbox) ou escrita (INSERT).

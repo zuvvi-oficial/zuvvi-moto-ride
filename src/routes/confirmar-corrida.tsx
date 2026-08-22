@@ -39,16 +39,21 @@ function ConfirmarCorrida() {
   const calcularValorCorridaFn = useServerFn(calcularValorCorrida);
   const criarCorridaFn = useServerFn(criarCorrida);
 
+  const createInFlightRef = useRef(false);
+
   const handleConfirmarCorrida = async () => {
-    // 3. PROTEÇÃO CONTRA DUPLO CLIQUE NO CLIENTE
-    if (isCreating) return;
+    // 1. TRAVA SÍNCRONA CONTRA DUPLO ENVIO (3.8-A1)
+    if (createInFlightRef.current) return;
 
     if (!metodoPagamento || !estimatedFare) {
       toast.error("Selecione uma forma de pagamento para continuar.");
       return;
     }
 
+    // Somente quando realmente for iniciar a submissão (3.8-A1)
+    createInFlightRef.current = true;
     setIsCreating(true);
+
     try {
       const result = await criarCorridaFn({
         data: {
@@ -72,9 +77,10 @@ function ConfirmarCorrida() {
     } catch (err: any) {
       console.error(err);
       // TRATAMENTO DE CORRIDA JÁ ABERTA (3.8-A)
-      // Mostra mensagem clara, não destrói tela, libera o botão no finally.
       toast.error(err.message || "Erro ao solicitar corrida. Tente novamente.");
     } finally {
+      // 1. RESTAURAÇÃO DA TRAVA (3.8-A1)
+      createInFlightRef.current = false;
       setIsCreating(false);
     }
   };
