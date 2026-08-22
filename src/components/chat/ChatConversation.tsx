@@ -88,7 +88,7 @@ export function ChatConversation({
   // Heartbeat de digitação (3000ms)
   React.useEffect(() => {
     if (!open || !isLocalDigitando) return;
-    
+
     const interval = setInterval(() => {
       onDigitandoChangeRef.current?.(true);
     }, 3000);
