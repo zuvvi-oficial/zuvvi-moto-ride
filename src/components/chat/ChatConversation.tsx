@@ -158,11 +158,16 @@ export function ChatConversation({
     const content = draft.trim();
     if (!content || content.length > 1000 || enviando) return;
 
+    if (typingIdleTimeoutRef.current) {
+      clearTimeout(typingIdleTimeoutRef.current);
+      typingIdleTimeoutRef.current = null;
+    }
+
     try {
       await onEnviar(content);
       setDraft("");
       setIsLocalDigitando(false);
-      onDigitandoChange?.(false);
+      onDigitandoChangeRef.current?.(false);
       scrollToBottom();
     } catch (err) {
       // Draft mantido em caso de erro conforme requisito
@@ -170,9 +175,13 @@ export function ChatConversation({
   };
 
   const handleBlur = () => {
+    if (typingIdleTimeoutRef.current) {
+      clearTimeout(typingIdleTimeoutRef.current);
+      typingIdleTimeoutRef.current = null;
+    }
     if (isLocalDigitando) {
       setIsLocalDigitando(false);
-      onDigitandoChange?.(false);
+      onDigitandoChangeRef.current?.(false);
     }
   };
 
