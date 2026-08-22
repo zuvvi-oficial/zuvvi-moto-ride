@@ -527,6 +527,52 @@ export const marcarMotoristaACaminho = createServerFn({ method: "POST" })
     };
   });
 
+
+export const marcarMotoristaChegou = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    // 1. Obter o perfil do motorista para validar ownership
+    const { data: user, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !user) throw new Error("Motorista não encontrado.");
+    const motoristaId = user.id;
+
+    // 2. Tentar atualizar para motorista_chegou
+    const { data: updatedRide, error: updateError } = await supabaseAdmin
+      .from("corridas")
+      .update({
+        status: 'motorista_chegou',
+        data_chegada_motorista: new Date().toISOString()
+      } as any)
+      .eq("id", data.rideId)
+      .eq("motorista_id", motoristaId)
+      .eq("status", "motorista_a_caminho")
+      .select()
+      .maybeSingle();
+
+    if (updateError) {
+      console.error("Erro ao confirmar chegada (motorista):", updateError);
+      throw new Error("Falha ao confirmar a chegada no servidor.");
+    }
+
+    if (!updatedRide) {
+      throw new Error("Não foi possível confirmar a chegada. Verifique o estado atual da corrida.");
+    }
+
+    return {
+      success: true,
+      status: updatedRide.status
+    };
+  });
+
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ tipo: z.string() }).parse(data))

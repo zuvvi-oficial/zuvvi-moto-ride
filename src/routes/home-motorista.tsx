@@ -43,6 +43,7 @@ import {
   recusarCorrida,
   cancelarCorridaMotorista,
   marcarMotoristaACaminho,
+  marcarMotoristaChegou,
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
@@ -113,6 +114,7 @@ function HomeMotorista() {
   const recusarCorridaFn = useServerFn(recusarCorrida);
   const cancelarCorridaFn = useServerFn(cancelarCorridaMotorista);
   const marcarACaminhoFn = useServerFn(marcarMotoristaACaminho);
+  const marcarChegouFn = useServerFn(marcarMotoristaChegou);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
   const {
@@ -616,6 +618,20 @@ function HomeMotorista() {
     }
   };
 
+  const handleMarcarChegou = async (rideId: string) => {
+    if (processingRideId) return;
+    setProcessingRideId(rideId);
+    try {
+      await marcarChegouFn({ data: { rideId } });
+      toast.success("Chegada confirmada.");
+      queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível confirmar a chegada.");
+    } finally {
+      setProcessingRideId(null);
+    }
+  };
+
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
 
   const stopGps = useCallback(() => {
@@ -1078,9 +1094,20 @@ function HomeMotorista() {
                     "A CAMINHO DO EMBARQUE"
                   )}
                 </button>
+              ) : activeRide.status === "motorista_a_caminho" ? (
+                <button
+                  onClick={() => handleMarcarChegou(activeRide.id)}
+                  disabled={!!processingRideId}
+                  className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-zuvvi-volt disabled:opacity-50"
+                >
+                  {processingRideId === activeRide.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "CHEGUEI NO LOCAL"
+                  )}
+                </button>
               ) : (
                 <p className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt">
-                  {activeRide.status === "motorista_a_caminho" && "A CAMINHO DO EMBARQUE"}
                   {activeRide.status === "motorista_chegou" && "NO LOCAL DE EMBARQUE"}
                   {activeRide.status === "em_andamento" && "CORRIDA EM ANDAMENTO"}
                 </p>
