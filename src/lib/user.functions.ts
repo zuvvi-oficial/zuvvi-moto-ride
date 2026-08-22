@@ -281,7 +281,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
         (insertError as any).details?.includes("idx_corridas_passageiro_aberta_unique") ||
         (insertError as any).hint?.includes("idx_corridas_passageiro_aberta_unique");
 
-      if (isUniqueViolation && isRideRideUniqueIndex) {
+      if (isUniqueViolation && isRideUniqueIndex) {
         throw new Error("Você já possui uma corrida em andamento ou aguardando motorista.");
       }
 
