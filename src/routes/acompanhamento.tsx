@@ -204,7 +204,8 @@ function AcompanhamentoCorrida() {
             } else if (
               payload.new?.status === "motorista_a_caminho" ||
               payload.new?.status === "motorista_chegou" ||
-              payload.new?.status === "em_andamento"
+              payload.new?.status === "em_andamento" ||
+              payload.new?.status === "concluida"
             ) {
               // Quando o status muda via Realtime, forçamos um refresh do server-side
               // para garantir que recebemos o codigo_embarque ou limpamos ele corretamente
@@ -613,6 +614,51 @@ function AcompanhamentoCorrida() {
         onDigitandoChange={handleDigitandoChange}
         onRetry={refreshChat}
       />
+      {corrida.status === "concluida" && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zuvvi-indigo/90 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="w-full max-w-md bg-zuvvi-indigo/50 border border-white/10 rounded-[3rem] p-10 shadow-2xl text-center space-y-8 animate-in zoom-in-95 duration-500">
+            <div className="flex justify-center">
+              <div className="w-24 h-24 bg-zuvvi-volt/20 rounded-full flex items-center justify-center border border-zuvvi-volt/30">
+                <CheckCircle2 className="w-12 h-12 text-zuvvi-volt" />
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <h2 className="text-3xl font-black text-white uppercase tracking-tighter">
+                CORRIDA CONCLUÍDA
+              </h2>
+              <p className="text-white/60 text-lg">
+                Você chegou ao seu destino.
+              </p>
+            </div>
+
+            <button
+              onClick={() => void navigate({ to: "/" })}
+              className="w-full py-6 rounded-3xl bg-zuvvi-volt text-zuvvi-indigo text-xs font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-[0_0_40px_rgba(198,255,61,0.2)]"
+            >
+              VOLTAR À TELA INICIAL
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const CheckCircle2 = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+    <path d="m9 12 2 2 4-4"/>
+  </svg>
+);

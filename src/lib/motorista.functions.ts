@@ -185,7 +185,7 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
         .from("corridas")
         .select("id")
         .eq("motorista_id", motoristaInfo.id)
-        .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou']);
+        .in("status", ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"]);
 
       if (rideError) throw new Error("Erro ao validar estado da corrida.");
       
