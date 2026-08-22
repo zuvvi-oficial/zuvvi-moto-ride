@@ -113,6 +113,7 @@ function HomeMotorista() {
   const recusarCorridaFn = useServerFn(recusarCorrida);
   const cancelarCorridaFn = useServerFn(cancelarCorridaMotorista);
   const marcarACaminhoFn = useServerFn(marcarMotoristaACaminho);
+  const marcarChegouFn = useServerFn(marcarMotoristaChegou);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
   const {
