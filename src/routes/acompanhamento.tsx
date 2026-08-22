@@ -284,13 +284,12 @@ function AcompanhamentoCorrida() {
       window.removeEventListener("pageshow", handlePageShow);
       void atualizarPresenca(false);
     };
-  }, [rideId, atualizarPresencaFn, refreshChat]);
+  }, [rideId, atualizarPresencaFn, refreshChat, syncChatFechado]);
 
   useEffect(() => {
     if (!rideId) return undefined;
-    chatOpenRef.current = chatOpen;
 
-    if (!chatOpen && document.visibilityState === "visible") {
+    if (chatOpenRef.current === false && document.visibilityState === "visible") {
       void syncChatFechado();
     }
 
@@ -338,7 +337,7 @@ function AcompanhamentoCorrida() {
       void supabase.removeChannel(chatChannel);
       if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     };
-  }, [chatOpen, rideId, refreshChat, syncChatFechado]);
+  }, [rideId, refreshChat, syncChatFechado]);
 
   const handleEnviarMensagem = async (conteudo: string) => {
     setChatSending(true);
