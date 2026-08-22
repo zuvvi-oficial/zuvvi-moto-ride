@@ -635,6 +635,26 @@ function HomeMotorista() {
     }
   };
 
+  const handleIniciarCorrida = async (rideId: string) => {
+    if (codigoEmbarque.length !== 4) return;
+    
+    if (processingRideId) return;
+    setProcessingRideId(rideId);
+    try {
+      const result = await iniciarCorridaFn({ data: { rideId, codigo: codigoEmbarque } });
+      if (result.success) {
+        toast.success("Corrida iniciada!");
+        setCodigoEmbarque("");
+        queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao iniciar corrida.");
+      setCodigoEmbarque("");
+    } finally {
+      setProcessingRideId(null);
+    }
+  };
+
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
 
   const stopGps = useCallback(() => {
