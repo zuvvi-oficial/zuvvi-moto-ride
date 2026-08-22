@@ -336,6 +336,7 @@ export function ChatConversation({
               size="icon"
               className="h-11 w-11 rounded-full shrink-0 sm:hidden"
               onClick={() => onOpenChange(false)}
+              aria-label="Fechar chat"
             >
               <ChevronLeft className="w-6 h-6" />
             </Button>
