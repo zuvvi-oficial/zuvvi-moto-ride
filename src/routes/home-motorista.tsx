@@ -99,6 +99,14 @@ function HomeMotorista() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
+  
+  // Estado explícito para corrida finalizada
+  const [completedRideNotice, setCompletedRideNotice] = useState<{
+    id: string;
+    valorEstimado: number;
+    formaPagamento: string;
+    destinoNome: string;
+  } | null>(null);
 
   const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -907,28 +915,33 @@ function HomeMotorista() {
     };
   }, []);
 
-  // Cleanup quando activeRide deixa de existir
+  // Cleanup seguro quando activeRide deixa de existir
   useEffect(() => {
     if (!activeRide) {
+      // 1. Abortar rota em andamento
       if (routeAbortRef.current) {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
       }
+      // 2. Remover marcador com segurança
       if (driverMarkerRef.current) {
-        driverMarkerRef.current.remove();
+        try {
+          driverMarkerRef.current.remove();
+        } catch (e) {
+          // Ignorar se já removido ou falhar
+        }
         driverMarkerRef.current = null;
       }
-      const map = pickupMapInstance.current;
-      if (map) {
-        const sourceId = "zuvvi-driver-pickup-route-source";
-        const layerId = "zuvvi-driver-pickup-route-layer";
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
-      }
+      
+      // 3. Resetar referências operacionais
       routeFittedRideRef.current = null;
       lastRouteCoordsRef.current = null;
       setRouteError(null);
       setIsPickupMapReady(false);
+      
+      // 4. IMPORTANTE: Não tentar acessar layers/sources aqui 
+      // O componente MapView cuida do map.remove() que já limpa tudo.
+      // Apenas anulamos a referência da instância.
       pickupMapInstance.current = null;
     }
   }, [activeRide]);
@@ -1378,12 +1391,36 @@ function HomeMotorista() {
               <button
                 onClick={async () => {
                   if (!activeRide?.id || processingRideId) return;
+                  
+                  // Capturar dados para o notice antes da finalização
+                  const rideData = {
+                    id: activeRide.id,
+                    valorEstimado: Number(activeRide.valor_estimado),
+                    formaPagamento: activeRide.forma_pagamento,
+                    destinoNome: activeRide.destino_nome || "Destino",
+                  };
+
                   setProcessingRideId(activeRide.id);
                   try {
+                    // 1. Backend
                     await finalizarCorridaFn({ data: { rideId: activeRide.id } });
+                    
+                    // 2. Fechar modal
                     setShowFinalizeConfirmation(false);
-                    toast.success("Corrida finalizada!");
-                    queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
+                    
+                    // 3. Sucesso visual desacoplado
+                    setCompletedRideNotice(rideData);
+                    
+                    // 4. Limpar estados locais de chat para a corrida encerrada
+                    setChatOpen(false);
+                    chatOpenRef.current = false;
+                    setChatData(null);
+                    setChatUnreadCount(0);
+                    
+                    // 5. Invalidação best-effort (não derruba a página)
+                    void queryClient.invalidateQueries({ queryKey: ["motorista-status"] })
+                      .catch(err => console.error("Erro ao sincronizar status pós-finalização:", err));
+                    
                   } catch (err: any) {
                     toast.error(err.message || "Erro ao finalizar corrida.");
                   } finally {
