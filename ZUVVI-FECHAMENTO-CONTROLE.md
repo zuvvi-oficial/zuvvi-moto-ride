@@ -863,17 +863,21 @@ Permanecem pendentes:
 - CI significativo ainda pendente;
 - lint global herdado ainda pendente.
 
+### Microetapa 3.5 — BOTÃO "CHEGUEI" NO APP DO MOTORISTA — ✅ IMPLEMENTADA
+- Implementado botão "CHEGUEI NO LOCAL" na Home do Motorista.
+- Server function `marcarMotoristaChegou` valida ownership e exige status `motorista_a_caminho`.
+- Corrida é marcada como `motorista_chegou` com `data_chegada_motorista` preenchida.
+- Interface reage ao novo status exibindo "NO LOCAL DE EMBARQUE".
+- Prova manual pendente.
+- Arquivos tocados: `src/lib/motorista.functions.ts`, `src/routes/home-motorista.tsx`.
+
 ### Próxima microetapa oficial
 
-CHAT 1 —
-Fundação de banco, ownership, RLS,
-segurança e Realtime.
-
-A implementação do Chat foi realizada, aguardando prova manual completa.
+Próxima microetapa oficial: 3.6 — Passageiro recebe o estado motorista_chegou
 
 ## BLOQUEADORES ABERTOS PARA O PILOTO — auditoria 21/08/2026
 
-B1. A corrida não termina. Não existe botão CHEGUEI. Os estados motorista_chegou, em_andamento e concluida existem no enum e nenhum código os grava. O codigo_embarque é gerado em toda corrida e nunca é mostrado ao passageiro nem validado pelo motorista. Prova: 1 corrida presa em motorista_a_caminho, 1 concluída em 53.
+B1. A corrida não termina. O botão CHEGUEI passou a existir (3.5), mas o bloqueador continua aberto, pois ainda faltam: validação do código de embarque, início real da corrida (em_andamento) e conclusão (concluida). O codigo_embarque é gerado em toda corrida e nunca é mostrado ao passageiro nem validado pelo motorista. Prova: 1 corrida presa em motorista_chegou.
 B2. Pagamento inexistente. Mercado Pago não está no código. 36 pagamentos, 100% no status pendente.
 B3. O passageiro não recebe a posição do motorista. getAcompanhamentoPassageiro não retorna ultima_lat / ultima_lng. Aviso de 500 metros não existe.
 B4. Avaliações: tabela vazia, nenhum código.
