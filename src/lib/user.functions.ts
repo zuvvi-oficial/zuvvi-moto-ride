@@ -172,7 +172,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
 
     // [3.8-A] — VERIFICAÇÃO DE CORRIDA ABERTA (SERVER-SIDE)
     // Impedir criação de nova corrida se já existir uma nos status bloqueadores.
-    const statusBloqueadores = [
+    const statusBloqueadores: Database["public"]["Enums"]["corrida_status"][] = [
       'solicitada',
       'buscando_motorista',
       'aceita',
@@ -180,6 +180,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
       'motorista_chegou',
       'em_andamento'
     ];
+
 
     const { data: corridaAberta, error: checkError } = await supabaseAdmin
       .from("corridas")
