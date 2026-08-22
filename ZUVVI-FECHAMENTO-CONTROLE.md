@@ -883,13 +883,21 @@ Permanecem pendentes:
   saída após motorista_chegou) é legítimo e será resolvido
   formalmente na Microetapa 3.6.
 
+### Microetapa 3.6 — INÍCIO REAL DA CORRIDA — ✅ IMPLEMENTADA
+- Criada a função `iniciarCorrida` em `src/lib/motorista.functions.ts` com validação de código de 4 dígitos e transição para `em_andamento`.
+- Implementada UI de validação de código na `home-motorista.tsx`.
+- Segurança: Validação de ownership e status `motorista_chegou` obrigatórios no servidor.
+- Mensagem de erro de código incorreto não revela o código real.
+- Prova manual pendente.
+- Arquivos tocados: `src/lib/motorista.functions.ts`, `src/routes/home-motorista.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
+
 ### Próxima microetapa oficial
 
-Próxima microetapa oficial: 3.6 — Passageiro recebe o estado motorista_chegou
+Próxima microetapa oficial: 3.7 — Conclusão da corrida (em_andamento → concluida)
 
 ## BLOQUEADORES ABERTOS PARA O PILOTO — auditoria 21/08/2026
 
-B1. A corrida não termina. O botão CHEGUEI passou a existir (3.5), mas o bloqueador continua aberto, pois ainda faltam: validação do código de embarque, início real da corrida (em_andamento) e conclusão (concluida). O codigo_embarque é gerado em toda corrida e nunca é mostrado ao passageiro nem validado pelo motorista. Prova: 1 corrida presa em motorista_chegou.
+B1. A corrida não termina. A validação do código de embarque e o início real da corrida (em_andamento) passaram a existir (3.6), mas o bloqueador CONTINUA ABERTO, pois falta ainda a conclusão da corrida (concluida, data_finalizacao, valor_final). O codigo_embarque é gerado em toda corrida e agora é validado pelo motorista. Prova: 1 corrida presa em em_andamento.
 B2. Pagamento inexistente. Mercado Pago não está no código. 36 pagamentos, 100% no status pendente.
 B3. O passageiro não recebe a posição do motorista. getAcompanhamentoPassageiro não retorna ultima_lat / ultima_lng. Aviso de 500 metros não existe.
 B4. Avaliações: tabela vazia, nenhum código.
