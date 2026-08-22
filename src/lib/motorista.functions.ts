@@ -1165,6 +1165,9 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
     }
 
     const valorFinal = Number(rideCheck.valor_estimado);
+    if (!Number.isFinite(valorFinal)) {
+      throw new Error("Valor da corrida inválido para finalização.");
+    }
 
     // 3. Executar update condicionado
     const { data: updatedCorrida, error: updateError } = await supabaseAdmin
