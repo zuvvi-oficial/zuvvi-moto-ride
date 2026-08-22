@@ -220,13 +220,32 @@ export function ChatConversation({
       );
     }
 
-    if (error) {
+    if (error && mensagens.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-4">
           <p className="text-muted-foreground">Não foi possível carregar a conversa.</p>
           {onRetry && (
-            <Button variant="outline" size="sm" onClick={onRetry}>
-              Tentar novamente
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={async () => {
+                setRetrying(true);
+                try {
+                  await onRetry();
+                } finally {
+                  setRetrying(false);
+                }
+              }}
+              disabled={retrying}
+            >
+              {retrying ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Carregando...
+                </>
+              ) : (
+                "Tentar novamente"
+              )}
             </Button>
           )}
         </div>
