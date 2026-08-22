@@ -209,11 +209,11 @@ function AcompanhamentoCorrida() {
       }
     };
 
-    const heartbeat = React.useCallback(() => {
+    const heartbeat = () => {
       if (document.visibilityState === "visible") {
         void atualizarPresenca(chatOpenRef.current ? digitandoRef.current : false);
       }
-    }, [atualizarPresenca]);
+    };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
