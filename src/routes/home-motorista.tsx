@@ -308,15 +308,15 @@ function HomeMotorista() {
             filter: `corrida_id=eq.${corridaId}`,
           },
           (payload) => {
-            if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
-            chatDebounceRef.current = setTimeout(() => {
-              if (cancelled) return;
-              if (chatOpenRef.current) {
+            if (chatOpenRef.current) {
+              if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
+              chatDebounceRef.current = setTimeout(() => {
+                if (cancelled) return;
                 void refreshChat();
-              } else if (payload.eventType === "INSERT") {
-                void syncChatFechado();
-              }
-            }, 200);
+              }, 200);
+            } else if (payload.eventType === "INSERT") {
+              void syncChatFechado();
+            }
           },
         )
         .on(
@@ -328,12 +328,16 @@ function HomeMotorista() {
             filter: `corrida_id=eq.${corridaId}`,
           },
           () => {
+            if (!chatOpenRef.current || cancelled) return;
+
             if (chatDebounceRef.current) clearTimeout(chatDebounceRef.current);
             chatDebounceRef.current = setTimeout(() => {
-              if (chatOpenRef.current && !cancelled) void refreshChat();
+              if (cancelled) return;
+              void refreshChat();
             }, 200);
           },
         )
+
         .subscribe((status) => {
           if (status === "SUBSCRIBED" && !cancelled) {
             if (chatOpenRef.current) {
