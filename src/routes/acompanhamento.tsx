@@ -218,8 +218,20 @@ function AcompanhamentoCorrida() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         heartbeat();
+        if (chatOpenRef.current) {
+          void refreshChat();
+        }
       } else {
         void atualizarPresenca(false);
+      }
+    };
+
+    const handlePageShow = () => {
+      if (document.visibilityState === "visible") {
+        heartbeat();
+        if (chatOpenRef.current) {
+          void refreshChat();
+        }
       }
     };
 
@@ -230,13 +242,15 @@ function AcompanhamentoCorrida() {
 
     const interval = setInterval(heartbeat, 20000);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", handlePageShow);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
       void atualizarPresenca(false);
     };
-  }, [rideId, atualizarPresencaFn]);
+  }, [rideId, atualizarPresencaFn, refreshChat]);
 
   useEffect(() => {
     chatOpenRef.current = chatOpen;
