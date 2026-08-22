@@ -1063,7 +1063,7 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 
 **STATUS:** ABERTOS. Não corrigir nenhum deles nesta etapa.
 
-### MICROETAPA 3.8-C1 — Fundação server-side do timeout de busca — ✅ IMPLEMENTADA — CONTRA-PROVA PENDENTE
+### MICROETAPA 3.8-C1 — Fundação server-side do timeout de busca — ✅ FECHADA
 - timeout oficial inicial = 120 segundos;
 - solicitada sem motorista pode virar sem_motorista;
 - update condicionado contra race com aceite;
@@ -1073,4 +1073,12 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 - nenhuma migration;
 - UI ainda não implementada;
 - filtro das ofertas ainda não implementado.
+
+### MICROCORREÇÃO 3.8-C1-A — Fail-closed dos erros de expiração — ✅ IMPLEMENTADA — CONTRA-PROVA PENDENTE
+- erro da limpeza pré-criação tratado;
+- erro da releitura pós-race tratado;
+- timeout permanece 120 segundos;
+- nenhuma migration;
+- C2 não implementada;
+- C3 não implementada.
 
