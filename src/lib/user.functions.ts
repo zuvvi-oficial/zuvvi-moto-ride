@@ -175,13 +175,18 @@ export const criarCorrida = createServerFn({ method: "POST" })
 
     // [3.8-C1] — LIMPEZA SERVER-SIDE DE SOLICITAÇÃO VENCIDA DO PASSAGEIRO
     const timeoutCutoff = new Date(Date.now() - RIDE_SEARCH_TIMEOUT_MS).toISOString();
-    await supabaseAdmin
+    const { error: cleanupError } = await supabaseAdmin
       .from("corridas")
       .update({ status: 'sem_motorista' } as any)
       .eq("passageiro_id", usuario.id)
       .eq("status", "solicitada")
       .is("motorista_id", null)
       .lte("created_at", timeoutCutoff);
+
+    if (cleanupError) {
+      console.error("Erro na limpeza de corridas vencidas:", cleanupError);
+      throw new Error("Falha ao validar estado da conta. Tente novamente.");
+    }
 
     // [3.8-A] — VERIFICAÇÃO DE CORRIDA ABERTA (SERVER-SIDE)
 
