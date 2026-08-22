@@ -871,6 +871,14 @@ Permanecem pendentes:
 - Prova manual pendente.
 - Arquivos tocados: `src/lib/motorista.functions.ts`, `src/routes/home-motorista.tsx`.
 
+### Microetapa 3.5-A — LIBERAR CANCELAMENTO DO MOTORISTA NO STATUS motorista_chegou — ✅ IMPLEMENTADA
+- Motivo: Corridas travavam no status `motorista_chegou` e bloqueavam o motorista devido ao índice `idx_corridas_motorista_ativa_unique`, pois não havia transição seguinte nem cancelamento permitido.
+- Mudança: A lista de status canceláveis em `cancelarCorridaMotorista` passou a incluir `motorista_chegou`.
+- Restrições: Continua proibido cancelar corridas em `em_andamento`, `concluida` ou já `cancelada`.
+- Validação: Ownership por `motorista_id` e autenticação via servidor preservadas.
+- Arquivos tocados: `src/lib/motorista.functions.ts`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
+- Prova manual pendente.
+
 ### Próxima microetapa oficial
 
 Próxima microetapa oficial: 3.6 — Passageiro recebe o estado motorista_chegou
@@ -894,5 +902,8 @@ G5. criarVeiculo derruba aprovação de veículo já aprovado.
 G6. Não existe trava de corrida ativa única para o passageiro.
 G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 
+**OBSERVAÇÃO PARA O FUTURO:** MATRIZ DE CANCELAMENTO PENDENTE: quando os estados em_andamento e concluida forem implementados, a matriz de estados canceláveis do motorista E do passageiro deverá ser revisada em microetapa própria. A falha G1 (passageiro cancela sem filtro de status) permanece ABERTA e NÃO foi tocada nesta etapa.
+
 **STATUS:** ABERTOS. Não corrigir nenhum deles nesta etapa.
+
 
