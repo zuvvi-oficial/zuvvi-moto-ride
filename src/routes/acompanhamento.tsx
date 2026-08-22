@@ -455,13 +455,15 @@ function AcompanhamentoCorrida() {
               ? "Motorista Chegou"
               : corrida.status === "em_andamento"
               ? "Corrida em Andamento"
+              : corrida.status === "concluida"
+              ? "Corrida Concluída"
               : "Atualizando corrida"}
           </p>
         </div>
         <div className="w-12" />
       </div>
 
-      {motorista && veiculo && (
+      {motorista && veiculo && corrida.status !== "concluida" && (
         <div className="absolute bottom-0 left-0 right-0 p-6 z-10 pointer-events-none">
           <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl pointer-events-auto animate-rise space-y-6">
             <div className="flex items-center justify-between">

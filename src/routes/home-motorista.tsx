@@ -45,6 +45,7 @@ import {
   marcarMotoristaACaminho,
   marcarMotoristaChegou,
   iniciarCorrida,
+  finalizarCorrida,
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
@@ -97,6 +98,7 @@ function HomeMotorista() {
   const [codigoEmbarque, setCodigoEmbarque] = useState("");
   const [routeError, setRouteError] = useState<string | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
+  const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
 
   const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -119,6 +121,7 @@ function HomeMotorista() {
   const marcarChegouFn = useServerFn(marcarMotoristaChegou);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const iniciarCorridaFn = useServerFn(iniciarCorrida);
+  const finalizarCorridaFn = useServerFn(finalizarCorrida);
 
   const {
     data: status,
@@ -811,7 +814,13 @@ function HomeMotorista() {
         const controller = new AbortController();
         routeAbortRef.current = controller;
 
-        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${dLng},${dLat};${pLng},${pLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
+        const isEmAndamento = activeRide?.status === "em_andamento";
+        const dLat = isEmAndamento ? activeRide.destino_lat : activeRide.origem_lat;
+        const dLng = isEmAndamento ? activeRide.destino_lng : activeRide.origem_lng;
+
+        if (dLat === null || dLng === null) return;
+
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${status.ultima_lng},${status.ultima_lat};${dLng},${dLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
 
         fetch(url, { signal: controller.signal })
           .then(res => res.json())
@@ -1006,7 +1015,7 @@ function HomeMotorista() {
             {activeRide && mapboxToken && activeRide.origem_lat && activeRide.origem_lng ? (
               <div className="space-y-2">
                 <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
-                  Local de Embarque
+                  {activeRide.status === "em_andamento" ? "Destino da Viagem" : "Local de Embarque"}
                 </p>
                 <div className="h-56 rounded-2xl overflow-hidden border border-white/5 relative">
                   <MapView
@@ -1157,9 +1166,21 @@ function HomeMotorista() {
                     )}
                   </button>
                 </div>
+              ) : activeRide.status === "em_andamento" ? (
+                <button
+                  onClick={() => setShowFinalizeConfirmation(true)}
+                  disabled={!!processingRideId}
+                  className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-zuvvi-volt disabled:opacity-50"
+                >
+                  {processingRideId === activeRide.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "FINALIZAR CORRIDA"
+                  )}
+                </button>
               ) : (
                 <p className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt">
-                  {activeRide.status === "em_andamento" && "CORRIDA EM ANDAMENTO"}
+                  Atualizando...
                 </p>
               )}
             </div>

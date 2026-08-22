@@ -462,12 +462,9 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
       } as any)
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
-      // ⚠️ TEMPORÁRIO — LIBERADO PARA FASE DE TESTES (Microetapa 3.6-C)
-      // Motivo: permitir reiniciar o fluxo de teste sem travar em
-      // motorista_chegou / em_andamento antes da 3.7 existir.
-      // OBRIGATÓRIO: restringir de volta para ['aceita', 'motorista_a_caminho']
-      // antes de qualquer piloto real. Ver ZUVVI-FECHAMENTO-CONTROLE.md.
-      .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou', 'em_andamento'])
+      // Regra: motorista só pode cancelar ANTES de iniciar a viagem (em_andamento).
+      // A permissão temporária 3.6-C para cancelar em_andamento foi revogada na 3.7.
+      .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou'])
       .select()
       .maybeSingle();
 
@@ -1129,3 +1126,46 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+
+export const finalizarCorrida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUserId = context.userId;
+
+    const { data: user, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, is_motorista")
+      .eq("auth_user_id", authUserId)
+      .single();
+
+    if (userError || !user) throw new Error("Usuário não encontrado.");
+    if (!user.is_motorista) throw new Error("Acesso restrito a motoristas.");
+    const motoristaId = user.id;
+
+    const { data: corrida, error: updateError } = await supabaseAdmin
+      .from("corridas")
+      .update({
+        status: 'concluida',
+        data_finalizacao: new Date().toISOString(),
+        valor_final: supabaseAdmin.raw('valor_estimado')
+      } as any)
+      .eq("id", data.rideId)
+      .eq("motorista_id", motoristaId)
+      .eq("status", 'em_andamento')
+      .not("data_inicio", "is", null)
+      .select()
+      .maybeSingle();
+
+    if (updateError) {
+      console.error("Erro ao finalizar corrida:", updateError);
+      throw new Error("Falha ao finalizar a corrida no servidor.");
+    }
+
+    if (!corrida) {
+      throw new Error("Não foi possível finalizar esta corrida. Verifique se ela ainda está em andamento.");
+    }
+
+    return { success: true };
+  });
