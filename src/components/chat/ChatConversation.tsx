@@ -279,9 +279,9 @@ export function ChatConversation({
         <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-4">
           <p className="text-muted-foreground">Não foi possível carregar a conversa.</p>
           {onRetry && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={async () => {
                 setRetrying(true);
                 try {
