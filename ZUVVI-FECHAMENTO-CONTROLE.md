@@ -1100,3 +1100,12 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 - pagamentos intactos;
 - C3 ainda NÃO implementada.
 
+### MICROCORREÇÃO 3.8-C2-A — Reconciliação server-side após timeout — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- status atribuído retornado pelo servidor (aceita, motorista_a_caminho, motorista_chegou, em_andamento) navega diretamente para /acompanhamento?rideId=<rideId>;
+- Realtime continua preservado integralmente como caminho rápido;
+- perda/atraso de evento Realtime não deixa passageiro preso em 00:00;
+- sem_motorista: limpa retryTimeoutRef pendente antes de setSemMotorista(true);
+- nenhuma migration;
+- pagamentos intactos;
+- C3 não implementada.
+
