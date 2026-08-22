@@ -462,7 +462,7 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
       } as any)
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
-      .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou'])
+      .in("status", ['aceita', 'motorista_a_caminho'])
       .select()
       .maybeSingle();
 

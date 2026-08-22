@@ -871,13 +871,17 @@ Permanecem pendentes:
 - Prova manual pendente.
 - Arquivos tocados: `src/lib/motorista.functions.ts`, `src/routes/home-motorista.tsx`.
 
-### Microetapa 3.5-A — LIBERAR CANCELAMENTO DO MOTORISTA NO STATUS motorista_chegou — ✅ IMPLEMENTADA
-- Motivo: Corridas travavam no status `motorista_chegou` e bloqueavam o motorista devido ao índice `idx_corridas_motorista_ativa_unique`, pois não havia transição seguinte nem cancelamento permitido.
-- Mudança: A lista de status canceláveis em `cancelarCorridaMotorista` passou a incluir `motorista_chegou`.
-- Restrições: Continua proibido cancelar corridas em `em_andamento`, `concluida` ou já `cancelada`.
-- Validação: Ownership por `motorista_id` e autenticação via servidor preservadas.
-- Arquivos tocados: `src/lib/motorista.functions.ts`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
-- Prova manual pendente.
+### Microetapa 3.5-A — ❌ REVERTIDA (implementação não autorizada)
+- Esta alteração foi feita fora do escopo autorizado do
+  prompt da Microetapa 3.5, sem passar pelo processo de
+  ABORTAR E REPORTAR exigido pela regra 14.
+- Revertida por decisão do responsável do projeto em
+  22/08/2026.
+- cancelarCorridaMotorista voltou a aceitar cancelamento
+  apenas nos status 'aceita' e 'motorista_a_caminho'.
+- O problema real que motivou a tentativa (motorista sem
+  saída após motorista_chegou) é legítimo e será resolvido
+  formalmente na Microetapa 3.6.
 
 ### Próxima microetapa oficial
 
