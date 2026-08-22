@@ -175,13 +175,18 @@ export const criarCorrida = createServerFn({ method: "POST" })
 
     // [3.8-C1] — LIMPEZA SERVER-SIDE DE SOLICITAÇÃO VENCIDA DO PASSAGEIRO
     const timeoutCutoff = new Date(Date.now() - RIDE_SEARCH_TIMEOUT_MS).toISOString();
-    await supabaseAdmin
+    const { error: cleanupError } = await supabaseAdmin
       .from("corridas")
       .update({ status: 'sem_motorista' } as any)
       .eq("passageiro_id", usuario.id)
       .eq("status", "solicitada")
       .is("motorista_id", null)
       .lte("created_at", timeoutCutoff);
+
+    if (cleanupError) {
+      console.error("Erro na limpeza de corridas vencidas:", cleanupError);
+      throw new Error("Falha ao validar estado da conta. Tente novamente.");
+    }
 
     // [3.8-A] — VERIFICAÇÃO DE CORRIDA ABERTA (SERVER-SIDE)
 
@@ -450,12 +455,16 @@ export const verificarTimeoutCorrida = createServerFn({ method: "POST" })
     if (updateError) throw new Error("Falha ao processar expiração.");
 
     if (!updatedRide) {
-      const { data: finalRide } = await supabaseAdmin
+      const { data: finalRide, error: finalError } = await supabaseAdmin
         .from("corridas")
         .select("status")
         .eq("id", data.rideId)
         .maybeSingle();
-      return { expired: false, status: finalRide?.status || corrida.status };
+
+      if (finalError) throw new Error("Falha ao consultar estado da corrida.");
+      if (!finalRide) throw new Error("Corrida não encontrada");
+
+      return { expired: false, status: finalRide.status };
     }
 
     return { expired: true, status: "sem_motorista" };
