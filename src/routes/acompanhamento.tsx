@@ -446,10 +446,17 @@ function AcompanhamentoCorrida() {
               </div>
               <button
                 onClick={() => handleChatOpenChange(true)}
-                className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px]"
-                aria-label="Chat com motorista"
+                className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px] relative"
+                aria-label={`Chat com motorista${chatUnreadCount > 0 ? `, ${chatUnreadCount} mensagens não lidas` : ""}`}
               >
-                <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
+                <div className="relative">
+                  <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
+                  {chatUnreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-zuvvi-volt text-zuvvi-indigo text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-zuvvi-indigo/50 animate-in zoom-in duration-300">
+                      {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+                    </span>
+                  )}
+                </div>
                 <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">
                   Chat
                 </p>
