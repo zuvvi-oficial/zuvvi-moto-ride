@@ -366,8 +366,6 @@ export function ChatConversation({
           "[&>button]:hidden sm:[&>button]:inline-flex",
         )}
         overlayClassName="bg-black/[0.86]"
-        // Removendo o botão padrão do dialog se for mobile para usar o header custom
-        // ou apenas estilizando-o conforme requisito via classes no componente
       >
         <DialogHeader className="p-0 space-y-0 text-left border-b bg-background z-20 shrink-0">
           <div className="flex items-center h-16 px-4 gap-3 pt-[env(safe-area-inset-top)] box-content">
