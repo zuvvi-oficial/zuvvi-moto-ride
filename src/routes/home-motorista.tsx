@@ -104,7 +104,13 @@ function HomeMotorista() {
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
-  const lastRouteCoordsRef = useRef<{ dLat: number; dLng: number; pLat: number; pLng: number } | null>(null);
+  const lastRouteCoordsRef = useRef<{ 
+    driverLat: number; 
+    driverLng: number; 
+    targetLat: number; 
+    targetLng: number; 
+    phase: "pickup" | "destination";
+  } | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
