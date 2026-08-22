@@ -196,11 +196,32 @@ export function ChatConversation({
     const value = e.target.value;
     setDraft(value);
 
-    const isNowDigitando = value.trim().length > 0;
-    if (isNowDigitando !== isLocalDigitando) {
-      setIsLocalDigitando(isNowDigitando);
-      onDigitandoChange?.(isNowDigitando);
+    // Limpar timeout anterior de inatividade
+    if (typingIdleTimeoutRef.current) {
+      clearTimeout(typingIdleTimeoutRef.current);
+      typingIdleTimeoutRef.current = null;
     }
+
+    const trimmedValue = value.trim();
+    if (trimmedValue.length === 0) {
+      // Campo vazio: false imediato
+      setIsLocalDigitando(false);
+      onDigitandoChangeRef.current?.(false);
+      return;
+    }
+
+    // Se estava inativo e começou a digitar
+    if (!isLocalDigitando) {
+      setIsLocalDigitando(true);
+      onDigitandoChangeRef.current?.(true);
+    }
+
+    // Iniciar novo timeout de inatividade (2500ms)
+    typingIdleTimeoutRef.current = setTimeout(() => {
+      setIsLocalDigitando(false);
+      onDigitandoChangeRef.current?.(false);
+      typingIdleTimeoutRef.current = null;
+    }, 2500);
   };
 
   const formatStatus = () => {
