@@ -145,7 +145,7 @@ export function ChatConversation({
     const agora = new Date();
     const digitandoAte = presenca.digitandoAte ? new Date(presenca.digitandoAte) : null;
     if (digitandoAte && digitandoAte > agora) {
-      return <span className="text-primary font-medium animate-pulse">Digitando...</span>;
+      return <span className="text-primary font-medium animate-pulse">Escrevendo...</span>;
     }
 
     const vistoAt = new Date(presenca.ultimoVistoAt);
