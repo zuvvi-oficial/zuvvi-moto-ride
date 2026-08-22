@@ -45,7 +45,7 @@ interface ChatConversationProps {
   enviando?: boolean;
   onEnviar: (conteudo: string) => void | Promise<void>;
   onDigitandoChange?: (digitando: boolean) => void;
-  onRetry?: () => void;
+  onRetry?: () => void | Promise<void>;
 }
 
 export function ChatConversation({
