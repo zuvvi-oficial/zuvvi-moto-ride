@@ -147,6 +147,7 @@ function HomeMotorista() {
   const activeChatRideIdRef = useRef<string | undefined>(undefined);
   const chatSessionRideIdRef = useRef<string | undefined>(undefined);
   const chatRefreshInFlightRef = useRef(false);
+  const chatRefreshPendingRef = useRef(false);
 
 
   const handleChatOpenChange = (open: boolean) => {
@@ -169,34 +170,50 @@ function HomeMotorista() {
     const currentRideId = activeRide.id;
 
     if (chatSessionRideIdRef.current !== currentRideId) return;
-    if (chatRefreshInFlightRef.current) return;
+    
+    if (chatRefreshInFlightRef.current) {
+      chatRefreshPendingRef.current = true;
+      return;
+    }
 
     chatRefreshInFlightRef.current = true;
     try {
-      const inicial = await carregarChatFn({ data: { corridaId: currentRideId } });
-      if (activeChatRideIdRef.current !== currentRideId) return;
-      setChatData(inicial as ChatData);
+      do {
+        chatRefreshPendingRef.current = false;
 
-      await marcarEntreguesFn({ data: { corridaId: currentRideId } });
-      if (activeChatRideIdRef.current !== currentRideId) return;
-      
-      await marcarLidasFn({ data: { corridaId: currentRideId } });
-      if (activeChatRideIdRef.current !== currentRideId) return;
+        const inicial = await carregarChatFn({ data: { corridaId: currentRideId } });
+        if (activeChatRideIdRef.current !== currentRideId) break;
+        setChatData(inicial as ChatData);
 
-      const atualizado = await carregarChatFn({ data: { corridaId: currentRideId } });
-      if (activeChatRideIdRef.current !== currentRideId) return;
-      
-      setChatData(atualizado as ChatData);
-      setChatError(null);
+        await marcarEntreguesFn({ data: { corridaId: currentRideId } });
+        if (activeChatRideIdRef.current !== currentRideId) break;
+        
+        await marcarLidasFn({ data: { corridaId: currentRideId } });
+        if (activeChatRideIdRef.current !== currentRideId) break;
+
+        const atualizado = await carregarChatFn({ data: { corridaId: currentRideId } });
+        if (activeChatRideIdRef.current !== currentRideId) break;
+        
+        setChatData(atualizado as ChatData);
+        setChatError(null);
+      } while (
+        chatRefreshPendingRef.current &&
+        chatOpenRef.current === true &&
+        chatSessionRideIdRef.current === currentRideId &&
+        activeChatRideIdRef.current === currentRideId
+      );
     } catch {
       if (activeChatRideIdRef.current === currentRideId) {
         setChatError("Não foi possível carregar o chat.");
       }
     } finally {
+      chatRefreshInFlightRef.current = false;
+      if (activeChatRideIdRef.current !== currentRideId) {
+        chatRefreshPendingRef.current = false;
+      }
       if (activeChatRideIdRef.current === currentRideId) {
         setChatLoading(false);
       }
-      chatRefreshInFlightRef.current = false;
     }
   }, [activeRide?.id, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
 
