@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   Loader2,
   ArrowDown,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
