@@ -1082,3 +1082,21 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 - C2 não implementada;
 - C3 não implementada.
 
+### MICROETAPA 3.8-C2 — Timeout visual e encerramento automático da busca — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- 120 segundos de busca máxima;
+- contagem usa created_at real da corrida (não inicia 120s novos ao montar);
+- servidor é autoridade final (verificarTimeoutCorrida decide expiração);
+- sem_motorista tratado por chamada server-side e por Realtime;
+- aceite prevalece na race (servidor nunca expira corrida já aceita);
+- refresh respeita tempo já decorrido (recalcula a partir do created_at);
+- proteção contra chamadas duplicadas via timeoutCheckInFlightRef;
+- retry controlado (3s) se servidor dis não expirado por diferença de relógio;
+- erro de rede não fala sem_motorista localmente; toast seguro e retry de 5s;
+- estado final: "NENHUM MOTORISTA DISPONÍVEL" com botão "TENTAR NOVAMENTE";
+- botão CANCELAR CORRIDA oculto quando sem_motorista;
+- cleanup de interval, retry timeout e canal Realtime no unmount;
+- aria-live="polite" no bloco de status; contagem não anunciada a cada segundo;
+- nenhuma migration;
+- pagamentos intactos;
+- C3 ainda NÃO implementada.
+
