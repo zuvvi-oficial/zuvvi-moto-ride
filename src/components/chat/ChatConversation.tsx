@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   Loader2,
   ArrowDown,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
@@ -44,7 +45,7 @@ interface ChatConversationProps {
   enviando?: boolean;
   onEnviar: (conteudo: string) => void | Promise<void>;
   onDigitandoChange?: (digitando: boolean) => void;
-  onRetry?: () => void;
+  onRetry?: () => void | Promise<void>;
 }
 
 export function ChatConversation({
@@ -66,6 +67,36 @@ export function ChatConversation({
   const [isLocalDigitando, setIsLocalDigitando] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [showScrollBottom, setShowScrollBottom] = React.useState(false);
+  const [now, setNow] = React.useState(new Date());
+  const [retrying, setRetrying] = React.useState(false);
+
+  // Clock local para expiração visual
+  React.useEffect(() => {
+    if (!open) return;
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [open]);
+
+  // Heartbeat de digitação (3000ms)
+  React.useEffect(() => {
+    if (!open || !isLocalDigitando || !draft.trim()) return;
+    
+    const interval = setInterval(() => {
+      onDigitandoChange?.(true);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [open, isLocalDigitando, draft, onDigitandoChange]);
+
+  // Cleanup digitação ao fechar ou desmontar
+  React.useEffect(() => {
+    if (!open && isLocalDigitando) {
+      setIsLocalDigitando(false);
+      onDigitandoChange?.(false);
+    }
+  }, [open, isLocalDigitando, onDigitandoChange]);
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
@@ -142,7 +173,7 @@ export function ChatConversation({
   const formatStatus = () => {
     if (!presenca) return "Disponível no chat";
 
-    const agora = new Date();
+    const agora = now;
     const digitandoAte = presenca.digitandoAte ? new Date(presenca.digitandoAte) : null;
     if (digitandoAte && digitandoAte > agora) {
       return <span className="text-primary font-medium animate-pulse">Escrevendo...</span>;
@@ -189,13 +220,32 @@ export function ChatConversation({
       );
     }
 
-    if (error) {
+    if (error && mensagens.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-4">
           <p className="text-muted-foreground">Não foi possível carregar a conversa.</p>
           {onRetry && (
-            <Button variant="outline" size="sm" onClick={onRetry}>
-              Tentar novamente
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={async () => {
+                setRetrying(true);
+                try {
+                  await onRetry();
+                } finally {
+                  setRetrying(false);
+                }
+              }}
+              disabled={retrying}
+            >
+              {retrying ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Carregando...
+                </>
+              ) : (
+                "Tentar novamente"
+              )}
             </Button>
           )}
         </div>
@@ -225,6 +275,27 @@ export function ChatConversation({
 
     return (
       <div className="flex flex-col gap-4 p-4 min-h-full">
+        {error && (
+          <div className="flex items-center justify-center p-2 mb-2 bg-destructive/10 text-destructive text-[11px] rounded-lg animate-in fade-in slide-in-from-top-2">
+            Falha na sincronização.
+            {onRetry && (
+              <button 
+                onClick={async () => {
+                  setRetrying(true);
+                  try {
+                    await onRetry();
+                  } finally {
+                    setRetrying(false);
+                  }
+                }}
+                disabled={retrying}
+                className="ml-2 underline font-bold disabled:opacity-50"
+              >
+                {retrying ? "Carregando..." : "Tentar agora"}
+              </button>
+            )}
+          </div>
+        )}
         {Object.entries(grouped).map(([dateStr, msgs]) => {
           const date = new Date(dateStr + "T12:00:00");
           let label = format(date, "dd/MM/yyyy");
@@ -295,8 +366,6 @@ export function ChatConversation({
           "[&>button]:hidden sm:[&>button]:inline-flex",
         )}
         overlayClassName="bg-black/[0.86]"
-        // Removendo o botão padrão do dialog se for mobile para usar o header custom
-        // ou apenas estilizando-o conforme requisito via classes no componente
       >
         <DialogHeader className="p-0 space-y-0 text-left border-b bg-background z-20 shrink-0">
           <div className="flex items-center h-16 px-4 gap-3 pt-[env(safe-area-inset-top)] box-content">
@@ -305,6 +374,7 @@ export function ChatConversation({
               size="icon"
               className="h-11 w-11 rounded-full shrink-0 sm:hidden"
               onClick={() => onOpenChange(false)}
+              aria-label="Fechar chat"
             >
               <ChevronLeft className="w-6 h-6" />
             </Button>
@@ -327,6 +397,16 @@ export function ChatConversation({
                 </div>
               </div>
             </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden sm:flex h-11 w-11 rounded-full shrink-0 ml-auto"
+              onClick={() => onOpenChange(false)}
+              aria-label="Fechar chat"
+            >
+              <X className="w-6 h-6" />
+            </Button>
           </div>
         </DialogHeader>
 
