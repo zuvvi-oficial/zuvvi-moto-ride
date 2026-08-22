@@ -79,24 +79,24 @@ export function ChatConversation({
     return () => clearInterval(interval);
   }, [open]);
 
+  const onDigitandoChangeRef = React.useRef(onDigitandoChange);
+  React.useEffect(() => {
+    onDigitandoChangeRef.current = onDigitandoChange;
+  }, [onDigitandoChange]);
+
   // Heartbeat de digitação (3000ms)
   React.useEffect(() => {
-    if (!open || !isLocalDigitando || !draft.trim()) return;
+    if (!open || !isLocalDigitando) return;
     
     const interval = setInterval(() => {
-      onDigitandoChange?.(true);
+      onDigitandoChangeRef.current?.(true);
     }, 3000);
 
-    return () => clearInterval(interval);
-  }, [open, isLocalDigitando, draft, onDigitandoChange]);
-
-  // Cleanup digitação ao fechar ou desmontar
-  React.useEffect(() => {
-    if (!open && isLocalDigitando) {
-      setIsLocalDigitando(false);
-      onDigitandoChange?.(false);
-    }
-  }, [open, isLocalDigitando, onDigitandoChange]);
+    return () => {
+      clearInterval(interval);
+      onDigitandoChangeRef.current?.(false);
+    };
+  }, [open, isLocalDigitando]);
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
@@ -362,8 +362,7 @@ export function ChatConversation({
           "p-0 gap-0 overflow-hidden border-none sm:border flex flex-col sm:rounded-3xl",
           "w-full h-[100dvh] sm:max-w-[460px] sm:h-[90vh] sm:max-h-[720px]",
           "sm:shadow-2xl transition-all duration-300",
-          "[&>button[disabled]]:hidden sm:[&>button]:flex sm:[&>button]:h-11 sm:[&>button]:w-11 sm:[&>button]:items-center sm:[&>button]:justify-center sm:[&>button]:top-2 sm:[&>button]:right-2",
-          "[&>button]:hidden sm:[&>button]:inline-flex",
+          "[&>button]:hidden",
         )}
         overlayClassName="bg-black/[0.86]"
       >
