@@ -275,6 +275,27 @@ export function ChatConversation({
 
     return (
       <div className="flex flex-col gap-4 p-4 min-h-full">
+        {error && (
+          <div className="flex items-center justify-center p-2 mb-2 bg-destructive/10 text-destructive text-[11px] rounded-lg animate-in fade-in slide-in-from-top-2">
+            Falha na sincronização.
+            {onRetry && (
+              <button 
+                onClick={async () => {
+                  setRetrying(true);
+                  try {
+                    await onRetry();
+                  } finally {
+                    setRetrying(false);
+                  }
+                }}
+                disabled={retrying}
+                className="ml-2 underline font-bold disabled:opacity-50"
+              >
+                {retrying ? "Carregando..." : "Tentar agora"}
+              </button>
+            )}
+          </div>
+        )}
         {Object.entries(grouped).map(([dateStr, msgs]) => {
           const date = new Date(dateStr + "T12:00:00");
           let label = format(date, "dd/MM/yyyy");
