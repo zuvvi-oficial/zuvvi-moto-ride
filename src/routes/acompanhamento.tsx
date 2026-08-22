@@ -60,6 +60,10 @@ function AcompanhamentoCorrida() {
     origem_lng: number;
     codigo_embarque?: string | null;
   } | null>(null);
+  const [rideSyncing, setRideSyncing] = useState(false);
+  const [rideSyncError, setRideSyncError] = useState(false);
+  const syncCounterRef = useRef(0);
+
   const [motorista, setMotorista] = useState<{
     id?: string;
     nome: string;
@@ -108,32 +112,57 @@ function AcompanhamentoCorrida() {
     setChatOpen(open);
   };
 
-  useEffect(() => {
-    async function init() {
-      try {
-        const [data, token] = await Promise.all([
-          getAcompanhamentoFn({ data: { rideId } }),
-          getMapboxTokenFn(),
-        ]);
+  const syncRide = React.useCallback(
+    async (showLoading = false) => {
+      const currentGen = ++syncCounterRef.current;
+      if (showLoading) setRideSyncing(true);
+      setRideSyncError(false);
 
-        setCorrida(data.ride);
-        setMotorista(data.driver);
-        setVeiculo(data.vehicle);
-        setMapboxToken(token);
+      try {
+        const data = await getAcompanhamentoFn({ data: { rideId } });
+
+        // Proteção contra resposta antiga sobrescrevendo estado novo
+        if (currentGen < syncCounterRef.current) return;
+
+        if (data.ride) {
+          setCorrida(data.ride);
+          setMotorista(data.driver);
+          setVeiculo(data.vehicle);
+        }
 
         if (!data.handoffAvailable) {
           toast.error("Acompanhamento ainda não disponível para esta corrida.");
           void navigate({ to: "/" });
         }
-      } catch {
-        toast.error("Não foi possível carregar os dados do acompanhamento.");
-        void navigate({ to: "/" });
+      } catch (err) {
+        if (currentGen < syncCounterRef.current) return;
+        console.error("Erro ao sincronizar corrida:", err);
+        setRideSyncError(true);
+        toast.error("Erro ao atualizar dados da corrida.");
       } finally {
+        if (currentGen === syncCounterRef.current) {
+          if (showLoading) setRideSyncing(false);
+          setIsLoading(false);
+        }
+      }
+    },
+    [rideId, getAcompanhamentoFn, navigate],
+  );
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const token = await getMapboxTokenFn();
+        setMapboxToken(token);
+        await syncRide();
+      } catch {
+        toast.error("Não foi possível carregar o mapa.");
         setIsLoading(false);
       }
     }
     void init();
-  }, [rideId, getAcompanhamentoFn, getMapboxTokenFn, navigate]);
+  }, [getMapboxTokenFn, syncRide]);
+
 
   useEffect(() => {
     if (!rideId) return;
@@ -171,17 +200,15 @@ function AcompanhamentoCorrida() {
               cancellationRedirectTimeoutRef.current = setTimeout(() => {
                 void navigate({ to: "/" });
               }, 1800);
-            } else if (payload.new?.status === "motorista_a_caminho" || 
-                       payload.new?.status === "motorista_chegou" || 
-                       payload.new?.status === "em_andamento") {
-              // Quando o status muda via Realtime, forçamos um refresh do server-side 
+            } else if (
+              payload.new?.status === "motorista_a_caminho" ||
+              payload.new?.status === "motorista_chegou" ||
+              payload.new?.status === "em_andamento"
+            ) {
+              // Quando o status muda via Realtime, forçamos um refresh do server-side
               // para garantir que recebemos o codigo_embarque ou limpamos ele corretamente
-              void getAcompanhamentoFn({ data: { rideId } }).then((data) => {
-                if (data.ride) {
-                  setCorrida(data.ride);
-                  setMotorista(data.driver);
-                  setVeiculo(data.vehicle);
-                }
+              void syncRide().catch(() => {
+                /* Erro já tratado no syncRide */
               });
             }
           },
@@ -419,13 +446,15 @@ function AcompanhamentoCorrida() {
         </button>
         <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
           <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">
-            {corrida.status === "motorista_a_caminho" 
-              ? "Motorista a Caminho" 
+            {corrida.status === "aceita"
+              ? "Motorista Aceitou"
+              : corrida.status === "motorista_a_caminho"
+              ? "Motorista a Caminho"
               : corrida.status === "motorista_chegou"
               ? "Motorista Chegou"
               : corrida.status === "em_andamento"
               ? "Corrida em Andamento"
-              : "Motorista Aceitou"}
+              : "Atualizando corrida"}
           </p>
         </div>
         <div className="w-12" />
@@ -489,35 +518,52 @@ function AcompanhamentoCorrida() {
                 </p>
               </button>
             </div>
-            {corrida.status === "motorista_chegou" && corrida.codigo_embarque && (
+            {corrida.status === "motorista_chegou" && (
               <div className="pt-4 border-t border-white/5 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-zuvvi-volt/5 border border-zuvvi-volt/20 rounded-2xl p-4 text-center space-y-3">
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest">
-                      Motorista Chegou
-                    </p>
-                    <p className="text-[11px] text-white/70 font-medium">
-                      Seu código de embarque
-                    </p>
+                {corrida.codigo_embarque && /^\d{4}$/.test(corrida.codigo_embarque) ? (
+                  <div className="bg-zuvvi-volt/5 border border-zuvvi-volt/20 rounded-2xl p-4 text-center space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest">
+                        Motorista Chegou
+                      </p>
+                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">
+                        Informe o código abaixo ao motorista
+                      </p>
+                    </div>
+                    <div className="flex justify-center gap-2">
+                      {corrida.codigo_embarque.split("").map((digit, i) => (
+                        <div
+                          key={i}
+                          className="w-12 h-14 bg-zuvvi-indigo border border-zuvvi-volt/30 rounded-xl flex items-center justify-center text-2xl font-black text-zuvvi-volt shadow-inner"
+                        >
+                          {digit}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  
-                  <div className="flex justify-center gap-2">
-                    {corrida.codigo_embarque.split("").map((digit, i) => (
-                      <div 
-                        key={i} 
-                        className="w-12 h-14 bg-zuvvi-indigo border border-white/10 rounded-xl flex items-center justify-center text-2xl font-black text-zuvvi-volt shadow-lg"
-                      >
-                        {digit}
-                      </div>
-                    ))}
+                ) : (
+                  <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 text-center space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-red-400 font-black uppercase tracking-widest">
+                        Motorista Chegou
+                      </p>
+                      <p className="text-[9px] text-white/60 uppercase font-bold tracking-tighter">
+                        Não foi possível carregar seu código de embarque.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => void syncRide(true)}
+                      disabled={rideSyncing}
+                      className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {rideSyncing && <Loader2 className="w-3 h-3 animate-spin" />}
+                      Tentar Novamente
+                    </button>
                   </div>
-
-                  <p className="text-[10px] text-white/50 font-medium leading-tight">
-                    Informe este código ao motorista para iniciar a corrida.
-                  </p>
-                </div>
+                )}
               </div>
             )}
+
           </div>
         </div>
       )}

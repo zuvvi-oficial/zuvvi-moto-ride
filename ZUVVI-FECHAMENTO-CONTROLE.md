@@ -917,9 +917,20 @@ Permanecem pendentes:
 - Fail-safe: A UI protege contra códigos inexistentes ou inconsistentes sem travar o fluxo.
 - Arquivos tocados: `src/lib/user.functions.ts`, `src/routes/acompanhamento.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
 
+### Microcorreção 3.6-D-A — Fail-safe e sincronização do código — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+- Implementada validação rigorosa do código de embarque via regex `/^\d{4}$/`.
+- Criado fail-safe visual quando `motorista_chegou` mas o código é inválido ou ausente, exibindo mensagem de erro e botão "TENTAR NOVAMENTE".
+- Centralizada a sincronização da corrida na função `syncRide` (useCallback), tratando erros e prevenindo `Promise` sem tratamento.
+- Implementada proteção contra race conditions (concorrência) usando `syncCounterRef` para garantir que respostas antigas do servidor não sobrescrevam estados mais novos.
+- Removido o fallback falso do cabeçalho que transformava qualquer status em "Motorista Aceitou"; agora utiliza mapeamento explícito e fallback neutro "Atualizando corrida".
+- Corrigidas as dependências do `useEffect` para incluir `syncRide` adequadamente.
+- Confirmado que `iniciarCorrida` e regras de banco/RLS não foram alteradas.
+- Arquivos tocados: `src/routes/acompanhamento.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
+
 ### Próxima microetapa oficial
 
 Próxima microetapa oficial: 3.7 — Conclusão da corrida (em_andamento → concluida)
+
 
 ## BLOQUEADORES ABERTOS PARA O PILOTO — auditoria 21/08/2026
 
