@@ -891,6 +891,14 @@ Permanecem pendentes:
 - Prova manual pendente.
 - Arquivos tocados: `src/lib/motorista.functions.ts`, `src/routes/home-motorista.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
 
+### Microetapa 3.6-B — CORREÇÃO DO REALTIME DO PASSAGEIRO — ✅ IMPLEMENTADA
+- Bug de Realtime corrigido: eventos de `postgres_changes` em `corridas` não chegavam ao passageiro devido à falta de autenticação no canal.
+- Adicionado `await supabase.realtime.setAuth(session.access_token)` antes da criação e inscrição dos canais em `procurando-motorista.tsx` e `acompanhamento.tsx`.
+- Causa raiz: RLS bloqueia eventos de Realtime anônimos mesmo em canais nomeados; a autenticação explícita resolve o travamento do passageiro e a propagação de cancelamentos.
+- Canal de chat em `acompanhamento.tsx` permaneceu intocado por já possuir lógica própria ou estar fora do escopo de "corridas".
+- Prova manual pendente.
+- Arquivos tocados: `src/routes/procurando-motorista.tsx`, `src/routes/acompanhamento.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
+
 ### Próxima microetapa oficial
 
 Próxima microetapa oficial: 3.7 — Conclusão da corrida (em_andamento → concluida)

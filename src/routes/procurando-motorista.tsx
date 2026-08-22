@@ -74,32 +74,45 @@ function ProcurandoMotorista() {
     fetchInitialData();
 
     // Inscrição Realtime para monitorar a corrida específica
-    const channel = supabase
-      .channel(`corrida_${rideId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'corridas',
-          filter: `id=eq.${rideId}`,
-        },
-        (payload) => {
-          const updatedRide = payload.new as any;
-          setCorrida(updatedRide);
-          
-          const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
-          if (updatedRide.motorista_id && assignedStatuses.includes(updatedRide.status) && !motoristaEncontrado) {
-            setMotoristaEncontrado(true);
-            toast.success("Motorista encontrou você!");
-            navigate({ to: '/acompanhamento', search: { rideId } });
+    let channel: any;
+    
+    async function setupRealtime() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
+
+      channel = supabase
+        .channel(`corrida_${rideId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'corridas',
+            filter: `id=eq.${rideId}`,
+          },
+          (payload) => {
+            const updatedRide = payload.new as any;
+            setCorrida(updatedRide);
+            
+            const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+            if (updatedRide.motorista_id && assignedStatuses.includes(updatedRide.status) && !motoristaEncontrado) {
+              setMotoristaEncontrado(true);
+              toast.success("Motorista encontrou você!");
+              navigate({ to: '/acompanhamento', search: { rideId } });
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    }
+
+    setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [rideId, getCorridaFn, navigate]);
 
