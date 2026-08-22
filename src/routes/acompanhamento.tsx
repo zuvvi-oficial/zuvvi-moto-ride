@@ -86,6 +86,9 @@ function AcompanhamentoCorrida() {
   const [chatSending, setChatSending] = useState(false);
   const digitandoRef = useRef(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const chatClosedSyncInFlightRef = useRef(false);
+  const chatClosedSyncPendingRef = useRef(false);
 
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
