@@ -185,7 +185,22 @@ function ProcurandoMotorista() {
             }
           }
         )
-        .subscribe();
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            try {
+              const data = await getCorridaFn({ data: { rideId } });
+              const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+              
+              if (data && data.motorista_id && assignedStatuses.includes(data.status) && !motoristaEncontradoRef.current) {
+                motoristaEncontradoRef.current = true;
+                setMotoristaEncontrado(true);
+                navigate({ to: '/acompanhamento', search: { rideId } });
+              }
+            } catch (err) {
+              console.error('Erro na checagem extra pós-subscribe:', err);
+            }
+          }
+        });
     }
 
     setupRealtime();
