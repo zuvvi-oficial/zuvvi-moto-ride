@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
-import { getMapboxToken, calcularValorCorrida, criarCorrida } from '@/lib/user.functions';
+import { getMapboxToken, cotarCorrida, criarCorrida } from '@/lib/user.functions';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode } from 'lucide-react';
@@ -30,13 +30,14 @@ function ConfirmarCorrida() {
   
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
+  const [quotationSignature, setQuotationSignature] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao' | 'dinheiro' | null>(null);
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
-  const calcularValorCorridaFn = useServerFn(calcularValorCorrida);
+  const cotarCorridaFn = useServerFn(cotarCorrida);
   const criarCorridaFn = useServerFn(criarCorrida);
 
   const createInFlightRef = useRef(false);
@@ -45,7 +46,7 @@ function ConfirmarCorrida() {
     // 1. TRAVA SÍNCRONA CONTRA DUPLO ENVIO (3.8-A1)
     if (createInFlightRef.current) return;
 
-    if (!metodoPagamento || !estimatedFare) {
+    if (!metodoPagamento || !estimatedFare || !quotationSignature) {
       toast.error("Selecione uma forma de pagamento para continuar.");
       return;
     }
@@ -64,6 +65,8 @@ function ConfirmarCorrida() {
           destinoLng: destLng,
           destinoNome: destName,
           formaPagamento: metodoPagamento,
+          valorCotado: estimatedFare,
+          assinaturaCotacao: quotationSignature,
         }
       });
 
@@ -93,24 +96,19 @@ function ConfirmarCorrida() {
         if (!token) throw new Error("Token do Mapbox não encontrado");
         mapboxgl.accessToken = token;
 
-        // Obter rota via Mapbox Directions API
-        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${originLng},${originLat};${destLng},${destLat}?geometries=geojson&access_token=${token}`;
-        const response = await fetch(directionsUrl);
-        const data = await response.json();
-
-        if (data.code !== 'Ok') throw new Error("Não foi possível calcular a rota");
-
-        const route = data.routes[0];
-        const distanceKm = route.distance / 1000;
-        const durationMin = route.duration / 60;
-        
-        setRouteInfo({ distance: distanceKm, duration: durationMin });
-
-        // Calcular valor da corrida via servidor
-        const fareData = await calcularValorCorridaFn({
-          data: { distanciaKm: distanceKm, tempoMin: durationMin }
+        // Obter cotação oficial via servidor (rota + valor + assinatura)
+        const quotation = await cotarCorridaFn({
+          data: {
+            origemLat: originLat,
+            origemLng: originLng,
+            destinoLat: destLat,
+            destinoLng: destLng
+          }
         });
-        setEstimatedFare(fareData.valor);
+
+        setRouteInfo({ distance: quotation.distance, duration: quotation.duration });
+        setEstimatedFare(quotation.valor);
+        setQuotationSignature(quotation.signature);
 
         // Inicializar Mapa
         if (mapContainer.current) {
@@ -124,14 +122,14 @@ function ConfirmarCorrida() {
 
           map.current.on('load', () => {
             // Desenhar a rota
-            if (!map.current) return;
+            if (!map.current || !quotation) return;
 
             map.current.addSource('route', {
               type: 'geojson',
               data: {
                 type: 'Feature',
                 properties: {},
-                geometry: route.geometry
+                geometry: quotation.geometry
               }
             });
 
@@ -148,7 +146,7 @@ function ConfirmarCorrida() {
             new mapboxgl.Marker({ color: "#C6FF3D" }).setLngLat([destLng, destLat]).addTo(map.current);
 
             // Ajustar bounds para caber a rota
-            const coordinates = route.geometry.coordinates;
+            const coordinates = quotation.geometry.coordinates;
             const bounds = coordinates.reduce((acc: mapboxgl.LngLatBounds, coord: [number, number]) => {
               return acc.extend(coord);
             }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));

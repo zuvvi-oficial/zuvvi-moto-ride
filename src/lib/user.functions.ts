@@ -145,6 +145,72 @@ export const calcularValorCorrida = createServerFn({ method: "POST" })
     };
   });
 
+const cotarCorridaSchema = z.object({
+  origemLat: z.number(),
+  origemLng: z.number(),
+  destinoLat: z.number(),
+  destinoLng: z.number()
+});
+
+export const cotarCorrida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => cotarCorridaSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const crypto = await import("crypto");
+
+    // 1. Obter tarifas da cidade do usuário
+    const { data: usuario } = await supabaseAdmin
+      .from("usuarios")
+      .select("cidade_id")
+      .eq("auth_user_id", context.userId)
+      .single();
+
+    if (!usuario?.cidade_id) throw new Error("Cidade não identificada.");
+
+    const { data: cidade } = await supabaseAdmin
+      .from("cidades")
+      .select("bandeirada, valor_km, valor_min, tarifa_minima")
+      .eq("id", usuario.cidade_id)
+      .single();
+
+    if (!cidade) throw new Error("Tarifas não encontradas.");
+
+    // 2. Calcular rota oficial via Mapbox
+    const token = process.env['MAPBOX_TOKEN'];
+    if (!token) throw new Error("Serviço de rotas indisponível.");
+
+    const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${data.origemLng},${data.origemLat};${data.destinoLng},${data.destinoLat}?geometries=geojson&access_token=${token}`;
+    
+    const resp = await fetch(directionsUrl);
+    const routeData = await resp.json();
+    if (routeData.code !== 'Ok' || !routeData.routes?.[0]) {
+      throw new Error("Não foi possível calcular o trajeto.");
+    }
+    const route = routeData.routes[0];
+
+    // 3. Calcular valor oficial
+    const distanceKm = route.distance / 1000;
+    const durationMin = route.duration / 60;
+    let valor = Number(cidade.bandeirada) + (distanceKm * Number(cidade.valor_km)) + (durationMin * Number(cidade.valor_min));
+    if (valor < Number(cidade.tarifa_minima)) valor = Number(cidade.tarifa_minima);
+    valor = Math.round(valor * 100) / 100;
+
+    // 4. Gerar Assinatura da Cotação (Anti-Tampering)
+    // Validade implícita: a cotação deve bater com os dados da corrida
+    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${valor}`;
+    const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
+    const signature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+
+    return {
+      distance: distanceKm,
+      duration: durationMin,
+      valor,
+      signature,
+      geometry: route.geometry
+    };
+  });
+
 const createRideSchema = z.object({
   origemLat: z.number(),
   origemLng: z.number(),
@@ -153,6 +219,8 @@ const createRideSchema = z.object({
   destinoLng: z.number(),
   destinoNome: z.string().optional(),
   formaPagamento: z.enum(["pix", "cartao", "dinheiro"]),
+  valorCotado: z.number(),
+  assinaturaCotacao: z.string()
 });
 
 export const criarCorrida = createServerFn({ method: "POST" })
@@ -160,22 +228,29 @@ export const criarCorrida = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => createRideSchema.parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const crypto = await import("crypto");
     const userId = context.userId;
 
-    // 1. Obter o perfil do usuário (passageiro) no banco público
-    const { data: usuario, error: userError } = await supabaseAdmin
+    // 1. Validar Assinatura da Cotação
+    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${data.valorCotado}`;
+    const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
+    const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+
+    if (data.assinaturaCotacao !== expectedSignature) {
+      throw new Error("Cotação inválida ou expirada. Recalcule o valor da corrida.");
+    }
+
+    const { data: usuario } = await supabaseAdmin
       .from("usuarios")
       .select("id, cidade_id")
       .eq("auth_user_id", userId)
-      .maybeSingle();
+      .single();
 
-    if (userError || !usuario) {
-      throw new Error("Perfil de usuário não encontrado para criar corrida.");
-    }
+    if (!usuario) throw new Error("Usuário não encontrado.");
 
-    // [3.8-C1] — LIMPEZA SERVER-SIDE DE SOLICITAÇÃO VENCIDA DO PASSAGEIRO
+    // [3.8-C1] Limpeza e [3.8-A] Verificação de aberta
     const timeoutCutoff = new Date(Date.now() - RIDE_SEARCH_TIMEOUT_MS).toISOString();
-    const { error: cleanupError } = await supabaseAdmin
+    await supabaseAdmin
       .from("corridas")
       .update({ status: 'sem_motorista' } as any)
       .eq("passageiro_id", usuario.id)
@@ -183,93 +258,30 @@ export const criarCorrida = createServerFn({ method: "POST" })
       .is("motorista_id", null)
       .lte("created_at", timeoutCutoff);
 
-    if (cleanupError) {
-      console.error("Erro na limpeza de corridas vencidas:", cleanupError);
-      throw new Error("Falha ao validar estado da conta. Tente novamente.");
-    }
-
-    // [3.8-A] — VERIFICAÇÃO DE CORRIDA ABERTA (SERVER-SIDE)
-
-    // Impedir criação de nova corrida se já existir uma nos status bloqueadores.
-    const statusBloqueadores: Database["public"]["Enums"]["corrida_status"][] = [
-      'solicitada',
-      'buscando_motorista',
-      'aceita',
-      'motorista_a_caminho',
-      'motorista_chegou',
-      'em_andamento'
-    ];
-
-
-    const { data: corridaAberta, error: checkError } = await supabaseAdmin
+    const { data: corridaAberta } = await supabaseAdmin
       .from("corridas")
-      .select("id, status, created_at")
+      .select("id")
       .eq("passageiro_id", usuario.id)
-      .in("status", statusBloqueadores)
+      .in("status", ['solicitada', 'buscando_motorista', 'aceita', 'motorista_a_caminho', 'motorista_chegou', 'em_andamento'])
       .limit(1)
       .maybeSingle();
 
-    if (checkError) {
-      console.error("Erro ao verificar corridas abertas:", checkError);
-      throw new Error("Falha ao validar estado da conta. Tente novamente.");
-    }
+    if (corridaAberta) throw new Error("Você já possui uma corrida em andamento.");
 
-    if (corridaAberta) {
-      // Retorno operacional seguro conforme missão 3.8-A
-      throw new Error("Você já possui uma corrida em andamento ou aguardando motorista.");
-    }
+    if (!usuario.cidade_id) throw new Error("Cidade não configurada.");
 
-
-    if (!usuario.cidade_id) {
-      throw new Error("Cidade do usuário não configurada.");
-    }
-
-    // 2. Gerar código de embarque (4 dígitos numéricos conforme CHAR(4))
-    const codigoEmbarque = Math.floor(1000 + Math.random() * 9000).toString();
-
-    // 2.1 Validar se a cidade está liberada (praça piloto ou ativa) e obter tarifas
-    const { data: cidade, error: cityError } = await supabaseAdmin
+    const { data: cidade } = await supabaseAdmin
       .from("cidades")
-      .select("status, nome, comissao_pct, bandeirada, valor_km, valor_min, tarifa_minima")
+      .select("status, comissao_pct")
       .eq("id", usuario.cidade_id)
       .single();
 
-    if (cityError || !cidade || (cidade.status !== 'piloto' && cidade.status !== 'ativa')) {
-        throw new Error("Desculpe, o Zuvvi ainda não opera corridas nesta cidade ou as tarifas não foram encontradas.");
+    if (!cidade || (cidade.status !== 'piloto' && cidade.status !== 'ativa')) {
+      throw new Error("O Zuvvi ainda não opera nesta cidade.");
     }
 
-    // 2.2 Calcular Rota Oficial no Servidor (Mapbox Directions)
-    const token = process.env['MAPBOX_TOKEN'];
-    if (!token) throw new Error("Erro de configuração: Serviço de rotas indisponível.");
+    const codigoEmbarque = Math.floor(1000 + Math.random() * 9000).toString();
 
-    const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${data.origemLng},${data.origemLat};${data.destinoLng},${data.destinoLat}?geometries=geojson&access_token=${token}`;
-    
-    let rotaOficial;
-    try {
-      const resp = await fetch(directionsUrl);
-      const routeData = await resp.json();
-      if (routeData.code !== 'Ok' || !routeData.routes?.[0]) {
-        throw new Error("Não foi possível calcular o trajeto oficial.");
-      }
-      rotaOficial = routeData.routes[0];
-    } catch (err) {
-      console.error("Erro Mapbox Server:", err);
-      throw new Error("Falha ao comunicar com o serviço de rotas. Tente novamente.");
-    }
-
-    const oficialDistanciaKm = rotaOficial.distance / 1000;
-    const oficialTempoMin = rotaOficial.duration / 60;
-
-    // 2.3 Cálculo do Preço Oficial
-    const { bandeirada, valor_km, valor_min, tarifa_minima } = cidade;
-    let valorOficial = Number(bandeirada) + (oficialDistanciaKm * Number(valor_km)) + (oficialTempoMin * Number(valor_min));
-    
-    if (valorOficial < Number(tarifa_minima)) {
-      valorOficial = Number(tarifa_minima);
-    }
-    valorOficial = Math.round(valorOficial * 100) / 100;
-
-    // 3. Inserir a corrida com o valor calculado no servidor
     const { data: corrida, error: insertError } = await supabaseAdmin
       .from("corridas")
       .insert({
@@ -279,7 +291,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
         origem_lng: data.origemLng,
         destino_lat: data.destinoLat,
         destino_lng: data.destinoLng,
-        valor_estimado: valorOficial, // Valor oficial calculado no servidor
+        valor_estimado: data.valorCotado,
         forma_pagamento: data.formaPagamento,
         codigo_embarque: codigoEmbarque,
         status: 'solicitada',
@@ -290,53 +302,29 @@ export const criarCorrida = createServerFn({ method: "POST" })
       .single();
 
     if (insertError) {
-      console.error("Erro ao inserir corrida:", insertError);
-      
-      // [3.8-B2-B] — TRATAMENTO AMIGÁVEL DA COLISÃO ATÔMICA
-      // Se for violação de unicidade (23505) no índice de corrida aberta do passageiro
-      const isUniqueViolation = insertError.code === "23505";
-      const isRideUniqueIndex = 
-        insertError.message?.includes("idx_corridas_passageiro_aberta_unique") ||
-        (insertError as any).details?.includes("idx_corridas_passageiro_aberta_unique") ||
-        (insertError as any).hint?.includes("idx_corridas_passageiro_aberta_unique");
-
-      if (isUniqueViolation && isRideUniqueIndex) {
-        throw new Error("Você já possui uma corrida em andamento ou aguardando motorista.");
-      }
-
-      throw new Error("Falha ao registrar a corrida no sistema.");
+      if (insertError.code === "23505") throw new Error("Você já possui uma corrida ativa.");
+      throw new Error("Falha ao registrar a corrida.");
     }
 
-    // 4. Registrar o pagamento pendente (Fase de Operação)
+    // Registrar pagamento
     try {
       const comissaoPct = Number(cidade.comissao_pct || 0);
-      
-      // valor_comissao = valor oficial × (comissao_pct ÷ 100), arredondado para 2 casas decimais
-      const valorComissao = Math.round((valorOficial * (comissaoPct / 100)) * 100) / 100;
-      
-      // valor_motorista = valor oficial − valor_comissao
-      const valorMotorista = Math.round((valorOficial - valorComissao) * 100) / 100;
+      const valorComissao = Math.round((data.valorCotado * (comissaoPct / 100)) * 100) / 100;
+      const valorMotorista = Math.round((data.valorCotado - valorComissao) * 100) / 100;
 
-      const { error: paymentError } = await supabaseAdmin
-        .from("pagamentos")
-        .insert({
-          corrida_id: corrida.id,
-          meio: data.formaPagamento,
-          valor_total: valorOficial,
-          valor_motorista: valorMotorista,
-          valor_comissao: valorComissao,
-          status: 'pendente'
-        } as any);
-
-      if (paymentError) {
-        console.error("Erro ao registrar pagamento (corrida criada):", paymentError);
-      }
+      await supabaseAdmin.from("pagamentos").insert({
+        corrida_id: corrida.id,
+        meio: data.formaPagamento,
+        valor_total: data.valorCotado,
+        valor_motorista: valorMotorista,
+        valor_comissao: valorComissao,
+        status: 'pendente'
+      } as any);
     } catch (err) {
-      console.error("Erro inesperado no cálculo/registro de pagamento:", err);
+      console.error("Erro pagamento:", err);
     }
 
     return { success: true, rideId: corrida.id };
-
   });
 
 export const getCorrida = createServerFn({ method: "GET" })
