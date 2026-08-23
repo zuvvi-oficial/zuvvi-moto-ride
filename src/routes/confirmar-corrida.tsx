@@ -96,24 +96,19 @@ function ConfirmarCorrida() {
         if (!token) throw new Error("Token do Mapbox não encontrado");
         mapboxgl.accessToken = token;
 
-        // Obter rota via Mapbox Directions API
-        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${originLng},${originLat};${destLng},${destLat}?geometries=geojson&access_token=${token}`;
-        const response = await fetch(directionsUrl);
-        const data = await response.json();
-
-        if (data.code !== 'Ok') throw new Error("Não foi possível calcular a rota");
-
-        const route = data.routes[0];
-        const distanceKm = route.distance / 1000;
-        const durationMin = route.duration / 60;
-        
-        setRouteInfo({ distance: distanceKm, duration: durationMin });
-
-        // Calcular valor da corrida via servidor
-        const fareData = await calcularValorCorridaFn({
-          data: { distanciaKm: distanceKm, tempoMin: durationMin }
+        // Obter cotação oficial via servidor (rota + valor + assinatura)
+        const quotation = await cotarCorridaFn({
+          data: {
+            origemLat: originLat,
+            origemLng: originLng,
+            destinoLat: destLat,
+            destinoLng: destLng
+          }
         });
-        setEstimatedFare(fareData.valor);
+
+        setRouteInfo({ distance: quotation.distance, duration: quotation.duration });
+        setEstimatedFare(quotation.valor);
+        setQuotationSignature(quotation.signature);
 
         // Inicializar Mapa
         if (mapContainer.current) {
