@@ -6,6 +6,7 @@ import heroMoto from "@/assets/hero-moto.jpg";
 import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2, Trash2, X, ChevronLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
+import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
 import { getMapboxToken, checkCityAvailability, getReverseGeocoding } from "@/lib/user.functions";
 import { listarFavoritos, criarFavorito, excluirFavorito } from "@/lib/favoritos.functions";
 import { listarDestinosRecentes } from "@/lib/recentes.functions";
@@ -221,7 +222,7 @@ function HomePassageiro({ nome }: { nome: string }) {
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Olá, {nome.split(" ")[0]}</p>
-                <h1 className="text-sm font-bold">Zuvvi Moto</h1>
+                <ZuvviLogo surface="dark" className="h-auto w-[82px]" />
               </div>
             </div>
             <button 
@@ -914,9 +915,7 @@ function LandingPage() {
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-          <span className="font-display font-bold text-2xl tracking-tight" style={{ letterSpacing: "-0.04em" }}>
-            <span className="volt-text">Zu</span>vvi
-          </span>
+          <ZuvviLogo surface="dark" className="h-auto w-[116px]" />
           <div className="flex items-center gap-4">
             <Link to="/auth/login" className="text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">Entrar</Link>
             <Link 
@@ -965,7 +964,7 @@ function LandingPage() {
       <footer className="border-t border-border/60 py-12 bg-black/20">
         <div className="mx-auto max-w-6xl px-5 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
-             <span className="font-display font-bold text-2xl tracking-tight"><span className="volt-text">Zu</span>vvi</span>
+             <ZuvviLogo surface="dark" className="h-auto w-[128px]" />
              <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Zuvvi Mobilidade · Brasil</p>
           </div>
           <div className="flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
