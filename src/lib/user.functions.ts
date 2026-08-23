@@ -497,6 +497,10 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       throw new Error("Falha ao cancelar a corrida no banco de dados.");
     }
 
+    if (!corrida) {
+      throw new Error("Esta corrida não pode mais ser cancelada porque já avançou de etapa.");
+    }
+
     // Notificar Motorista se houver
     if (corrida.motorista_id) {
       await criarNotificacao(supabaseAdmin, {
@@ -506,10 +510,6 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
         mensagem: "O passageiro cancelou a corrida solicitada.",
         corrida_id: data.rideId
       });
-    }
-
-    if (!corrida) {
-      throw new Error("Esta corrida não pode mais ser cancelada porque já avançou de etapa.");
     }
 
     return { success: true };
