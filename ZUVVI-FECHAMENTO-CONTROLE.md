@@ -1150,3 +1150,12 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 
 
 
+
+### Microetapa 4.8 - Corrigir perda de aceite na abertura da busca - ✅ IMPLEMENTADA
+- Implementada checagem extra do estado da corrida no callback SUBSCRIBED do canal Realtime em procurando-motorista.tsx.
+- A checagem captura o aceite do motorista que pode ter ocorrido durante a janela de conexão do Realtime (autenticação/inscrição).
+- Se o motorista for detectado na checagem extra, o passageiro é redirecionado imediatamente para /acompanhamento, resolvendo o bloqueio de 120s.
+- Lógica de timeout de 120s e cancelamento preservadas como rede de segurança.
+- Build verificado.
+- Arquivos tocados: src/routes/procurando-motorista.tsx, ZUVVI-FECHAMENTO-CONTROLE.md.
+- Bloqueador B3 (Race Condition na Busca) marcado como resolvido.
