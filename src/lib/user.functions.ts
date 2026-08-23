@@ -228,7 +228,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => createRideSchema.parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { crypto } = await import("crypto");
+    const crypto = await import("crypto");
     const userId = context.userId;
 
     // 1. Validar Assinatura da Cotação
