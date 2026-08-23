@@ -157,7 +157,7 @@ export const cotarCorrida = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => cotarCorridaSchema.parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { crypto } = await import("crypto");
+    const crypto = await import("crypto");
 
     // 1. Obter tarifas da cidade do usuário
     const { data: usuario } = await supabaseAdmin
