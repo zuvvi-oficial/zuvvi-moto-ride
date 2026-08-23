@@ -266,11 +266,6 @@ function AcompanhamentoCorrida() {
       }
     };
   }, [motorista?.id]);
-      if (cancellationRedirectTimeoutRef.current) {
-        clearTimeout(cancellationRedirectTimeoutRef.current);
-      }
-    };
-  }, [rideId, navigate, syncRide]);
 
   const refreshChat = React.useCallback(async () => {
     try {
