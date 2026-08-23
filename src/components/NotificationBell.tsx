@@ -45,7 +45,7 @@ export function NotificationBell() {
     queryFn: async () => {
       if (!userId) return [];
       const { data, error } = await supabase
-        .from('notificacoes')
+        .from('notificacoes' as any)
         .select('*')
         .eq('usuario_id', userId)
         .order('created_at', { ascending: false })
@@ -61,7 +61,7 @@ export function NotificationBell() {
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('notificacoes')
+        .from('notificacoes' as any)
         .update({ lida: true } as any)
         .eq('id', id);
       if (error) throw error;
