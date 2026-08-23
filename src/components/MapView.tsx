@@ -8,6 +8,7 @@ interface MapViewProps {
   zoom?: number;
   token: string;
   markerColor?: string;
+  secondaryMarker?: { lat: number; lng: number; color?: string };
   onMapInstance?: (map: mapboxgl.Map) => void;
   className?: string;
 }
@@ -17,12 +18,14 @@ export function MapView({
   zoom = 15, 
   token, 
   markerColor = "#C6FF3D",
+  secondaryMarker,
   onMapInstance,
   className = "w-full h-full"
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
+  const secondaryMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
