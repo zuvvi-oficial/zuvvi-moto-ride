@@ -640,13 +640,23 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
 
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ tipo: z.string() }).parse(data))
+  .inputValidator((data: unknown) => z.object({ 
+    tipo: z.string(),
+    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']).optional(),
+    fileSize: z.number().int().positive().max(10 * 1024 * 1024).optional() // 10MB
+  }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
     const tipo = data.tipo as TipoDocumento;
 
-    const fileName = `${userId}/${tipo}_${Date.now()}`;
+    // Extensão baseada no mimeType para facilitar identificação posterior
+    let ext = "";
+    if (data.mimeType) {
+      ext = "." + data.mimeType.split('/')[1];
+    }
+
+    const fileName = `${userId}/${tipo}_${Date.now()}${ext}`;
     
     const { data: uploadData, error } = await supabaseAdmin.storage
       .from('documentos-motorista')
