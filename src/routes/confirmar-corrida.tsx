@@ -122,14 +122,14 @@ function ConfirmarCorrida() {
 
           map.current.on('load', () => {
             // Desenhar a rota
-            if (!map.current) return;
+            if (!map.current || !quotation) return;
 
             map.current.addSource('route', {
               type: 'geojson',
               data: {
                 type: 'Feature',
                 properties: {},
-                geometry: route.geometry
+                geometry: quotation.geometry
               }
             });
 
@@ -146,7 +146,7 @@ function ConfirmarCorrida() {
             new mapboxgl.Marker({ color: "#C6FF3D" }).setLngLat([destLng, destLat]).addTo(map.current);
 
             // Ajustar bounds para caber a rota
-            const coordinates = route.geometry.coordinates;
+            const coordinates = quotation.geometry.coordinates;
             const bounds = coordinates.reduce((acc: mapboxgl.LngLatBounds, coord: [number, number]) => {
               return acc.extend(coord);
             }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
