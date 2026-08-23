@@ -8,7 +8,7 @@ interface MapViewProps {
   zoom?: number;
   token: string;
   markerColor?: string;
-  secondaryMarker?: { lat: number; lng: number; color?: string };
+  secondaryMarker?: { lat: number; lng: number; color?: string } | undefined;
   onMapInstance?: (map: mapboxgl.Map) => void;
   className?: string;
 }
