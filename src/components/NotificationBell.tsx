@@ -51,12 +51,12 @@ export function NotificationBell() {
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
-      return data as Notificacao[];
+      return data as any[];
     },
     enabled: !!userId,
   });
 
-  const unreadCount = notificacoes.filter(n => !n.lida).length;
+  const unreadCount = notificacoes.filter((n: any) => !n.lida).length;
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {

@@ -482,13 +482,16 @@ function AcompanhamentoCorrida() {
         )}
       </div>
 
-      <div className="relative z-10 p-6 flex items-center justify-between pointer-events-none">
+      <div className="relative z-10 p-6 flex items-center justify-between pointer-events-auto">
         <button
           onClick={() => void navigate({ to: "/" })}
-          className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 pointer-events-auto active:scale-95 transition-transform"
+          className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
+        <import { NotificationBell } from "@/components/NotificationBell";
+        <NotificationBell />
+      </div>
         <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
           <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">
             {corrida.status === "aceita"
