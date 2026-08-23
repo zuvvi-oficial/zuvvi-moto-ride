@@ -1,5 +1,4 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "@/integrations/supabase/types";
 
 type TipoNotificacao = 
   | "motorista_aceitou"
@@ -14,7 +13,7 @@ type TipoNotificacao =
   | "motorista_aprovado";
 
 export async function criarNotificacao(
-  supabase: SupabaseClient<Database>,
+  supabase: SupabaseClient<any>,
   params: {
     usuario_id: string;
     tipo: TipoNotificacao;
@@ -33,7 +32,7 @@ export async function criarNotificacao(
         mensagem: params.mensagem,
         corrida_id: params.corrida_id || null,
         lida: false
-      } as any);
+      });
 
     if (error) {
       console.error("Erro ao criar notificação:", error);
