@@ -90,5 +90,23 @@ export function MapView({
     }
   }, [center.lat, center.lng, zoom]);
 
+  // Atualizar marcador secundário quando a posição mudar
+  useEffect(() => {
+    if (map.current) {
+      if (secondaryMarker) {
+        if (secondaryMarkerRef.current) {
+          secondaryMarkerRef.current.setLngLat([secondaryMarker.lng, secondaryMarker.lat]);
+        } else {
+          secondaryMarkerRef.current = new mapboxgl.Marker({ color: secondaryMarker.color || "#6C3CE9" })
+            .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
+            .addTo(map.current);
+        }
+      } else if (secondaryMarkerRef.current) {
+        secondaryMarkerRef.current.remove();
+        secondaryMarkerRef.current = null;
+      }
+    }
+  }, [secondaryMarker?.lat, secondaryMarker?.lng, secondaryMarker?.color]);
+
   return <div ref={mapContainer} className={className} />;
 }
