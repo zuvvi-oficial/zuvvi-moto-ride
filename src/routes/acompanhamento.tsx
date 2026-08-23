@@ -68,6 +68,8 @@ function AcompanhamentoCorrida() {
     id?: string;
     nome: string;
     nota_media: number | null;
+    ultima_lat: number | null;
+    ultima_lng: number | null;
   } | null>(null);
   const [veiculo, setVeiculo] = useState<{
     placa: string;
@@ -169,6 +171,7 @@ function AcompanhamentoCorrida() {
     if (!rideId) return;
 
     let channel: any;
+    let motoristaChannel: any;
 
     async function setupRealtime() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -220,9 +223,37 @@ function AcompanhamentoCorrida() {
 
     setupRealtime();
 
+    // Novo canal para escutar posição do motorista em tempo real
+    if (motorista?.id) {
+      motoristaChannel = supabase
+        .channel(`motorista-posicao-${motorista.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "motoristas",
+            filter: `id=eq.${motorista.id}`,
+          },
+          (payload: { new: { ultima_lat: number; ultima_lng: number } }) => {
+            if (payload.new?.ultima_lat && payload.new?.ultima_lng) {
+              setMotorista(prev => prev ? {
+                ...prev,
+                ultima_lat: payload.new.ultima_lat,
+                ultima_lng: payload.new.ultima_lng
+              } : null);
+            }
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       if (channel) {
         void supabase.removeChannel(channel);
+      }
+      if (motoristaChannel) {
+        void supabase.removeChannel(motoristaChannel);
       }
       if (cancellationRedirectTimeoutRef.current) {
         clearTimeout(cancellationRedirectTimeoutRef.current);
@@ -435,6 +466,12 @@ function AcompanhamentoCorrida() {
           <MapView
             center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }}
             token={mapboxToken}
+            secondaryMarker={
+              motorista?.ultima_lat && motorista?.ultima_lng && 
+              ["motorista_a_caminho", "motorista_chegou", "em_andamento"].includes(corrida.status)
+                ? { lat: motorista.ultima_lat, lng: motorista.ultima_lng }
+                : undefined
+            }
           />
         )}
       </div>

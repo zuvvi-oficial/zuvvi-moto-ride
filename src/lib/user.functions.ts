@@ -590,9 +590,12 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
     const { data: driver, error: driverError } = await supabaseAdmin
       .from("usuarios")
       .select(`
+        id,
         nome,
         motoristas!inner (
-          nota_media
+          nota_media,
+          ultima_lat,
+          ultima_lng
         )
       `)
       .eq("id", corrida.motorista_id)
@@ -605,8 +608,11 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
 
     const motoristaData = Array.isArray(driver.motoristas) ? driver.motoristas[0] : driver.motoristas;
     const driverInfo = {
+      id: driver.id,
       nome: driver.nome,
-      nota_media: motoristaData?.nota_media ?? null
+      nota_media: motoristaData?.nota_media ?? null,
+      ultima_lat: motoristaData?.ultima_lat ?? null,
+      ultima_lng: motoristaData?.ultima_lng ?? null
     };
 
     // 4. Buscar Veículo (FAIL-CLOSED: EXATAMENTE UM)
