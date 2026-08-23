@@ -464,6 +464,7 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { criarNotificacao } = await import("./notificacoes.server");
     const userId = context.userId;
 
     // 1. Obter o ID do perfil do usuário logado
@@ -494,6 +495,17 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
     if (error) {
       console.error("Erro ao cancelar corrida:", error);
       throw new Error("Falha ao cancelar a corrida no banco de dados.");
+    }
+
+    // Notificar Motorista se houver
+    if (corrida.motorista_id) {
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: corrida.motorista_id,
+        tipo: "corrida_cancelada",
+        titulo: "❌ Corrida cancelada",
+        mensagem: "O passageiro cancelou a corrida solicitada.",
+        corrida_id: data.rideId
+      });
     }
 
     if (!corrida) {

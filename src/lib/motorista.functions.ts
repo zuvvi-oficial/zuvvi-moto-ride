@@ -330,6 +330,7 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { criarNotificacao } = await import("./notificacoes.server");
     const userId = context.userId;
 
     // 1. Validações server-side completas via regra central
@@ -386,6 +387,23 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
       throw new Error("Falha ao processar o aceite. Tente novamente.");
     }
 
+    // 3. Notificar Passageiro
+    const { data: rideData } = await supabaseAdmin
+      .from("corridas")
+      .select("passageiro_id")
+      .eq("id", data.rideId)
+      .single();
+    
+    if (rideData) {
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: rideData.passageiro_id,
+        tipo: "motorista_aceitou",
+        titulo: "🏍️ Motorista a caminho!",
+        mensagem: "Seu piloto aceitou a corrida e já está se deslocando.",
+        corrida_id: data.rideId
+      });
+    }
+
     return { success: true };
   });
 
@@ -440,6 +458,7 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { criarNotificacao } = await import("./notificacoes.server");
     const authUserId = context.userId;
 
     // 1. Obter o perfil do motorista
@@ -481,6 +500,23 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
     // mas garantimos que o status de disponibilidade seja resetado se necessário.
     // Como a Home Motorista depende de motorista-status, invalidar a query será suficiente.
 
+    // Notificar Passageiro
+    const { data: rideData } = await supabaseAdmin
+      .from("corridas")
+      .select("passageiro_id")
+      .eq("id", data.rideId)
+      .single();
+
+    if (rideData) {
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: rideData.passageiro_id,
+        tipo: "corrida_cancelada",
+        titulo: "❌ Corrida cancelada",
+        mensagem: "O motorista precisou cancelar a sua corrida.",
+        corrida_id: data.rideId
+      });
+    }
+
     return { success: true };
   });
 
@@ -490,6 +526,7 @@ export const marcarMotoristaACaminho = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { criarNotificacao } = await import("./notificacoes.server");
     const authUserId = context.userId;
 
     // 1. Obter o perfil do motorista para validar ownership
@@ -523,6 +560,23 @@ export const marcarMotoristaACaminho = createServerFn({ method: "POST" })
       throw new Error("Não foi possível iniciar o deslocamento. Verifique o estado atual da corrida.");
     }
 
+    // Notificar Passageiro
+    const { data: rideData } = await supabaseAdmin
+      .from("corridas")
+      .select("passageiro_id")
+      .eq("id", data.rideId)
+      .single();
+
+    if (rideData) {
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: rideData.passageiro_id,
+        tipo: "motorista_a_caminho",
+        titulo: "📍 Piloto a caminho",
+        mensagem: "O motorista iniciou o deslocamento para o seu local.",
+        corrida_id: data.rideId
+      });
+    }
+
     return {
       success: true,
       status: updatedRide.status
@@ -535,6 +589,7 @@ export const marcarMotoristaChegou = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { criarNotificacao } = await import("./notificacoes.server");
     const authUserId = context.userId;
 
     // 1. Obter o perfil do motorista para validar ownership
@@ -569,6 +624,23 @@ export const marcarMotoristaChegou = createServerFn({ method: "POST" })
       throw new Error("Não foi possível confirmar a chegada. Verifique o estado atual da corrida.");
     }
 
+    // Notificar Passageiro
+    const { data: rideData } = await supabaseAdmin
+      .from("corridas")
+      .select("passageiro_id")
+      .eq("id", data.rideId)
+      .single();
+
+    if (rideData) {
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: rideData.passageiro_id,
+        tipo: "motorista_chegou",
+        titulo: "🏁 Seu piloto chegou!",
+        mensagem: "O motorista já está no local de embarque. Tenha o código de 4 dígitos em mãos.",
+        corrida_id: data.rideId
+      });
+    }
+
     return {
       success: true,
       status: updatedRide.status
@@ -580,6 +652,7 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ rideId: z.string(), codigo: z.string().length(4) }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { criarNotificacao } = await import("./notificacoes.server");
     const authUserId = context.userId;
 
     // 1. Resolver o motorista pelo servidor
@@ -630,6 +703,23 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
 
     if (!updatedRide) {
       throw new Error("Não foi possível iniciar a corrida. Verifique o estado atual.");
+    }
+
+    // Notificar Passageiro
+    const { data: rideData } = await supabaseAdmin
+      .from("corridas")
+      .select("passageiro_id")
+      .eq("id", data.rideId)
+      .single();
+
+    if (rideData) {
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: rideData.passageiro_id,
+        tipo: "corrida_iniciada",
+        titulo: "🚀 Corrida iniciada",
+        mensagem: "Boa viagem! Você está a caminho do seu destino.",
+        corrida_id: data.rideId
+      });
     }
 
     return {
@@ -1200,6 +1290,7 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
   .validator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { criarNotificacao } = await import("./notificacoes.server");
     const authUserId = context.userId;
 
     // 1. Localizar o perfil do motorista
@@ -1259,6 +1350,33 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
 
     if (!updatedCorrida) {
       throw new Error("Não foi possível finalizar. A corrida pode ter sido alterada por outro processo.");
+    }
+
+    // Notificar Passageiro e Motorista
+    const { data: rideData } = await supabaseAdmin
+      .from("corridas")
+      .select("passageiro_id, valor_final")
+      .eq("id", data.rideId)
+      .single();
+
+    if (rideData) {
+      // Notificar Passageiro
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: rideData.passageiro_id,
+        tipo: "corrida_concluida",
+        titulo: "✅ Corrida concluída!",
+        mensagem: `Obrigado por usar o Zuvvi! O valor final foi R$ ${Number(rideData.valor_final).toFixed(2)}.`,
+        corrida_id: data.rideId
+      });
+
+      // Notificar Motorista
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: motoristaId,
+        tipo: "corrida_concluida",
+        titulo: "💰 Ganho confirmado",
+        mensagem: `Você concluiu a corrida! O valor foi creditado em sua conta.`,
+        corrida_id: data.rideId
+      });
     }
 
     return { success: true };
