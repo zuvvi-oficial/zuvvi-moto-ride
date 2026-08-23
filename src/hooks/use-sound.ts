@@ -11,7 +11,7 @@ interface SoundState {
 export const useSoundStore = create<SoundState>((set, get) => ({
   audioElement: null,
   isUnlocked: false,
-  setAudioElement: (el) => set({ audioElement: el }),
+  setAudioElement: (el: HTMLAudioElement | null) => set({ audioElement: el }),
   unlock: () => {
     const { audioElement, isUnlocked } = get();
     if (!audioElement || isUnlocked) return;
@@ -28,7 +28,7 @@ export const useSoundStore = create<SoundState>((set, get) => ({
         console.error('[SoundStore] Audio unlock failed', err);
       });
   },
-  play: async (src) => {
+  play: async (src: string) => {
     const { audioElement } = get();
     if (!audioElement) {
       console.error('[SoundStore] No audio element found');
@@ -36,9 +36,12 @@ export const useSoundStore = create<SoundState>((set, get) => ({
     }
 
     try {
+      // Resolve path
+      const finalSrc = src.startsWith('/') ? src : `/${src}`;
+      
       // If src changes, we update it
-      if (!audioElement.src.endsWith(src)) {
-        audioElement.src = src;
+      if (!audioElement.src.includes(finalSrc)) {
+        audioElement.src = finalSrc;
         audioElement.load();
       }
       

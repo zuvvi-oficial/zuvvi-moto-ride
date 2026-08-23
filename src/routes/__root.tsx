@@ -7,7 +7,8 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { useSoundStore } from "@/hooks/use-sound";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -153,6 +154,31 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const setAudioElement = useSoundStore(state => state.setAudioElement);
+  const unlock = useSoundStore(state => state.unlock);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      setAudioElement(audioRef.current);
+    }
+  }, [setAudioElement]);
+
+  useEffect(() => {
+    const handleInteraction = () => {
+      unlock();
+      window.removeEventListener("pointerdown", handleInteraction);
+      window.removeEventListener("touchstart", handleInteraction);
+    };
+
+    window.addEventListener("pointerdown", handleInteraction);
+    window.addEventListener("touchstart", handleInteraction);
+
+    return () => {
+      window.removeEventListener("pointerdown", handleInteraction);
+      window.removeEventListener("touchstart", handleInteraction);
+    };
+  }, [unlock]);
 
   useEffect(() => {
     // Sincronização global de sessão com cookies para SSR
@@ -170,6 +196,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <audio ref={audioRef} preload="auto" />
       <Outlet />
       <PwaShell />
     </QueryClientProvider>
