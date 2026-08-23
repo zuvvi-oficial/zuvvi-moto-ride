@@ -57,6 +57,12 @@ export function MapView({
         .setLngLat([center.lng, center.lat])
         .addTo(map.current);
 
+      if (secondaryMarker) {
+        secondaryMarkerRef.current = new mapboxgl.Marker({ color: secondaryMarker.color || "#6C3CE9" })
+          .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
+          .addTo(map.current);
+      }
+
     } catch (err) {
       console.error("Erro ao inicializar mapa:", err);
       toast.error("Falha ao inicializar o mapa.");
