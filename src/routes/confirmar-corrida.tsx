@@ -30,13 +30,14 @@ function ConfirmarCorrida() {
   
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
+  const [quotationSignature, setQuotationSignature] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao' | 'dinheiro' | null>(null);
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
-  const calcularValorCorridaFn = useServerFn(calcularValorCorrida);
+  const cotarCorridaFn = useServerFn(cotarCorrida);
   const criarCorridaFn = useServerFn(criarCorrida);
 
   const createInFlightRef = useRef(false);
@@ -45,7 +46,7 @@ function ConfirmarCorrida() {
     // 1. TRAVA SÍNCRONA CONTRA DUPLO ENVIO (3.8-A1)
     if (createInFlightRef.current) return;
 
-    if (!metodoPagamento || !estimatedFare) {
+    if (!metodoPagamento || !estimatedFare || !quotationSignature) {
       toast.error("Selecione uma forma de pagamento para continuar.");
       return;
     }
@@ -64,6 +65,8 @@ function ConfirmarCorrida() {
           destinoLng: destLng,
           destinoNome: destName,
           formaPagamento: metodoPagamento,
+          valorCotado: estimatedFare,
+          assinaturaCotacao: quotationSignature,
         }
       });
 
