@@ -1044,7 +1044,7 @@ Sprint 3 — Auditoria e Finalização de Bloqueadores Financeiros.
 
 B1. A corrida não termina. A validação do código de embarque e o início real da corrida (em_andamento) passaram a existir (3.6), mas o bloqueador CONTINUA ABERTO, pois falta ainda a conclusão da corrida (concluida, data_finalizacao, valor_final). O codigo_embarque é gerado em toda corrida e agora é validado pelo motorista. Prova: 1 corrida presa em em_andamento.
 B2. Pagamento inexistente. Mercado Pago não está no código. 36 pagamentos, 100% no status pendente.
-B3. O passageiro não recebe a posição do motorista. getAcompanhamentoPassageiro não retorna ultima_lat / ultima_lng. Aviso de 500 metros não existe.
+B3. O passageiro não recebe a posição do motorista. RESOLVIDO (Microetapa 4.4). Aviso de 500 metros não existe.
 B4. Avaliações: tabela vazia, nenhum código.
 B5. Notificações push e SMS não existem.
 B6. Corridas órfãs: 13 presas em "solicitada", sem timeout. Estados buscando_motorista e sem_motorista nunca usados.
