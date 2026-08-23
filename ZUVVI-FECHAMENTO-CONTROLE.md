@@ -405,6 +405,15 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 
 ### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
 
+### MICROETAPA 4.9 — CORREÇÃO DE RECURSÃO RLS (MOTORISTAS X CORRIDAS) — ✅ FECHADA
+- Criada função `public.passageiro_tem_corrida_ativa_com_motorista` com `SECURITY DEFINER` para consultar a tabela `corridas` sem disparar RLS recursivo.
+- Revogadas permissões públicas da função e concedido `EXECUTE` para `authenticated`.
+- Política `"Passenger can see driver location of active ride"` na tabela `motoristas` reescrita para usar a nova função.
+- Resolvido erro Postgres `42P17` (infinite recursion) que quebrava o Realtime durante mudanças de status de corrida.
+- Migration aplicada: `20260823235000_fix_rls_recursion_corridas_motoristas.sql`.
+- Build verificado.
+
+
 ### MICROETAPA 4.6 — TELA DO PASSAGEIRO AVALIANDO O MOTORISTA — ✅ FECHADA
 - Implementado sistema de avaliação integrado ao modal de "CORRIDA CONCLUÍDA" em `src/routes/acompanhamento.tsx`.
 - Chamada atômica a `getAvaliacaoStatus` para evitar avaliações duplicadas na mesma sessão ou após refresh.
