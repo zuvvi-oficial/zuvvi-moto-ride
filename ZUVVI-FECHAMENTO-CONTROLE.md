@@ -404,6 +404,19 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - Commit funcional: `74cc66c1f715e21908221804b77f884a44b7d159`.
 
 ### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+
+### MICROETAPA 4.6 — TELA DO PASSAGEIRO AVALIANDO O MOTORISTA — ✅ FECHADA
+- Implementado sistema de avaliação integrado ao modal de "CORRIDA CONCLUÍDA" em `src/routes/acompanhamento.tsx`.
+- Chamada atômica a `getAvaliacaoStatus` para evitar avaliações duplicadas na mesma sessão ou após refresh.
+- Interface de 5 estrelas clicáveis com comentário opcional.
+- Botão "ENVIAR AVALIAÇÃO" com estado de loading e validação de input.
+- Fluxo de agradecimento pós-avaliação.
+- Opção "PULAR" mantida para não travar o usuário.
+- Tratamento de erro via toast com recuperação atômica.
+- Build verificado.
+
+**Status: ✅ BLOQUEADOR B4 (AVALIAÇÕES) - BACKEND E FRONTEND PASSAGEIRO CONCLUÍDOS**
+
 - Resolvido ErrorComponent global client-side após finalização.
 - Eliminado double-cleanup do Mapbox.
 - Feedback visual (overlay de sucesso) desacoplado da activeRide.
