@@ -8,7 +8,7 @@ interface SoundState {
   play: (src: string) => Promise<void>;
 }
 
-export const useSoundStore = create<SoundState>((set, get) => ({
+export const useSoundStore = create<SoundState>((set: any, get: any) => ({
   audioElement: null,
   isUnlocked: false,
   setAudioElement: (el: HTMLAudioElement | null) => set({ audioElement: el }),
@@ -24,7 +24,7 @@ export const useSoundStore = create<SoundState>((set, get) => ({
         set({ isUnlocked: true });
         console.log('[SoundStore] Audio unlocked successfully');
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error('[SoundStore] Audio unlock failed', err);
       });
   },
@@ -47,7 +47,7 @@ export const useSoundStore = create<SoundState>((set, get) => ({
       
       audioElement.currentTime = 0;
       await audioElement.play();
-    } catch (err) {
+    } catch (err: any) {
       console.error('[SoundStore] Play failed:', err);
       throw err;
     }

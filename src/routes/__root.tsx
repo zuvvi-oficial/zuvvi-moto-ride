@@ -154,8 +154,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const setAudioElement = useSoundStore(state => state.setAudioElement);
-  const unlock = useSoundStore(state => state.unlock);
+  const setAudioElement = useSoundStore((state: any) => state.setAudioElement);
+  const unlock = useSoundStore((state: any) => state.unlock);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
