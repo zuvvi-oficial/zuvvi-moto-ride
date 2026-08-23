@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { NotificationBell } from "@/components/NotificationBell";
 import { getAuthStatus } from "@/lib/auth-status.functions";
 import heroMoto from "@/assets/hero-moto.jpg";
 import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2, Trash2, X, ChevronLeft, Plus } from "lucide-react";
@@ -226,7 +227,6 @@ function HomePassageiro({ nome }: { nome: string }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <import { NotificationBell } from "@/components/NotificationBell";
               <NotificationBell />
               <button 
                 onClick={handleLogout} 

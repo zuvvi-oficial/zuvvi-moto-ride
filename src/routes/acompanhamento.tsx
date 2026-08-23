@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { useEffect, useState, useRef } from "react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useServerFn } from "@tanstack/react-start";
 import { getMapboxToken, getAcompanhamentoPassageiro } from "@/lib/user.functions";
 import {
@@ -489,7 +490,6 @@ function AcompanhamentoCorrida() {
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <import { NotificationBell } from "@/components/NotificationBell";
         <NotificationBell />
       </div>
         <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
