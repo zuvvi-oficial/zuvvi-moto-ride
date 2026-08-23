@@ -415,7 +415,17 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - Tratamento de erro via toast com recuperação atômica.
 - Build verificado.
 
-**Status: ✅ BLOQUEADOR B4 (AVALIAÇÕES) - BACKEND E FRONTEND PASSAGEIRO CONCLUÍDOS**
+### MICROETAPA 4.7 — TELA DO MOTORISTA AVALIANDO O PASSAGEIRO — ✅ FECHADA
+- Implementado bloco de avaliação dentro do modal `completedRideNotice` em `home-motorista.tsx`.
+- Reutilizada a função `criarAvaliacao` via `useServerFn`.
+- Interface compacta com 5 estrelas e comentário opcional (max 500 chars).
+- Botão de envio com estado de loading e feedback de sucesso ("Obrigado!").
+- Reset de estados de avaliação ao iniciar nova finalização para evitar persistência de dados antigos.
+- Modal ajustado com scroll interno para garantir usabilidade em telas pequenas.
+- Build verificado.
+
+**Status: ✅ BLOQUEADOR B4 (AVALIAÇÕES) - INTEGRALMENTE CONCLUÍDO (PASSAGEIRO E MOTORISTA)**
+
 
 - Resolvido ErrorComponent global client-side após finalização.
 - Eliminado double-cleanup do Mapbox.
