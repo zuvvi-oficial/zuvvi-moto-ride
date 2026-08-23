@@ -690,6 +690,62 @@ export const registrarDocumento = createServerFn({ method: "POST" })
 
     if (!motorista) throw new Error("Motorista não encontrado.");
 
+    // --- Início da Validação de Segurança do Arquivo ---
+    const pathParts = data.storagePath.split('/');
+    const basename = pathParts[pathParts.length - 1];
+
+    const { data: files, error: listError } = await supabaseAdmin.storage
+      .from('documentos-motorista')
+      .list(userId, { search: basename });
+
+    if (listError) throw new Error("Erro ao verificar o arquivo no servidor.");
+
+    const objeto = (files || []).find((f) => f.name === basename);
+    if (!objeto) throw new Error("Arquivo não encontrado no servidor.");
+
+    const realSize = (objeto.metadata as { size?: unknown } | null)?.size;
+    if (
+      typeof realSize !== 'number' ||
+      !Number.isFinite(realSize) ||
+      realSize <= 0 ||
+      realSize > 10 * 1024 * 1024 // 10MB
+    ) {
+      await supabaseAdmin.storage.from('documentos-motorista').remove([data.storagePath]);
+      throw new Error("Arquivo possui tamanho inválido ou é muito grande (limite 10MB).");
+    }
+
+    const { data: blob, error: downloadError } = await supabaseAdmin.storage
+      .from('documentos-motorista')
+      .download(data.storagePath);
+
+    if (downloadError || !blob) {
+      await supabaseAdmin.storage.from('documentos-motorista').remove([data.storagePath]);
+      throw new Error("Erro ao validar o conteúdo do arquivo.");
+    }
+
+    const head = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
+    
+    // JPEG: FF D8 FF
+    const isJpeg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
+    
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    const pngSig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    const isPng = pngSig.every((b, i) => head[i] === b);
+    
+    // WEBP: RIFF....WEBP
+    const ascii = (start: number, end: number) =>
+      String.fromCharCode(...Array.from(head.slice(start, end)));
+    const isWebp = ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+    
+    // PDF: %PDF (25 50 44 46)
+    const isPdf = head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46;
+
+    if (!isJpeg && !isPng && !isWebp && !isPdf) {
+      await supabaseAdmin.storage.from('documentos-motorista').remove([data.storagePath]);
+      throw new Error("Arquivo inválido. Envie uma imagem (JPEG, PNG, WEBP) ou PDF válido.");
+    }
+    // --- Fim da Validação de Segurança do Arquivo ---
+
     const { error } = await supabaseAdmin
       .from("documentos_motorista")
       .upsert({
