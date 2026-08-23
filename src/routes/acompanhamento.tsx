@@ -236,6 +236,11 @@ function AcompanhamentoCorrida() {
     let motoristaChannel: any;
 
     const setupMotoristaRealtime = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
+
       motoristaChannel = supabase
         .channel(`motorista-posicao-${motorista.id}`)
         .on(
