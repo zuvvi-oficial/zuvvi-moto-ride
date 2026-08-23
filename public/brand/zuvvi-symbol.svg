@@ -1,1 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title"><title id="title">Símbolo Zuvvi</title><defs><linearGradient id="b" x1="96" y1="84" x2="398" y2="430" gradientUnits="userSpaceOnUse"><stop stop-color="#3F42F7"/><stop offset=".55" stop-color="#1C1ABD"/><stop offset="1" stop-color="#11106E"/></linearGradient><linearGradient id="v" x1="44" y1="210" x2="220" y2="385" gradientUnits="userSpaceOnUse"><stop stop-color="#EDFF36"/><stop offset="1" stop-color="#C6FF3D"/></linearGradient></defs><rect x="120" y="98" width="282" height="78" rx="39" fill="#0C0B69"/><path d="m358 154 38 53-230 186H104Z" fill="#0C0B69"/><rect x="102" y="354" width="300" height="84" rx="42" fill="#0C0B69"/><rect x="116" y="88" width="282" height="78" rx="39" fill="url(#b)"/><path d="m354 145 38 53-230 186H100Z" fill="#17159A"/><rect x="98" y="344" width="300" height="84" rx="42" fill="url(#b)"/><path d="M39 230h184l-117 94c-34 28-15 83 29 83h89" stroke="url(#v)" stroke-width="31" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 230h40M30 270h105" stroke="#D9FF13" stroke-width="20" stroke-linecap="round"/><path d="M339 58c-46 0-83 36-83 81 0 60 83 126 83 126s83-66 83-126c0-45-37-81-83-81Zm0 48a33 33 0 1 1 0 66 33 33 0 0 1 0-66Z" fill="#D9FF13"/><circle cx="339" cy="139" r="33" fill="#130F36"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Símbolo Zuvvi</title>
+  <desc id="desc">Letra Z tridimensional com rota e destino integrados.</desc>
+  <defs>
+    <linearGradient id="zFace" x1="82" y1="83" x2="347" y2="401" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F60FF"/>
+      <stop offset=".48" stop-color="#1C1ABD"/>
+      <stop offset="1" stop-color="#0D0B76"/>
+    </linearGradient>
+    <linearGradient id="zEdge" x1="73" y1="106" x2="334" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C3CE9"/>
+      <stop offset=".55" stop-color="#171084"/>
+      <stop offset="1" stop-color="#09064F"/>
+    </linearGradient>
+    <linearGradient id="route" x1="35" y1="371" x2="395" y2="102" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D7FF4A"/>
+      <stop offset="1" stop-color="#B9F72A"/>
+    </linearGradient>
+    <filter id="limeGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Profundidade do monograma -->
+  <g transform="translate(0 14)" fill="url(#zEdge)">
+    <path d="M88 80H407L350 145H144Z"/>
+    <path d="M197 144H352L191 338H35Z"/>
+    <path d="M104 338H287L230 403H47Z"/>
+  </g>
+  <!-- Frente do Z -->
+  <g fill="url(#zFace)">
+    <path d="M88 80H407L350 145H144Z"/>
+    <path d="M197 144H352L191 338H35Z"/>
+    <path d="M104 338H287L230 403H47Z"/>
+  </g>
+  <!-- Rota contínua -->
+  <path d="M32 371H106C162 371 202 342 237 292L329 166C350 136 369 121 385 118" fill="none" stroke="#0A095A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 371H106C162 371 202 342 237 292L329 166C350 136 369 121 385 118" fill="none" stroke="url(#route)" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" filter="url(#limeGlow)"/>
+  <!-- Destino integrado -->
+  <path d="M385 28c-40 0-67 29-67 66 0 48 54 98 67 126 13-28 67-78 67-126 0-37-27-66-67-66Z" fill="#C6FF3D"/>
+  <circle cx="385" cy="94" r="24" fill="#130F36"/>
+  <circle cx="385" cy="94" r="8" fill="#2F60FF"/>
+</svg>

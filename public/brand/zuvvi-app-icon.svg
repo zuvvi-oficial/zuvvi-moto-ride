@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title"><title id="title">Ícone do aplicativo Zuvvi</title><rect width="512" height="512" rx="112" fill="#130F36"/><g transform="translate(3 0) scale(.985)"><path d="M120 98h282v78H120z" rx="39" fill="#0C0B69"/><path d="m358 154 38 53-230 186H104Z" fill="#0C0B69"/><rect x="102" y="354" width="300" height="84" rx="42" fill="#0C0B69"/><rect x="116" y="88" width="282" height="78" rx="39" fill="#2924D6"/><path d="m354 145 38 53-230 186H100Z" fill="#17159A"/><rect x="98" y="344" width="300" height="84" rx="42" fill="#211EBC"/><path d="M39 230h184l-117 94c-34 28-15 83 29 83h89" fill="none" stroke="#D9FF13" stroke-width="31" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 230h40M30 270h105" stroke="#D9FF13" stroke-width="20" stroke-linecap="round"/><path d="M339 58c-46 0-83 36-83 81 0 60 83 126 83 126s83-66 83-126c0-45-37-81-83-81Zm0 48a33 33 0 1 1 0 66 33 33 0 0 1 0-66Z" fill="#D9FF13"/><circle cx="339" cy="139" r="33" fill="#130F36"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ícone do app Zuvvi">
+  <defs>
+    <linearGradient id="bg" x1="36" y1="26" x2="468" y2="486" gradientUnits="userSpaceOnUse"><stop stop-color="#1D1A59"/><stop offset="1" stop-color="#090721"/></linearGradient>
+    <linearGradient id="zFace" x1="82" y1="83" x2="347" y2="401" gradientUnits="userSpaceOnUse"><stop stop-color="#2F60FF"/><stop offset=".48" stop-color="#1C1ABD"/><stop offset="1" stop-color="#0D0B76"/></linearGradient>
+    <linearGradient id="zEdge" x1="73" y1="106" x2="334" y2="390" gradientUnits="userSpaceOnUse"><stop stop-color="#6C3CE9"/><stop offset=".55" stop-color="#171084"/><stop offset="1" stop-color="#09064F"/></linearGradient>
+    <linearGradient id="route" x1="35" y1="371" x2="395" y2="102" gradientUnits="userSpaceOnUse"><stop stop-color="#D7FF4A"/><stop offset="1" stop-color="#B9F72A"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(0 14)" fill="url(#zEdge)"><path d="M88 80H407L350 145H144Z"/><path d="M197 144H352L191 338H35Z"/><path d="M104 338H287L230 403H47Z"/></g>
+  <g fill="url(#zFace)"><path d="M88 80H407L350 145H144Z"/><path d="M197 144H352L191 338H35Z"/><path d="M104 338H287L230 403H47Z"/></g>
+  <path d="M32 371H106C162 371 202 342 237 292L329 166C350 136 369 121 385 118" fill="none" stroke="#0A095A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 371H106C162 371 202 342 237 292L329 166C350 136 369 121 385 118" fill="none" stroke="url(#route)" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M385 28c-40 0-67 29-67 66 0 48 54 98 67 126 13-28 67-78 67-126 0-37-27-66-67-66Z" fill="#C6FF3D"/><circle cx="385" cy="94" r="24" fill="#130F36"/><circle cx="385" cy="94" r="8" fill="#2F60FF"/>
+</svg>
