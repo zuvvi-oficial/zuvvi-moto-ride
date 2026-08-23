@@ -20,6 +20,8 @@ import {
   X,
   AlertTriangle,
   MessageCircle,
+  Star,
+  Send,
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import {
@@ -32,6 +34,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { criarAvaliacao } from "@/lib/avaliacoes.functions";
 import { MapView } from "@/components/MapView";
 import { getMapboxToken } from "@/lib/user.functions";
 import {
@@ -112,6 +115,11 @@ function HomeMotorista() {
     destinoNome: string;
   } | null>(null);
 
+  const [notaAvaliacao, setNotaAvaliacao] = useState<number>(0);
+  const [comentarioAvaliacao, setComentarioAvaliacao] = useState("");
+  const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false);
+  const [avaliacaoSucesso, setAvaliacaoSucesso] = useState(false);
+
   const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
@@ -140,6 +148,7 @@ function HomeMotorista() {
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const iniciarCorridaFn = useServerFn(iniciarCorrida);
   const finalizarCorridaFn = useServerFn(finalizarCorrida);
+  const criarAvaliacaoFn = useServerFn(criarAvaliacao);
 
   const {
     data: status,
@@ -1491,10 +1500,15 @@ function HomeMotorista() {
                     // 2. Fechar modal
                     setShowFinalizeConfirmation(false);
                     
-                    // 3. Sucesso visual desacoplado
+                    // 3. Resetar estado de avaliação
+                    setNotaAvaliacao(0);
+                    setComentarioAvaliacao("");
+                    setAvaliacaoSucesso(false);
+
+                    // 4. Sucesso visual desacoplado
                     setCompletedRideNotice(rideData);
                     
-                    // 4. Limpar estados locais de chat para a corrida encerrada
+                    // 5. Limpar estados locais de chat para a corrida encerrada
                     setChatOpen(false);
                     chatOpenRef.current = false;
                     setChatData(null);
@@ -1526,25 +1540,25 @@ function HomeMotorista() {
 
       {completedRideNotice && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-zuvvi-indigo/95 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-sm bg-zuvvi-indigo border border-white/10 rounded-[2.5rem] p-8 space-y-8 shadow-2xl animate-in zoom-in-95 duration-500">
+          <div className="w-full max-w-sm bg-zuvvi-indigo border border-white/10 rounded-[2.5rem] p-8 space-y-6 shadow-2xl animate-in zoom-in-95 duration-500 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex flex-col items-center text-center space-y-6">
-              <div className="w-24 h-24 rounded-[2.5rem] bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20">
-                <CheckCircle2 className="w-12 h-12 text-zuvvi-volt" />
+              <div className="w-20 h-20 rounded-[2rem] bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20">
+                <CheckCircle2 className="w-10 h-10 text-zuvvi-volt" />
               </div>
               
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+              <div className="space-y-1">
+                <h2 className="text-xl font-black text-white uppercase tracking-tighter">
                   CORRIDA FINALIZADA
                 </h2>
-                <p className="text-sm text-white/40">
-                  Corrida concluída com sucesso.
+                <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">
+                  Resumo da Corrida
                 </p>
               </div>
 
-              <div className="w-full bg-white/5 rounded-3xl p-6 space-y-4">
+              <div className="w-full bg-white/5 rounded-3xl p-5 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Valor da corrida</span>
-                  <span className="text-xl font-black text-zuvvi-volt">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Valor</span>
+                  <span className="text-lg font-black text-zuvvi-volt">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
                       completedRideNotice.valorEstimado
                     )}
@@ -1554,31 +1568,85 @@ function HomeMotorista() {
                 <div className="h-px bg-white/5 w-full" />
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Pagamento</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Tipo</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white">
                     {completedRideNotice.formaPagamento}
                   </span>
                 </div>
 
                 <div className="h-px bg-white/5 w-full" />
 
-                <div className="space-y-1 text-left">
+                <div className="space-y-0.5 text-left">
                   <span className="text-[8px] font-black uppercase tracking-widest text-white/40">Destino</span>
-                  <p className="text-[10px] font-bold text-white line-clamp-1">{completedRideNotice.destinoNome}</p>
+                  <p className="text-[9px] font-bold text-white line-clamp-1">{completedRideNotice.destinoNome}</p>
                 </div>
               </div>
 
-              <div className="bg-zuvvi-indigo border border-white/5 rounded-2xl p-4 w-full">
-                <p className="text-[10px] text-white/60 leading-relaxed font-medium">
-                  Você está <span className="text-white font-bold">OFFLINE</span>.<br/>
-                  Fique online quando quiser receber novas corridas.
-                </p>
-              </div>
+              {!avaliacaoSucesso ? (
+                <div className="w-full bg-white/5 rounded-[2rem] p-5 space-y-4 border border-white/5">
+                  <p className="text-[9px] font-black text-zuvvi-volt uppercase tracking-widest">Avaliar Passageiro</p>
+                  
+                  <div className="flex justify-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setNotaAvaliacao(star)}
+                        className="p-1 transition-transform active:scale-90"
+                      >
+                        <Star 
+                          className={`w-6 h-6 ${notaAvaliacao >= star ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/10"}`} 
+                        />
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea
+                    placeholder="Comentário opcional"
+                    value={comentarioAvaliacao}
+                    onChange={(e) => setComentarioAvaliacao(e.target.value)}
+                    maxLength={500}
+                    className="w-full bg-zuvvi-indigo border border-white/10 rounded-xl p-3 text-white text-[10px] placeholder:text-white/20 focus:outline-none focus:border-zuvvi-volt/50 transition-colors resize-none h-20"
+                  />
+
+                  <button
+                    onClick={async () => {
+                      if (notaAvaliacao === 0 || enviandoAvaliacao) return;
+                      setEnviandoAvaliacao(true);
+                      try {
+                        await criarAvaliacaoFn({
+                          data: {
+                            rideId: completedRideNotice.id,
+                            nota: notaAvaliacao,
+                            comentario: comentarioAvaliacao || undefined,
+                          },
+                        });
+                        setAvaliacaoSucesso(true);
+                        toast.success("Avaliação enviada!");
+                      } catch (err: any) {
+                        toast.error(err.message || "Erro ao avaliar.");
+                      } finally {
+                        setEnviandoAvaliacao(false);
+                      }
+                    }}
+                    disabled={notaAvaliacao === 0 || enviandoAvaliacao}
+                    className="w-full py-3.5 rounded-xl bg-zuvvi-volt text-zuvvi-indigo text-[9px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {enviandoAvaliacao ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    ENVIAR NOTA
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full bg-zuvvi-volt/5 border border-zuvvi-volt/20 rounded-2xl p-4">
+                  <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest leading-relaxed">
+                    Obrigado por avaliar o passageiro!
+                  </p>
+                </div>
+              )}
             </div>
 
             <button
               onClick={() => setCompletedRideNotice(null)}
-              className="w-full py-5 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-zuvvi-volt/10"
+              className="w-full py-4.5 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
             >
               VOLTAR À HOME
             </button>
