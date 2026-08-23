@@ -489,7 +489,7 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       throw new Error("Perfil de usuário não encontrado.");
     }
 
-    // 2. Tentar atualizar a corrida se pertencer ao passageiro
+    // 2. Tentar atualizar a corrida se pertencer ao passageiro e status for válido
     const { data: corrida, error } = await supabaseAdmin
       .from("corridas")
       .update({
@@ -499,6 +499,7 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       } as any)
       .eq("id", data.rideId)
       .eq("passageiro_id", usuario.id)
+      .in("status", ['solicitada', 'buscando_motorista', 'aceita', 'motorista_a_caminho'])
       .select()
       .maybeSingle();
 
@@ -508,7 +509,7 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
     }
 
     if (!corrida) {
-      throw new Error("Corrida não encontrada ou você não tem permissão para cancelá-la.");
+      throw new Error("Esta corrida não pode mais ser cancelada porque já avançou de etapa.");
     }
 
     return { success: true };
