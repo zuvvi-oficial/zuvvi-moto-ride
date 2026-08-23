@@ -4,6 +4,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import mapboxgl from "mapbox-gl";
+import { useSoundStore } from "@/hooks/use-sound";
 import {
   User,
   Power,
@@ -100,8 +101,7 @@ function HomeMotorista() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
-  const alertAudioRef = useRef<HTMLAudioElement | null>(null);
-  const isAudioUnlockedRef = useRef(false);
+  const playSound = useSoundStore((state: any) => state.play);
   const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
   
   // Estado explícito para corrida finalizada
@@ -572,25 +572,13 @@ function HomeMotorista() {
       navigator.vibrate(vibracaoPadrao);
     }
 
-    await new Promise(resolve => setTimeout(resolve, duracaoVibracao));
+    // 2. Sino personalizado - disparado quase simultaneamente para manter vínculo com gesto
+    playSound("/sounds/zuvvi_volt_ping.mp3").catch((e: any) => 
+      console.error("[HomeMotorista] Erro ao tocar sino:", e)
+    );
 
-    // 2. Sino personalizado
-    if (alertAudioRef.current) {
-      try {
-        alertAudioRef.current.currentTime = 0;
-        await alertAudioRef.current.play();
-        // Espera o som (aproximadamente 1s ou até o fim)
-        await new Promise(resolve => {
-          const timer = setTimeout(resolve, 1500);
-          alertAudioRef.current!.onended = () => {
-            clearTimeout(timer);
-            resolve(null);
-          };
-        });
-      } catch (e) {
-        console.warn("Erro ao tocar sino:", e);
-      }
-    }
+    // Aguarda vibração terminar para prosseguir com a voz
+    await new Promise(resolve => setTimeout(resolve, Math.max(duracaoVibracao, 1500)));
 
     // 3. Voz feminina (Web Speech API)
     if ("speechSynthesis" in window) {
@@ -650,29 +638,6 @@ function HomeMotorista() {
     }
   }, [ofertas, lastOfertasIds, dispararSequenciaAlerta]);
 
-  useEffect(() => {
-    const unlockAudio = () => {
-      if (alertAudioRef.current && !isAudioUnlockedRef.current) {
-        alertAudioRef.current.play()
-          .then(() => {
-            alertAudioRef.current?.pause();
-            alertAudioRef.current!.currentTime = 0;
-            isAudioUnlockedRef.current = true;
-          })
-          .catch(() => {});
-      }
-      window.removeEventListener("pointerdown", unlockAudio);
-      window.removeEventListener("touchstart", unlockAudio);
-    };
-
-    window.addEventListener("pointerdown", unlockAudio);
-    window.addEventListener("touchstart", unlockAudio);
-
-    return () => {
-      window.removeEventListener("pointerdown", unlockAudio);
-      window.removeEventListener("touchstart", unlockAudio);
-    };
-  }, []);
 
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
@@ -1098,7 +1063,6 @@ function HomeMotorista() {
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
-      <audio ref={alertAudioRef} src="/sounds/zuvvi_volt_ping.mp3" preload="auto" />
       <header
         className={`p-6 flex items-center justify-between border-b border-white/5 sticky top-0 z-50 backdrop-blur-xl ${isOnline || activeRide ? "bg-zuvvi-volt/5" : "bg-zuvvi-indigo/90"}`}
       >

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bell, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,9 +6,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-// Sound reference removed asset pointer due to incorrect content_type in CDN metadata
-// Using public directory reference instead
-
+import { useSoundStore } from '@/hooks/use-sound';
 
 interface Notificacao {
   id: string;
@@ -25,7 +23,7 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playSound = useSoundStore((state: any) => state.play);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -40,30 +38,6 @@ export function NotificationBell() {
           });
       }
     });
-
-    // Destravar áudio na primeira interação do usuário (Autoplay policy)
-    const unlockAudio = () => {
-      if (audioRef.current) {
-        audioRef.current.play()
-          .then(() => {
-            audioRef.current?.pause();
-            if (audioRef.current) audioRef.current.currentTime = 0;
-          })
-          .catch(() => {
-            // Silencioso, apenas para destravar
-          });
-      }
-      window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-    };
-
-    window.addEventListener('pointerdown', unlockAudio);
-    window.addEventListener('touchstart', unlockAudio);
-
-    return () => {
-      window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-    };
   }, []);
 
   const { data: notificacoes = [] } = useQuery({
@@ -98,9 +72,7 @@ export function NotificationBell() {
   });
 
   const playNotification = () => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(e => console.warn('Audio play failed', e));
-    }
+    playSound('/sounds/zuvvi_volt_ping.mp3').catch((e: any) => console.error('[NotificationBell] Audio play failed', e));
     if ('vibrate' in navigator) {
       navigator.vibrate([200]);
     }
@@ -139,8 +111,6 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <audio ref={audioRef} src="/sounds/zuvvi_volt_ping.mp3" preload="auto" />
-      
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
