@@ -99,6 +99,9 @@ function HomeMotorista() {
   const [codigoEmbarque, setCodigoEmbarque] = useState("");
   const [routeError, setRouteError] = useState<string | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
+  const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
+  const alertAudioRef = useRef<HTMLAudioElement | null>(null);
+  const isAudioUnlockedRef = useRef(false);
   const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
   
   // Estado explícito para corrida finalizada
@@ -560,6 +563,117 @@ function HomeMotorista() {
   // Lista visual segura: só exibe se ONLINE, GPS ativo e sem corrida ativa
   const ofertas = isOnline && isGpsActive && !activeRide ? rawOfertas : [];
 
+  const dispararSequenciaAlerta = useCallback(async (oferta: any) => {
+    // 1. Vibração forte
+    const vibracaoPadrao = [400, 150, 400, 150, 400];
+    const duracaoVibracao = vibracaoPadrao.reduce((a, b) => a + b, 0);
+    
+    if ("vibrate" in navigator) {
+      navigator.vibrate(vibracaoPadrao);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, duracaoVibracao));
+
+    // 2. Sino personalizado
+    if (alertAudioRef.current) {
+      try {
+        alertAudioRef.current.currentTime = 0;
+        await alertAudioRef.current.play();
+        // Espera o som (aproximadamente 1s ou até o fim)
+        await new Promise(resolve => {
+          const timer = setTimeout(resolve, 1500);
+          alertAudioRef.current!.onended = () => {
+            clearTimeout(timer);
+            resolve(null);
+          };
+        });
+      } catch (e) {
+        console.warn("Erro ao tocar sino:", e);
+      }
+    }
+
+    // 3. Voz feminina (Web Speech API)
+    if ("speechSynthesis" in window) {
+      const valor = oferta.valor_estimado;
+      const distKm = (oferta.distancia_aprox_m / 1000).toFixed(1).replace(".", ",");
+      
+      let valorTexto = `${Math.floor(valor)} reais`;
+      if (valor % 1 !== 0) {
+        const centavos = Math.round((valor % 1) * 100);
+        valorTexto += ` e ${centavos} centavos`;
+      }
+
+      const frase = `Nova corrida disponível. A ${distKm} quilômetros de distância, valor estimado de ${valorTexto}.`;
+      
+      const utterance = new SpeechSynthesisUtterance(frase);
+      utterance.lang = "pt-BR";
+      utterance.rate = 0.9;
+      utterance.pitch = 1.1;
+
+      // Tentar carregar vozes e selecionar uma feminina
+      const setVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const ptVoices = voices.filter(v => v.lang.startsWith("pt"));
+        const femaleVoice = ptVoices.find(v => 
+          v.name.toLowerCase().includes("female") || 
+          v.name.toLowerCase().includes("mulher") ||
+          v.name.toLowerCase().includes("maria") ||
+          v.name.toLowerCase().includes("luciana")
+        ) || ptVoices[0];
+        
+        if (femaleVoice) utterance.voice = femaleVoice;
+      };
+
+      if (window.speechSynthesis.getVoices().length > 0) {
+        setVoice();
+      } else {
+        window.speechSynthesis.onvoiceschanged = setVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (ofertas.length > 0) {
+      const currentIds = new Set(ofertas.map((o: any) => o.id));
+      const newOfertas = ofertas.filter((o: any) => !lastOfertasIds.has(o.id));
+      
+      if (newOfertas.length > 0) {
+        // Dispara o alerta para a oferta mais relevante (primeira da lista)
+        dispararSequenciaAlerta(newOfertas[0]);
+      }
+      
+      setLastOfertasIds(currentIds);
+    } else if (lastOfertasIds.size > 0) {
+      setLastOfertasIds(new Set());
+    }
+  }, [ofertas, lastOfertasIds, dispararSequenciaAlerta]);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (alertAudioRef.current && !isAudioUnlockedRef.current) {
+        alertAudioRef.current.play()
+          .then(() => {
+            alertAudioRef.current?.pause();
+            alertAudioRef.current!.currentTime = 0;
+            isAudioUnlockedRef.current = true;
+          })
+          .catch(() => {});
+      }
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+
+    window.addEventListener("pointerdown", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
+
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
     onSuccess: (data) => {
@@ -984,6 +1098,7 @@ function HomeMotorista() {
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
+      <audio ref={alertAudioRef} src="/sounds/zuvvi_volt_ping.mp3" preload="auto" />
       <header
         className={`p-6 flex items-center justify-between border-b border-white/5 sticky top-0 z-50 backdrop-blur-xl ${isOnline || activeRide ? "bg-zuvvi-volt/5" : "bg-zuvvi-indigo/90"}`}
       >
