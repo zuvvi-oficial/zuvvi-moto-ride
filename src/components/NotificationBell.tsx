@@ -6,7 +6,9 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import zuvviPingAsset from '@/assets/zuvvi_volt_ping.mp3.asset.json';
+// Sound reference removed asset pointer due to incorrect content_type in CDN metadata
+// Using public directory reference instead
+
 
 interface Notificacao {
   id: string;
@@ -137,7 +139,7 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <audio ref={audioRef} src={zuvviPingAsset.url} preload="auto" />
+      <audio ref={audioRef} src="/sounds/zuvvi_volt_ping.mp3" preload="auto" />
       
       <button
         onClick={() => setIsOpen(!isOpen)}
