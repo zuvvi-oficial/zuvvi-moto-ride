@@ -171,7 +171,6 @@ function AcompanhamentoCorrida() {
     if (!rideId) return;
 
     let channel: any;
-    let motoristaChannel: any;
 
     async function setupRealtime() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -210,21 +209,32 @@ function AcompanhamentoCorrida() {
               payload.new?.status === "em_andamento" ||
               payload.new?.status === "concluida"
             ) {
-              // Quando o status muda via Realtime, forçamos um refresh do server-side
-              // para garantir que recebemos o codigo_embarque ou limpamos ele corretamente
-              void syncRide().catch(() => {
-                /* Erro já tratado no syncRide */
-              });
+              void syncRide().catch(() => {});
             }
           },
         )
         .subscribe();
     }
 
-    setupRealtime();
+    void setupRealtime();
 
-    // Novo canal para escutar posição do motorista em tempo real
-    if (motorista?.id) {
+    return () => {
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
+      if (cancellationRedirectTimeoutRef.current) {
+        clearTimeout(cancellationRedirectTimeoutRef.current);
+      }
+    };
+  }, [rideId, navigate, syncRide]);
+
+  // Bug 1 Fix: Inscrição do motorista em useEffect separado dependente do motorista.id
+  useEffect(() => {
+    if (!motorista?.id) return;
+
+    let motoristaChannel: any;
+
+    const setupMotoristaRealtime = async () => {
       motoristaChannel = supabase
         .channel(`motorista-posicao-${motorista.id}`)
         .on(
@@ -246,15 +256,16 @@ function AcompanhamentoCorrida() {
           }
         )
         .subscribe();
-    }
+    };
+
+    void setupMotoristaRealtime();
 
     return () => {
-      if (channel) {
-        void supabase.removeChannel(channel);
-      }
       if (motoristaChannel) {
         void supabase.removeChannel(motoristaChannel);
       }
+    };
+  }, [motorista?.id]);
       if (cancellationRedirectTimeoutRef.current) {
         clearTimeout(cancellationRedirectTimeoutRef.current);
       }
