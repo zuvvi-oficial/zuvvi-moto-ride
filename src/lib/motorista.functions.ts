@@ -694,6 +694,8 @@ export const registrarDocumento = createServerFn({ method: "POST" })
     const pathParts = data.storagePath.split('/');
     const basename = pathParts[pathParts.length - 1];
 
+    if (!basename) throw new Error("Caminho de arquivo inválido.");
+
     const { data: files, error: listError } = await supabaseAdmin.storage
       .from('documentos-motorista')
       .list(userId, { search: basename });
