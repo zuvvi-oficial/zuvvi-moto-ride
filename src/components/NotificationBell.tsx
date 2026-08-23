@@ -38,6 +38,30 @@ export function NotificationBell() {
           });
       }
     });
+
+    // Destravar áudio na primeira interação do usuário (Autoplay policy)
+    const unlockAudio = () => {
+      if (audioRef.current) {
+        audioRef.current.play()
+          .then(() => {
+            audioRef.current?.pause();
+            if (audioRef.current) audioRef.current.currentTime = 0;
+          })
+          .catch(() => {
+            // Silencioso, apenas para destravar
+          });
+      }
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
   }, []);
 
   const { data: notificacoes = [] } = useQuery({
