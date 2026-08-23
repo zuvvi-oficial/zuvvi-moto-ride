@@ -998,29 +998,31 @@ function HomeMotorista() {
             <h1 className="text-sm font-bold uppercase">{status.nome?.split(" ")[0]}</h1>
           </div>
         </div>
-        <NotificationBell />
-
-        {activeRide ? (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo">
-            <Bike className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-widest">EM CORRIDA</span>
-          </div>
-        ) : (
-          <button
-            onClick={handleToggleOnline}
-            disabled={isToggling}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all active:scale-95 ${isOnline ? "bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo" : "bg-white/5 border-white/10 text-white"}`}
-          >
-            {isToggling ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Power className="w-4 h-4" />
-            )}
-            <span className="text-[10px] font-black uppercase tracking-widest">
-              {isOnline ? "ONLINE" : "OFFLINE"}
-            </span>
-          </button>
-        )}
+        
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          {activeRide ? (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo">
+              <Bike className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">EM CORRIDA</span>
+            </div>
+          ) : (
+            <button
+              onClick={handleToggleOnline}
+              disabled={isToggling}
+              className={`flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all active:scale-95 ${isOnline ? "bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo" : "bg-white/5 border-white/10 text-white"}`}
+            >
+              {isToggling ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Power className="w-4 h-4" />
+              )}
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                {isOnline ? "ONLINE" : "OFFLINE"}
+              </span>
+            </button>
+          )}
+        </div>
       </header>
 
       <main className="p-6 max-w-md mx-auto">
