@@ -12,11 +12,12 @@ import {
   atualizarPresencaChat,
 } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle } from "lucide-react";
+import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send } from "lucide-react";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { toast } from "sonner";
+import { criarAvaliacao, getAvaliacaoStatus } from "@/lib/avaliacoes.functions";
 
 const searchSchema = z.object({
   rideId: z.string(),
@@ -106,6 +107,15 @@ function AcompanhamentoCorrida() {
   const marcarEntreguesFn = useServerFn(marcarMensagensEntregues);
   const marcarLidasFn = useServerFn(marcarMensagensLidas);
   const atualizarPresencaFn = useServerFn(atualizarPresencaChat);
+  const getAvaliacaoStatusFn = useServerFn(getAvaliacaoStatus);
+  const criarAvaliacaoFn = useServerFn(criarAvaliacao);
+
+  const [jaAvaliado, setJaAvaliado] = useState<boolean | null>(null);
+  const [checkingAvaliacao, setCheckingAvaliacao] = useState(false);
+  const [notaAvaliacao, setNotaAvaliacao] = useState<number>(0);
+  const [comentarioAvaliacao, setComentarioAvaliacao] = useState("");
+  const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false);
+  const [avaliacaoSucesso, setAvaliacaoSucesso] = useState(false);
 
   const handleChatOpenChange = (open: boolean) => {
     chatOpenRef.current = open;
@@ -210,6 +220,9 @@ function AcompanhamentoCorrida() {
               payload.new?.status === "em_andamento" ||
               payload.new?.status === "concluida"
             ) {
+              if (payload.new?.status === "concluida") {
+                void checkAvaliacaoStatus();
+              }
               void syncRide().catch(() => {});
             }
           },
@@ -432,6 +445,47 @@ function AcompanhamentoCorrida() {
       if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     };
   }, [rideId, refreshChat, syncChatFechado]);
+
+  const checkAvaliacaoStatus = React.useCallback(async () => {
+    if (!rideId || jaAvaliado !== null || checkingAvaliacao) return;
+    setCheckingAvaliacao(true);
+    try {
+      const res = await getAvaliacaoStatusFn({ data: { rideId } });
+      setJaAvaliado(res.jaAvaliado);
+    } catch (err) {
+      console.error("Erro ao verificar status da avaliação:", err);
+      setJaAvaliado(false); // Fallback: mostrar formulário
+    } finally {
+      setCheckingAvaliacao(false);
+    }
+  }, [rideId, getAvaliacaoStatusFn, jaAvaliado, checkingAvaliacao]);
+
+  useEffect(() => {
+    if (corrida?.status === "concluida" && jaAvaliado === null) {
+      void checkAvaliacaoStatus();
+    }
+  }, [corrida?.status, jaAvaliado, checkAvaliacaoStatus]);
+
+  const handleEnviarAvaliacao = async () => {
+    if (notaAvaliacao === 0) return;
+    setEnviandoAvaliacao(true);
+    try {
+      await criarAvaliacaoFn({
+        data: {
+          rideId,
+          nota: notaAvaliacao,
+          comentario: comentarioAvaliacao || undefined,
+        },
+      });
+      setAvaliacaoSucesso(true);
+      setJaAvaliado(true);
+      toast.success("Obrigado pela sua avaliação!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar avaliação.");
+    } finally {
+      setEnviandoAvaliacao(false);
+    }
+  };
 
   const handleEnviarMensagem = async (conteudo: string) => {
     setChatSending(true);
@@ -668,28 +722,92 @@ function AcompanhamentoCorrida() {
       />
       {corrida.status === "concluida" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zuvvi-indigo/90 backdrop-blur-xl animate-in fade-in duration-500">
-          <div className="w-full max-w-md bg-zuvvi-indigo/50 border border-white/10 rounded-[3rem] p-10 shadow-2xl text-center space-y-8 animate-in zoom-in-95 duration-500">
-            <div className="flex justify-center">
-              <div className="w-24 h-24 bg-zuvvi-volt/20 rounded-full flex items-center justify-center border border-zuvvi-volt/30">
-                <CheckCircle2 className="w-12 h-12 text-zuvvi-volt" />
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <h2 className="text-3xl font-black text-white uppercase tracking-tighter">
-                CORRIDA CONCLUÍDA
-              </h2>
-              <p className="text-white/60 text-lg">
-                Você chegou ao seu destino.
-              </p>
-            </div>
+          <div className="w-full max-w-md bg-zuvvi-indigo/50 border border-white/10 rounded-[3rem] p-8 md:p-10 shadow-2xl text-center space-y-6 animate-in zoom-in-95 duration-500 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            {!avaliacaoSucesso && jaAvaliado === false ? (
+              <>
+                <div className="flex justify-center">
+                  <div className="w-20 h-20 bg-zuvvi-volt/20 rounded-full flex items-center justify-center border border-zuvvi-volt/30">
+                    <CheckCircle2 className="w-10 h-10 text-zuvvi-volt" />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+                    CORRIDA CONCLUÍDA
+                  </h2>
+                  <p className="text-white/60 text-base">
+                    Você chegou ao seu destino.
+                  </p>
+                </div>
 
-            <button
-              onClick={() => void navigate({ to: "/" })}
-              className="w-full py-6 rounded-3xl bg-zuvvi-volt text-zuvvi-indigo text-xs font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-[0_0_40px_rgba(198,255,61,0.2)]"
-            >
-              VOLTAR À TELA INICIAL
-            </button>
+                <div className="bg-white/5 rounded-3xl p-6 space-y-4 border border-white/5">
+                  <p className="text-xs font-bold text-zuvvi-volt uppercase tracking-widest">Como foi sua viagem?</p>
+                  
+                  <div className="flex justify-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setNotaAvaliacao(star)}
+                        className="p-1 transition-transform active:scale-90"
+                      >
+                        <Star 
+                          className={`w-8 h-8 ${notaAvaliacao >= star ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/20"}`} 
+                        />
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea
+                    placeholder="Como foi sua viagem? (opcional)"
+                    value={comentarioAvaliacao}
+                    onChange={(e) => setComentarioAvaliacao(e.target.value)}
+                    className="w-full bg-zuvvi-indigo border border-white/10 rounded-2xl p-4 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-zuvvi-volt/50 transition-colors resize-none h-24"
+                  />
+
+                  <button
+                    onClick={handleEnviarAvaliacao}
+                    disabled={notaAvaliacao === 0 || enviandoAvaliacao}
+                    className="w-full py-4 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-[0_0_40px_rgba(198,255,61,0.2)] disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+                  >
+                    {enviandoAvaliacao ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    ENVIAR AVALIAÇÃO
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => void navigate({ to: "/" })}
+                  className="w-full py-4 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] hover:text-white transition-colors"
+                >
+                  PULAR E VOLTAR AO INÍCIO
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-center">
+                  <div className="w-24 h-24 bg-zuvvi-volt/20 rounded-full flex items-center justify-center border border-zuvvi-volt/30">
+                    <CheckCircle2 className="w-12 h-12 text-zuvvi-volt" />
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <h2 className="text-3xl font-black text-white uppercase tracking-tighter">
+                    {avaliacaoSucesso || jaAvaliado === true ? "OBRIGADO!" : "CORRIDA CONCLUÍDA"}
+                  </h2>
+                  <p className="text-white/60 text-lg">
+                    {avaliacaoSucesso || jaAvaliado === true 
+                      ? "Sua avaliação ajuda a manter a qualidade do Zuvvi." 
+                      : "Você chegou ao seu destino."}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => void navigate({ to: "/" })}
+                  className="w-full py-6 rounded-3xl bg-zuvvi-volt text-zuvvi-indigo text-xs font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-[0_0_40px_rgba(198,255,61,0.2)]"
+                >
+                  VOLTAR À TELA INICIAL
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
