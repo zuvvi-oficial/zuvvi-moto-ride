@@ -490,8 +490,7 @@ function AcompanhamentoCorrida() {
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <NotificationBell />
-      </div>
+
         <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
           <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">
             {corrida.status === "aceita"
@@ -507,7 +506,8 @@ function AcompanhamentoCorrida() {
               : "Atualizando corrida"}
           </p>
         </div>
-        <div className="w-12" />
+        
+        <NotificationBell />
       </div>
 
       {motorista && veiculo && corrida.status !== "concluida" && (
