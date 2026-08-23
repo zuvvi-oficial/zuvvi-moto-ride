@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { NotificationBell } from "@/components/NotificationBell";
 import { getAuthStatus } from "@/lib/auth-status.functions";
 import heroMoto from "@/assets/hero-moto.jpg";
 import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2, Trash2, X, ChevronLeft, Plus } from "lucide-react";
@@ -225,13 +226,16 @@ function HomePassageiro({ nome }: { nome: string }) {
                 <ZuvviLogo surface="dark" className="h-auto w-[82px]" />
               </div>
             </div>
-            <button 
-              onClick={handleLogout} 
-              className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-colors hover:bg-white/10"
-              title="Sair"
-            >
-              <LogOut className="w-4 h-4 text-muted-foreground" />
-            </button>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <button 
+                onClick={handleLogout} 
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-colors hover:bg-white/10"
+                title="Sair"
+              >
+                <LogOut className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
           </div>
         </header>
 

@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import mapboxgl from "mapbox-gl";
@@ -997,6 +998,7 @@ function HomeMotorista() {
             <h1 className="text-sm font-bold uppercase">{status.nome?.split(" ")[0]}</h1>
           </div>
         </div>
+        <NotificationBell />
 
         {activeRide ? (
           <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo">
