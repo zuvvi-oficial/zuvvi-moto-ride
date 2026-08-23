@@ -1,43 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">Símbolo Zuvvi</title>
-  <desc id="desc">Letra Z tridimensional com rota e destino integrados.</desc>
-  <defs>
-    <linearGradient id="zFace" x1="82" y1="83" x2="347" y2="401" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2F60FF"/>
-      <stop offset=".48" stop-color="#1C1ABD"/>
-      <stop offset="1" stop-color="#0D0B76"/>
-    </linearGradient>
-    <linearGradient id="zEdge" x1="73" y1="106" x2="334" y2="390" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6C3CE9"/>
-      <stop offset=".55" stop-color="#171084"/>
-      <stop offset="1" stop-color="#09064F"/>
-    </linearGradient>
-    <linearGradient id="route" x1="35" y1="371" x2="395" y2="102" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#D7FF4A"/>
-      <stop offset="1" stop-color="#B9F72A"/>
-    </linearGradient>
-    <filter id="limeGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <!-- Profundidade do monograma -->
-  <g transform="translate(0 14)" fill="url(#zEdge)">
-    <path d="M88 80H407L350 145H144Z"/>
-    <path d="M197 144H352L191 338H35Z"/>
-    <path d="M104 338H287L230 403H47Z"/>
-  </g>
-  <!-- Frente do Z -->
-  <g fill="url(#zFace)">
-    <path d="M88 80H407L350 145H144Z"/>
-    <path d="M197 144H352L191 338H35Z"/>
-    <path d="M104 338H287L230 403H47Z"/>
-  </g>
-  <!-- Rota contínua -->
-  <path d="M32 371H106C162 371 202 342 237 292L329 166C350 136 369 121 385 118" fill="none" stroke="#0A095A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M32 371H106C162 371 202 342 237 292L329 166C350 136 369 121 385 118" fill="none" stroke="url(#route)" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" filter="url(#limeGlow)"/>
-  <!-- Destino integrado -->
-  <path d="M385 28c-40 0-67 29-67 66 0 48 54 98 67 126 13-28 67-78 67-126 0-37-27-66-67-66Z" fill="#C6FF3D"/>
-  <circle cx="385" cy="94" r="24" fill="#130F36"/>
-  <circle cx="385" cy="94" r="8" fill="#2F60FF"/>
+<title id="title">Símbolo Zuvvi</title><desc id="desc">Símbolo mestre oficial Zuvvi.</desc>
+<defs>
+<linearGradient id="silver" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".48" stop-color="#d9d9dd"/><stop offset=".75" stop-color="#ffffff"/><stop offset="1" stop-color="#aeb0b8"/></linearGradient>
+<linearGradient id="volt" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#bff000"/><stop offset=".5" stop-color="#d3ff19"/><stop offset="1" stop-color="#e5ff43"/></linearGradient>
+</defs>
+<path d="M112 118H398L170 386H400" fill="none" stroke="url(#silver)" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M169 386L398 118" fill="none" stroke="url(#volt)" stroke-width="26" stroke-linecap="round"/>
+<circle cx="169" cy="386" r="31" fill="url(#volt)"/><circle cx="169" cy="386" r="14" fill="#130F36"/>
+<circle cx="398" cy="118" r="31" fill="url(#volt)"/><circle cx="398" cy="118" r="14" fill="#130F36"/>
 </svg>

@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 512" role="img" aria-labelledby="title desc">
-  <title id="title">Zuvvi</title>
-  <desc id="desc">Assinatura Zuvvi para fundos claros.</desc>
-  <defs>
-    <linearGradient id="zFace" x1="82" y1="83" x2="347" y2="401" gradientUnits="userSpaceOnUse"><stop stop-color="#2F60FF"/><stop offset=".48" stop-color="#1C1ABD"/><stop offset="1" stop-color="#0D0B76"/></linearGradient>
-    <linearGradient id="zEdge" x1="73" y1="106" x2="334" y2="390" gradientUnits="userSpaceOnUse"><stop stop-color="#6C3CE9"/><stop offset=".55" stop-color="#171084"/><stop offset="1" stop-color="#09064F"/></linearGradient>
-    <linearGradient id="route" x1="35" y1="371" x2="395" y2="102" gradientUnits="userSpaceOnUse"><stop stop-color="#D7FF4A"/><stop offset="1" stop-color="#B9F72A"/></linearGradient>
-  </defs>
-  <g transform="translate(0 14)" fill="url(#zEdge)"><path d="M88 80H407L350 145H144Z"/><path d="M197 144H352L191 338H35Z"/><path d="M104 338H287L230 403H47Z"/></g>
-  <g fill="url(#zFace)"><path d="M88 80H407L350 145H144Z"/><path d="M197 144H352L191 338H35Z"/><path d="M104 338H287L230 403H47Z"/></g>
-  <path d="M32 371H106C162 371 202 342 237 292L329 166C350 136 369 121 385 118" fill="none" stroke="#0A095A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M32 371H106C162 371 202 342 237 292L329 166C350 136 369 121 385 118" fill="none" stroke="url(#route)" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M385 28c-40 0-67 29-67 66 0 48 54 98 67 126 13-28 67-78 67-126 0-37-27-66-67-66Z" fill="#C6FF3D"/><circle cx="385" cy="94" r="24" fill="#130F36"/><circle cx="385" cy="94" r="8" fill="#2F60FF"/>
-  <g fill="#130F36"><path d="M545 139H699V184H625L699 328V373H545V328H619L545 184Z"/><path d="M741 139H795V276c0 34 14 52 43 52s43-18 43-52V139H935V280c0 66-38 101-97 101s-97-35-97-101Z"/><path d="M960 139H1019L1063 280L1108 139H1167L1092 373H1034Z"/><path d="M1178 139H1237L1281 280L1326 139H1385L1310 373H1252Z"/><path d="M1410 139H1464V373H1410Z"/></g>
+<title id="title">Zuvvi</title><desc id="desc">Assinatura oficial Zuvvi para fundos claros.</desc>
+<defs>
+<linearGradient id="silver" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".48" stop-color="#d9d9dd"/><stop offset=".75" stop-color="#ffffff"/><stop offset="1" stop-color="#aeb0b8"/></linearGradient>
+<linearGradient id="volt" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#bff000"/><stop offset=".5" stop-color="#d3ff19"/><stop offset="1" stop-color="#e5ff43"/></linearGradient>
+</defs>
+<g transform="translate(28 20)">
+<path d="M105 116H392L170 372H392" fill="none" stroke="url(#silver)" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M166 372L390 116" fill="none" stroke="url(#volt)" stroke-width="24" stroke-linecap="round"/>
+<circle cx="166" cy="372" r="28" fill="url(#volt)"/><circle cx="166" cy="372" r="13" fill="#130F36"/>
+<circle cx="390" cy="116" r="28" fill="url(#volt)"/><circle cx="390" cy="116" r="13" fill="#130F36"/>
+</g>
+<text x="545" y="337" fill="#130F36" font-family="Poppins, Inter, Arial, sans-serif" font-size="238" font-weight="500" letter-spacing="5">Zuvvi</text>
+<circle cx="1375" cy="113" r="14" fill="#d3ff19"/>
 </svg>
