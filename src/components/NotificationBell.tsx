@@ -8,7 +8,6 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useSoundStore } from '@/hooks/use-sound';
 
-
 interface Notificacao {
   id: string;
   usuario_id: string;
@@ -24,7 +23,7 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playSound = useSoundStore((state: any) => state.play);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -39,30 +38,6 @@ export function NotificationBell() {
           });
       }
     });
-
-    // Destravar áudio na primeira interação do usuário (Autoplay policy)
-    const unlockAudio = () => {
-      if (audioRef.current) {
-        audioRef.current.play()
-          .then(() => {
-            audioRef.current?.pause();
-            if (audioRef.current) audioRef.current.currentTime = 0;
-          })
-          .catch(() => {
-            // Silencioso, apenas para destravar
-          });
-      }
-      window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-    };
-
-    window.addEventListener('pointerdown', unlockAudio);
-    window.addEventListener('touchstart', unlockAudio);
-
-    return () => {
-      window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-    };
   }, []);
 
   const { data: notificacoes = [] } = useQuery({
@@ -97,7 +72,7 @@ export function NotificationBell() {
   });
 
   const playNotification = () => {
-    playSound('/sounds/zuvvi_volt_ping.mp3').catch(e => console.error('[NotificationBell] Audio play failed', e));
+    playSound('/sounds/zuvvi_volt_ping.mp3').catch((e: any) => console.error('[NotificationBell] Audio play failed', e));
     if ('vibrate' in navigator) {
       navigator.vibrate([200]);
     }
@@ -136,7 +111,6 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
