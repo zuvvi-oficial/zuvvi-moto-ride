@@ -1118,4 +1118,12 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 - Bloqueador B3 marcado como resolvido (rastreamento vivo funcional).
 - Arquivos tocados: `src/routes/acompanhamento.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`, Supabase RLS (via SQL).
 
+### Microetapa 4.5 — Base de Avaliações (Backend + Nota Média) — ✅ FECHADA
+- Criado `src/lib/avaliacoes.functions.ts` com `criarAvaliacao` e `getAvaliacaoStatus`.
+- Criada migration `20260823232600_recalculate_motorista_rating.sql` com trigger de nota média.
+- RLS e estrutura de `avaliacoes` preservados conforme exigido.
+- Nenhuma alteração em telas ou componentes.
+- Bloqueador B4 (Backend) resolvido; funcionalidade completa aguarda 4.6 e 4.7.
+
+
 
