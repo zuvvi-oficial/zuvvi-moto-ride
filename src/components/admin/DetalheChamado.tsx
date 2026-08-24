@@ -109,15 +109,7 @@ export function DetalheChamado({ chamado, isOpen, onClose }: DetalheChamadoProps
 
           {/* Contexto (Cidade/Corrida) */}
           <div className="grid grid-cols-1 gap-4">
-            {chamado.cidades && (
-              <div className="flex items-center gap-3 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                <MapPin size={18} className="text-white/30" />
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-white/30">Cidade</div>
-                  <div className="text-sm font-medium">{chamado.cidades.nome} / {chamado.cidades.uf}</div>
-                </div>
-              </div>
-            )}
+            {/* A relação com cidades não existe na tabela chamados_suporte */}
 
             {chamado.corridas && (
               <div className="flex items-center gap-3 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
