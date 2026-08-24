@@ -170,13 +170,14 @@ function AdminVeiculos() {
           </div>
         } 
       />
+      <AdminBottomNav />
 
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24 md:pb-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">Gestão de Veículos</h1>
         </div>
 
-      <div className="rounded-md border border-white/10">
+      <div className="hidden md:block rounded-md border border-white/10">
         <Table>
           <TableHeader>
             <TableRow className="border-white/10 hover:bg-white/5">
@@ -273,6 +274,92 @@ function AdminVeiculos() {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="md:hidden space-y-4">
+        {veiculos?.map((veiculo: any) => (
+          <div 
+            key={veiculo.id} 
+            className="bg-white/5 border border-white/10 rounded-[1.5rem] p-5 space-y-5"
+          >
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg">{veiculo.motoristas?.usuarios?.nome}</h3>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-white/40">
+                  {veiculo.motoristas?.usuarios?.email}
+                </p>
+              </div>
+              <Badge className={cn(
+                "rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest",
+                veiculo.status_aprovacao === 'aprovado' ? 'bg-green-500/20 text-green-500 border-green-500/20' :
+                veiculo.status_aprovacao === 'em_analise' ? 'bg-sky-400/20 text-sky-400 border-sky-400/20' :
+                veiculo.status_aprovacao === 'suspenso' ? 'bg-orange-500/20 text-orange-500 border-orange-500/20' :
+                'bg-amber-500/20 text-amber-500 border-amber-500/20'
+              )}>
+                {veiculo.status_aprovacao}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 py-2 border-y border-white/5">
+              <div className="space-y-1">
+                <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Veículo</p>
+                <p className="text-sm font-medium">{veiculo.marca} {veiculo.modelo}</p>
+                <p className="text-[10px] text-white/50">{veiculo.ano} • {veiculo.cor}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Placa</p>
+                <p className="text-sm font-bold text-zuvvi-volt font-mono">{veiculo.placa}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-12 rounded-xl border-white/10 hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                onClick={() => setViewingVeiculoId(veiculo.id)}
+              >
+                <Eye className="w-4 h-4" />
+                Ver Detalhes
+              </Button>
+              
+              <div className="flex gap-2">
+                {veiculo.status_aprovacao !== 'aprovado' && (
+                  <Button 
+                    className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 font-bold uppercase text-[10px] tracking-widest"
+                    onClick={() => {
+                      setSelectedVeiculo(veiculo);
+                      setActionType('aprovado');
+                    }}
+                  >
+                    Aprovar
+                  </Button>
+                )}
+                {veiculo.status_aprovacao === 'aprovado' && (
+                  <Button 
+                    variant="outline"
+                    className="flex-1 h-12 rounded-xl border-orange-500 text-orange-500 hover:bg-orange-500/10 font-bold uppercase text-[10px] tracking-widest"
+                    onClick={() => {
+                      setSelectedVeiculo(veiculo);
+                      setActionType('suspenso');
+                    }}
+                  >
+                    Suspender
+                  </Button>
+                )}
+                <Button 
+                  variant="destructive"
+                  className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 font-bold uppercase text-[10px] tracking-widest"
+                  onClick={() => {
+                    setSelectedVeiculo(veiculo);
+                    setActionType('recusado');
+                  }}
+                >
+                  Recusar
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       <Dialog open={!!selectedVeiculo} onOpenChange={() => setSelectedVeiculo(null)}>

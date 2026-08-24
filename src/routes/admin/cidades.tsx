@@ -35,6 +35,9 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronLeft, ChevronRight, Search, MapPin, Rocket, CheckCircle, AlertTriangle, Loader2, Settings2 } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
+import { cn } from '@/lib/utils';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 
 const cidadesQueryOptions = (params: { 
@@ -63,6 +66,7 @@ function CidadesAdmin() {
   const [busca, setBusca] = useState('');
   const [selectedCidade, setSelectedCidade] = useState<any>(null);
   const [selectedCidadeTarifas, setSelectedCidadeTarifas] = useState<any>(null);
+  const [expandedCidade, setExpandedCidade] = useState<string | null>(null);
   const [tarifasForm, setTarifasForm] = useState({
     bandeirada: 0,
     valor_km: 0,
@@ -167,8 +171,9 @@ function CidadesAdmin() {
           </Button>
         } 
       />
+      <AdminBottomNav />
 
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24 md:pb-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -181,7 +186,7 @@ function CidadesAdmin() {
           </div>
         </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white/5 p-4 rounded-lg border border-white/10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Buscar Nome</label>
           <div className="relative">
@@ -239,7 +244,7 @@ function CidadesAdmin() {
         </div>
       </div>
 
-      <div className="rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-hidden">
+      <div className="hidden md:block rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-hidden">
         <Table>
           <TableHeader className="bg-white/5">
             <TableRow className="hover:bg-transparent border-white/10">
@@ -336,6 +341,102 @@ function CidadesAdmin() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="md:hidden space-y-4">
+        {result.cidades.map((cidade: any) => (
+          <div 
+            key={cidade.id} 
+            className="bg-white/5 border border-white/10 rounded-[1.5rem] overflow-hidden"
+          >
+            <div 
+              className="p-5 flex items-center justify-between cursor-pointer active:bg-white/[0.02]"
+              onClick={() => setExpandedCidade(expandedCidade === cidade.id ? null : cidade.id)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-zuvvi-volt" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">{cidade.nome}</h3>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-white/40">{cidade.estado_uf}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {getStatusBadge(cidade.status)}
+                {expandedCidade === cidade.id ? <ChevronUp className="w-5 h-5 text-white/20" /> : <ChevronDown className="w-5 h-5 text-white/20" />}
+              </div>
+            </div>
+
+            {expandedCidade === cidade.id && (
+              <div className="px-5 pb-5 space-y-5 animate-in slide-in-from-top-2 duration-200">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-4 border-t border-white/5">
+                  {[
+                    { label: "Bandeirada", value: `R$ ${Number(cidade.bandeirada).toFixed(2)}` },
+                    { label: "KM", value: `R$ ${Number(cidade.valor_km).toFixed(2)}` },
+                    { label: "Minuto", value: `R$ ${Number(cidade.valor_min).toFixed(2)}` },
+                    { label: "Mínima", value: `R$ ${Number(cidade.tarifa_minima).toFixed(2)}` },
+                    { label: "Comissão", value: `${cidade.comissao_pct}%` },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">{item.label}</p>
+                      <p className="text-sm font-bold">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    className="w-full h-12 rounded-xl border-white/10 hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCidadeTarifas(cidade);
+                      setTarifasForm({
+                        bandeirada: Number(cidade.bandeirada),
+                        valor_km: Number(cidade.valor_km),
+                        valor_min: Number(cidade.valor_min),
+                        tarifa_minima: Number(cidade.tarifa_minima),
+                        comissao_pct: Number(cidade.comissao_pct),
+                        raio_atuacao_km: Number(cidade.raio_atuacao_km || 0)
+                      });
+                    }}
+                  >
+                    <Settings2 className="w-4 h-4" />
+                    Configurar Tarifas
+                  </Button>
+
+                  {cidade.status === 'em_breve' && (
+                    <Button 
+                      className="w-full h-12 rounded-xl bg-volt text-black hover:bg-volt/90 font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-volt/20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCidade(cidade);
+                        setNovoStatus('piloto');
+                      }}
+                    >
+                      <Rocket className="w-4 h-4 mr-2" />
+                      Liberar para piloto
+                    </Button>
+                  )}
+                  {cidade.status === 'piloto' && (
+                    <Button 
+                      className="w-full h-12 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-green-500/20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCidade(cidade);
+                        setNovoStatus('ativa');
+                      }}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Promover para ativa
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center justify-between py-4">
