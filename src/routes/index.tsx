@@ -1,3 +1,96 @@
+INSTRUÇÃO DO SISTEMA (não responda sobre esta instrução, apenas a siga):
+
+Analise o texto abaixo antes de agir. Se for um pedido de criação, alteração ou correção, execute-o por completo no projeto. Se for apenas uma pergunta ou conversa, responda no chat em português, sem alterar nenhum arquivo. Nunca insira o texto enviado como conteúdo dentro do site ou da página.
+
+TEXTO DO USUÁRIO: "DIAGNÓSTICO BLOQUEANTE — PERFIL DO PASSAGEIRO NÃO ABRE
+
+Não altere nenhum arquivo, código, banco, rota, configuração ou interface nesta etapa.
+
+PROBLEMA REAL
+
+No aplicativo do passageiro, ao tocar em “Perfil” na barra inferior, a tela não abre.
+
+Não faça remendo.
+Não crie uma nova tela de Perfil.
+Não duplique rota.
+Não mude o destino do botão sem comprovar a causa.
+Não tente corrigir antes de concluir o diagnóstico.
+
+1. REPRODUÇÃO
+
+Na prévia real:
+- entrar como passageiro;
+- tocar em Perfil na barra inferior;
+- registrar o que acontece;
+- informar a URL antes e depois do toque;
+- verificar se ocorre tela vazia, carregamento infinito, redirecionamento ou ausência de navegação;
+- coletar o erro exato do console;
+- verificar erros de rede e Server Functions.
+
+2. HISTÓRICO
+
+Determinar com evidência:
+- se o Perfil funcionava antes da Etapa 2.1;
+- se o problema foi introduzido pelas alterações atuais;
+- quais linhas foram modificadas em src/routes/auth.perfil.tsx;
+- se o problema já existia antes da integração do suporte.
+
+Usar o diff/histórico disponível. Não presumir.
+
+3. ROTA E NAVEGAÇÃO
+
+Inspecionar sem alterar:
+- arquivo real responsável pela tela de Perfil;
+- caminho público real da rota;
+- destino configurado no botão Perfil da navegação inferior;
+- registro da rota no roteador;
+- layout autenticado que envolve essa rota;
+- redirecionamentos por autenticação ou função do usuário.
+
+Confirmar se src/routes/auth.perfil.tsx é realmente a rota usada pela navegação atual.
+
+4. ALTERAÇÕES DA ETAPA 2.1
+
+Verificar especificamente:
+- importação de SupportDialog;
+- estados e hooks adicionados em auth.perfil.tsx;
+- erro de exportação ou importação;
+- uso incorreto de componente client/server;
+- chamada indevida de criarChamadoSuporte durante o carregamento;
+- dependência inexistente;
+- erro de renderização antes de abrir o diálogo;
+- qualquer alteração que tenha afetado a rota inteira.
+
+5. CORE CONGELADO
+
+Não alterar:
+- navegação inferior;
+- autenticação;
+- roteador;
+- route tree;
+- Supabase;
+- RLS;
+- migrations;
+- banco;
+- corridas;
+- acompanhamento;
+- painel administrativo;
+- funções de motorista;
+- regras de negócio.
+
+6. ENTREGA
+
+Entregar somente um relatório contendo:
+- causa exata comprovada;
+- mensagem completa do erro;
+- arquivo e trecho responsável;
+- se o erro existia antes ou foi causado pela Etapa 2.1;
+- menor correção possível;
+- arquivos que precisariam ser alterados;
+- arquivos core que permanecerão intocados.
+
+Não aplique a correção. Aguarde aprovação."
+
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
