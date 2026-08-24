@@ -5,8 +5,17 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
 import { DetalheChamado } from '@/components/admin/DetalheChamado';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, MessageSquare, ChevronRight, Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { AlertCircle, MessageSquare, ChevronRight, Search, X, Filter } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from '@/components/ui/button';
 
 export const Route = createFileRoute('/admin/suporte')({
   component: SuporteAdmin,
