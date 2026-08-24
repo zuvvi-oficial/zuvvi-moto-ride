@@ -1,17 +1,32 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
 import { useState } from 'react';
-import { Loader2, CheckCircle2, Wallet } from 'lucide-react';
+import { Loader2, CheckCircle2, Settings2, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  desconectarMercadoPago,
   getStatusConexaoMercadoPago,
   iniciarConexaoMercadoPago,
 } from '@/lib/motorista-pagamento.functions';
 
 export default function MercadoPagoConnect() {
+  const queryClient = useQueryClient();
   const getStatusFn = useServerFn(getStatusConexaoMercadoPago);
   const iniciarFn = useServerFn(iniciarConexaoMercadoPago);
+  const desconectarFn = useServerFn(desconectarMercadoPago);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -32,6 +47,70 @@ export default function MercadoPagoConnect() {
     }
   };
 
+  const desconectar = async () => {
+    setErro(null);
+    setIsDisconnecting(true);
+    try {
+      await desconectarFn();
+      await queryClient.invalidateQueries({ queryKey: ['mercadopago-conexao'] });
+    } catch {
+      setErro('Não foi possível desconectar a conta. Tente novamente.');
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
+
+  if (!isLoading && data?.conectado) {
+    return (
+      <div className="space-y-2 font-poppins">
+        <div className="flex items-center justify-between gap-3 px-1 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-zuvvi-volt" />
+            <p className="truncate text-xs font-bold text-zuvvi-volt">Mercado Pago conectado</p>
+          </div>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                disabled={isDisconnecting}
+                className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider text-white/60 transition-colors hover:text-zuvvi-volt disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Gerenciar conta Mercado Pago"
+              >
+                {isDisconnecting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Settings2 className="h-3.5 w-3.5" />
+                )}
+                Gerenciar
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="border-white/10 bg-zuvvi-indigo text-white font-poppins">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Desconectar conta Mercado Pago?</AlertDialogTitle>
+                <AlertDialogDescription className="text-white/60">
+                  Você não poderá mais receber pagamentos via Pix até conectar novamente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="border-white/10 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={desconectar}
+                  className="bg-red-600 text-white hover:bg-red-500"
+                >
+                  Desconectar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+        {erro && <p className="px-1 text-xs text-red-500">{erro}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-4 font-poppins">
       <div className="flex items-center gap-3">
@@ -47,13 +126,6 @@ export default function MercadoPagoConnect() {
       {isLoading ? (
         <div className="flex items-center justify-center p-4">
           <Loader2 className="w-5 h-5 text-zuvvi-volt animate-spin" />
-        </div>
-      ) : data?.conectado ? (
-        <div className="flex items-center gap-3 bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-xl p-4">
-          <CheckCircle2 className="w-5 h-5 text-zuvvi-volt shrink-0" />
-          <p className="text-xs font-bold uppercase tracking-widest text-zuvvi-volt">
-            Conta Mercado Pago conectada
-          </p>
         </div>
       ) : (
         <div className="space-y-3">

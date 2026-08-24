@@ -118,3 +118,24 @@ export const concluirConexaoMercadoPago = createServerFn({ method: "POST" })
 
     return { conectado: true };
   });
+
+export const desconectarMercadoPago = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const motoristaId = await getMotoristaId(context);
+
+    const { data, error } = await supabaseAdmin
+      .from("motoristas")
+      .update({ conta_mercado_pago_id: null })
+      .eq("id", motoristaId)
+      .select("id")
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error("[MercadoPago] Falha ao desconectar conta:", error?.message);
+      throw new Error("Não foi possível desconectar a conta. Tente novamente.");
+    }
+
+    return { conectado: false };
+  });
