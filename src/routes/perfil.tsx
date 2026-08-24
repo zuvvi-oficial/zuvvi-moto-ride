@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, Clock, HelpCircle, User, ChevronRight, LogOut } from "lucide-react";
+import { ChevronLeft, Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut } from "lucide-react";
 import { useState } from "react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
@@ -71,7 +71,24 @@ function PerfilPassageiro() {
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
           </Link>
 
+          <Link 
+            to="/meus-chamados"
+            className="w-full bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-zuvvi-indigo/60 group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20 group-hover:border-zuvvi-volt/40">
+                <LifeBuoy className="w-5 h-5 text-zuvvi-volt" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold">Meus Chamados</p>
+                <p className="text-[11px] text-muted-foreground">Acompanhe suas conversas com o suporte</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
+          </Link>
+
           <button 
+
             onClick={() => setSupportOpen(true)}
             className="w-full bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-zuvvi-indigo/60 group"
           >
