@@ -164,13 +164,7 @@ function CidadesAdmin() {
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
-      <AdminHeader 
-        action={
-          <Button asChild variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/5 h-9 px-4 rounded-xl">
-            <Link to="/admin">Voltar</Link>
-          </Button>
-        } 
-      />
+      <AdminHeader />
       <AdminBottomNav />
 
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24 md:pb-6">
