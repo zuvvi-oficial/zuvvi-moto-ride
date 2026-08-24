@@ -594,7 +594,7 @@ export type Database = {
           created_at: string
           id: string
           is_disponivel: boolean
-          nota_media: number
+          nota_media: number | null
           status_aprovacao: Database["public"]["Enums"]["motorista_status_aprovacao"]
           tipo_chave_pix: Database["public"]["Enums"]["tipo_chave_pix"] | null
           ultima_lat: number | null
@@ -611,7 +611,7 @@ export type Database = {
           created_at?: string
           id: string
           is_disponivel?: boolean
-          nota_media?: number
+          nota_media?: number | null
           status_aprovacao?: Database["public"]["Enums"]["motorista_status_aprovacao"]
           tipo_chave_pix?: Database["public"]["Enums"]["tipo_chave_pix"] | null
           ultima_lat?: number | null
@@ -628,7 +628,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_disponivel?: boolean
-          nota_media?: number
+          nota_media?: number | null
           status_aprovacao?: Database["public"]["Enums"]["motorista_status_aprovacao"]
           tipo_chave_pix?: Database["public"]["Enums"]["tipo_chave_pix"] | null
           ultima_lat?: number | null

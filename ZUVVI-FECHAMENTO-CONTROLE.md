@@ -413,6 +413,13 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 - Foto de perfil não foi implementada por falta de estrutura no sistema.
 - Build verificado com sucesso.
 
+### MICROETAPA 4.11 - CORRIGIR NOTA "0.0" DE MOTORISTA NUNCA AVALIADO - ✅ FECHADA
+- Coluna `public.motoristas.nota_media` alterada para aceitar NULL e removido DEFAULT 0.
+- Migration aplicada: `20260824002100_fix_motorista_nota_media_null.sql`.
+- Motoristas com nota 0 (nunca avaliados) corrigidos para NULL.
+- Contra-prova: 4 motoristas corrigidos; trigger `recalcular_nota_media_motorista` intacto.
+- Nenhum arquivo em `src/` foi alterado.
+
 
 ### MICROETAPA 4.9 — CORREÇÃO DE RECURSÃO RLS (MOTORISTAS X CORRIDAS) — ✅ FECHADA
 - Criada função `public.passageiro_tem_corrida_ativa_com_motorista` com `SECURITY DEFINER` para consultar a tabela `corridas` sem disparar RLS recursivo.
