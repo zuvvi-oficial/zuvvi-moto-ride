@@ -47,7 +47,9 @@ export function DetalheChamado({ chamado, isOpen, onClose }: DetalheChamadoProps
           </button>
           <div className="text-center flex-1">
             <div className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt/70">Detalhes do Chamado</div>
-            <div className="text-sm font-bold text-white truncate px-4">#{chamado.protocolo}</div>
+            {chamado.protocolo && (
+              <div className="text-sm font-bold text-white truncate px-4">#{chamado.protocolo}</div>
+            )}
           </div>
           <button 
             onClick={onClose}
@@ -76,10 +78,12 @@ export function DetalheChamado({ chamado, isOpen, onClose }: DetalheChamadoProps
 
           {/* Conteúdo Principal */}
           <div className="space-y-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Assunto</div>
-              <h2 className="text-xl font-bold text-white">{chamado.assunto}</h2>
-            </div>
+            {chamado.assunto && (
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Assunto</div>
+                <h2 className="text-xl font-bold text-white">{chamado.assunto}</h2>
+              </div>
+            )}
             
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Descrição</div>
