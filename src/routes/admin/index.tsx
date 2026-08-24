@@ -121,7 +121,7 @@ function AdminDashboard() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pb-10">
           <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
             <Link to="/admin/motoristas">Gerenciar Motoristas</Link>
           </Button>
@@ -130,6 +130,12 @@ function AdminDashboard() {
           </Button>
           <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
             <Link to="/admin/cidades">Gerenciar Cidades</Link>
+          </Button>
+          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide border-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-red-500/10">
+            <Link to="/admin/suporte" className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              Central de Suporte
+            </Link>
           </Button>
         </div>
       </main>

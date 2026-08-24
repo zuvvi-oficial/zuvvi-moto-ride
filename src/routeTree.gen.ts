@@ -20,6 +20,7 @@ import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-mot
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
 import { Route as AdminMotoristasRouteImport } from './routes/admin/motoristas'
+import { Route as AdminSuporteRouteImport } from './routes/admin/suporte'
 import { Route as AdminVeiculosRouteImport } from './routes/admin/veiculos'
 import { Route as AuthCadastroRouteImport } from './routes/auth.cadastro'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -82,6 +83,11 @@ const AdminMotoristasRoute = AdminMotoristasRouteImport.update({
   path: '/admin/motoristas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminSuporteRoute = AdminSuporteRouteImport.update({
+  id: '/admin/suporte',
+  path: '/admin/suporte',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminVeiculosRoute = AdminVeiculosRouteImport.update({
   id: '/admin/veiculos',
   path: '/admin/veiculos',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
+  '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
+  '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
+  '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/procurando-motorista'
     | '/admin/cidades'
     | '/admin/motoristas'
+    | '/admin/suporte'
     | '/admin/veiculos'
     | '/auth/cadastro'
     | '/auth/callback'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/procurando-motorista'
     | '/admin/cidades'
     | '/admin/motoristas'
+    | '/admin/suporte'
     | '/admin/veiculos'
     | '/auth/cadastro'
     | '/auth/callback'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/procurando-motorista'
     | '/admin/cidades'
     | '/admin/motoristas'
+    | '/admin/suporte'
     | '/admin/veiculos'
     | '/auth/cadastro'
     | '/auth/callback'
@@ -242,6 +254,7 @@ export interface RootRouteChildren {
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
   AdminMotoristasRoute: typeof AdminMotoristasRoute
+  AdminSuporteRoute: typeof AdminSuporteRoute
   AdminVeiculosRoute: typeof AdminVeiculosRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMotoristasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/suporte': {
+      id: '/admin/suporte'
+      path: '/admin/suporte'
+      fullPath: '/admin/suporte'
+      preLoaderRoute: typeof AdminSuporteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/veiculos': {
       id: '/admin/veiculos'
       path: '/admin/veiculos'
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
   AdminMotoristasRoute: AdminMotoristasRoute,
+  AdminSuporteRoute: AdminSuporteRoute,
   AdminVeiculosRoute: AdminVeiculosRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

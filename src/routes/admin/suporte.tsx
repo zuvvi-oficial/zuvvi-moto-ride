@@ -15,7 +15,7 @@ function SuporteAdmin() {
   const [tipo, setTipo] = useState<"todos" | "duvida" | "sos" | "reclamacao">("todos");
   const { data: chamados } = useSuspenseQuery({
     queryKey: ['suporte-chamados', tipo],
-    queryFn: () => getChamadosSuporte({ tipo }),
+    queryFn: () => getChamadosSuporte({ data: { tipo } }),
   });
 
   const indicadores = {
