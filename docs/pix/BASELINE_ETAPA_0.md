@@ -64,3 +64,8 @@ Alteração inesperada em qualquer arquivo congelado deverá ser explicada, isol
 
 Este checkpoint é somente documental. O próximo passo possível é preparar um ambiente Supabase de desenvolvimento. A criação de branch Supabase possui custo informado pelo provedor e exige confirmação explícita antes de qualquer criação.
 
+### Decisão do responsável
+
+Em 24/08/2026, Rafael não autorizou a criação da branch paga do Supabase durante o desenvolvimento. A branch não foi criada e nenhum custo foi gerado.
+
+O desenvolvimento seguirá, quando tecnicamente possível, em ambiente Supabase local isolado. O projeto Supabase principal permanecerá somente leitura até uma autorização explícita para uma migration específica.
