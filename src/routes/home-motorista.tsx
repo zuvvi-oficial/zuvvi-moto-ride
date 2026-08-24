@@ -36,6 +36,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { criarAvaliacao } from "@/lib/avaliacoes.functions";
 import { MapView } from "@/components/MapView";
+import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";
+
 import { getMapboxToken } from "@/lib/user.functions";
 import {
   getMotoristaStatusHome,
