@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.6  
+**Versão:** 1.7  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -306,6 +306,20 @@ Conferência posterior do Supabase principal:
 - essa mudança de dados ocorreu no aplicativo principal antes do início do workflow e não foi causada pelo GitHub Actions, que não recebeu credenciais do projeto principal.
 
 É proibido corrigir, ignorar, retirar ou fornecer dados artificiais à migration preexistente dentro do escopo Pix. Uma estratégia de teste isolado por fixture mínima de schema só poderá ser criada após nova aprovação explícita e nova allowlist.
+
+**Decisão registrada após a execução 1:** Rafael autorizou explicitamente o teste isolado mínimo da PIX-01.
+
+Allowlist adicional da microetapa 1B-T:
+
+- criar `supabase/tests/fixtures/pix_01_prerequisites.sql` com somente as tabelas e colunas indispensáveis para representar as FKs reais `usuarios -> motoristas`;
+- modificar `.github/workflows/pix-db-foundation.yml` para retirar temporariamente do runner todas as migrations preexistentes antes da inicialização da stack descartável;
+- aplicar no runner, nesta ordem: fixture mínima, SQL da PIX-01 e teste pgTAP;
+- não inserir o fixture em migration, produção, seed oficial ou código do aplicativo;
+- não classificar o teste mínimo como homologação do schema completo ou de produção;
+- somente versionar a migration PIX-01 depois que os 33 testes e o lint forem aprovados;
+- repetir os mesmos testes depois da migration real ser adicionada à branch.
+
+Tudo fora desses dois arquivos adicionais permanece bloqueado. A migration antiga que falhou continuará byte a byte intacta.
 
 ### Etapa 1 — Integridade mínima do banco
 
