@@ -5,7 +5,7 @@ import { resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { getSessionUser } from '@/lib/user.functions';
 import { getMotoristaStatusFeedback, getCnhCorrectionState } from '@/lib/motorista.functions';
 import CnhCorrectionForm from '@/components/motorista/CnhCorrectionForm';
-import MercadoPagoConnect from '@/components/motorista/MercadoPagoConnect';
+
 
 import { Loader2, User, Clock, AlertOctagon, ShieldAlert, AlertTriangle, Info, Calendar } from 'lucide-react';
 
@@ -106,8 +106,8 @@ function OnboardingMotorista() {
       </header>
 
       <main className="p-6 max-w-md mx-auto space-y-6">
-        <MercadoPagoConnect />
         {statusAprovacao === 'em_analise' ? (
+
 
           <>
             {isCnhLoading ? (

@@ -36,6 +36,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { criarAvaliacao } from "@/lib/avaliacoes.functions";
 import { MapView } from "@/components/MapView";
+import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";
+
 import { getMapboxToken } from "@/lib/user.functions";
 import {
   getMotoristaStatusHome,
@@ -1328,17 +1330,21 @@ function HomeMotorista() {
             </button>
           </div>
         ) : !isOnline ? (
-          <div className="py-20 text-center space-y-4 animate-in fade-in duration-700">
-            <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto border border-white/5">
-              <Bike className="w-10 h-10 text-white/20" />
+          <div className="space-y-4 animate-in fade-in duration-700">
+            <div className="py-20 text-center space-y-4">
+              <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto border border-white/5">
+                <Bike className="w-10 h-10 text-white/20" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold text-white/40 uppercase">Você está offline</h2>
+                <p className="text-xs text-white/20 uppercase tracking-widest">
+                  Fique online para receber corridas
+                </p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold text-white/40 uppercase">Você está offline</h2>
-              <p className="text-xs text-white/20 uppercase tracking-widest">
-                Fique online para receber corridas
-              </p>
-            </div>
+            <MercadoPagoConnect />
           </div>
+
         ) : (
           <div className="space-y-4">
             {ofertas.length === 0 ? (
