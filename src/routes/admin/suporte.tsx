@@ -170,7 +170,7 @@ function SuporteAdmin() {
           </div>
 
           <div className="space-y-3">
-            {chamados?.length === 0 ? (
+            {filteredChamados.length === 0 ? (
               <div className="text-center py-20 px-6">
                 <div className="bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
                   <Search size={24} className="text-white/20" />
