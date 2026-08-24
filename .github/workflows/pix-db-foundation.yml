@@ -1,0 +1,73 @@
+name: PIX DB Foundation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pix-db-foundation.yml"
+      - "docs/pix/sql/PIX01_CREDENCIAIS_OAUTH_PRIVADAS.sql.template"
+      - "supabase/migrations/*_pix_oauth_credentials_private.sql"
+      - "supabase/tests/pix_01_oauth_credentials.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pix-db-foundation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pix-01-oauth-credentials:
+    name: Testar PIX-01 em Supabase descartável
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_CLI_VERSION: 2.115.0
+
+    steps:
+      - name: Checkout da branch do Pix
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Conferir Docker
+        run: docker version
+
+      - name: Instalar Supabase CLI fixada
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
+
+      - name: Gerar migration pela CLI quando ainda não estiver versionada
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_credentials_private.sql' -print -quit)"
+          if [ -z "${migration_path}" ]; then
+            npx --yes supabase@${SUPABASE_CLI_VERSION} migration new pix_oauth_credentials_private
+            migration_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_credentials_private.sql' -print -quit)"
+            cp docs/pix/sql/PIX01_CREDENCIAIS_OAUTH_PRIVADAS.sql.template "${migration_path}"
+            echo "MIGRATION_GENERATED=${migration_path}"
+          else
+            echo "MIGRATION_VERSIONED=${migration_path}"
+          fi
+          test -n "${migration_path}"
+
+      - name: Iniciar Supabase local descartável
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} start
+          --exclude studio,imgproxy,mailpit,logflare,vector,edge-runtime
+
+      - name: Reaplicar todas as migrations do repositório
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} db reset --local --no-seed
+
+      - name: Executar testes pgTAP exclusivos da PIX-01
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+          supabase/tests/pix_01_oauth_credentials.sql --local
+
+      - name: Lint do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db lint
+          --local --schema private,public --level error --fail-on error
+
+      - name: Descartar stack local
+        if: always()
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup
