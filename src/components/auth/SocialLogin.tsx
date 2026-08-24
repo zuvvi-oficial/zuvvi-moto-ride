@@ -37,6 +37,20 @@ export function GoogleLoginButton() {
   );
 }
 
+export function AppleLoginButton() {
+  return (
+    <Button
+      type="button"
+      disabled
+      variant="outline"
+      className="w-full bg-black text-white border-zinc-800 hover:bg-black font-medium h-12 flex items-center justify-center gap-3 transition-all opacity-90 cursor-not-allowed"
+    >
+      <img src="/brand/apple-signin-logo.svg" alt="Apple" className="w-5 h-5 invert" />
+      Continuar com Apple
+    </Button>
+  );
+}
+
 export function AuthSeparator() {
   return (
     <div className="relative my-6">
