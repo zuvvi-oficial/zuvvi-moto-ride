@@ -18,7 +18,7 @@ function SuporteAdmin() {
 
   const { data: chamados } = useSuspenseQuery({
     queryKey: ['suporte-chamados', tipo],
-    queryFn: () => getChamadosSuporte({ data: { tipo } }),
+    queryFn: () => getChamadosSuporte({ data: { tipo: tipo === 'todos' ? undefined : tipo } }),
   });
 
   const indicadores = {
