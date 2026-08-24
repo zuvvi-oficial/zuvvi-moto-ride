@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.8  
+**Versão:** 1.9  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -338,6 +338,49 @@ Tudo fora desses dois arquivos adicionais permanece bloqueado. A migration antig
 **Classificação da microetapa 1B-T:** **APROVADA NO AMBIENTE LOCAL DESCARTÁVEL**.
 
 Esta aprovação comprova sintaxe, catálogo, RLS, grants, funções operacionais, revogação e lint da PIX-01 em uma stack isolada. Ela não equivale a homologação nem autoriza aplicação no Supabase principal. A migration permanecerá somente na branch e no Pull Request rascunho até uma autorização explícita posterior.
+
+**Autorização e allowlist da microetapa PIX-02 — tentativas e eventos de Webhook:**
+
+Objetivo único: criar e validar somente a fundação de dados para tentativas Pix e deduplicação de eventos Mercado Pago, sem executar cobrança, receber Webhook HTTP ou alterar comportamento do aplicativo.
+
+Baseline revalidado em 24/08/2026:
+
+- PostgreSQL `17.6`;
+- última migration do projeto principal: `20260824222419`;
+- `pagamentos` não possui unicidade por corrida nem índice de cobertura na FK `corrida_id`;
+- `pagamentos` possui 84 registros e quatro pagamentos vinculados a corridas Pix;
+- zero migration PIX-01 aplicada no projeto principal;
+- PIX-01 aprovada somente no ambiente descartável;
+- changelog oficial revisado: novas tabelas públicas não devem depender de exposição automática à Data API; grants e RLS serão explícitos.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `.github/workflows/pix-db-attempts.yml`;
+- criar `docs/pix/sql/PIX02_TENTATIVAS_EVENTOS_WEBHOOK.sql.template`;
+- criar `supabase/tests/fixtures/pix_02_prerequisites.sql`;
+- criar `supabase/tests/pix_02_attempts_webhook.sql`;
+- após a primeira execução integral aprovada, criar exatamente uma migration `supabase/migrations/<timestamp>_pix_attempts_webhook.sql`, usando o nome gerado pela Supabase CLI `2.115.0`.
+
+Objetos SQL permitidos:
+
+- criar `public.pagamentos_pix_tentativas`;
+- criar `private.mercadopago_webhook_eventos`;
+- criar somente FKs, checks, índices, RLS e grants necessários a essas duas tabelas;
+- reutilizar, sem modificar, `supabase/migrations/20260824233357_pix_oauth_credentials_private.sql` como pré-requisito no runner descartável.
+
+Travas:
+
+- não modificar `public.pagamentos`, `public.corridas`, `public.motoristas` ou qualquer objeto existente;
+- não criar função SQL, trigger, Edge Function, endpoint, tela ou Server Function;
+- não modificar a PIX-01, aplicativo, core, dinheiro ou cartão;
+- não aplicar migration no Supabase principal;
+- nenhuma credencial do projeto principal no GitHub Actions;
+- nenhuma tentativa de corrigir migrations antigas;
+- migration PIX-02 somente será versionada depois de todos os testes e lint passarem;
+- após o versionamento, toda a bateria será repetida.
+
+Rollback antes da produção: nenhum, pois a migration permanecerá somente na branch. Rollback da branch: remover apenas os cinco arquivos exclusivos da PIX-02. Rollback futuro de produção será lógico, bloqueando novos usos sem apagar histórico.
 
 ### Etapa 1 — Integridade mínima do banco
 
