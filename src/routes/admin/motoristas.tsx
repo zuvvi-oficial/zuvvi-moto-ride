@@ -6,6 +6,7 @@ import { getMotoristasAdmin, updateStatusMotorista, getMotoristaDetalheAdmin, up
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
 import { Link } from '@tanstack/react-router';
 import { Input } from '@/components/ui/input';
 import { 
