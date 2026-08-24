@@ -233,7 +233,7 @@ select public.pix_oauth_credentials_upsert(
   'mp-user-test-01',
   'aes-gcm-access-envelope-test',
   'aes-gcm-refresh-envelope-test',
-  1,
+  1::smallint,
   now() + interval '1 hour',
   'offline_access read write',
   'Bearer'
