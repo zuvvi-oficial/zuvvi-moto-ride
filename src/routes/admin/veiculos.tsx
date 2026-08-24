@@ -40,7 +40,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle, AlertTriangle, Settings2 } from 'lucide-react';
+import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle, AlertTriangle, Settings2, LogOut } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
 
 
 const veiculosOptions = queryOptions({
@@ -146,9 +147,25 @@ function AdminVeiculos() {
     <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
       <AdminHeader 
         action={
-          <Button asChild variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/5 h-9 px-4 rounded-xl">
-            <Link to="/admin">Voltar</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/5 h-9 px-4 rounded-xl">
+              <Link to="/admin">Voltar</Link>
+            </Button>
+
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                supabase.auth.signOut().then(() => {
+                  window.location.href = '/auth/login';
+                });
+              }}
+              className="h-9 px-3 sm:px-4 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all active:scale-95"
+            >
+              <LogOut className="w-3 h-3" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
+          </div>
         } 
       />
 
