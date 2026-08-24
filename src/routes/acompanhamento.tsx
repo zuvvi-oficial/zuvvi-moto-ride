@@ -12,7 +12,8 @@ import {
   atualizarPresencaChat,
 } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send } from "lucide-react";
+import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send, ShieldAlert, HelpCircle } from "lucide-react";
+import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { ChatConversation } from "@/components/chat/ChatConversation";
@@ -156,6 +157,10 @@ function AcompanhamentoCorrida() {
   const [comentarioAvaliacao, setComentarioAvaliacao] = useState("");
   const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false);
   const [avaliacaoSucesso, setAvaliacaoSucesso] = useState(false);
+  
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportTipo, setSupportTipo] = useState<"duvida" | "sos" | "reclamacao">("duvida");
+
 
   const handleChatOpenChange = (open: boolean) => {
     chatOpenRef.current = open;
@@ -863,6 +868,12 @@ function AcompanhamentoCorrida() {
           </div>
         </div>
       )}
+      <SupportDialog 
+        open={supportOpen} 
+        onOpenChange={setSupportOpen}
+        corridaId={rideId || undefined}
+        defaultTipo={supportTipo}
+      />
     </div>
   );
 }

@@ -32,7 +32,14 @@ export const getChamadosSuporte = createServerFn({ method: "GET" })
     let query = supabaseAdmin
       .from("chamados_suporte")
       .select(`
-        *,
+        id,
+        usuario_id,
+        corrida_id,
+        tipo,
+        status,
+        descricao,
+        created_at,
+        updated_at,
         usuarios!chamados_suporte_usuario_id_fkey(nome, email, celular),
         corridas!chamados_suporte_corrida_id_fkey(codigo_embarque)
       `)
@@ -51,4 +58,47 @@ export const getChamadosSuporte = createServerFn({ method: "GET" })
     const { data: chamados, error } = await query;
     if (error) throw new Error(error.message);
     return chamados;
+  });
+
+export const criarChamadoSuporte = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => 
+    z.object({
+      tipo: z.enum(["duvida", "sos", "reclamacao"]),
+      assunto: z.string().min(3).max(100),
+      descricao: z.string().min(10).max(1000),
+      corrida_id: z.string().uuid().optional(),
+    }).parse(data)
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Gerar protocolo: ZUV-YYYYMMDD-XXXX (4 últimos dígitos do timestamp)
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const randomPart = Math.floor(1000 + Math.random() * 9000);
+    const protocolo = `ZUV-${datePart}-${randomPart}`;
+
+    const { data: chamado, error } = await supabaseAdmin
+      .from("chamados_suporte")
+      .insert({
+        usuario_id: context.userId,
+        // @ts-ignore
+        protocolo,
+        // @ts-ignore
+        assunto: data.assunto,
+        tipo: data.tipo,
+        descricao: data.descricao,
+        corrida_id: data.corrida_id,
+        status: "aberto"
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Erro ao criar chamado:", error);
+      throw new Error("Não foi possível registrar seu chamado. Tente novamente.");
+    }
+
+    return chamado;
   });

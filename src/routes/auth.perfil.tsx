@@ -6,7 +6,8 @@ import { selectPassageiroPerfil, selectMotoristaPerfil } from '@/lib/perfil.func
 import { useServerFn } from '@tanstack/react-start';
 import { checkUserProfileStatus, resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { redirect } from '@tanstack/react-router';
-import { Bike, User } from 'lucide-react';
+import { Bike, User, HelpCircle, History, ChevronRight } from 'lucide-react';
+import { SupportDialog } from '@/components/suporte/SupportDialog';
 
 export const Route = createFileRoute('/auth/perfil')({
   loader: async () => {
@@ -24,6 +25,7 @@ function PerfilPage() {
   const executeSelectMotorista = useServerFn(selectMotoristaPerfil);
   const [isLoading, setIsLoading] = useState(false);
   const checkStatus = useServerFn(checkUserProfileStatus);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   useEffect(() => {
     const verifyAccess = async () => {
@@ -112,9 +114,46 @@ function PerfilPage() {
         </button>
       </div>
 
+      <div className="space-y-2">
+        <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-4">Ações</h4>
+        <div className="bg-zuvvi-indigo-dark border border-white/10 rounded-2xl divide-y divide-white/5 overflow-hidden">
+          <button 
+            onClick={() => navigate({ to: "/corridas" })}
+            className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-zuvvi-volt/50">
+                <History className="w-4 h-4 text-zuvvi-volt" />
+              </div>
+              <span className="text-sm font-medium text-white">Histórico de Corridas</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-zuvvi-volt" />
+          </button>
+
+          <button 
+            onClick={() => setSupportOpen(true)}
+            className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-zuvvi-volt/50">
+                <HelpCircle className="w-4 h-4 text-zuvvi-volt" />
+              </div>
+              <span className="text-sm font-medium text-white">Preciso de ajuda</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-zuvvi-volt" />
+          </button>
+        </div>
+      </div>
+
       <div className="text-center text-xs text-muted-foreground">
         Você poderá adicionar o outro perfil mais tarde nas configurações.
       </div>
+
+      <SupportDialog 
+        open={supportOpen} 
+        onOpenChange={setSupportOpen} 
+      />
+
     </div>
   );
 }
