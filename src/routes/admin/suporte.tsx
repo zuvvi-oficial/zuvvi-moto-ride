@@ -36,19 +36,18 @@ function SuporteAdmin() {
     if (!chamados) return [];
     
     return chamados.filter(chamado => {
-      // Filtro por Status (localmente para manter a performance e reatividade da busca)
+      // Filtro por Status
       if (status !== 'todos' && chamado.status !== status) return false;
       
       // Filtro por Busca
       if (busca) {
         const termo = busca.toLowerCase();
-        const noProtocolo = chamado.protocolo?.toLowerCase().includes(termo);
-        const noAssunto = chamado.assunto?.toLowerCase().includes(termo);
         const naDescricao = chamado.descricao?.toLowerCase().includes(termo);
         const noUsuario = chamado.usuarios?.nome?.toLowerCase().includes(termo) || 
                           chamado.usuarios?.email?.toLowerCase().includes(termo);
+        const noProtocolo = chamado.id.toLowerCase().includes(termo);
         
-        if (!noProtocolo && !noAssunto && !naDescricao && !noUsuario) return false;
+        if (!naDescricao && !noUsuario && !noProtocolo) return false;
       }
       
       return true;
