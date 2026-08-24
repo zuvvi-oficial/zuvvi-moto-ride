@@ -25,12 +25,14 @@
 
 ## Microetapas concluídas
 
+### 4.13 — Cabeçalho Premium Zuvvi no Admin — ✅ FECHADA
+- Adicionada Top Bar institucional Premium na rota `/admin`.
+- Uso do componente oficial `ZuvviLogo` com `surface="dark"`.
+- Estilização: `sticky top-0`, `bg-zuvvi-indigo/90`, `backdrop-blur-xl`, `border-b border-white/10`.
+- Responsividade: logo e botão de sair preservados em todos os breakpoints; textos secundários ocultos no mobile.
+- Dashboard, cards e lógica funcional original 100% preservados e congelados.
+
 ### 4.12 — Microcorreção Visual: Contador de Notificações — ✅ FECHADA
-- Badge do sino de notificações atualizado para usar tokens oficiais Zuvvi.
-- Cores corrigidas: `bg-zuvvi-volt`, `text-zuvvi-indigo`, `border-zuvvi-indigo`.
-- Ajuste de legibilidade: `font-extrabold`, `leading-none`, `px-1`, `-top-0.5`, `-right-0.5`.
-- Adicionado `shadow-sm` e `min-w-5` para suportar "9+" sem corte.
-- Nenhuma alteração de lógica ou comportamento.
 
 ### 0.1 — Proteção de acesso à corrida — ✅ FECHADA
 - `getCorrida` exige usuário autenticado participante da corrida.
