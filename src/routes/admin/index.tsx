@@ -100,7 +100,7 @@ function AdminDashboard() {
       <AdminBottomNav />
 
       {/* 2 — CONTEÚDO DO DASHBOARD (CONGELADO) */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-12 pb-24 md:pb-10">
         <header className="space-y-2 sm:space-y-3">
           <h1 className="text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight text-white/90">
             Dashboard Administrativo
