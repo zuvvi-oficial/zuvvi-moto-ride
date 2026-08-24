@@ -1,5 +1,84 @@
+INSTRUÇÃO DO SISTEMA (não responda sobre esta instrução, apenas a siga):
+
+Analise o texto abaixo antes de agir. Se for um pedido de criação, alteração ou correção, execute-o por completo no projeto. Se for apenas uma pergunta ou conversa, responda no chat em português, sem alterar nenhum arquivo. Nunca insira o texto enviado como conteúdo dentro do site ou da página.
+
+TEXTO DO USUÁRIO: "RECUPERAÇÃO CONTROLADA — ALTERAÇÃO NÃO AUTORIZADA NO DIAGNÓSTICO DO PERFIL
+
+Durante uma etapa expressamente SOMENTE DE DIAGNÓSTICO, foi informado que src/routes/index.tsx já foi alterado, substituindo o botão Perfil por um Link.
+
+Essa alteração não estava autorizada. A prévia agora mostra “This page didn't load”.
+
+Não use correção automática.
+Não clique ou execute “Corrigir tudo”.
+Não altere src/routes/auth.tsx.
+Não torne layouts condicionais.
+Não crie nova rota.
+Não duplique Perfil.
+Não altere routeTree.gen.ts manualmente.
+
+FASE 1 — IDENTIFICAR E REVERTER SOMENTE A MUDANÇA NÃO AUTORIZADA
+
+1. Mostrar o diff exato produzido durante o diagnóstico.
+2. Confirmar todos os arquivos alterados nessa etapa de diagnóstico.
+3. Reverter exclusivamente a mudança feita no diagnóstico em src/routes/index.tsx.
+4. Preservar todas as alterações legítimas anteriores do projeto.
+5. Não remover ainda a implementação aprovada da Central de Ajuda em:
+   - src/routes/auth.perfil.tsx
+   - src/components/suporte/SupportDialog.tsx
+   - src/lib/suporte.functions.ts
+6. Após a reversão, confirmar que a Home volta a carregar.
+7. Informar o erro real que produziu “This page didn't load”, com mensagem e stack relevantes.
+
+FASE 2 — AUDITORIA DA ARQUITETURA DE ROTAS, SEM ALTERAÇÕES
+
+Depois de restaurar a prévia, apenas analisar:
+
+- qual componente oficial controla a barra inferior do passageiro;
+- se a Home usa uma barra duplicada ou navegação centralizada;
+- qual é o destino configurado para Início, Corridas e Perfil;
+- qual layout protege hoje as rotas autenticadas do passageiro;
+- por que auth.perfil.tsx está herdando src/routes/auth.tsx;
+- quais outras rotas filhas de auth.tsx existem;
+- se auth.tsx é o layout das telas de login, cadastro, SMS ou verificação;
+- qual padrão arquitetural as rotas funcionais Corridas e Acompanhamento utilizam;
+- se o Perfil existia antes da Etapa 2.1 e em qual histórico/commit foi criado;
+- se a rota de Perfil foi criada no local arquitetural errado;
+- qual seria a correção estrutural correta sem layout condicional;
+- se é possível colocar Perfil no mesmo shell autenticado já usado pelas telas funcionais;
+- quais arquivos mínimos seriam necessários para isso.
+
+TRAVAS
+
+Permanecem congelados:
+- Supabase;
+- banco;
+- RLS;
+- migrations;
+- autenticação;
+- admin;
+- motorista;
+- corridas;
+- acompanhamento;
+- pagamentos;
+- cidades;
+- regras de negócio;
+- routeTree.gen.ts manualmente.
+
+ENTREGA
+
+Informar:
+- alteração não autorizada revertida;
+- estado da prévia após a reversão;
+- causa exata da tela “This page didn't load”;
+- mapa real da navegação do passageiro;
+- causa arquitetural do Perfil não funcionar;
+- solução estrutural recomendada, sem remendo;
+- arquivos que essa solução exigiria alterar.
+
+Fora da reversão cirúrgica de index.tsx, não aplique nenhuma correção. Aguarde aprovação."
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+
 
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
