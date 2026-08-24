@@ -41,6 +41,7 @@ import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink, AlertTriangle, ChevronRight, Maximize2, LogOut } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from '@/lib/utils';
 
 const getHojeBR = () => {
   const now = new Date();
