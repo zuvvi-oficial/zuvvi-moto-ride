@@ -6,6 +6,7 @@ import { getMotoristasAdmin, updateStatusMotorista, getMotoristaDetalheAdmin, up
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
 import { Link } from '@tanstack/react-router';
 import { Input } from '@/components/ui/input';
 import { 
@@ -40,6 +41,7 @@ import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink, AlertTriangle, ChevronRight, Maximize2, LogOut } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from '@/lib/utils';
 
 const getHojeBR = () => {
   const now = new Date();
@@ -209,21 +211,22 @@ function AdminMotoristas() {
           </div>
         } 
       />
+      <AdminBottomNav />
       
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24 md:pb-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">Gestão de Motoristas</h1>
         </div>
 
-      <div className="flex gap-4 items-center">
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
         <Input 
-          placeholder="Buscar por nome, email ou telefone..." 
-          className="max-w-sm bg-white/5 border-white/10 text-white"
+          placeholder="Buscar motorista..." 
+          className="w-full sm:max-w-sm bg-white/5 border-white/10 text-white h-12 sm:h-10"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
         <select 
-          className="bg-zuvvi-indigo border border-white/10 rounded px-3 py-2 text-sm"
+          className="bg-zuvvi-indigo border border-white/10 rounded-xl px-3 h-12 sm:h-10 text-sm text-white"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
         >
@@ -236,7 +239,7 @@ function AdminMotoristas() {
         </select>
       </div>
 
-      <div className="rounded-md border border-white/10">
+      <div className="hidden md:block rounded-md border border-white/10">
         <Table>
           <TableHeader>
             <TableRow className="border-white/10 hover:bg-white/5">
@@ -334,6 +337,97 @@ function AdminMotoristas() {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="md:hidden space-y-4">
+        {motoristas?.map((user: any) => (
+          <div 
+            key={user.id} 
+            className="bg-white/5 border border-white/10 rounded-[1.5rem] p-5 space-y-5"
+          >
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg">{user.nome}</h3>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${user.motoristas.is_disponivel ? 'bg-volt shadow-[0_0_8px_rgba(198,255,61,0.5)]' : 'bg-gray-500'}`} />
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-white/40">
+                    {user.motoristas.is_disponivel ? 'Online' : 'Offline'}
+                  </span>
+                </div>
+              </div>
+              <Badge className={cn(
+                "rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest",
+                user.motoristas.status_aprovacao === 'aprovado' ? 'bg-green-500/20 text-green-500 border-green-500/20' :
+                user.motoristas.status_aprovacao === 'em_analise' ? 'bg-blue-500/20 text-blue-500 border-blue-500/20' :
+                'bg-amber-500/20 text-amber-500 border-amber-500/20'
+              )}>
+                {user.motoristas.status_aprovacao}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 py-2">
+              <div className="space-y-1">
+                <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Cidade</p>
+                <p className="text-sm font-medium">{user.cidades?.nome}/{user.cidades?.estado_uf}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Contato</p>
+                <p className="text-sm font-medium">{user.celular}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="w-full h-12 rounded-xl border-white/10 hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                onClick={() => setViewingMotoristaId(user.motoristas.id)}
+              >
+                <Eye className="w-4 h-4" />
+                Ver Detalhes
+              </Button>
+              
+              <div className="flex gap-2">
+                {user.motoristas.status_aprovacao !== 'aprovado' && (
+                  <Button 
+                    className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 font-bold uppercase text-[10px] tracking-widest"
+                    onClick={() => {
+                      setActionError(null);
+                      setSelectedMotorista(user);
+                      setActionType('aprovado');
+                    }}
+                  >
+                    Aprovar
+                  </Button>
+                )}
+                {user.motoristas.status_aprovacao === 'aprovado' && (
+                  <Button 
+                    className="flex-1 h-12 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold uppercase text-[10px] tracking-widest"
+                    onClick={() => {
+                      setActionError(null);
+                      setSelectedMotorista(user);
+                      setActionType('suspenso');
+                    }}
+                  >
+                    Suspender
+                  </Button>
+                )}
+                {user.motoristas.status_aprovacao !== 'recusado' && user.motoristas.status_aprovacao !== 'suspenso' && (
+                  <Button 
+                    variant="destructive"
+                    className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 font-bold uppercase text-[10px] tracking-widest"
+                    onClick={() => {
+                      setActionError(null);
+                      setSelectedMotorista(user);
+                      setActionType('recusado');
+                    }}
+                  >
+                    Recusar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       <Dialog open={!!selectedMotorista} onOpenChange={(open) => {
