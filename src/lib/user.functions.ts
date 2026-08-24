@@ -595,7 +595,8 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
         motoristas!inner (
           nota_media,
           ultima_lat,
-          ultima_lng
+          ultima_lng,
+          created_at
         )
       `)
       .eq("id", corrida.motorista_id)
@@ -607,12 +608,28 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
     }
 
     const motoristaData = Array.isArray(driver.motoristas) ? driver.motoristas[0] : driver.motoristas;
+
+    // 3.1 Contar corridas concluídas (fail-safe)
+    let totalCorridas = 0;
+    try {
+      const { count } = await supabaseAdmin
+        .from("corridas")
+        .select("*", { count: 'exact', head: true })
+        .eq("motorista_id", corrida.motorista_id)
+        .eq("status", "concluida");
+      totalCorridas = count || 0;
+    } catch (err) {
+      console.error("Erro ao contar corridas do motorista:", err);
+    }
+
     const driverInfo = {
       id: driver.id,
       nome: driver.nome,
       nota_media: motoristaData?.nota_media ?? null,
       ultima_lat: motoristaData?.ultima_lat ?? null,
-      ultima_lng: motoristaData?.ultima_lng ?? null
+      ultima_lng: motoristaData?.ultima_lng ?? null,
+      total_corridas: totalCorridas,
+      membro_desde: motoristaData?.created_at ?? null
     };
 
     // 4. Buscar Veículo (FAIL-CLOSED: EXATAMENTE UM)

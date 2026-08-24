@@ -53,6 +53,44 @@ interface ChatData {
   naoLidas?: number;
 }
 
+function formatarTempoNaZuvvi(dataISO: string | null) {
+  if (!dataISO) return "";
+  
+  const dataCriacao = new Date(dataISO);
+  const hoje = new Date();
+  
+  // Diferença em milissegundos
+  const diffMs = hoje.getTime() - dataCriacao.getTime();
+  // Diferença em dias (arredondado para baixo)
+  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDias === 0) return "Hoje";
+  
+  if (diffDias < 30) {
+    return `há ${diffDias} ${diffDias === 1 ? 'dia' : 'dias'}`;
+  }
+  
+  if (diffDias < 365) {
+    const meses = Math.floor(diffDias / 30);
+    const diasRestantes = diffDias % 30;
+    
+    let texto = `há ${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+    if (diasRestantes > 0) {
+      texto += ` e ${diasRestantes} ${diasRestantes === 1 ? 'dia' : 'dias'}`;
+    }
+    return texto;
+  }
+  
+  const anos = Math.floor(diffDias / 365);
+  const mesesRestantes = Math.floor((diffDias % 365) / 30);
+  
+  let texto = `há ${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+  if (mesesRestantes > 0) {
+    texto += ` e ${mesesRestantes} ${mesesRestantes === 1 ? 'mês' : 'meses'}`;
+  }
+  return texto;
+}
+
 function AcompanhamentoCorrida() {
   const { rideId } = Route.useSearch();
   const navigate = useNavigate();
@@ -72,6 +110,8 @@ function AcompanhamentoCorrida() {
     nota_media: number | null;
     ultima_lat: number | null;
     ultima_lng: number | null;
+    total_corridas?: number;
+    membro_desde?: string | null;
   } | null>(null);
   const [veiculo, setVeiculo] = useState<{
     placa: string;
@@ -587,6 +627,18 @@ function AcompanhamentoCorrida() {
                         ? motorista.nota_media.toFixed(1)
                         : "Novo na Zuvvi"}
                     </span>
+                  </div>
+                  <div className="mt-1 space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground font-medium">
+                      {motorista.total_corridas === 0 
+                        ? "Primeira corrida" 
+                        : `${motorista.total_corridas} ${motorista.total_corridas === 1 ? 'corrida' : 'corridas'} na Zuvvi`}
+                    </p>
+                    {motorista.membro_desde && (
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        Membro {formatarTempoNaZuvvi(motorista.membro_desde)}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
