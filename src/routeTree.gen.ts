@@ -29,6 +29,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthCompletarCadastroRouteImport } from './routes/auth.completar-cadastro'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthPerfilRouteImport } from './routes/auth.perfil'
+import { Route as MotoristaMercadopagoCallbackRouteImport } from './routes/motorista.mercadopago-callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -130,6 +131,12 @@ const AuthPerfilRoute = AuthPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthRoute,
 } as any)
+const MotoristaMercadopagoCallbackRoute =
+  MotoristaMercadopagoCallbackRouteImport.update({
+    id: '/motorista/mercadopago-callback',
+    path: '/motorista/mercadopago-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
+    | '/motorista/mercadopago-callback'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
+    | '/motorista/mercadopago-callback'
     | '/admin'
   id:
     | '__root__'
@@ -264,6 +276,7 @@ export interface FileRouteTypes {
     | '/auth/completar-cadastro'
     | '/auth/login'
     | '/auth/perfil'
+    | '/motorista/mercadopago-callback'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -282,6 +295,7 @@ export interface RootRouteChildren {
   AdminMotoristasRoute: typeof AdminMotoristasRoute
   AdminSuporteRoute: typeof AdminSuporteRoute
   AdminVeiculosRoute: typeof AdminVeiculosRoute
+  MotoristaMercadopagoCallbackRoute: typeof MotoristaMercadopagoCallbackRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -427,6 +441,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthPerfilRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/motorista/mercadopago-callback': {
+      id: '/motorista/mercadopago-callback'
+      path: '/motorista/mercadopago-callback'
+      fullPath: '/motorista/mercadopago-callback'
+      preLoaderRoute: typeof MotoristaMercadopagoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -463,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminMotoristasRoute: AdminMotoristasRoute,
   AdminSuporteRoute: AdminSuporteRoute,
   AdminVeiculosRoute: AdminVeiculosRoute,
+  MotoristaMercadopagoCallbackRoute: MotoristaMercadopagoCallbackRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
