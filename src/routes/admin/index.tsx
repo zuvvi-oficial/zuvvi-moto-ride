@@ -82,7 +82,20 @@ function AdminDashboard() {
 
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-zuvvi-indigo text-white flex flex-col">
-      <AdminHeader />
+      <AdminHeader 
+        action={
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleSignOut}
+            className="h-9 px-3 sm:px-4 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all active:scale-95"
+          >
+            <LogOut className="w-3 h-3" />
+            <span className="hidden sm:inline">Sair do Painel</span>
+            <span className="sm:hidden">Sair</span>
+          </Button>
+        }
+      />
 
       {/* 2 — CONTEÚDO DO DASHBOARD (CONGELADO) */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-12">
