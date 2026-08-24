@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { GoogleLoginButton, AuthSeparator } from '@/components/auth/SocialLogin';
+import { GoogleLoginButton, AppleLoginButton, AuthSeparator } from '@/components/auth/SocialLogin';
 import { useServerFn } from '@tanstack/react-start';
 import { resolvePostLoginDestination } from '@/lib/auth-status.functions';
 
@@ -73,7 +73,10 @@ function LoginPage() {
         <p className="text-muted-foreground text-sm mt-1">Bem-vindo de volta, piloto ou passageiro</p>
       </div>
       
-      <GoogleLoginButton />
+      <div className="space-y-3">
+        <GoogleLoginButton />
+        <AppleLoginButton />
+      </div>
       <AuthSeparator />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
