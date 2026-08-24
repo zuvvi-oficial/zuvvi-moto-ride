@@ -1,31 +1,35 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getHistoricoCorridas } from "@/lib/historico.functions";
-import { ChevronLeft, Clock, MapPin, User, Calendar, CreditCard } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, Clock, MapPin, User, Calendar, CreditCard, Loader2 } from "lucide-react";
+import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/corridas")({
-  loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData({
-      queryKey: ["historico-corridas"],
-      queryFn: () => context.queryClient.fetchQuery({
-        queryKey: ["historico-corridas"],
-        queryFn: () => getHistoricoCorridas()
-      }),
-    });
+  loader: async () => {
+    const dest = await resolveDestinationForLoader();
+    if (dest.redirectTo && dest.redirectTo !== "/corridas") {
+      throw redirect({ to: dest.redirectTo as any });
+    }
   },
   component: HistoricoCorridas,
 });
 
 function HistoricoCorridas() {
   const getHistoricoFn = useServerFn(getHistoricoCorridas);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  const { data: corridas } = useSuspenseQuery({
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const { data: corridas, isLoading, error } = useQuery({
     queryKey: ["historico-corridas"],
     queryFn: () => getHistoricoFn(),
+    enabled: isHydrated,
   });
 
   const getStatusLabel = (status: string) => {
@@ -63,7 +67,16 @@ function HistoricoCorridas() {
       </header>
 
       <main className="flex-1 max-w-md mx-auto w-full px-5 py-6 space-y-4">
-        {corridas.length === 0 ? (
+        {isLoading || !isHydrated ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+            <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
+            <p className="text-sm font-medium opacity-60">Carregando suas corridas...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 text-red-400">
+            <p className="text-sm font-medium">Erro ao carregar histórico.</p>
+          </div>
+        ) : !corridas || corridas.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-60">
             <Clock className="w-12 h-12 text-muted-foreground" />
             <p className="text-sm font-medium">Você ainda não fez nenhuma corrida.</p>

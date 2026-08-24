@@ -69,10 +69,8 @@ export const criarChamadoSuporte = createServerFn({ method: "POST" })
     }).parse(data)
   )
   .handler(async ({ context, data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    // Localizar usuarios.id por auth_user_id
-    const { data: usuario, error: userError } = await supabaseAdmin
+    // Localizar usuarios.id por auth_user_id usando context.supabase (respeita RLS)
+    const { data: usuario, error: userError } = await context.supabase
       .from("usuarios")
       .select("id")
       .eq("auth_user_id", context.userId)
@@ -82,14 +80,14 @@ export const criarChamadoSuporte = createServerFn({ method: "POST" })
       throw new Error("Usuário não encontrado.");
     }
 
-    const { data: chamado, error } = await supabaseAdmin
+    const { data: chamado, error } = await context.supabase
       .from("chamados_suporte")
       .insert({
         usuario_id: usuario.id,
         tipo: data.tipo,
         descricao: data.descricao,
       })
-      .select()
+      .select("id, status, created_at")
       .single();
 
     if (error) {

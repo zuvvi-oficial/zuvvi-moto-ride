@@ -413,10 +413,10 @@ function HomePassageiro({ nome }: { nome: string }) {
               <CreditCard className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Carteira</span>
             </button>
-            <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
+            <Link to="/perfil" className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
               <User className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>
-            </button>
+            </Link>
           </div>
         </nav>
       </div>

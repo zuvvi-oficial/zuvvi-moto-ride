@@ -16,6 +16,7 @@ import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida
 import { Route as CorridasRouteImport } from './routes/corridas'
 import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
+import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
@@ -61,6 +62,11 @@ const HomeMotoristaRoute = HomeMotoristaRouteImport.update({
 const OnboardingMotoristaRoute = OnboardingMotoristaRouteImport.update({
   id: '/onboarding-motorista',
   path: '/onboarding-motorista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProcurandoMotoristaRoute = ProcurandoMotoristaRouteImport.update({
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
+  '/perfil': typeof PerfilRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
+  '/perfil': typeof PerfilRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
+  '/perfil': typeof PerfilRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/corridas'
     | '/home-motorista'
     | '/onboarding-motorista'
+    | '/perfil'
     | '/procurando-motorista'
     | '/admin/cidades'
     | '/admin/motoristas'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/corridas'
     | '/home-motorista'
     | '/onboarding-motorista'
+    | '/perfil'
     | '/procurando-motorista'
     | '/admin/cidades'
     | '/admin/motoristas'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/corridas'
     | '/home-motorista'
     | '/onboarding-motorista'
+    | '/perfil'
     | '/procurando-motorista'
     | '/admin/cidades'
     | '/admin/motoristas'
@@ -251,6 +263,7 @@ export interface RootRouteChildren {
   CorridasRoute: typeof CorridasRoute
   HomeMotoristaRoute: typeof HomeMotoristaRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
+  PerfilRoute: typeof PerfilRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
   AdminMotoristasRoute: typeof AdminMotoristasRoute
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding-motorista'
       fullPath: '/onboarding-motorista'
       preLoaderRoute: typeof OnboardingMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/procurando-motorista': {
@@ -416,6 +436,7 @@ const rootRouteChildren: RootRouteChildren = {
   CorridasRoute: CorridasRoute,
   HomeMotoristaRoute: HomeMotoristaRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
+  PerfilRoute: PerfilRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
   AdminMotoristasRoute: AdminMotoristasRoute,

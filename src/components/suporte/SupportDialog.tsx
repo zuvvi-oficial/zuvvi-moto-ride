@@ -100,9 +100,16 @@ export function SupportDialog({
         {tipo === "sos" && (
           <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-xl flex gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-            <p className="text-[11px] text-red-200/80 leading-tight">
-              <span className="font-bold text-red-500">AVISO IMPORTANTE:</span> O SOS do app não substitui os serviços de emergência públicos. Em caso de perigo imediato, ligue <span className="text-white font-bold">190 (PM)</span> ou <span className="text-white font-bold">192 (SAMU)</span>.
-            </p>
+            <div className="space-y-1">
+              <p className="text-[11px] text-red-200/80 leading-tight">
+                <span className="font-bold text-red-500">AVISO IMPORTANTE:</span> O SOS do app não substitui os serviços de emergência públicos. Em caso de perigo imediato, ligue para as autoridades:
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">190 (PM)</span>
+                <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">192 (SAMU)</span>
+                <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">193 (Bombeiros)</span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -139,13 +146,22 @@ export function SupportDialog({
 
 
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-white/40">Descrição</label>
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-bold uppercase tracking-widest text-white/40">Descrição</label>
+              <span className={cn(
+                "text-[10px] font-medium",
+                descricao.length > 1900 ? "text-red-400" : "text-white/40"
+              )}>
+                {descricao.length}/2000
+              </span>
+            </div>
             <Textarea 
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Descreva detalhadamente o ocorrido..."
-              className="bg-white/5 border-white/10 min-h-[100px] rounded-xl focus:ring-zuvvi-volt resize-none"
+              className="bg-white/5 border-white/10 min-h-[120px] rounded-xl focus:ring-zuvvi-volt resize-none"
               disabled={loading}
+              maxLength={2000}
               required
             />
           </div>
@@ -153,7 +169,7 @@ export function SupportDialog({
           <DialogFooter className="pt-2">
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || descricao.trim().length < 10}
               className={cn(
                 "w-full h-12 rounded-xl font-bold transition-all",
                 tipo === "sos" 
