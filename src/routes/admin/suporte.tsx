@@ -5,7 +5,7 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
 import { DetalheChamado } from '@/components/admin/DetalheChamado';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, MessageSquare, ChevronRight } from 'lucide-react';
+import { AlertCircle, MessageSquare, ChevronRight, Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export const Route = createFileRoute('/admin/suporte')({
