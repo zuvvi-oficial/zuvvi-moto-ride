@@ -108,6 +108,16 @@ jobs:
           npx --yes supabase@${SUPABASE_CLI_VERSION} db lint
           --local --schema private,public --level error --fail-on error
 
+      - name: Advisor de segurança do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors
+          --local --type security
+
+      - name: Advisor de performance do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors
+          --local --type performance
+
       - name: Descartar stack local
         if: always()
         run: npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup
