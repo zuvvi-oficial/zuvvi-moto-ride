@@ -473,6 +473,12 @@ function AdminMotoristas() {
         >
           <SheetHeader className="p-6 border-b border-white/10 flex-shrink-0">
             <SheetTitle className="text-white flex items-center gap-2">
+              <button 
+                onClick={() => setViewingMotoristaId(null)}
+                className="md:hidden w-8 h-8 flex items-center justify-center bg-white/5 rounded-full border border-white/10 active:scale-95 transition-transform mr-2"
+              >
+                <ChevronLeft className="w-5 h-5 text-white" />
+              </button>
               <User className="h-5 w-5 text-volt" />
               Ficha do Motorista
             </SheetTitle>
