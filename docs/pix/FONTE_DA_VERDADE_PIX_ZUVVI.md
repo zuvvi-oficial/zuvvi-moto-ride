@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.4  
+**Versão:** 1.5  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -257,6 +257,30 @@ Enquanto essa decisão estiver vigente:
 - se o ambiente local não puder ser estabelecido com segurança, a etapa de banco permanecerá pausada;
 - nenhuma migration será aplicada no projeto principal sem autorização explícita do Rafael na microetapa correspondente;
 - aprovação local não será apresentada como prova de produção: antes da liberação final haverá uma homologação controlada no ambiente real autorizado.
+
+**Decisão registrada em 24/08/2026:** Rafael autorizou o uso temporário do GitHub Actions para executar testes do Pix em uma stack Supabase local e descartável, sem conexão de escrita com o projeto principal.
+
+Regras dessa autorização:
+
+- execução somente a partir da branch `feature/pix-100-seguro` e de Pull Request em modo rascunho;
+- workflow com permissões somente de leitura do conteúdo;
+- Supabase CLI fixada em versão explícita;
+- nenhum segredo, senha ou token do Supabase principal será fornecido ao workflow;
+- a stack local será descartada ao final;
+- nenhum deploy, merge ou aplicação de migration no projeto principal será realizado;
+- o workflow, a migration e os testes ficam restritos ao Pix;
+- qualquer falha nas migrations preexistentes interrompe a microetapa, sem correção lateral automática.
+
+**Lista de permissão da microetapa 1B:**
+
+- criar `.github/workflows/pix-db-foundation.yml`;
+- criar `docs/pix/sql/PIX01_CREDENCIAIS_OAUTH_PRIVADAS.sql.template`;
+- criar `supabase/tests/pix_01_oauth_credentials.sql`;
+- gerar pela Supabase CLI e, após teste inicial, criar exatamente uma migration `supabase/migrations/<timestamp>_pix_oauth_credentials_private.sql`;
+- modificar somente este documento para registrar autorização, evidências e resultado;
+- abrir Pull Request em modo rascunho, sem merge.
+
+Todo arquivo, tabela, função e comportamento não listado acima permanece bloqueado.
 
 ### Etapa 1 — Integridade mínima do banco
 
