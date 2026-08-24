@@ -1,0 +1,648 @@
+# FONTE DA VERDADE — PIX ZUVVI
+
+**Versão:** 1.3  
+**Data-base:** 24/08/2026  
+**Responsável pela execução:** Codex  
+**Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
+**Commit-base auditado:** `ae6fb274b8e61e4f0619fc2fbe819f282b2f40cd`  
+**Supabase:** projeto `qycblinfvijhfjcmdoof`  
+**Status:** planejamento fechado; nenhuma alteração de código ou banco autorizada por este documento isoladamente.
+
+---
+
+## 1. Objetivo único
+
+Deixar o Pix da Zuvvi 100% funcional, seguro, rastreável e com experiência premium, cobrando o passageiro, dividindo automaticamente o valor entre motorista e Zuvvi e confirmando o pagamento antes do início da corrida.
+
+Este trabalho não implementa cartão, não modifica a operação financeira do dinheiro e não refatora áreas que não sejam indispensáveis ao Pix.
+
+---
+
+## 2. Estado real verificado antes da implementação
+
+### Código
+
+- O passageiro já pode selecionar `pix`, `cartao` ou `dinheiro`.
+- A corrida cria um registro em `pagamentos` com valor total, valor do motorista e comissão.
+- A criação da corrida e do pagamento não é atômica: a corrida pode existir mesmo se o pagamento falhar.
+- Existe `criarCobrancaPix`, mas ela não é chamada pela interface do passageiro.
+- A cobrança existente usa o Access Token geral da plataforma e não o token OAuth do motorista.
+- O motorista conecta/desconecta Mercado Pago, mas o sistema armazena apenas o `user_id` do Mercado Pago.
+- Access Token, Refresh Token, validade e escopos do vendedor não são persistidos.
+- Corridas Pix são ocultadas da lista de motoristas sem conta conectada, mas o aceite precisa de nova validação obrigatória no servidor/banco.
+- A finalização da corrida não fecha o pagamento.
+
+### Supabase
+
+- 100 corridas existentes.
+- 83 pagamentos existentes: 79 dinheiro, 3 Pix e 1 cartão.
+- Todos os 83 pagamentos estão `pendente`.
+- Nenhum pagamento possui `id_transacao_mercadopago`.
+- Existem 17 corridas históricas sem registro em `pagamentos`.
+- Não existem pagamentos duplicados por corrida atualmente.
+- Não existe corrida Pix ativa no momento da auditoria.
+- 1 de 4 motoristas possui `conta_mercado_pago_id` preenchida.
+- Não há Edge Function, trigger ou função de banco que confirme pagamentos Mercado Pago.
+- Não existem estruturas de repasse, conciliação, tentativa Pix ou eventos de Webhook.
+
+Os 17 registros históricos sem pagamento serão preservados. Nenhum backfill ou correção histórica será executado sem uma etapa própria e aprovação explícita.
+
+---
+
+## 3. Decisões de arquitetura — não negociar durante a execução
+
+### 3.1 Modelo financeiro
+
+Será usado **Mercado Pago Marketplace com Split de Pagamentos 1:1 e Checkout Transparente**.
+
+- O motorista é o vendedor/recebedor.
+- A cobrança é criada com o Access Token OAuth do motorista.
+- A Zuvvi recebe sua comissão por `application_fee`.
+- O sistema não fará repasse manual posterior.
+- O sistema não movimentará valores por transferência interna improvisada.
+
+Motivo: este é o fluxo oficial do Mercado Pago para uma plataforma que cobra em nome de um vendedor e retém comissão.
+
+### 3.2 Momento da cobrança
+
+A cobrança Pix será criada **depois que um motorista elegível aceitar a corrida**.
+
+Motivo: antes do aceite ainda não se sabe qual conta de motorista receberá o pagamento. Criar o Pix antes obrigaria a plataforma a receber e repassar manualmente, contrariando a arquitetura escolhida.
+
+### 3.3 Momento de início da corrida
+
+- Motorista aceita a corrida.
+- A cobrança Pix é criada na conta daquele motorista.
+- Passageiro recebe QR Code e Pix Copia e Cola.
+- Motorista vê “Aguardando pagamento”.
+- A corrida somente pode ser iniciada quando `pagamentos.status = pago`.
+
+### 3.4 Prazo de pagamento
+
+O passageiro terá **5 minutos**, configuráveis pelo servidor, para concluir o Pix após o aceite.
+
+Se o pagamento expirar ou falhar:
+
+- a corrida será cancelada com motivo técnico de pagamento;
+- o motorista será liberado;
+- o passageiro será informado para solicitar novamente;
+- o código Pix antigo não poderá ser reutilizado;
+- qualquer aprovação tardia será identificada e tratada por reembolso seguro.
+
+### 3.5 Valor cobrado
+
+O valor Pix será o valor oficial cotado e congelado para a corrida. No fluxo atual, `valor_final` é igual a `valor_estimado`. Alterações dinâmicas de tarifa durante a viagem não fazem parte deste escopo.
+
+---
+
+## 4. Invariantes de segurança
+
+Estas regras devem permanecer verdadeiras em todas as etapas:
+
+1. Nenhum segredo Mercado Pago, token OAuth, Service Role ou chave de criptografia chega ao navegador.
+2. Nenhuma cobrança Pix é criada sem motorista atribuído e conta Mercado Pago válida.
+3. A conta recebedora deve pertencer ao motorista autenticado que aceitou a corrida.
+4. O passageiro só cria/consulta pagamento de corrida própria.
+5. O motorista só consulta o estado financeiro das próprias corridas.
+6. O Webhook nunca confia somente no corpo recebido; valida assinatura e consulta o estado canônico na API Mercado Pago.
+7. Todo evento externo é idempotente: o mesmo Webhook pode chegar várias vezes sem duplicar efeitos.
+8. Cada corrida possui um registro financeiro agregado; cada nova tentativa Pix possui identidade própria.
+9. No máximo uma tentativa Pix pode produzir pagamento aprovado válido para uma corrida.
+10. Corrida Pix não inicia sem pagamento aprovado confirmado no servidor.
+11. Desconexão Mercado Pago é bloqueada durante corrida Pix ativa ou obrigação financeira pendente.
+12. Cartão e dinheiro não mudam de comportamento por causa das alterações do Pix.
+13. Nenhuma migration destrutiva, rename, drop, truncate ou reescrita de dados históricos será aceita.
+14. Toda alteração de banco nasce versionada em migration no GitHub e é conferida no catálogo real do Supabase após aplicação.
+15. Nenhuma etapa é aprovada apenas por build; precisa de teste funcional e prova no banco.
+
+---
+
+## 5. Estrutura técnica isolada do Pix
+
+Os nomes finais serão confirmados contra o schema antes da migration, mas a responsabilidade das estruturas está congelada.
+
+### 5.1 Credenciais do motorista
+
+Criar armazenamento privado, não exposto à Data API, para:
+
+- `motorista_id` único;
+- `mercadopago_user_id`;
+- Access Token criptografado;
+- Refresh Token criptografado;
+- validade do token;
+- escopos concedidos;
+- data da conexão e última renovação;
+- estado da conexão.
+
+Os tokens serão criptografados no servidor com chave exclusiva de ambiente. A tabela pública `motoristas` continuará guardando somente o identificador não secreto necessário à interface.
+
+### 5.2 Pagamento agregado
+
+A tabela `pagamentos` continuará sendo a fonte agregada da corrida:
+
+- `pendente`: aguardando ou processando;
+- `pago`: aprovação canônica confirmada;
+- `falhou`: rejeitado, cancelado ou expirado, detalhado em campo próprio;
+- `estornado`: reembolso/chargeback confirmado.
+
+Não será necessário alterar o enum existente. Um campo de estado detalhado do provedor distinguirá `expired`, `rejected`, `cancelled`, `in_process`, `refunded` e outros retornos oficiais.
+
+### 5.3 Tentativas Pix
+
+Criar tabela isolada de tentativas para permitir retry seguro sem perder histórico:
+
+- pagamento/corrida vinculados;
+- motorista recebedor;
+- ID Mercado Pago único;
+- chave de idempotência única;
+- valor total e comissão congelados;
+- estado e detalhe do provedor;
+- Pix Copia e Cola;
+- vencimento;
+- datas de criação, aprovação, falha e reembolso.
+
+O QR visual será gerado a partir do Pix Copia e Cola; não será necessário armazenar uma imagem base64 pesada no banco.
+
+### 5.4 Eventos de Webhook
+
+Criar tabela técnica de eventos com:
+
+- identificador/hashes únicos;
+- tipo e ação;
+- ID externo relacionado;
+- horário recebido;
+- resultado do processamento;
+- número de tentativas;
+- erro técnico sanitizado.
+
+O payload completo só será armazenado se a revisão de privacidade concluir que não há dados excessivos. Preferência: guardar somente os campos necessários e um hash verificável.
+
+---
+
+## 6. Fluxo funcional oficial
+
+1. Passageiro seleciona Pix e solicita corrida.
+2. Corrida e pagamento agregado são criados atomicamente.
+3. Somente motorista com OAuth válido recebe a oferta Pix.
+4. O aceite repete a validação dentro da fronteira atômica.
+5. Após o aceite, o servidor renova o token OAuth se necessário.
+6. O servidor cria a cobrança na conta do motorista com `application_fee` da Zuvvi.
+7. Passageiro recebe tela premium com QR, Copia e Cola, contador e estado.
+8. Motorista permanece bloqueado em “Aguardando pagamento”.
+9. Webhook validado consulta a API Mercado Pago e confirma o estado.
+10. Em `approved`, o agregado muda para `pago` e ambos são notificados em tempo real.
+11. O servidor permite iniciar a corrida.
+12. Ao concluir, o sistema mostra comprovante e registra o fechamento financeiro.
+13. Cancelamentos antes do início seguem política de reembolso definida na etapa específica.
+
+---
+
+## 7. Experiência premium obrigatória
+
+### Passageiro
+
+- Tela sem redirecionamento externo.
+- QR Code grande e legível.
+- Botão “Copiar código Pix”.
+- Confirmação visual após copiar.
+- Contador de validade.
+- Atualização automática e também botão “Já paguei”.
+- Recuperação da tela após atualizar/reabrir o aplicativo.
+- Estados claros: gerando, aguardando, analisando, pago, expirado, falhou e estornado.
+- Mensagens humanas sem expor erro interno.
+- Acessibilidade, safe area, teclado e larguras 375/390/768/desktop.
+
+### Motorista
+
+- Situação discreta da conta Mercado Pago.
+- Oferta Pix somente com conexão realmente válida.
+- Tela “Aguardando pagamento do passageiro”.
+- Botão de iniciar corrida bloqueado no servidor e na interface.
+- Confirmação forte e estática quando o Pix for aprovado.
+- Extrato da corrida: total, taxa Zuvvi e líquido previsto/recebido.
+
+### Administrativo
+
+- Consulta de transações Pix por corrida, passageiro, motorista e ID Mercado Pago.
+- Estados pendente, pago, falhou e estornado.
+- Valor total, comissão Zuvvi e líquido do motorista.
+- Eventos e falhas de Webhook.
+- Ações financeiras privilegiadas com confirmação, justificativa e auditoria.
+- Nenhum botão administrativo altera pagamento diretamente sem consultar o provedor.
+
+---
+
+## 8. Etapas pequenas, com congelamento e teste
+
+### Etapa 0 — Congelamento e ambiente seguro
+
+**Ações:**
+
+- registrar commit-base, schema, migrations e contagens;
+- criar branch Git exclusiva;
+- verificar custo/disponibilidade de branch de desenvolvimento Supabase;
+- preparar contas de teste Mercado Pago para plataforma, motorista e passageiro;
+- cadastrar URLs de callback e Webhook de teste;
+- definir segredos necessários sem expor seus valores.
+
+**Aprovação:** nenhuma linha de produção alterada; fonte da verdade versionada; ambiente de teste reproduzível.
+
+### Etapa 1 — Integridade mínima do banco
+
+**Ações:**
+
+- criar migrations somente aditivas;
+- garantir um agregado `pagamentos` por corrida para novos registros;
+- criar tentativas Pix e eventos de Webhook;
+- criar armazenamento privado de credenciais;
+- criar índices, constraints e RLS/grants mínimos;
+- gerar novamente os tipos TypeScript.
+
+**Teste:** catálogo real, RLS, constraints, duplicidade, rollback lógico, advisors de segurança e performance.
+
+### Etapa 2 — OAuth seguro do motorista
+
+**Ações:**
+
+- trocar state apenas do navegador por state de uso único validado no servidor;
+- usar PKCE se suportado no fluxo adotado;
+- persistir tokens criptografados e validade;
+- implementar renovação e rotação do Refresh Token;
+- validar vínculo/desvínculo `mp-connect`;
+- bloquear desconexão em situação financeira ativa.
+
+**Teste:** conectar, atualizar página, expirar/renovar token, reconectar, conta duplicada, state inválido, motorista errado e desconexão bloqueada.
+
+### Etapa 3 — Criação financeira atômica
+
+**Ações:**
+
+- corrida + pagamento agregado na mesma transação;
+- preservar regras atuais de cotação e comissão;
+- corrigir apenas o erro de corrida sem pagamento;
+- adicionar idempotência.
+
+**Teste:** duplo toque, falha simulada, rollback integral e nenhuma alteração em dinheiro/cartão.
+
+### Etapa 4 — Cobrança Pix após aceite
+
+**Ações:**
+
+- revalidar conta Mercado Pago no aceite;
+- renovar token se necessário;
+- criar Pix com Access Token do motorista;
+- aplicar `application_fee` da Zuvvi;
+- gravar tentativa e identificador externo;
+- impedir segunda cobrança concorrente.
+
+**Teste:** motorista conectado, desconectado, token expirado, comissão correta, idempotência e falha de API.
+
+### Etapa 5 — Tela Pix do passageiro
+
+**Ações:**
+
+- QR Code, Copia e Cola, contador, carregamento e retomada;
+- estados de falha e expiração;
+- notificações claras;
+- nenhuma alteração visual fora do fluxo Pix.
+
+**Teste:** 375, 390, 768 e desktop; atualizar página; fechar/abrir PWA; rede lenta; offline e retorno de conexão.
+
+### Etapa 6 — Webhook e confirmação canônica
+
+**Ações:**
+
+- endpoint isolado;
+- validação HMAC da assinatura;
+- busca do pagamento na API oficial;
+- processamento idempotente;
+- atualização de tentativa e agregado;
+- atualização em tempo real para os dois aplicativos.
+
+**Teste:** Webhook verdadeiro de sandbox, assinatura inválida, duplicado, fora de ordem, atraso, pagamento aprovado, rejeitado e expirado.
+
+### Etapa 7 — Travas da corrida
+
+**Ações:**
+
+- impedir início de corrida Pix não paga no servidor;
+- bloquear também a interface do motorista;
+- liberar imediatamente após confirmação;
+- cancelar com segurança após expiração;
+- impedir que código antigo aprove uma corrida reassociada.
+
+**Teste:** chamadas diretas, corrida de outro motorista, corrida de outro passageiro, corrida paga, não paga, expirada e Webhook tardio.
+
+### Etapa 8 — Cancelamento e reembolso
+
+**Ações:**
+
+- full refund antes do início quando a regra permitir;
+- reembolso por cancelamento do motorista após pagamento;
+- aprovação tardia após cancelamento gera tratamento seguro;
+- estado `estornado` somente após confirmação Mercado Pago;
+- auditoria de todas as ações.
+
+**Teste:** saldo suficiente/insuficiente do vendedor, repetição de reembolso, falha do provedor e Webhook de estorno.
+
+### Etapa 9 — Extratos e operação financeira Pix
+
+**Ações:**
+
+- comprovante do passageiro;
+- líquido e comissão para motorista;
+- central administrativa exclusiva de Pix;
+- conciliação por ID Mercado Pago;
+- fila de pendências técnicas.
+
+**Teste:** dados pertencentes ao usuário correto, filtros, valores exatos, arredondamento e nenhuma exposição cruzada.
+
+### Etapa 10 — Homologação e liberação controlada
+
+**Ações:**
+
+- matriz E2E completa em sandbox;
+- build, TypeScript, lint e testes;
+- advisors Supabase;
+- revisão de secrets e logs;
+- pequena transação real controlada;
+- liberação gradual por cidade/configuração;
+- monitoramento e plano de desligamento rápido do Pix.
+
+**Aprovação final:** nenhum Pix real entra em produção antes de pagamento, split, Webhook, trava de início, reembolso e conciliação estarem comprovados ponta a ponta.
+
+---
+
+## 9. Regra de execução de cada etapa
+
+Cada etapa seguirá obrigatoriamente:
+
+1. leitura da Fonte da Verdade;
+2. inspeção do commit e schema atuais;
+3. plano exato da microetapa;
+4. alteração somente nos arquivos/tabelas declarados;
+5. revisão do diff;
+6. build e TypeScript;
+7. teste técnico;
+8. teste visual/funcional;
+9. conferência no Supabase real;
+10. relatório com arquivos, SQL, resultados e evidências;
+11. aprovação explícita;
+12. congelamento da etapa antes de avançar.
+
+Se qualquer teste falhar, a próxima etapa não começa. Corrige-se apenas a falha da etapa atual e repete-se a validação.
+
+### 9.1 Regra absoluta de testes em todas as etapas
+
+**Todas as etapas, sem exceção, serão testadas antes de serem aprovadas.** Relatório de implementação, build aprovado ou declaração de sucesso não substituem teste real.
+
+Cada microetapa terá quatro níveis obrigatórios de validação:
+
+1. **Teste técnico pelo Codex:** revisão do diff, build, TypeScript, testes automatizados aplicáveis, logs e ausência de alterações fora do escopo.
+2. **Teste do Supabase:** conferência do schema, migration, constraints, RLS, dados gravados e efeitos reais da operação, sempre com consultas de validação não destrutivas.
+3. **Teste ponta a ponta:** executar o fluxo real entre passageiro, motorista, administrativo e Mercado Pago Sandbox conforme a função construída na etapa.
+4. **Teste prático pelo Rafael:** o Rafael receberá instruções detalhadas dizendo exatamente em qual aplicativo entrar, onde tocar, qual resultado esperar e quais imagens ou mensagens enviar.
+
+Ao final de cada etapa, o resultado será classificado como:
+
+- **APROVADA:** todos os testes passaram, as evidências conferem e a etapa pode ser congelada.
+- **PARCIALMENTE APROVADA:** uma parte passou, mas existe pendência que impede o avanço.
+- **REPROVADA:** houve erro funcional, visual, de segurança, banco ou regressão.
+
+Quando uma etapa for parcialmente aprovada ou reprovada:
+
+- nenhuma etapa seguinte começa;
+- a correção fica limitada à causa comprovada;
+- o core e as áreas funcionais continuam congelados;
+- todos os testes afetados são repetidos;
+- a etapa somente muda para APROVADA depois da nova prova.
+
+Também haverá um teste de regressão crescente: a cada etapa nova, serão repetidos os testes essenciais das etapas Pix anteriores, garantindo que uma melhoria nova não quebre o que já havia sido aprovado.
+
+---
+
+## 10. Limites de alteração
+
+### 10.0 Política de trava absoluta — bloqueado por padrão
+
+O projeto inteiro é considerado **congelado por padrão**. Uma microetapa só pode alterar aquilo que estiver nominalmente incluído em uma lista de permissão produzida antes do primeiro comando de escrita.
+
+Antes de cada microetapa, o Codex deverá registrar:
+
+- arquivos que podem ser criados;
+- arquivos existentes que podem ser modificados;
+- funções e componentes exatos que podem receber alteração;
+- tabelas, colunas, índices, políticas ou funções SQL permitidos;
+- comportamento Pix que será alterado;
+- testes e regressões obrigatórios;
+- forma de rollback.
+
+Tudo o que não estiver nessa lista estará automaticamente proibido.
+
+Se durante a execução aparecer necessidade de tocar em outro arquivo, função, tabela, política ou comportamento:
+
+1. a execução para imediatamente;
+2. nenhuma correção lateral é feita;
+3. a necessidade é explicada e tecnicamente comprovada;
+4. a Fonte da Verdade recebe uma nova versão;
+5. somente depois de aprovação a lista pode ser ampliada.
+
+### 10.1 Trava do core
+
+O core funcional da Zuvvi permanecerá congelado. Isso inclui autenticação, perfis, GPS, mapas, cálculo de rota, cotação, matching, ciclo geral de corrida, suporte, chat, cidades, documentos, aprovação, notificações gerais e os meios dinheiro/cartão.
+
+Quando o Pix precisar obrigatoriamente se conectar a um ponto do core — por exemplo, aceite ou início da corrida — aplica-se a regra de **gancho mínimo**:
+
+- modificar somente a condição exclusiva de `forma_pagamento = 'pix'`;
+- preservar byte a byte, sempre que tecnicamente possível, a lógica dos demais meios e estados;
+- não reorganizar, renomear ou refatorar o arquivo;
+- não aproveitar a etapa para corrigir outro problema;
+- não aplicar formatação no arquivo inteiro;
+- mostrar no relatório o trecho anterior e o trecho posterior;
+- repetir os testes de dinheiro, cartão e corrida normal para provar ausência de regressão.
+
+Se for possível resolver de forma segura por módulo Pix isolado, wrapper ou componente novo, essa opção terá preferência sobre alterar uma função central existente. Não será duplicada lógica crítica apenas para evitar tocar em um ponto de integração necessário.
+
+### 10.2 Trava automática do GitHub
+
+- Toda microetapa usa branch própria ou branch Pix controlada; nenhuma escrita direta silenciosa na `main`.
+- Antes da alteração, serão registrados commit-base, `git status` e hashes dos arquivos permitidos.
+- Depois da alteração, o diff será conferido por caminho e conteúdo.
+- Arquivo alterado fora da lista permitida reprova automaticamente a etapa.
+- Mudança gerada automaticamente só será aceita quando inevitável e declarada previamente.
+- `package.json` e lockfile ficam congelados; nova dependência exige justificativa e atualização prévia desta Fonte da Verdade.
+- Não serão incluídos arquivos temporários, segredos, dumps com dados pessoais ou instruções residuais.
+- Merge somente após testes, relatório do diff e aprovação da microetapa.
+
+### 10.3 Trava automática do Supabase
+
+- Produção não receberá DDL manual sem migration correspondente no GitHub.
+- Toda migration será aditiva, pequena, nomeada e exclusiva do Pix.
+- São proibidos `DROP`, `TRUNCATE`, renomeação destrutiva, alteração em massa e exclusão de dados históricos.
+- Tabelas e RLS sem relação direta com Pix ficam intocáveis.
+- Enum central não será alterado se o mesmo resultado puder ser obtido por campo detalhado isolado.
+- Funções privilegiadas ficam em schema não exposto, com `search_path` fixo, grants mínimos e validação explícita de identidade.
+- Nenhuma tabela nova em schema exposto ficará sem RLS e grants revisados.
+- A Service Role nunca será enviada ao cliente.
+- Após cada migration: catálogo real, policies, grants, constraints, advisors, contagens e rollback lógico serão verificados.
+- Divergência entre migration do GitHub e schema real reprova a etapa e bloqueia o avanço.
+
+### 10.4 Proibições expressas
+
+Durante o projeto Pix, fica proibido:
+
+- mexer em tela, texto ou estilo sem ligação direta com a microetapa Pix;
+- corrigir erro encontrado fora do escopo;
+- refatorar “para melhorar o código”;
+- trocar bibliotecas ou arquitetura global;
+- alterar autenticação ou autorização geral;
+- mudar regra de dinheiro ou cartão;
+- alterar comissão, tarifa ou cálculo de corrida;
+- executar migration não registrada;
+- modificar dados históricos para fazer um teste passar;
+- usar dados fictícios como prova de funcionamento real;
+- declarar uma etapa pronta apenas com base em build ou resposta textual.
+
+Qualquer uma dessas ocorrências classifica a etapa como **REPROVADA**, mesmo que a funcionalidade Pix aparente funcionar.
+
+### Permitido
+
+- arquivos de pagamento/Pix e Mercado Pago;
+- componentes Pix exclusivos;
+- pontos mínimos das telas de passageiro e motorista necessários para exibir/bloquear o Pix;
+- migrations aditivas exclusivas de Pix;
+- Edge Function/endpoint exclusivo de Webhook;
+- notificações exclusivas de estado Pix;
+- tela administrativa exclusiva de Pix.
+
+### Congelado
+
+- autenticação geral, salvo o callback OAuth Mercado Pago estritamente necessário;
+- cotação, GPS, mapa e geolocalização;
+- matching e elegibilidade, exceto a condição adicional exclusiva de Pix;
+- suporte/chat;
+- aprovação e documentos de motorista;
+- cidades e tarifas, exceto leitura da comissão existente;
+- corridas em dinheiro e cartão;
+- identidade visual global;
+- RLS e tabelas sem relação direta com Pix;
+- painel administrativo fora da área financeira Pix.
+
+Qualquer necessidade fora desta lista interrompe a etapa e exige atualização versionada desta Fonte da Verdade antes de qualquer ação.
+
+---
+
+## 11. Rollback e recuperação
+
+- Código sempre em branch e PR; nunca alteração direta silenciosa na `main`.
+- Migration sempre versionada antes de aplicação definitiva.
+- Estruturas novas começam sem substituir o fluxo atual.
+- Feature flag permite desligar o Pix sem desligar dinheiro/cartão.
+- Webhook pode ser colocado em modo “registrar sem executar” durante homologação.
+- Mudanças de dados são aditivas; rollback preferencialmente desativa comportamento sem apagar histórico.
+- Nenhum token ou segredo aparece em logs, relatórios, commits ou respostas.
+
+### 11.1 Protocolo antierro — parar antes de quebrar
+
+Não existe promessa técnica honesta de risco zero. A garantia operacional deste projeto será **falhar fechado**: diante de risco não controlado, dúvida relevante ou evidência de regressão, nenhuma alteração é promovida e o sistema permanece no último estado aprovado.
+
+Antes de qualquer escrita, toda microetapa passará pelos seguintes portões:
+
+1. **Portão de dependências:** mapear quem chama, quem consome e quais telas/tabelas podem ser afetadas.
+2. **Portão de risco:** classificar a mudança como baixa, média ou alta e listar falhas possíveis.
+3. **Portão de isolamento:** comprovar que a solução pode ser limitada ao Pix; caso contrário, parar.
+4. **Portão de recuperação:** definir previamente como desativar ou reverter sem perder dados.
+5. **Portão de baseline:** registrar código, schema, contagens e testes do último estado aprovado.
+6. **Portão de escopo:** confirmar que o diff planejado cabe integralmente na allowlist da etapa.
+7. **Portão de homologação:** executar primeiro em ambiente/credenciais de teste sempre que houver efeito financeiro.
+
+Se a análise indicar possibilidade concreta de quebrar funcionalidade já operacional e não houver isolamento confiável:
+
+- a mudança não será executada;
+- será procurado um contorno por módulo isolado, feature flag, wrapper ou operação aditiva;
+- se o contorno ainda trouxer risco relevante, a etapa será pausada;
+- o problema e as alternativas serão apresentados ao Rafael antes de ampliar o escopo.
+
+### 11.2 Ponto de restauração obrigatório
+
+Toda etapa começa a partir de um checkpoint aprovado contendo:
+
+- commit/SHA do GitHub;
+- lista e hash dos arquivos envolvidos;
+- versão das migrations aplicadas;
+- fotografia estrutural das tabelas e policies afetadas;
+- contagens de controle sem dados pessoais;
+- resultado dos testes essenciais;
+- estado da feature flag Pix.
+
+Esse checkpoint é o destino de recuperação caso a etapa apresente regressão.
+
+### 11.3 Procedimento quando algo falhar
+
+Ao primeiro sinal de quebra, comportamento inesperado ou divergência:
+
+1. parar imediatamente a execução;
+2. não iniciar outra etapa;
+3. não fazer correções em cascata;
+4. desativar o comportamento novo pela feature flag, quando aplicável;
+5. restaurar o código ao último checkpoint aprovado;
+6. aplicar rollback lógico da migration somente se necessário e previamente seguro;
+7. testar novamente as funcionalidades que já estavam aprovadas;
+8. comprovar que GitHub e Supabase voltaram a um estado coerente;
+9. registrar causa, impacto e ponto exato da interrupção;
+10. desenhar uma solução isolada;
+11. retomar **a mesma microetapa**, do ponto seguro, sem pular adiante.
+
+Se a recuperação de banco puder causar perda de dados, o rollback destrutivo é proibido. Nesse caso, mantém-se a estrutura aditiva, desativa-se o comportamento e corrige-se por migration posterior versionada.
+
+### 11.4 Regra de retomada
+
+Após uma falha, o trabalho não recomeça do zero e não avança para outra funcionalidade. A retomada acontece exatamente na etapa interrompida, usando:
+
+- a última evidência aprovada;
+- a causa comprovada da falha;
+- uma nova allowlist mínima;
+- testes específicos da correção;
+- repetição de toda a regressão acumulada.
+
+Somente depois de recuperar, corrigir e aprovar a etapa interrompida o cronograma continua.
+
+### 11.5 Mudança mínima por vez
+
+Para facilitar diagnóstico e recuperação:
+
+- cada microetapa terá um único objetivo observável;
+- banco, servidor e interface serão separados quando puderem ser testados isoladamente;
+- nenhuma PR misturará fundação, tela, Webhook e reembolso;
+- nenhuma etapa terá duas mudanças de regra financeira independentes;
+- qualquer resultado não previsto será tratado como falha, não como “melhoria adicional”.
+
+---
+
+## 12. Critério de “Pix 100% pronto”
+
+O Pix só será declarado pronto quando todos os itens abaixo forem comprovados:
+
+- motorista conecta conta com OAuth seguro e token renovável;
+- motorista desconectado não recebe nem aceita corrida Pix;
+- cobrança nasce na conta do motorista correto;
+- comissão Zuvvi é aplicada pelo split oficial;
+- passageiro vê QR e Copia e Cola e retoma a tela após atualização;
+- Webhook assinado confirma o estado canônico;
+- duplicidade e eventos fora de ordem não causam efeito duplo;
+- corrida não inicia sem pagamento aprovado;
+- cancelamento/reembolso funcionam e são auditáveis;
+- passageiro, motorista e admin veem apenas os dados permitidos;
+- extrato e conciliação batem centavo por centavo;
+- testes sandbox e transação real controlada foram aprovados;
+- dinheiro, cartão e restante do core continuam funcionando sem regressão.
+
+---
+
+## 13. Referências oficiais
+
+- Mercado Pago — Split 1:1 Marketplace: https://www.mercadopago.com.br/developers/pt/docs/split-payments/split-1-1/integration-configuration/integrate-marketplace
+- Mercado Pago — Renovar Access Token: https://www.mercadopago.com.br/developers/pt/docs/security/oauth/renewal
+- Mercado Pago — Webhooks: https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/additional-content/notifications/webhooks
+- Supabase — Segurança da Data API: https://supabase.com/docs/guides/api/securing-your-api
+- Supabase — Segurança do produto: https://supabase.com/docs/guides/security/product-security
