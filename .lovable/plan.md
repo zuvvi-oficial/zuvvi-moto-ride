@@ -1,39 +1,46 @@
-# Plano: Perfil do Passageiro Premium e Gestão de Carteira (Fase 1)
+# Plano: Responsividade Premium do Painel Administrativo Zuvvi
 
-Este plano foca na implementação da tela de **Perfil do Passageiro** com design Asphalt & Amber e na estruturação visual da **Carteira**, preparando o terreno para as funcionalidades financeiras.
+Este plano foca na transformação visual das telas administrativas para garantir uma experiência premium em dispositivos móveis (Android e iOS), mantendo a integridade funcional e a identidade visual da marca Zuvvi.
 
-## Alterações Funcionais
+## Alterações Funcionais e Visuais
 
-### Perfil do Passageiro
-- Criar a rota `/perfil` (passageiro) com visual premium.
-- Exibir dados do usuário: nome, CPF (mascarado), celular e e-mail.
-- Permitir edição de nome e celular (com validação e máscara).
-- Implementar botão de logout e link para exclusão de conta (LGPD).
-- Adicionar selo de fidelidade baseado na data de cadastro.
+### 1. Navegação Mobile (Bottom Bar)
+- Criar o componente `AdminBottomNav.tsx`.
+- Visível apenas em telas menores que 768px.
+- Itens: Início, Motoristas, Veículos e Cidades.
+- Destaque para a aba ativa (Violeta Zuvvi) e suporte a safe-area.
 
-### Carteira (Wallet)
-- Criar a rota `/carteira` com interface de saldo e histórico.
-- Exibir saldo virtual do usuário (Mock inicial, preparando para integração real).
-- Listar transações recentes vinculadas ao histórico de corridas.
-- Adicionar botões de ação: "Adicionar Saldo" e "Métodos de Pagamento".
+### 2. Dashboard Administrativo (`/admin`)
+- Layout de cards em coluna única no mobile.
+- Botões de gestão empilhados verticalmente no mobile.
+- Ajuste de espaçamentos para evitar cortes.
+
+### 3. Gestão de Motoristas (`/admin/motoristas`)
+- Substituição da tabela por cards premium em telas pequenas.
+- Cada card exibirá: Nome, Status, Cidade, Contato, Indicador Online e Ações (Ver Detalhes, Suspender, Recusar).
+- Filtros e busca adaptados para largura total.
+
+### 4. Gestão de Veículos (`/admin/veiculos`)
+- Conversão das linhas da tabela em cards premium no mobile.
+- Exibição clara de Motorista, Veículo, Placa, Cidade e Status.
+- Preservação de todas as ações existentes.
+
+### 5. Gestão de Cidades (`/admin/cidades`)
+- Implementação de cards expansíveis para cidades no mobile.
+- Resumo visual (Cidade, UF, Status) com expansão para detalhes tarifários.
+- Adaptação dos filtros para empilhamento vertical.
 
 ## Detalhes Técnicos
 
-### Backend & Segurança
-- **Server Functions**:
-  - `getPerfilPassageiro`: Busca dados higienizados do usuário logado.
-  - `updatePerfilPassageiro`: Atualiza nome e celular com validação Zod.
-  - `getSaldoCarteira`: Consulta o saldo atual na tabela `usuarios`.
-- **Zod Schemas**: Validação rigorosa para formatos de celular e comprimentos de nome.
+### Componentes
+- `src/components/admin/AdminBottomNav.tsx`: Nova barra de navegação.
+- `src/components/admin/AdminLayout.tsx` (ou ajuste nas rotas): Garantir `pb-20` no mobile para a barra não cobrir o conteúdo.
 
-### UI/UX (Asphalt & Amber)
-- Uso de `ZuvviLogo` com acabamento `surface="dark"`.
-- Cartões com `backdrop-blur-xl` e bordas `white/10`.
-- Tipografia Poppins com pesos variados para hierarquia.
-- Componentes Shadcn UI customizados para o tema Indigo/Volt.
+### Estilização (Tailwind CSS)
+- Uso intensivo de classes utilitárias para breakpoints (`sm:`, `md:`, `lg:`).
+- `backdrop-blur-xl`, `bg-zuvvi-indigo/90`, e bordas `white/10` para manter o visual premium.
+- Alvos de toque de no mínimo 44px.
 
-### Estrutura de Arquivos
-- `src/routes/perfil.tsx`: Nova rota de perfil.
-- `src/routes/carteira.tsx`: Nova rota de carteira.
-- `src/lib/perfil-user.functions.ts`: Funções de servidor para gestão de usuário.
-- `src/components/perfil/EditProfileDialog.tsx`: Modal premium para edição.
+### Preservação Lógica
+- **NENHUMA** alteração em server functions, banco de dados, RLS ou lógica de negócio será realizada.
+- Os cliques nos botões e submissões de formulários permanecerão idênticos.
