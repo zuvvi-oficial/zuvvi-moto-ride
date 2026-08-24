@@ -6,6 +6,8 @@ import { getVeiculosAdmin, updateStatusVeiculo, getVeiculoDetalheAdmin, updateDa
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
+import { cn } from '@/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
