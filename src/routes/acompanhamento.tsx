@@ -868,6 +868,12 @@ function AcompanhamentoCorrida() {
           </div>
         </div>
       )}
+      <SupportDialog 
+        open={supportOpen} 
+        onOpenChange={setSupportOpen}
+        corridaId={rideId || undefined}
+        defaultTipo={supportTipo}
+      />
     </div>
   );
 }
