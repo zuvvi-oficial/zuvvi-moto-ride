@@ -106,8 +106,8 @@ function OnboardingMotorista() {
       </header>
 
       <main className="p-6 max-w-md mx-auto space-y-6">
-        <MercadoPagoConnect />
         {statusAprovacao === 'em_analise' ? (
+
 
           <>
             {isCnhLoading ? (
