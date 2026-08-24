@@ -5,8 +5,17 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
 import { DetalheChamado } from '@/components/admin/DetalheChamado';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, MessageSquare, ChevronRight, Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { AlertCircle, MessageSquare, ChevronRight, Search, X, Filter } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from '@/components/ui/button';
 
 export const Route = createFileRoute('/admin/suporte')({
   component: SuporteAdmin,
@@ -14,12 +23,50 @@ export const Route = createFileRoute('/admin/suporte')({
 
 function SuporteAdmin() {
   const [tipo, setTipo] = useState<"todos" | "duvida" | "sos" | "reclamacao">("todos");
+  const [status, setStatus] = useState<string>("todos");
+  const [busca, setBusca] = useState("");
   const [chamadoSelecionado, setChamadoSelecionado] = useState<any | null>(null);
 
   const { data: chamados } = useSuspenseQuery({
     queryKey: ['suporte-chamados', tipo],
     queryFn: () => getChamadosSuporte({ data: { tipo: tipo === 'todos' ? undefined : tipo } }),
   });
+
+  const filteredChamados = useMemo(() => {
+    if (!chamados) return [];
+    
+    return chamados.filter(chamado => {
+      // Filtro por Status
+      if (status !== 'todos' && chamado.status !== status) return false;
+      
+      // Filtro por Busca
+      if (busca) {
+        const termo = busca.toLowerCase();
+        const naDescricao = chamado.descricao?.toLowerCase().includes(termo);
+        const noUsuario = chamado.usuarios?.nome?.toLowerCase().includes(termo) || 
+                          chamado.usuarios?.email?.toLowerCase().includes(termo);
+        const noProtocolo = chamado.id.toLowerCase().includes(termo);
+        
+        if (!naDescricao && !noUsuario && !noProtocolo) return false;
+      }
+      
+      return true;
+    });
+  }, [chamados, status, busca]);
+
+  const uniqueStatus = useMemo(() => {
+    if (!chamados) return [];
+    const states = chamados.map(c => c.status);
+    return Array.from(new Set(states));
+  }, [chamados]);
+
+  const hasActiveFilters = tipo !== 'todos' || status !== 'todos' || busca !== '';
+
+  const clearFilters = () => {
+    setTipo('todos');
+    setStatus('todos');
+    setBusca('');
+  };
 
   const indicadores = {
     novos: chamados?.filter(c => c.status === 'aberto').length || 0,
@@ -57,20 +104,73 @@ function SuporteAdmin() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {(['todos', 'duvida', 'reclamacao', 'sos'] as const).map(t => (
-              <button 
-                key={t}
-                onClick={() => setTipo(t)}
-                className={`px-4 py-2 rounded-full text-xs uppercase font-bold transition-all whitespace-nowrap ${tipo === t ? 'bg-zuvvi-violet text-white' : 'bg-white/[0.05] text-white/50'}`}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={18} />
+              <Input 
+                placeholder="Buscar chamado..." 
+                className="bg-white/[0.05] border-white/10 pl-10 h-11 text-white placeholder:text-white/20 focus:ring-zuvvi-violet"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+              />
+              {busca && (
+                <button 
+                  onClick={() => setBusca('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            
+            <div className="w-full md:w-48">
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="bg-white/[0.05] border-white/10 h-11 text-white">
+                  <div className="flex items-center gap-2">
+                    <Filter size={16} className="text-white/30" />
+                    <SelectValue placeholder="Todos os status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white">
+                  <SelectItem value="todos">Todos os status</SelectItem>
+                  {uniqueStatus.map(s => (
+                    <SelectItem key={s} value={s}>
+                      {s.replace('_', ' ').charAt(0).toUpperCase() + s.replace('_', ' ').slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-2">
+              {(['todos', 'duvida', 'reclamacao', 'sos'] as const).map(t => (
+                <button 
+                  key={t}
+                  onClick={() => setTipo(t)}
+                  className={`px-4 py-2 rounded-full text-xs uppercase font-bold transition-all whitespace-nowrap ${tipo === t ? 'bg-zuvvi-violet text-white' : 'bg-white/[0.05] text-white/50'}`}
+                >
+                  {t === 'duvida' ? 'Dúvida' : t === 'reclamacao' ? 'Reclamação' : t}
+                </button>
+              ))}
+            </div>
+
+            {hasActiveFilters && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearFilters}
+                className="text-white/50 hover:text-white text-xs h-8 px-2 gap-1"
               >
-                {t === 'duvida' ? 'Dúvida' : t === 'reclamacao' ? 'Reclamação' : t}
-              </button>
-            ))}
+                <X size={14} />
+                Limpar Filtros
+              </Button>
+            )}
           </div>
 
           <div className="space-y-3">
-            {chamados?.length === 0 ? (
+            {filteredChamados.length === 0 ? (
               <div className="text-center py-20 px-6">
                 <div className="bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
                   <Search size={24} className="text-white/20" />
@@ -79,7 +179,7 @@ function SuporteAdmin() {
                 <p className="text-white/30 text-xs italic">Não existem registros para o filtro selecionado no momento.</p>
               </div>
             ) : (
-              chamados?.map(chamado => (
+              filteredChamados.map(chamado => (
                 <Card 
                   key={chamado.id} 
                   onClick={() => setChamadoSelecionado(chamado)}
