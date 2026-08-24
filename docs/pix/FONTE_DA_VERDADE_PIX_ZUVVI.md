@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.7  
+**Versão:** 1.8  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -320,6 +320,24 @@ Allowlist adicional da microetapa 1B-T:
 - repetir os mesmos testes depois da migration real ser adicionada à branch.
 
 Tudo fora desses dois arquivos adicionais permanece bloqueado. A migration antiga que falhou continuará byte a byte intacta.
+
+
+**Fechamento da microetapa 1B-T — teste isolado e versionamento da PIX-01:**
+
+- execução `32789697459`: fixture e PIX-01 foram aplicadas; a bateria parou após 28 testes por um literal `integer` no teste não corresponder ao parâmetro `smallint` da função; a migration permaneceu intacta;
+- correção limitada a `supabase/tests/pix_01_oauth_credentials.sql`: literal alterado de `1` para `1::smallint`, sem mudança de regra, schema ou implementação;
+- execução `32789891510`: migration temporária gerada pela CLI, 33 de 33 testes pgTAP aprovados e lint dos schemas `private,public` sem erros;
+- nome definitivo gerado pela Supabase CLI `2.115.0`: `20260824233357_pix_oauth_credentials_private.sql`;
+- migration versionada em `supabase/migrations/20260824233357_pix_oauth_credentials_private.sql`, com conteúdo idêntico ao template aprovado;
+- execução final `32790067558`: arquivo versionado detectado, 33 de 33 testes aprovados e lint sem erros;
+- commit de versionamento: `a03178c0914c08a2a3f068871625e1a78ad694f4`;
+- conferência do diff contra o commit-base: somente oito arquivos exclusivos de documentação, teste, workflow e migration Pix; nenhum arquivo do aplicativo ou core foi alterado;
+- conferência somente leitura do Supabase principal: última migration `20260824222419`, schema `private` inexistente, zero funções `pix_oauth_credentials_*`, 101 corridas, 84 pagamentos e 4 pagamentos Pix;
+- nenhuma credencial do Supabase principal foi usada pelo workflow e nenhuma escrita foi feita em produção.
+
+**Classificação da microetapa 1B-T:** **APROVADA NO AMBIENTE LOCAL DESCARTÁVEL**.
+
+Esta aprovação comprova sintaxe, catálogo, RLS, grants, funções operacionais, revogação e lint da PIX-01 em uma stack isolada. Ela não equivale a homologação nem autoriza aplicação no Supabase principal. A migration permanecerá somente na branch e no Pull Request rascunho até uma autorização explícita posterior.
 
 ### Etapa 1 — Integridade mínima do banco
 
