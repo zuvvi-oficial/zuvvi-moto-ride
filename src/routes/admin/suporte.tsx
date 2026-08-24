@@ -23,6 +23,8 @@ export const Route = createFileRoute('/admin/suporte')({
 
 function SuporteAdmin() {
   const [tipo, setTipo] = useState<"todos" | "duvida" | "sos" | "reclamacao">("todos");
+  const [status, setStatus] = useState<string>("todos");
+  const [busca, setBusca] = useState("");
   const [chamadoSelecionado, setChamadoSelecionado] = useState<any | null>(null);
 
   const { data: chamados } = useSuspenseQuery({
