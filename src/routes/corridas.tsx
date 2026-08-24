@@ -11,8 +11,10 @@ import { useEffect, useState } from "react";
 export const Route = createFileRoute("/corridas")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
-    if (dest.redirectTo && dest.redirectTo !== "/corridas") {
-      throw redirect({ to: dest.redirectTo as any });
+    const canAccess = dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
+    
+    if (!canAccess) {
+      throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
     }
   },
   component: HistoricoCorridas,

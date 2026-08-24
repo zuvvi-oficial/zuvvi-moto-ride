@@ -65,7 +65,11 @@ export const criarChamadoSuporte = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => 
     z.object({
       tipo: z.enum(["duvida", "sos", "reclamacao"]),
-      descricao: z.string().min(10).max(2000),
+      descricao: z.string().transform(s => s.trim()).refine(s => s.length >= 10, {
+        message: "A descrição deve ter pelo menos 10 caracteres."
+      }).refine(s => s.length <= 2000, {
+        message: "A descrição deve ter no máximo 2.000 caracteres."
+      }),
     }).parse(data)
   )
   .handler(async ({ context, data }) => {

@@ -8,8 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/perfil")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
-    if (dest.redirectTo && dest.redirectTo !== "/perfil") {
-      throw redirect({ to: dest.redirectTo as any });
+    const canAccess = dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
+    
+    if (!canAccess) {
+      throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
     }
   },
   component: PerfilPassageiro,
