@@ -895,6 +895,10 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      passageiro_tem_corrida_ativa_com_motorista: {
+        Args: { p_motorista_id: string }
+        Returns: boolean
+      }
       set_motorista_online_atomic: {
         Args: { p_motorista_id: string }
         Returns: string

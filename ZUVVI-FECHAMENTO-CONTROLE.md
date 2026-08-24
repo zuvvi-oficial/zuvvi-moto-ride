@@ -405,6 +405,15 @@ Sprint 2 — GPS Pós-Aceite e Rastreamento.
 
 ### MICROCORREÇÃO 3.7-D — PÓS-FINALIZAÇÃO SEGURO + SUCESSO VISUAL DO MOTORISTA — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
 
+### MICROETAPA 4.10 — NOME DO PASSAGEIRO AO MOTORISTA — ✅ FECHADA
+- `fetchActiveRide` agora seleciona `passageiro_id`.
+- `getMotoristaStatusHome` busca o nome do passageiro em `public.usuarios`.
+- Implementado fail-safe: se a busca falhar ou o nome vier vazio, exibe "Passageiro".
+- `home-motorista.tsx` exibe o nome do passageiro no card da corrida ativa com o ícone `User`.
+- Foto de perfil não foi implementada por falta de estrutura no sistema.
+- Build verificado com sucesso.
+
+
 ### MICROETAPA 4.9 — CORREÇÃO DE RECURSÃO RLS (MOTORISTAS X CORRIDAS) — ✅ FECHADA
 - Criada função `public.passageiro_tem_corrida_ativa_com_motorista` com `SECURITY DEFINER` para consultar a tabela `corridas` sem disparar RLS recursivo.
 - Revogadas permissões públicas da função e concedido `EXECUTE` para `authenticated`.
