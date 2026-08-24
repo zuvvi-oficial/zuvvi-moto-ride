@@ -42,7 +42,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle, AlertTriangle, Settings2, LogOut } from 'lucide-react';
+import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle, AlertTriangle, Settings2, ChevronLeft, LogOut } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -148,7 +148,7 @@ function AdminVeiculos() {
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
       <AdminHeader />
-      <AdminBottomNav />
+      <AdminBottomNav isHidden={!!viewingVeiculoId} />
 
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24 md:pb-6">
         <div className="flex justify-between items-center">
@@ -375,9 +375,18 @@ function AdminVeiculos() {
       </Dialog>
 
       <Sheet open={!!viewingVeiculoId} onOpenChange={(open) => !open && setViewingVeiculoId(null)}>
-        <SheetContent side="right" className="sm:max-w-2xl bg-zuvvi-indigo border-white/10 text-white p-0">
-          <SheetHeader className="p-6 border-b border-white/10">
+        <SheetContent 
+          side="right" 
+          className="w-full h-[100dvh] sm:h-auto sm:max-w-2xl bg-zuvvi-indigo border-white/10 text-white p-0 overflow-hidden flex flex-col"
+        >
+          <SheetHeader className="p-6 border-b border-white/10 flex-shrink-0">
             <SheetTitle className="text-white flex items-center gap-2">
+              <button 
+                onClick={() => setViewingVeiculoId(null)}
+                className="md:hidden w-8 h-8 flex items-center justify-center bg-white/5 rounded-full border border-white/10 active:scale-95 transition-transform mr-2"
+              >
+                <ChevronLeft className="w-5 h-5 text-white" />
+              </button>
               <Bike className="h-5 w-5 text-volt" />
               Ficha do Veículo
             </SheetTitle>
@@ -386,7 +395,7 @@ function AdminVeiculos() {
             </SheetDescription>
           </SheetHeader>
 
-          <ScrollArea className="h-[calc(100vh-8rem)] p-6">
+          <ScrollArea className="flex-1 p-6">
             {loadingDetalhe ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
                 <Clock className="h-8 w-8 text-volt animate-spin" />
