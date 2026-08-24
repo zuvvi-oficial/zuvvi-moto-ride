@@ -226,7 +226,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
         id, 
         cidade_id, 
         cidades!inner(status),
-        motoristas!inner(is_disponivel, ultima_localizacao_at, ultima_lat, ultima_lng)
+        motoristas!inner(is_disponivel, ultima_localizacao_at, ultima_lat, ultima_lng, conta_mercado_pago_id)
       `)
       .eq("auth_user_id", context.userId)
       .single();
@@ -301,6 +301,9 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
 
     const ofertas = allCandidates
       .filter(ride => {
+        // Corridas Pix exigem conta Mercado Pago conectada
+        if (ride.forma_pagamento === "pix" && !motorista.conta_mercado_pago_id) return false;
+
         // Filtro de recusa
         if (idsRecusados.includes(ride.id)) return false;
         
