@@ -143,30 +143,32 @@ function SuporteAdmin() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
-            <div className="flex gap-2">
-              {(['todos', 'duvida', 'reclamacao', 'sos'] as const).map(t => (
-                <button 
-                  key={t}
-                  onClick={() => setTipo(t)}
-                  className={`px-4 py-2 rounded-full text-xs uppercase font-bold transition-all whitespace-nowrap ${tipo === t ? 'bg-zuvvi-violet text-white' : 'bg-white/[0.05] text-white/50'}`}
-                >
-                  {t === 'duvida' ? 'Dúvida' : t === 'reclamacao' ? 'Reclamação' : t}
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {(['todos', 'duvida', 'reclamacao', 'sos'] as const).map(t => (
+                  <button 
+                    key={t}
+                    onClick={() => setTipo(t)}
+                    className={`px-4 py-2 rounded-full text-xs uppercase font-bold transition-all whitespace-nowrap ${tipo === t ? 'bg-zuvvi-violet text-white' : 'bg-white/[0.05] text-white/50'}`}
+                  >
+                    {t === 'duvida' ? 'Dúvida' : t === 'reclamacao' ? 'Reclamação' : t}
+                  </button>
+                ))}
+              </div>
 
-            {hasActiveFilters && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={clearFilters}
-                className="text-white/50 hover:text-white text-xs h-8 px-2 gap-1"
-              >
-                <X size={14} />
-                Limpar Filtros
-              </Button>
-            )}
+              {hasActiveFilters && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearFilters}
+                  className="text-white/50 hover:text-white text-xs h-8 px-2 gap-1 ml-auto"
+                >
+                  <X size={14} />
+                  Limpar Filtros
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
