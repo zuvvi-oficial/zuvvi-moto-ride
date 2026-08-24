@@ -142,7 +142,7 @@ function MeusChamados() {
                     )}
                     <span
                       className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg border ${
-                        STATUS_STYLE[chamado.status] ?? STATUS_STYLE.fechado
+                        STATUS_STYLE[chamado.status] ?? STATUS_STYLE["fechado"]
                       }`}
                     >
                       {STATUS_LABEL[chamado.status] ?? chamado.status}
@@ -235,7 +235,7 @@ function DetalheChamadoPassageiro({
                 )}
                 <span
                   className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg border ${
-                    STATUS_STYLE[chamado.status] ?? STATUS_STYLE.fechado
+                    STATUS_STYLE[chamado.status] ?? STATUS_STYLE["fechado"]
                   }`}
                 >
                   {STATUS_LABEL[chamado.status] ?? chamado.status}

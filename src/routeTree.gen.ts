@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
 import { Route as CorridasRouteImport } from './routes/corridas'
 import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
+import { Route as MeusChamadosRouteImport } from './routes/meus-chamados'
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
@@ -57,6 +58,11 @@ const CorridasRoute = CorridasRouteImport.update({
 const HomeMotoristaRoute = HomeMotoristaRouteImport.update({
   id: '/home-motorista',
   path: '/home-motorista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusChamadosRoute = MeusChamadosRouteImport.update({
+  id: '/meus-chamados',
+  path: '/meus-chamados',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingMotoristaRoute = OnboardingMotoristaRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
+  '/meus-chamados': typeof MeusChamadosRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/perfil': typeof PerfilRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
+  '/meus-chamados': typeof MeusChamadosRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/perfil': typeof PerfilRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
+  '/meus-chamados': typeof MeusChamadosRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/perfil': typeof PerfilRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
+    | '/meus-chamados'
     | '/onboarding-motorista'
     | '/perfil'
     | '/procurando-motorista'
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
+    | '/meus-chamados'
     | '/onboarding-motorista'
     | '/perfil'
     | '/procurando-motorista'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
+    | '/meus-chamados'
     | '/onboarding-motorista'
     | '/perfil'
     | '/procurando-motorista'
@@ -262,6 +274,7 @@ export interface RootRouteChildren {
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
   CorridasRoute: typeof CorridasRoute
   HomeMotoristaRoute: typeof HomeMotoristaRoute
+  MeusChamadosRoute: typeof MeusChamadosRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
   PerfilRoute: typeof PerfilRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
@@ -314,6 +327,13 @@ declare module '@tanstack/react-router' {
       path: '/home-motorista'
       fullPath: '/home-motorista'
       preLoaderRoute: typeof HomeMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-chamados': {
+      id: '/meus-chamados'
+      path: '/meus-chamados'
+      fullPath: '/meus-chamados'
+      preLoaderRoute: typeof MeusChamadosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding-motorista': {
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
   CorridasRoute: CorridasRoute,
   HomeMotoristaRoute: HomeMotoristaRoute,
+  MeusChamadosRoute: MeusChamadosRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
   PerfilRoute: PerfilRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
