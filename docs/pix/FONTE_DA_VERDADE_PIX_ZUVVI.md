@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.9  
+**Versão:** 1.10  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -381,6 +381,26 @@ Travas:
 - após o versionamento, toda a bateria será repetida.
 
 Rollback antes da produção: nenhum, pois a migration permanecerá somente na branch. Rollback da branch: remover apenas os cinco arquivos exclusivos da PIX-02. Rollback futuro de produção será lógico, bloqueando novos usos sem apagar histórico.
+
+**Fechamento da microetapa PIX-02 — tentativas e eventos de Webhook:**
+
+- execução `32790864005`: PIX-01 passou 33/33; PIX-02 executou 34 verificações e parou ao criar motoristas fictícios sem os usuários exigidos pela FK preexistente; nenhuma mudança foi feita na migration;
+- correção limitada ao teste `supabase/tests/pix_02_attempts_webhook.sql`: criação dos dois usuários fictícios antes dos motoristas, respeitando a FK real;
+- execução `32791031502`: PIX-01 33/33, PIX-02 48/48 e lint sem erros;
+- nome definitivo gerado pela Supabase CLI `2.115.0`: `20260824234933_pix_attempts_webhook.sql`;
+- migration versionada em `supabase/migrations/20260824234933_pix_attempts_webhook.sql`, com conteúdo idêntico ao template aprovado;
+- execução `32791212503`: migration versionada detectada, PIX-01 33/33, PIX-02 48/48 e lint sem erros;
+- execução final `32791428176`: PIX-01 33/33, PIX-02 48/48, lint sem erros, Advisor de segurança sem issues e Advisor de performance sem issues;
+- commit de versionamento da PIX-02: `1541beeedf02bc5e9ac9746e63f9b1b0d0f2d9a0`;
+- as tabelas novas possuem RLS habilitada e forçada, grants mínimos, FKs indexadas, unicidade de idempotência/ID externo, uma única tentativa ativa por pagamento e deduplicação por `event_key`;
+- nenhum payload bruto de Webhook é armazenado;
+- nenhuma função, trigger, endpoint, tela ou objeto existente foi alterado;
+- conferência somente leitura do Supabase principal: última migration `20260824222419`, schema `private` inexistente, tabelas `pagamentos_pix_tentativas` e `mercadopago_webhook_eventos` inexistentes, 101 corridas, 84 pagamentos e quatro pagamentos Pix;
+- nenhuma credencial do Supabase principal foi usada e nenhuma escrita foi feita em produção.
+
+**Classificação da microetapa PIX-02:** **APROVADA NO AMBIENTE LOCAL DESCARTÁVEL**.
+
+A aprovação comprova a fundação de dados e a regressão acumulada da PIX-01/PIX-02. Não equivale a homologação, não habilita Pix no aplicativo e não autoriza aplicação no Supabase principal.
 
 ### Etapa 1 — Integridade mínima do banco
 
