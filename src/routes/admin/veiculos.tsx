@@ -377,7 +377,7 @@ function AdminVeiculos() {
       <Sheet open={!!viewingVeiculoId} onOpenChange={(open) => !open && setViewingVeiculoId(null)}>
         <SheetContent 
           side="right" 
-          className="w-full sm:max-w-2xl bg-zuvvi-indigo border-white/10 text-white p-0 overflow-hidden flex flex-col h-full"
+          className="w-full h-[100dvh] sm:h-auto sm:max-w-2xl bg-zuvvi-indigo border-white/10 text-white p-0 overflow-hidden flex flex-col"
         >
           <SheetHeader className="p-6 border-b border-white/10 flex-shrink-0">
             <SheetTitle className="text-white flex items-center gap-2">
