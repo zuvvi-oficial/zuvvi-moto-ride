@@ -11,7 +11,6 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Select, 
@@ -92,7 +91,7 @@ export function SupportDialog({
           </DialogTitle>
           <DialogDescription className="text-white/60">
             {tipo === "sos" 
-              ? "Use este canal para emergências durante a corrida." 
+              ? "Use este canal para relatar uma situação de risco ou pedir ajuda." 
               : "Como podemos ajudar você hoje?"}
           </DialogDescription>
         </DialogHeader>
