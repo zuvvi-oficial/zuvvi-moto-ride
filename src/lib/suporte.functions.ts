@@ -33,7 +33,9 @@ export const getChamadosSuporte = createServerFn({ method: "GET" })
       .from("chamados_suporte")
       .select(`
         *,
-        usuarios(nome, email, celular)
+        usuarios(nome, email, celular),
+        cidades(nome, uf),
+        corridas(codigo_embarque)
       `)
       .order("created_at", { ascending: false });
 
