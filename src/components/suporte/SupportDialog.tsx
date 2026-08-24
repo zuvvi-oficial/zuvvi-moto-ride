@@ -26,38 +26,34 @@ import { cn } from "@/lib/utils";
 interface SupportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  corridaId?: string | undefined;
   defaultTipo?: "duvida" | "sos" | "reclamacao";
 }
 
 export function SupportDialog({ 
   open, 
   onOpenChange, 
-  corridaId, 
   defaultTipo = "duvida" 
 }: SupportDialogProps) {
   const criarChamadoFn = useServerFn(criarChamadoSuporte);
   const [loading, setLoading] = React.useState(false);
   
   const [tipo, setTipo] = React.useState<"duvida" | "sos" | "reclamacao">(defaultTipo);
-  const [assunto, setAssunto] = React.useState("");
   const [descricao, setDescricao] = React.useState("");
 
   const resetForm = () => {
     setTipo(defaultTipo);
-    setAssunto("");
     setDescricao("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (assunto.length < 3) {
-      toast.error("O assunto deve ter pelo menos 3 caracteres.");
-      return;
-    }
     if (descricao.length < 10) {
       toast.error("A descrição deve ter pelo menos 10 caracteres.");
+      return;
+    }
+    if (descricao.length > 2000) {
+      toast.error("A descrição deve ter no máximo 2.000 caracteres.");
       return;
     }
 
@@ -66,13 +62,11 @@ export function SupportDialog({
       const result = await criarChamadoFn({
         data: {
           tipo,
-          assunto,
           descricao,
-          corrida_id: corridaId
         }
       });
       
-      toast.success(`Chamado ${(result as any).protocolo || result.id} criado com sucesso!`);
+      toast.success(`Chamado criado com sucesso!`);
       onOpenChange(false);
       resetForm();
     } catch (error: any) {
@@ -143,17 +137,6 @@ export function SupportDialog({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-white/40">Assunto</label>
-            <Input 
-              value={assunto}
-              onChange={(e) => setAssunto(e.target.value)}
-              placeholder="Ex: Problema com pagamento"
-              className="bg-white/5 border-white/10 h-12 rounded-xl focus:ring-zuvvi-volt"
-              disabled={loading}
-              required
-            />
-          </div>
 
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-widest text-white/40">Descrição</label>
