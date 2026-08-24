@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { queryOptions } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
 
 const adminStatsOptions = queryOptions({
   queryKey: ['admin-stats'],
