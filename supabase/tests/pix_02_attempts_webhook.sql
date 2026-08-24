@@ -239,6 +239,29 @@ select ok(
   'payload_hash possui índice'
 );
 
+insert into public.usuarios (
+  id,
+  nome,
+  perfil_ativo,
+  is_passageiro,
+  is_motorista
+)
+values
+  (
+    '20000000-0000-4000-8000-000000000001'::uuid,
+    'Motorista Teste Pix 02 A',
+    'motorista',
+    false,
+    true
+  ),
+  (
+    '20000000-0000-4000-8000-000000000002'::uuid,
+    'Motorista Teste Pix 02 B',
+    'motorista',
+    false,
+    true
+  );
+
 insert into public.motoristas (id)
 values
   ('20000000-0000-4000-8000-000000000001'::uuid),
