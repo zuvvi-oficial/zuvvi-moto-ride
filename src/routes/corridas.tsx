@@ -2,8 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getHistoricoCorridas } from "@/lib/historico.functions";
-import { ChevronLeft, Clock, MapPin, User, Calendar, CreditCard, HelpCircle } from "lucide-react";
-import { SupportDialog } from "@/components/suporte/SupportDialog";
+import { ChevronLeft, Clock, MapPin, User, Calendar, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,8 +22,6 @@ export const Route = createFileRoute("/corridas")({
 
 function HistoricoCorridas() {
   const getHistoricoFn = useServerFn(getHistoricoCorridas);
-  const [supportOpen, setSupportOpen] = useState(false);
-  const [selectedRideId, setSelectedRideId] = useState<string | undefined>();
 
   const { data: corridas } = useSuspenseQuery({
     queryKey: ["historico-corridas"],
@@ -129,31 +126,11 @@ function HistoricoCorridas() {
                   </p>
                 </div>
               )}
-              <button 
-                onClick={() => {
-                  setSelectedRideId(corrida.id);
-                  setSupportOpen(true);
-                }}
-                className="pt-3 border-t border-white/5 w-full flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-2">
-                  <HelpCircle className="w-3 h-3 text-zuvvi-volt" />
-                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest group-hover:text-white transition-colors">Preciso de ajuda com esta corrida</span>
-                </div>
-                <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-zuvvi-volt/50 transition-all">
-                  <ChevronLeft className="w-3 h-3 text-white/20 group-hover:text-zuvvi-volt rotate-180" />
-                </div>
-              </button>
             </div>
           ))
         )}
       </main>
 
-      <SupportDialog 
-        open={supportOpen} 
-        onOpenChange={setSupportOpen}
-        corridaId={selectedRideId}
-      />
 
     </div>
   );
