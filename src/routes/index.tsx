@@ -1,6 +1,8 @@
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 
+
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -411,10 +413,10 @@ function HomePassageiro({ nome }: { nome: string }) {
               <CreditCard className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Carteira</span>
             </button>
-            <Link to="/auth/perfil" className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
+            <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
               <User className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>
-            </Link>
+            </button>
           </div>
         </nav>
       </div>
