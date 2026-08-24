@@ -64,9 +64,7 @@ export const getChamadosSuporte = createServerFn({ method: "GET" })
       .object({
         busca: z.string().optional(),
         tipo: z.enum(["todos", "duvida", "sos", "reclamacao"]).optional(),
-        status: z
-          .enum(["aberto", "em_atendimento", "resolvido", "fechado"])
-          .optional(),
+        status: z.enum(["aberto", "em_atendimento", "resolvido", "fechado"]).optional(),
       })
       .parse(data),
   )
@@ -76,7 +74,8 @@ export const getChamadosSuporte = createServerFn({ method: "GET" })
 
     let query = supabaseAdmin
       .from("chamados_suporte")
-      .select(`
+      .select(
+        `
         id,
         usuario_id,
         corrida_id,
@@ -89,7 +88,8 @@ export const getChamadosSuporte = createServerFn({ method: "GET" })
         updated_at,
         usuarios!chamados_suporte_usuario_id_fkey(nome, email, celular),
         corridas!chamados_suporte_corrida_id_fkey(codigo_embarque)
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (data.tipo && data.tipo !== "todos") {
@@ -120,7 +120,8 @@ export const getChamadoSuporteDetalhe = createServerFn({ method: "GET" })
     const [chamadoResult, mensagensResult] = await Promise.all([
       supabaseAdmin
         .from("chamados_suporte")
-        .select(`
+        .select(
+          `
           id,
           usuario_id,
           corrida_id,
@@ -133,7 +134,8 @@ export const getChamadoSuporteDetalhe = createServerFn({ method: "GET" })
           updated_at,
           usuarios!chamados_suporte_usuario_id_fkey(nome, email, celular),
           corridas!chamados_suporte_corrida_id_fkey(codigo_embarque)
-        `)
+        `,
+        )
         .eq("id", data.chamadoId)
         .single(),
       supabaseAdmin
