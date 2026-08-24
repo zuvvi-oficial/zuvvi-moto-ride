@@ -1192,11 +1192,3 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 - Arquivos tocados: src/routes/procurando-motorista.tsx, ZUVVI-FECHAMENTO-CONTROLE.md.
 - Bloqueador B3 (Race Condition na Busca) marcado como resolvido.
 
-### Microcorreção Visual — Painel Premium de Notificações ZUVVI — ✅ FECHADA
-- Painel de notificações redesenhado com identidade Premium Zuvvi (Asphalt & Amber).
-- Posicionamento corrigido: agora é `fixed` e centralizado horizontalmente na viewport, evitando deslocamento no mobile.
-- Identidade visual: fundo `bg-zuvvi-indigo-dark/95`, `backdrop-blur-xl`, `rounded-3xl`, e sombra profunda.
-- Notificações não lidas: agora usam fundo `bg-zuvvi-volt/5` e indicador com glow `zuvvi-volt`.
-- Responsividade: largura adaptável `w-[calc(100vw-32px)]` com `max-w-[420px]`.
-- Travas: lógica de notificações, Supabase, Realtime, sons e badge 9+ preservados integralmente.
-- Arquivos tocados: `src/components/NotificationBell.tsx`, `ZUVVI-FECHAMENTO-CONTROLE.md`.
