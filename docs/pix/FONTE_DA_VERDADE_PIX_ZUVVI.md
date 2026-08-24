@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.3  
+**Versão:** 1.4  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -246,6 +246,17 @@ O payload completo só será armazenado se a revisão de privacidade concluir qu
 - definir segredos necessários sem expor seus valores.
 
 **Aprovação:** nenhuma linha de produção alterada; fonte da verdade versionada; ambiente de teste reproduzível.
+
+**Decisão registrada em 24/08/2026:** a criação de branch paga do Supabase não foi autorizada durante o desenvolvimento. Nenhuma branch cloud será criada e nenhum custo será gerado.
+
+Enquanto essa decisão estiver vigente:
+
+- o Supabase principal será somente leitura durante preparação e desenvolvimento;
+- migrations serão criadas e revisadas na branch Git do Pix;
+- testes de banco usarão ambiente Supabase local isolado, se os requisitos locais estiverem disponíveis;
+- se o ambiente local não puder ser estabelecido com segurança, a etapa de banco permanecerá pausada;
+- nenhuma migration será aplicada no projeto principal sem autorização explícita do Rafael na microetapa correspondente;
+- aprovação local não será apresentada como prova de produção: antes da liberação final haverá uma homologação controlada no ambiente real autorizado.
 
 ### Etapa 1 — Integridade mínima do banco
 
