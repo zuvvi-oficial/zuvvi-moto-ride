@@ -32,6 +32,43 @@ function SuporteAdmin() {
     queryFn: () => getChamadosSuporte({ data: { tipo: tipo === 'todos' ? undefined : tipo } }),
   });
 
+  const filteredChamados = useMemo(() => {
+    if (!chamados) return [];
+    
+    return chamados.filter(chamado => {
+      // Filtro por Status (localmente para manter a performance e reatividade da busca)
+      if (status !== 'todos' && chamado.status !== status) return false;
+      
+      // Filtro por Busca
+      if (busca) {
+        const termo = busca.toLowerCase();
+        const noProtocolo = chamado.protocolo?.toLowerCase().includes(termo);
+        const noAssunto = chamado.assunto?.toLowerCase().includes(termo);
+        const naDescricao = chamado.descricao?.toLowerCase().includes(termo);
+        const noUsuario = chamado.usuarios?.nome?.toLowerCase().includes(termo) || 
+                          chamado.usuarios?.email?.toLowerCase().includes(termo);
+        
+        if (!noProtocolo && !noAssunto && !naDescricao && !noUsuario) return false;
+      }
+      
+      return true;
+    });
+  }, [chamados, status, busca]);
+
+  const uniqueStatus = useMemo(() => {
+    if (!chamados) return [];
+    const states = chamados.map(c => c.status);
+    return Array.from(new Set(states));
+  }, [chamados]);
+
+  const hasActiveFilters = tipo !== 'todos' || status !== 'todos' || busca !== '';
+
+  const clearFilters = () => {
+    setTipo('todos');
+    setStatus('todos');
+    setBusca('');
+  };
+
   const indicadores = {
     novos: chamados?.filter(c => c.status === 'aberto').length || 0,
     atendimento: chamados?.filter(c => c.status === 'em_atendimento').length || 0,
