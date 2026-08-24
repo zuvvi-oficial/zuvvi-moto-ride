@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 interface SupportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  corridaId?: string;
+  corridaId?: string | undefined;
   defaultTipo?: "duvida" | "sos" | "reclamacao";
 }
 
@@ -72,7 +72,7 @@ export function SupportDialog({
         }
       });
       
-      toast.success(`Chamado ${result.protocolo} criado com sucesso!`);
+      toast.success(`Chamado ${(result as any).protocolo || result.id} criado com sucesso!`);
       onOpenChange(false);
       resetForm();
     } catch (error: any) {
