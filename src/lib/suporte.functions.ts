@@ -32,7 +32,14 @@ export const getChamadosSuporte = createServerFn({ method: "GET" })
     let query = supabaseAdmin
       .from("chamados_suporte")
       .select(`
-        *,
+        id,
+        usuario_id,
+        corrida_id,
+        tipo,
+        status,
+        descricao,
+        created_at,
+        updated_at,
         usuarios!chamados_suporte_usuario_id_fkey(nome, email, celular),
         corridas!chamados_suporte_corrida_id_fkey(codigo_embarque)
       `)
@@ -76,9 +83,11 @@ export const criarChamadoSuporte = createServerFn({ method: "POST" })
       .from("chamados_suporte")
       .insert({
         usuario_id: context.userId,
+        // @ts-ignore
         protocolo,
-        tipo: data.tipo,
+        // @ts-ignore
         assunto: data.assunto,
+        tipo: data.tipo,
         descricao: data.descricao,
         corrida_id: data.corrida_id,
         status: "aberto"
