@@ -104,16 +104,69 @@ function SuporteAdmin() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {(['todos', 'duvida', 'reclamacao', 'sos'] as const).map(t => (
-              <button 
-                key={t}
-                onClick={() => setTipo(t)}
-                className={`px-4 py-2 rounded-full text-xs uppercase font-bold transition-all whitespace-nowrap ${tipo === t ? 'bg-zuvvi-violet text-white' : 'bg-white/[0.05] text-white/50'}`}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={18} />
+              <Input 
+                placeholder="Buscar chamado..." 
+                className="bg-white/[0.05] border-white/10 pl-10 h-11 text-white placeholder:text-white/20 focus:ring-zuvvi-violet"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+              />
+              {busca && (
+                <button 
+                  onClick={() => setBusca('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            
+            <div className="w-full md:w-48">
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="bg-white/[0.05] border-white/10 h-11 text-white">
+                  <div className="flex items-center gap-2">
+                    <Filter size={16} className="text-white/30" />
+                    <SelectValue placeholder="Todos os status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white">
+                  <SelectItem value="todos">Todos os status</SelectItem>
+                  {uniqueStatus.map(s => (
+                    <SelectItem key={s} value={s}>
+                      {s.replace('_', ' ').charAt(0).toUpperCase() + s.replace('_', ' ').slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-2">
+              {(['todos', 'duvida', 'reclamacao', 'sos'] as const).map(t => (
+                <button 
+                  key={t}
+                  onClick={() => setTipo(t)}
+                  className={`px-4 py-2 rounded-full text-xs uppercase font-bold transition-all whitespace-nowrap ${tipo === t ? 'bg-zuvvi-violet text-white' : 'bg-white/[0.05] text-white/50'}`}
+                >
+                  {t === 'duvida' ? 'Dúvida' : t === 'reclamacao' ? 'Reclamação' : t}
+                </button>
+              ))}
+            </div>
+
+            {hasActiveFilters && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearFilters}
+                className="text-white/50 hover:text-white text-xs h-8 px-2 gap-1"
               >
-                {t === 'duvida' ? 'Dúvida' : t === 'reclamacao' ? 'Reclamação' : t}
-              </button>
-            ))}
+                <X size={14} />
+                Limpar Filtros
+              </Button>
+            )}
           </div>
 
           <div className="space-y-3">
