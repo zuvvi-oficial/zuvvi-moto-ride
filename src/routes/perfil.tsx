@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, Clock, HelpCircle, User, ChevronRight, LogOut } from "lucide-react";
+import { ChevronLeft, Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut } from "lucide-react";
 import { useState } from "react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
