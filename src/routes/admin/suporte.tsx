@@ -72,12 +72,18 @@ function SuporteAdmin() {
             ) : (
               chamados?.map(chamado => (
                 <Card key={chamado.id} className="bg-white/[0.025] border-white/10 p-4 rounded-xl flex items-center gap-4 transition-all hover:bg-white/[0.05]">
-                  <div className={`p-2 rounded-lg ${chamado.tipo === 'sos' ? 'bg-red-500/20 text-red-500' : 'bg-white/5'}`}>
+                  <div className={`p-2 rounded-lg ${chamado.tipo === 'sos' ? 'bg-red-500/20 text-red-500 animate-pulse' : 'bg-white/5'}`}>
                     {chamado.tipo === 'sos' ? <AlertCircle size={20} /> : <MessageSquare size={20} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">{chamado.usuarios?.nome || 'Usuário'}</div>
-                    <div className="text-xs text-white/50">{chamado.tipo} • {chamado.status}</div>
+                    <div className="flex gap-2 text-[10px] text-white/50 uppercase font-bold">
+                      <span>{chamado.tipo}</span>
+                      <span>•</span>
+                      <span>{chamado.status}</span>
+                      <span>•</span>
+                      <span>{new Date(chamado.created_at).toLocaleDateString()}</span>
+                    </div>
                   </div>
                   <ChevronRight size={16} className="text-white/30" />
                 </Card>
