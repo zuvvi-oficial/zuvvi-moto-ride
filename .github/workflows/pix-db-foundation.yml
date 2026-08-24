@@ -73,9 +73,13 @@ jobs:
         run: |
           set -euo pipefail
           psql --version
-          migration_count="$(psql "${LOCAL_DB_URL}" -Atc \
-            'select count(*) from supabase_migrations.schema_migrations')"
-          test "${migration_count}" = "0"
+          migration_table_exists="$(psql "${LOCAL_DB_URL}" -Atc \
+            "select to_regclass('supabase_migrations.schema_migrations') is not null")"
+          if [ "${migration_table_exists}" = "t" ]; then
+            migration_count="$(psql "${LOCAL_DB_URL}" -Atc \
+              'select count(*) from supabase_migrations.schema_migrations')"
+            test "${migration_count}" = "0"
+          fi
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
             -f supabase/tests/fixtures/pix_01_prerequisites.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
