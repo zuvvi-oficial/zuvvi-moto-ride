@@ -179,7 +179,7 @@ function SuporteAdmin() {
                 <p className="text-white/30 text-xs italic">Não existem registros para o filtro selecionado no momento.</p>
               </div>
             ) : (
-              chamados?.map(chamado => (
+              filteredChamados.map(chamado => (
                 <Card 
                   key={chamado.id} 
                   onClick={() => setChamadoSelecionado(chamado)}
