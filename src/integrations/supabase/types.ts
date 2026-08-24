@@ -134,8 +134,10 @@ export type Database = {
       }
       chamados_suporte: {
         Row: {
+          atendente_id: string | null
           corrida_id: string | null
           created_at: string
+          data_resolucao: string | null
           descricao: string | null
           id: string
           status: Database["public"]["Enums"]["status_chamado_suporte"]
@@ -144,8 +146,10 @@ export type Database = {
           usuario_id: string
         }
         Insert: {
+          atendente_id?: string | null
           corrida_id?: string | null
           created_at?: string
+          data_resolucao?: string | null
           descricao?: string | null
           id?: string
           status?: Database["public"]["Enums"]["status_chamado_suporte"]
@@ -154,8 +158,10 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          atendente_id?: string | null
           corrida_id?: string | null
           created_at?: string
+          data_resolucao?: string | null
           descricao?: string | null
           id?: string
           status?: Database["public"]["Enums"]["status_chamado_suporte"]
@@ -164,6 +170,13 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "chamados_suporte_atendente_id_fkey"
+            columns: ["atendente_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chamados_suporte_corrida_id_fkey"
             columns: ["corrida_id"]
@@ -548,6 +561,55 @@ export type Database = {
           },
         ]
       }
+      mensagens_suporte: {
+        Row: {
+          autor_admin_id: string | null
+          autor_usuario_id: string | null
+          chamado_id: string
+          corpo: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          autor_admin_id?: string | null
+          autor_usuario_id?: string | null
+          chamado_id: string
+          corpo: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          autor_admin_id?: string | null
+          autor_usuario_id?: string | null
+          chamado_id?: string
+          corpo?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_suporte_autor_admin_id_fkey"
+            columns: ["autor_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_suporte_autor_usuario_id_fkey"
+            columns: ["autor_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_suporte_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados_suporte"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motorista_recusas: {
         Row: {
           corrida_id: string
@@ -888,6 +950,7 @@ export type Database = {
         Args: { p_corrida_id: string; p_motorista_id: string }
         Returns: undefined
       }
+      get_admin_id_by_auth: { Args: { auth_id: string }; Returns: string }
       get_distinct_ufs: {
         Args: never
         Returns: {
@@ -906,6 +969,30 @@ export type Database = {
       submit_motorista_for_analysis: {
         Args: { p_auth_user_id: string }
         Returns: Json
+      }
+      suporte_fechar_chamado: {
+        Args: { _admin_auth_id: string; _chamado_id: string }
+        Returns: undefined
+      }
+      suporte_iniciar_atendimento: {
+        Args: { _admin_auth_id: string; _chamado_id: string }
+        Returns: undefined
+      }
+      suporte_reabrir_chamado: {
+        Args: { _admin_auth_id: string; _chamado_id: string }
+        Returns: undefined
+      }
+      suporte_resolver_chamado: {
+        Args: {
+          _admin_auth_id: string
+          _chamado_id: string
+          _mensagem_final: string
+        }
+        Returns: undefined
+      }
+      suporte_responder_chamado: {
+        Args: { _admin_auth_id: string; _chamado_id: string; _corpo: string }
+        Returns: undefined
       }
     }
     Enums: {
