@@ -30,9 +30,30 @@ import {
 } from "@/lib/suporte.functions";
 
 interface DetalheChamadoProps {
-  chamado: any;
+  chamado: ChamadoSuporteAdmin | null;
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface ChamadoSuporteAdmin {
+  id: string;
+  usuario_id: string;
+  corrida_id: string | null;
+  tipo: "duvida" | "sos" | "reclamacao";
+  status: "aberto" | "em_atendimento" | "resolvido" | "fechado";
+  descricao: string | null;
+  atendente_id?: string | null;
+  data_resolucao?: string | null;
+  created_at: string;
+  updated_at: string;
+  usuarios?: {
+    nome: string;
+    email: string | null;
+    celular: string | null;
+  } | null;
+  corridas?: {
+    codigo_embarque: string;
+  } | null;
 }
 
 type AdminAction =
@@ -52,11 +73,7 @@ const feedbackPorAcao: Record<AdminAction["type"], string> = {
   fechar: "Chamado fechado com sucesso.",
 };
 
-export function DetalheChamado({
-  chamado,
-  isOpen,
-  onClose,
-}: DetalheChamadoProps) {
+export function DetalheChamado({ chamado, isOpen, onClose }: DetalheChamadoProps) {
   const queryClient = useQueryClient();
   const chamadoId = chamado?.id as string | undefined;
   const [resposta, setResposta] = useState("");
@@ -120,8 +137,7 @@ export function DetalheChamado({
 
   const chamadoAtual = detalheQuery.data?.chamado ?? chamado;
   const mensagens = detalheQuery.data?.mensagens ?? [];
-  const mensagemValida =
-    resposta.trim().length >= 1 && resposta.trim().length <= 2000;
+  const mensagemValida = resposta.trim().length >= 1 && resposta.trim().length <= 2000;
   const mutationError =
     actionMutation.error instanceof Error
       ? actionMutation.error.message
@@ -191,11 +207,6 @@ export function DetalheChamado({
             <div className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt/70">
               Detalhes do Chamado
             </div>
-            {chamadoAtual.protocolo && (
-              <div className="text-sm font-bold text-white truncate px-4">
-                #{chamadoAtual.protocolo}
-              </div>
-            )}
           </div>
           <button
             type="button"
@@ -226,17 +237,6 @@ export function DetalheChamado({
           </div>
 
           <div className="space-y-4">
-            {chamadoAtual.assunto && (
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">
-                  Assunto
-                </div>
-                <h2 className="text-xl font-bold text-white">
-                  {chamadoAtual.assunto}
-                </h2>
-              </div>
-            )}
-
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">
                 Descrição
@@ -249,11 +249,9 @@ export function DetalheChamado({
             <div className="flex items-center gap-2 text-white/40 text-xs">
               <Clock size={14} />
               <span>
-                {format(
-                  new Date(chamadoAtual.created_at),
-                  "dd 'de' MMMM 'às' HH:mm",
-                  { locale: ptBR },
-                )}
+                {format(new Date(chamadoAtual.created_at), "dd 'de' MMMM 'às' HH:mm", {
+                  locale: ptBR,
+                })}
               </span>
             </div>
           </div>
@@ -265,9 +263,7 @@ export function DetalheChamado({
                 <span>Solicitante</span>
               </div>
               <div>
-                <div className="font-bold text-white">
-                  {chamadoAtual.usuarios.nome}
-                </div>
+                <div className="font-bold text-white">{chamadoAtual.usuarios.nome}</div>
                 <div className="text-xs text-white/50 break-all">
                   {chamadoAtual.usuarios.email || "E-mail não informado"}
                 </div>
@@ -285,9 +281,7 @@ export function DetalheChamado({
                 <div className="text-[10px] font-black uppercase tracking-widest text-white/30">
                   Corrida
                 </div>
-                <div className="text-sm font-medium">
-                  #{chamadoAtual.corridas.codigo_embarque}
-                </div>
+                <div className="text-sm font-medium">#{chamadoAtual.corridas.codigo_embarque}</div>
               </div>
             </div>
           )}
@@ -295,10 +289,7 @@ export function DetalheChamado({
           <section className="space-y-4" aria-labelledby="historico-atendimento">
             <div className="flex items-center gap-2">
               <MessageSquare size={16} className="text-zuvvi-volt" />
-              <h2
-                id="historico-atendimento"
-                className="text-sm font-bold text-white"
-              >
+              <h2 id="historico-atendimento" className="text-sm font-bold text-white">
                 Histórico do atendimento
               </h2>
             </div>
@@ -313,13 +304,10 @@ export function DetalheChamado({
                 role="alert"
                 className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200"
               >
-                Não foi possível carregar o histórico. Feche a ficha e tente
-                novamente.
+                Não foi possível carregar o histórico. Feche a ficha e tente novamente.
               </div>
             ) : mensagens.length === 0 ? (
-              <p className="text-sm text-white/40">
-                Nenhuma resposta administrativa enviada.
-              </p>
+              <p className="text-sm text-white/40">Nenhuma resposta administrativa enviada.</p>
             ) : (
               <div className="space-y-3">
                 {mensagens.map((mensagem) => (
@@ -329,15 +317,9 @@ export function DetalheChamado({
                   >
                     <div className="mb-2 flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-wider">
                       <span
-                        className={
-                          mensagem.autor_admin_id
-                            ? "text-zuvvi-volt"
-                            : "text-blue-300"
-                        }
+                        className={mensagem.autor_admin_id ? "text-zuvvi-volt" : "text-blue-300"}
                       >
-                        {mensagem.autor_admin_id
-                          ? "Equipe Zuvvi"
-                          : "Passageiro"}
+                        {mensagem.autor_admin_id ? "Equipe Zuvvi" : "Passageiro"}
                       </span>
                       <span className="text-white/30">
                         {format(new Date(mensagem.created_at), "dd/MM/yy HH:mm")}
@@ -356,10 +338,7 @@ export function DetalheChamado({
             className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 space-y-4"
             aria-labelledby="acoes-atendimento"
           >
-            <h2
-              id="acoes-atendimento"
-              className="text-sm font-bold text-white"
-            >
+            <h2 id="acoes-atendimento" className="text-sm font-bold text-white">
               Ações do atendimento
             </h2>
 
@@ -403,15 +382,10 @@ export function DetalheChamado({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
-                    <label
-                      htmlFor="resposta-suporte"
-                      className="text-xs font-bold text-white/70"
-                    >
+                    <label htmlFor="resposta-suporte" className="text-xs font-bold text-white/70">
                       Resposta ao passageiro
                     </label>
-                    <span className="text-[10px] text-white/35">
-                      {resposta.length}/2000
-                    </span>
+                    <span className="text-[10px] text-white/35">{resposta.length}/2000</span>
                   </div>
                   <Textarea
                     id="resposta-suporte"
@@ -433,8 +407,7 @@ export function DetalheChamado({
                 {confirmacao === "resolver" ? (
                   <div className="space-y-3 rounded-xl border border-green-500/20 bg-green-500/10 p-4">
                     <p className="text-sm text-green-100">
-                      Confirmar esta mensagem como resposta final e resolver o
-                      chamado?
+                      Confirmar esta mensagem como resposta final e resolver o chamado?
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <Button
@@ -504,8 +477,7 @@ export function DetalheChamado({
                 {confirmacao === "fechar" ? (
                   <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.04] p-4">
                     <p className="text-sm text-white/75">
-                      Fechar é a etapa final. Este chamado não poderá ser
-                      reaberto depois.
+                      Fechar é a etapa final. Este chamado não poderá ser reaberto depois.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <Button
@@ -519,9 +491,7 @@ export function DetalheChamado({
                       </Button>
                       <Button
                         type="button"
-                        onClick={() =>
-                          actionMutation.mutate({ type: "fechar" })
-                        }
+                        onClick={() => actionMutation.mutate({ type: "fechar" })}
                         disabled={actionMutation.isPending}
                         className="bg-white/15 text-white hover:bg-white/20"
                       >
@@ -536,9 +506,7 @@ export function DetalheChamado({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Button
                       type="button"
-                      onClick={() =>
-                        actionMutation.mutate({ type: "reabrir" })
-                      }
+                      onClick={() => actionMutation.mutate({ type: "reabrir" })}
                       disabled={actionMutation.isPending}
                       className="min-h-12 bg-blue-600 text-white hover:bg-blue-500"
                     >
@@ -567,10 +535,7 @@ export function DetalheChamado({
             {chamadoAtual.status === "fechado" && (
               <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/55">
                 <Lock size={18} className="mt-0.5 shrink-0" />
-                <span>
-                  Chamado encerrado. Nenhuma nova ação administrativa está
-                  disponível.
-                </span>
+                <span>Chamado encerrado. Nenhuma nova ação administrativa está disponível.</span>
               </div>
             )}
           </section>
