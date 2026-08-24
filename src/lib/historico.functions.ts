@@ -6,6 +6,21 @@ export const getHistoricoCorridas = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
+      // 1. Resolver o ID do usuário (tabela public.usuarios) a partir do auth_user_id (context.userId)
+      const { data: userData, error: userError } = await context.supabase
+        .from("usuarios")
+        .select("id")
+        .eq("auth_user_id", context.userId)
+        .maybeSingle();
+
+      if (userError || !userData) {
+        console.error("Erro ao resolver usuário no histórico:", userError);
+        return [];
+      }
+
+      const passageiroId = userData.id;
+
+      // 2. Buscar corridas usando o ID da tabela usuarios
       const { data: corridas, error } = await context.supabase
         .from("corridas")
         .select(`
@@ -24,7 +39,7 @@ export const getHistoricoCorridas = createServerFn({ method: "GET" })
             )
           )
         `)
-        .eq("passageiro_id", context.userId)
+        .eq("passageiro_id", passageiroId)
         .order("created_at", { ascending: false })
         .limit(50);
 
