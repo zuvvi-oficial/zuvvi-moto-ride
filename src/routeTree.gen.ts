@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcompanhamentoRouteImport } from './routes/acompanhamento'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
+import { Route as CorridasRouteImport } from './routes/corridas'
 import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
@@ -44,6 +45,11 @@ const AuthRoute = AuthRouteImport.update({
 const ConfirmarCorridaRoute = ConfirmarCorridaRouteImport.update({
   id: '/confirmar-corrida',
   path: '/confirmar-corrida',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CorridasRoute = CorridasRouteImport.update({
+  id: '/corridas',
+  path: '/corridas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeMotoristaRoute = HomeMotoristaRouteImport.update({
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
+    | '/corridas'
     | '/home-motorista'
     | '/onboarding-motorista'
     | '/procurando-motorista'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
+    | '/corridas'
     | '/home-motorista'
     | '/onboarding-motorista'
     | '/procurando-motorista'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/confirmar-corrida'
+    | '/corridas'
     | '/home-motorista'
     | '/onboarding-motorista'
     | '/procurando-motorista'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   AcompanhamentoRoute: typeof AcompanhamentoRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
+  CorridasRoute: typeof CorridasRoute
   HomeMotoristaRoute: typeof HomeMotoristaRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/confirmar-corrida'
       fullPath: '/confirmar-corrida'
       preLoaderRoute: typeof ConfirmarCorridaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/corridas': {
+      id: '/corridas'
+      path: '/corridas'
+      fullPath: '/corridas'
+      preLoaderRoute: typeof CorridasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home-motorista': {
@@ -373,6 +393,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcompanhamentoRoute: AcompanhamentoRoute,
   AuthRoute: AuthRouteWithChildren,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
+  CorridasRoute: CorridasRoute,
   HomeMotoristaRoute: HomeMotoristaRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
