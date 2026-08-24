@@ -134,6 +134,7 @@ export type Database = {
       }
       chamados_suporte: {
         Row: {
+          arquivado_pelo_passageiro: boolean
           atendente_id: string | null
           corrida_id: string | null
           created_at: string
@@ -146,6 +147,7 @@ export type Database = {
           usuario_id: string
         }
         Insert: {
+          arquivado_pelo_passageiro?: boolean
           atendente_id?: string | null
           corrida_id?: string | null
           created_at?: string
@@ -158,6 +160,7 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          arquivado_pelo_passageiro?: boolean
           atendente_id?: string | null
           corrida_id?: string | null
           created_at?: string
@@ -969,6 +972,10 @@ export type Database = {
       submit_motorista_for_analysis: {
         Args: { p_auth_user_id: string }
         Returns: Json
+      }
+      suporte_arquivar_chamado_passageiro: {
+        Args: { _auth_user_id: string; _chamado_id: string }
+        Returns: undefined
       }
       suporte_fechar_chamado: {
         Args: { _admin_auth_id: string; _chamado_id: string }
