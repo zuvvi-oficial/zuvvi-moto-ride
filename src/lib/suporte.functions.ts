@@ -65,32 +65,29 @@ export const criarChamadoSuporte = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => 
     z.object({
       tipo: z.enum(["duvida", "sos", "reclamacao"]),
-      assunto: z.string().min(3).max(100),
-      descricao: z.string().min(10).max(1000),
-      corrida_id: z.string().uuid().optional(),
+      descricao: z.string().min(10).max(2000),
     }).parse(data)
   )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Gerar protocolo: ZUV-YYYYMMDD-XXXX (4 últimos dígitos do timestamp)
-    const now = new Date();
-    const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
-    const randomPart = Math.floor(1000 + Math.random() * 9000);
-    const protocolo = `ZUV-${datePart}-${randomPart}`;
+    // Localizar usuarios.id por auth_user_id
+    const { data: usuario, error: userError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", context.userId)
+      .single();
+
+    if (userError || !usuario) {
+      throw new Error("Usuário não encontrado.");
+    }
 
     const { data: chamado, error } = await supabaseAdmin
       .from("chamados_suporte")
       .insert({
-        usuario_id: context.userId,
-        // @ts-ignore
-        protocolo,
-        // @ts-ignore
-        assunto: data.assunto,
+        usuario_id: usuario.id,
         tipo: data.tipo,
         descricao: data.descricao,
-        corrida_id: data.corrida_id,
-        status: "aberto"
       })
       .select()
       .single();
