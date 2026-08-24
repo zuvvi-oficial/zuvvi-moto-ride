@@ -25,6 +25,14 @@
 
 ## Microetapas concluídas
 
+### 4.14 — HISTÓRICO DE CORRIDAS DO PASSAGEIRO (somente leitura) — ✅ FECHADA
+- Criado `src/lib/historico.functions.ts` com a server function `getHistoricoCorridas` (GET).
+- Implementada rota `/corridas` em `src/routes/corridas.tsx` com lista de até 50 corridas recentes.
+- Botão "Corridas" no menu inferior da Home do Passageiro ligado à nova rota.
+- Dados exibidos: data, destino, valor, status e nome do motorista.
+- Regra de negócio: consulta restrita ao `passageiro_id` do usuário logado; join com `usuarios` para nome do motorista.
+- Nota técnica: A função `criarVeiculo` (G5) reseta a aprovação do veículo sem checar status atual, mas isso não é alcançável hoje porque motoristas aprovados são redirecionados para fora da tela de onboarding. Pendência de hardening defensivo registrada para futura tela de edição de veículo.
+
 ### 4.12 — TOTAL DE CORRIDAS E TEMPO NA ZUVVI DO MOTORISTA — ✅ FECHADA
 - `getAcompanhamentoPassageiro` agora retorna `total_corridas` (concluídas) e `membro_desde`.
 - Implementada função `formatarTempoNaZuvvi` com lógica de dias/meses/anos conforme regra de negócio.

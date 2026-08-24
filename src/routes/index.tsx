@@ -401,10 +401,10 @@ function HomePassageiro({ nome }: { nome: string }) {
               <Bike className="w-6 h-6" strokeWidth={2.5} />
               <span className="text-[9px] font-black uppercase tracking-wider">Início</span>
             </button>
-            <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
+            <Link to="/corridas" className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
               <Clock className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Corridas</span>
-            </button>
+            </Link>
             <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
               <CreditCard className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Carteira</span>
