@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.5  
+**Versão:** 1.6  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -281,6 +281,31 @@ Regras dessa autorização:
 - abrir Pull Request em modo rascunho, sem merge.
 
 Todo arquivo, tabela, função e comportamento não listado acima permanece bloqueado.
+
+**Resultado do GitHub Actions — execução 1:**
+
+- Pull Request rascunho: `#2`;
+- workflow: `PIX DB Foundation`, execução `32788882306`;
+- Docker e Supabase CLI `2.115.0`: aprovados;
+- nome gerado oficialmente pela CLI: `20260824232036_pix_oauth_credentials_private.sql`;
+- stack local: iniciou a aplicação das migrations do repositório;
+- bloqueio: a migration preexistente `20260822044703_4c09eb6a-631d-415e-949a-19286faeaccd.sql` exige a corrida real `2251e1de-f717-452b-ae37-297ebc2ab7de` e exatamente 13 registros históricos, portanto falha corretamente em banco vazio;
+- a migration PIX-01 não chegou a ser aplicada;
+- os 33 testes PIX não chegaram a executar;
+- nenhuma migration Pix foi versionada após a falha;
+- nenhuma migration foi aplicada no Supabase principal;
+- classificação da Etapa 1B: **BLOQUEADA POR MIGRATION PREEXISTENTE NÃO REPRODUZÍVEL**.
+
+Conferência posterior do Supabase principal:
+
+- última migration continua `20260824222419_unicidade_conta_mercado_pago_motorista`;
+- schema `private` continua inexistente;
+- funções `pix_oauth_credentials_*` continuam inexistentes;
+- durante a execução surgiu uma nova corrida com pagamento Pix pendente, criada às `23:19:33 UTC`, e posteriormente cancelada, sem ID Mercado Pago;
+- por isso as contagens operacionais passaram de 100/83/3 para 101 corridas, 84 pagamentos e 4 pagamentos Pix;
+- essa mudança de dados ocorreu no aplicativo principal antes do início do workflow e não foi causada pelo GitHub Actions, que não recebeu credenciais do projeto principal.
+
+É proibido corrigir, ignorar, retirar ou fornecer dados artificiais à migration preexistente dentro do escopo Pix. Uma estratégia de teste isolado por fixture mínima de schema só poderá ser criada após nova aprovação explícita e nova allowlist.
 
 ### Etapa 1 — Integridade mínima do banco
 
