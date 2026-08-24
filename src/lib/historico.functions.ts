@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "./auth.middleware";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const getHistoricoCorridas = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -67,7 +67,7 @@ function HistoricoCorridas() {
             <p className="text-sm font-medium">Você ainda não fez nenhuma corrida.</p>
           </div>
         ) : (
-          corridas.map((corrida) => (
+          (corridas as any[]).map((corrida: any) => (
             <div 
               key={corrida.id}
               className="bg-zuvvi-indigo/40 border border-white/5 rounded-3xl p-5 space-y-4 transition-all hover:bg-zuvvi-indigo/60"
