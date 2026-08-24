@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, X } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ interface Notificacao {
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const queryClient = useQueryClient();
   const playSound = useSoundStore((state: any) => state.play);
 
@@ -71,6 +72,43 @@ export function NotificationBell() {
     },
   });
 
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error('Usuário não identificado');
+      const { error } = await supabase
+        .from('notificacoes' as any)
+        .update({ lida: true } as any)
+        .eq('usuario_id', userId)
+        .eq('lida', false);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificacoes', userId] });
+    },
+    onError: () => {
+      toast.error('Não foi possível marcar as notificações como lidas.');
+    },
+  });
+
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error('Usuário não identificado');
+      const { error } = await supabase
+        .from('notificacoes' as any)
+        .delete()
+        .eq('usuario_id', userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificacoes', userId] });
+      setShowClearConfirm(false);
+      toast.success('Notificações limpas');
+    },
+    onError: () => {
+      toast.error('Não foi possível limpar as notificações.');
+    },
+  });
+
   const playNotification = () => {
     playSound('/sounds/zuvvi_volt_ping.mp3').catch((e: any) => console.error('[NotificationBell] Audio play failed', e));
     if ('vibrate' in navigator) {
@@ -94,11 +132,11 @@ export function NotificationBell() {
         (payload) => {
           const newNotif = payload.new as Notificacao;
           queryClient.setQueryData(['notificacoes', userId], (old: Notificacao[] = []) => [newNotif, ...old]);
-          
+
           toast(newNotif.titulo, {
             description: newNotif.mensagem,
           });
-          
+
           playNotification();
         }
       )
@@ -126,21 +164,82 @@ export function NotificationBell() {
 
       {isOpen && (
         <>
-          <div 
-            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]" 
-            onClick={() => setIsOpen(false)}
+          <div
+            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]"
+            onClick={() => {
+              setShowClearConfirm(false);
+              setIsOpen(false);
+            }}
           />
           <div className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+96px)] z-50 w-[calc(100vw-32px)] max-w-[420px] max-h-[70dvh] -translate-x-1/2 overflow-hidden flex flex-col rounded-3xl border border-white/10 bg-zuvvi-indigo-dark/95 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-white text-base font-semibold tracking-tight">Notificações</h3>
-              <button 
-                onClick={() => setIsOpen(false)} 
-                className="h-9 w-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            <div className="px-5 py-4 border-b border-white/10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-white text-base font-semibold tracking-tight">Notificações</h3>
+                <button
+                  onClick={() => {
+                    setShowClearConfirm(false);
+                    setIsOpen(false);
+                  }}
+                  className="h-9 w-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Fechar notificações"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {notificacoes.length > 0 && (
+                <div className="mt-2 flex items-center gap-4">
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => markAllAsReadMutation.mutate()}
+                      disabled={markAllAsReadMutation.isPending}
+                      className="inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-zuvvi-volt transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <CheckCheck className="h-4 w-4" />
+                      Marcar lidas
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirm(true)}
+                    disabled={deleteAllMutation.isPending}
+                    className="inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-red-300 transition-colors hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Limpar
+                  </button>
+                </div>
+              )}
             </div>
-            
+
+            {showClearConfirm && notificacoes.length > 0 && (
+              <div className="mx-4 mt-4 rounded-2xl border border-red-300/20 bg-red-400/10 p-4">
+                <p className="text-sm font-semibold text-white">Limpar notificações?</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-white/65">
+                  As notificações serão removidas desta central. Corridas, ganhos e pagamentos não serão afetados.
+                </p>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirm(false)}
+                    disabled={deleteAllMutation.isPending}
+                    className="min-h-9 rounded-xl px-3 text-xs font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteAllMutation.mutate()}
+                    disabled={deleteAllMutation.isPending}
+                    className="min-h-9 rounded-xl bg-red-500 px-3 text-xs font-semibold text-white transition-colors hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {deleteAllMutation.isPending ? 'Limpando...' : 'Limpar'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-y-auto flex-1">
               {notificacoes.length === 0 ? (
                 <div className="p-10 text-center text-white/60 text-sm">
@@ -148,11 +247,11 @@ export function NotificationBell() {
                 </div>
               ) : (
                 notificacoes.map((n) => (
-                  <div 
+                  <div
                     key={n.id}
                     className={cn(
-                      "px-5 py-4 border-b border-white/[0.06] transition-colors cursor-pointer hover:bg-white/[0.04]",
-                      !n.lida && "bg-zuvvi-volt/5"
+                      'px-5 py-4 border-b border-white/[0.06] transition-colors cursor-pointer hover:bg-white/[0.04]',
+                      !n.lida && 'bg-zuvvi-volt/5'
                     )}
                     onClick={() => {
                       if (!n.lida) markAsReadMutation.mutate(n.id);
@@ -161,7 +260,7 @@ export function NotificationBell() {
                     <div className="flex justify-between items-start gap-3">
                       <span className="text-sm font-semibold text-white leading-snug">{n.titulo}</span>
                       <span className="text-[11px] font-medium text-white/40 whitespace-nowrap">
-                        {format(new Date(n.created_at), "HH:mm", { locale: ptBR })}
+                        {format(new Date(n.created_at), 'HH:mm', { locale: ptBR })}
                       </span>
                     </div>
                     <p className="text-xs leading-relaxed text-white/65 mt-1.5">{n.mensagem}</p>
