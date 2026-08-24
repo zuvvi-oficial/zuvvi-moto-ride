@@ -25,6 +25,10 @@
 
 ## Microetapas concluídas
 
+### 4.14-C — VISUAL: CABEÇALHO PASSAGEIRO PREMIUM — ✅ FECHADA
+- Atualizado `src/routes/index.tsx`: Cabeçalho agora utiliza o componente `ZuvviLogo` oficial com `surface="dark"`.
+- Mantido o design premium com `backdrop-blur-lg` e `bg-zuvvi-indigo/60`.
+
 ### 4.14-B — CORRIGIR FILTRO DE USUÁRIO NO HISTÓRICO — ✅ FECHADA
 - Corrigido bug em `getHistoricoCorridas` onde o filtro usava `auth_user_id` em vez de `usuarios.id`.
 - Implementada resolução prévia do ID do usuário logado na tabela `usuarios` a partir do `context.userId`.
