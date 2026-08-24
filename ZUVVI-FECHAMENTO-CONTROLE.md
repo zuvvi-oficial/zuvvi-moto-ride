@@ -25,6 +25,13 @@
 
 ## Microetapas concluídas
 
+### 4.14-B — CORRIGIR FILTRO DE USUÁRIO NO HISTÓRICO — ✅ FECHADA
+- Corrigido bug em `getHistoricoCorridas` onde o filtro usava `auth_user_id` em vez de `usuarios.id`.
+- Implementada resolução prévia do ID do usuário logado na tabela `usuarios` a partir do `context.userId`.
+- Confirmado que a tela de histórico agora exibe corridas para usuários com dados reais no banco.
+- Arquivos tocados: `src/lib/historico.functions.ts` e `ZUVVI-FECHAMENTO-CONTROLE.md`.
+- Verificado que `corridas.tsx` e `index.tsx` não sofreram alterações.
+
 ### 4.14 — HISTÓRICO DE CORRIDAS DO PASSAGEIRO (somente leitura) — ✅ FECHADA
 - Criado `src/lib/historico.functions.ts` com a server function `getHistoricoCorridas` (GET).
 - Implementada rota `/corridas` em `src/routes/corridas.tsx` com lista de até 50 corridas recentes.
