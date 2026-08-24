@@ -113,6 +113,11 @@ export const concluirConexaoMercadoPago = createServerFn({ method: "POST" })
 
     if (error) {
       console.error("[MercadoPago] Falha ao salvar conta:", error.message);
+      if (error.code === "23505") {
+        throw new Error(
+          "Esta conta Mercado Pago já está conectada a outro motorista Zuvvi. Use uma conta diferente.",
+        );
+      }
       throw new Error("Não foi possível concluir a conexão. Tente novamente.");
     }
 
