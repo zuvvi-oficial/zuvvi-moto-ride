@@ -1116,11 +1116,19 @@ function HomeMotorista() {
       <main className="p-6 max-w-md mx-auto">
         {activeRide ? (
           <div className="bg-white/5 border border-zuvvi-volt/30 rounded-[2rem] p-6 space-y-6 animate-in fade-in duration-500">
-            <div className="flex items-center gap-2 text-zuvvi-volt">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                Corrida aceita
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-zuvvi-volt">
+                <CheckCircle2 className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Corrida aceita
+                </span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                <User className="w-3.5 h-3.5 text-white/60" />
+                <span className="text-[11px] font-bold text-white tracking-tight">
+                  {(activeRide as any).passageiro_nome}
+                </span>
+              </div>
             </div>
 
             {activeRide && mapboxToken && activeRide.origem_lat && activeRide.origem_lng ? (
