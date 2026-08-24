@@ -39,7 +39,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink, AlertTriangle, ChevronRight, Maximize2, LogOut } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, MapPin, User, FileText, Bike, CreditCard, History, ExternalLink, AlertTriangle, ChevronRight, ChevronLeft, Maximize2, LogOut } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from '@/lib/utils';
 

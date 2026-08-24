@@ -42,7 +42,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle, AlertTriangle, Settings2, LogOut } from 'lucide-react';
+import { Eye, Clock, User, FileText, Bike, History, ExternalLink, MapPin, CheckCircle, XCircle, AlertTriangle, Settings2, ChevronLeft, LogOut } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 
 
