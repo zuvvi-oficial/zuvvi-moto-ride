@@ -5,6 +5,8 @@ import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { getVeiculosAdmin, updateStatusVeiculo, getVeiculoDetalheAdmin, updateDadosVeiculo } from '@/lib/admin.functions';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { AdminHeader } from '@/components/admin/AdminHeader';
+import { Link } from '@tanstack/react-router';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save } from 'lucide-react';
@@ -141,11 +143,19 @@ function AdminVeiculos() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-zuvvi-indigo min-h-screen text-white">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Gestão de Veículos</h1>
-        <Button variant="outline" onClick={() => window.history.back()}>Voltar</Button>
-      </div>
+    <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
+      <AdminHeader 
+        action={
+          <Button asChild variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/5 h-9 px-4 rounded-xl">
+            <Link to="/admin">Voltar</Link>
+          </Button>
+        } 
+      />
+
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Gestão de Veículos</h1>
+        </div>
 
       <div className="rounded-md border border-white/10">
         <Table>
@@ -520,6 +530,7 @@ function AdminVeiculos() {
           </ScrollArea>
         </SheetContent>
       </Sheet>
+      </div>
     </div>
   );
 }

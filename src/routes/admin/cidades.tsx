@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronLeft, ChevronRight, Search, MapPin, Rocket, CheckCircle, AlertTriangle, Loader2, Settings2 } from 'lucide-react';
+import { AdminHeader } from '@/components/admin/AdminHeader';
 
 
 const cidadesQueryOptions = (params: { 
@@ -158,21 +159,27 @@ function CidadesAdmin() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-zuvvi-indigo min-h-screen text-white">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Button asChild variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-            <Link to="/admin">← Voltar</Link>
+    <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
+      <AdminHeader 
+        action={
+          <Button asChild variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/5 h-9 px-4 rounded-xl">
+            <Link to="/admin">Voltar</Link>
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <MapPin className="w-8 h-8 text-volt" />
-            Gestão de Cidades
-          </h1>
+        } 
+      />
+
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <MapPin className="w-8 h-8 text-volt" />
+              Gestão de Cidades
+            </h1>
+          </div>
+          <div className="text-sm text-gray-400">
+            Total: {result.total} cidades cadastradas
+          </div>
         </div>
-        <div className="text-sm text-gray-400">
-          Total: {result.total} cidades cadastradas
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white/5 p-4 rounded-lg border border-white/10">
         <div className="space-y-2">
@@ -536,6 +543,7 @@ function CidadesAdmin() {
         </DialogContent>
       </Dialog>
 
+      </div>
     </div>
   );
 }
