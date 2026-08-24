@@ -116,13 +116,13 @@ function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pb-10">
-          <Button asChild className="w-full h-12 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
             <Link to="/admin/motoristas">Gerenciar Motoristas</Link>
           </Button>
-          <Button asChild className="w-full h-12 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
             <Link to="/admin/veiculos">Gerenciar Veículos</Link>
           </Button>
-          <Button asChild className="w-full h-12 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
             <Link to="/admin/cidades">Gerenciar Cidades</Link>
           </Button>
         </div>
