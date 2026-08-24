@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { queryOptions } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { ZuvviLogo } from '@/components/brand/ZuvviLogo';
+import { AdminHeader } from '@/components/admin/AdminHeader';
 
 const adminStatsOptions = queryOptions({
   queryKey: ['admin-stats'],
@@ -82,33 +82,7 @@ function AdminDashboard() {
 
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-zuvvi-indigo text-white flex flex-col">
-      {/* 1 — TOP BAR PREMIUM ZUVVI */}
-      <nav className="sticky top-0 z-40 w-full bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
-          {/* LADO ESQUERDO: MARCA OFICIAL */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-            <ZuvviLogo surface="dark" className="h-5 sm:h-6 w-auto" />
-            <div className="h-4 w-px bg-white/10 hidden xs:block" />
-            <span className="text-[10px] font-bold tracking-[0.25em] text-white/30 uppercase hidden xs:block">
-              Administrativo
-            </span>
-          </div>
-          
-          {/* LADO DIREITO: AÇÕES */}
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="h-9 px-3 sm:px-4 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all active:scale-95"
-            >
-              <LogOut className="w-3 h-3" />
-              <span className="hidden sm:inline">Sair do Painel</span>
-              <span className="sm:hidden">Sair</span>
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <AdminHeader />
 
       {/* 2 — CONTEÚDO DO DASHBOARD (CONGELADO) */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-12">
