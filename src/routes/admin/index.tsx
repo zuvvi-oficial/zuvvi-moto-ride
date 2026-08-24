@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { queryOptions } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
+import { ZuvviLogo } from '@/components/brand/ZuvviLogo';
 
 const adminStatsOptions = queryOptions({
   queryKey: ['admin-stats'],
@@ -80,24 +81,37 @@ function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-[100dvh] overflow-x-hidden bg-zuvvi-indigo text-white">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 sm:space-y-8">
-        <header className="flex flex-col gap-3">
-          <div className="flex items-start justify-between gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold leading-tight tracking-tight min-w-0">
-              Dashboard Administrativo
-            </h1>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="shrink-0 h-10 px-3 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2"
-            >
-              <LogOut className="w-3 h-3" />
-              Sair
-            </Button>
+    <div className="min-h-[100dvh] overflow-x-hidden bg-zuvvi-indigo text-white flex flex-col">
+      {/* Top Bar Premium */}
+      <nav className="sticky top-0 z-40 w-full bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <ZuvviLogo surface="dark" className="h-6 sm:h-7 w-auto" />
+            <div className="h-4 w-px bg-white/10 hidden sm:block" />
+            <span className="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-white/40 uppercase hidden sm:block">
+              Administrativo
+            </span>
           </div>
-          <div className="text-xs sm:text-sm text-white/45 leading-relaxed">
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleSignOut}
+            className="h-9 px-3 sm:px-4 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all active:scale-95"
+          >
+            <LogOut className="w-3 h-3" />
+            <span className="hidden xs:inline">Sair</span>
+          </Button>
+        </div>
+      </nav>
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <header className="space-y-1.5 sm:space-y-2">
+          <h1 className="text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight text-white">
+            Dashboard Administrativo
+          </h1>
+          <div className="text-[10px] sm:text-xs text-white/35 font-medium tracking-wide flex items-center gap-2">
+            <div className="w-1 h-1 rounded-full bg-zuvvi-volt animate-pulse" />
             Última atualização: {new Date(stats.lastUpdate).toLocaleString('pt-BR')}
           </div>
         </header>
@@ -132,7 +146,7 @@ function AdminDashboard() {
             <Link to="/admin/cidades">Gerenciar Cidades</Link>
           </Button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
