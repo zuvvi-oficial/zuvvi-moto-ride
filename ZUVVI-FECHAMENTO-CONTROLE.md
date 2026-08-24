@@ -25,6 +25,12 @@
 
 ## Microetapas concluídas
 
+### 4.12 — TOTAL DE CORRIDAS E TEMPO NA ZUVVI DO MOTORISTA — ✅ FECHADA
+- `getAcompanhamentoPassageiro` agora retorna `total_corridas` (concluídas) e `membro_desde`.
+- Implementada função `formatarTempoNaZuvvi` com lógica de dias/meses/anos conforme regra de negócio.
+- Card do motorista atualizado com estatísticas de fidelidade e experiência.
+- Auditoria: A Microetapa 4.5 foi identificada como não aplicada no banco anteriormente; gatilho e backfill realizados manualmente em 24/08/2026. Lição aprendida: conferir migrações no banco real.
+
 ### 4.13 — Cabeçalho Premium Zuvvi no Admin — ✅ FECHADA
 - Adicionada Top Bar institucional Premium na rota `/admin`.
 - Uso do componente oficial `ZuvviLogo` com `surface="dark"`.
@@ -32,7 +38,7 @@
 - Responsividade: logo e botão de sair preservados em todos os breakpoints; textos secundários ocultos no mobile.
 - Dashboard, cards e lógica funcional original 100% preservados e congelados.
 
-### 4.12 — Microcorreção Visual: Contador de Notificações — ✅ FECHADA
+### 4.12-NOTIF — Microcorreção Visual: Contador de Notificações — ✅ FECHADA
 
 ### 0.1 — Proteção de acesso à corrida — ✅ FECHADA
 - `getCorrida` exige usuário autenticado participante da corrida.
