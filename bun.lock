@@ -48,6 +48,7 @@
         "input-otp": "^1.4.2",
         "lucide-react": "^1.31.0",
         "mapbox-gl": "^3.28.1",
+        "mercadopago": "^3.4.0",
         "nanoid": "^6.0.1",
         "react": "^19.2.0",
         "react-day-picker": "^9.14.0",
@@ -1216,6 +1217,8 @@
     "mapbox-gl": ["mapbox-gl@3.28.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/mapbox-gl/-/mapbox-gl-3.28.1.tgz", {}, "sha512-f8bCHFzZ51bKig7rnD7e08aoFLOV3MNFZduspZ4lgOgiaNVp9sw4NSWcgo3IWTyekYKKXjiICD2BP2o4DiYfxw=="],
 
     "math-intrinsics": ["math-intrinsics@1.1.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/math-intrinsics/-/math-intrinsics-1.1.0.tgz", {}, "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g=="],
+
+    "mercadopago": ["mercadopago@3.4.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/mercadopago/-/mercadopago-3.4.0.tgz", {}, "sha512-oMbjrD4Y+JA8tj3Vc4BdGAMGGtL5lqqypUb5WPhIMI2X47R8JlE76W3sQ8kfq0wIROxi5gaxCHT/3Ojm4MjTOA=="],
 
     "minimatch": ["minimatch@3.1.5", "", { "dependencies": { "brace-expansion": "^1.1.7" } }, "sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w=="],
 
