@@ -127,20 +127,23 @@ export function NotificationBell() {
       {isOpen && (
         <>
           <div 
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden" 
+            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-80 max-h-[400px] bg-white rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col border border-gray-100 animate-in fade-in slide-in-from-top-2">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="font-semibold text-indigo-dark">Notificações</h3>
-              <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-gray-200 rounded-lg transition-colors">
-                <X className="w-4 h-4 text-gray-500" />
+          <div className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+96px)] z-50 w-[calc(100vw-32px)] max-w-[420px] max-h-[70dvh] -translate-x-1/2 overflow-hidden flex flex-col rounded-3xl border border-white/10 bg-zuvvi-indigo-dark/95 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-white text-base font-semibold tracking-tight">Notificações</h3>
+              <button 
+                onClick={() => setIsOpen(false)} 
+                className="h-9 w-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="overflow-y-auto flex-1 bg-white">
+            <div className="overflow-y-auto flex-1">
               {notificacoes.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 text-sm">
+                <div className="p-10 text-center text-white/60 text-sm">
                   Nenhuma notificação por aqui.
                 </div>
               ) : (
@@ -148,22 +151,22 @@ export function NotificationBell() {
                   <div 
                     key={n.id}
                     className={cn(
-                      "p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer",
-                      !n.lida && "bg-indigo-50/30"
+                      "px-5 py-4 border-b border-white/[0.06] transition-colors cursor-pointer hover:bg-white/[0.04]",
+                      !n.lida && "bg-zuvvi-volt/5"
                     )}
                     onClick={() => {
                       if (!n.lida) markAsReadMutation.mutate(n.id);
                     }}
                   >
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="font-medium text-sm text-indigo-dark leading-tight">{n.titulo}</span>
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                    <div className="flex justify-between items-start gap-3">
+                      <span className="text-sm font-semibold text-white leading-snug">{n.titulo}</span>
+                      <span className="text-[11px] font-medium text-white/40 whitespace-nowrap">
                         {format(new Date(n.created_at), "HH:mm", { locale: ptBR })}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">{n.mensagem}</p>
+                    <p className="text-xs leading-relaxed text-white/65 mt-1.5">{n.mensagem}</p>
                     {!n.lida && (
-                      <div className="w-2 h-2 rounded-full bg-volt mt-2" />
+                      <div className="w-2 h-2 rounded-full bg-zuvvi-volt mt-2 shadow-[0_0_10px_rgba(198,255,61,0.55)]" />
                     )}
                   </div>
                 ))
