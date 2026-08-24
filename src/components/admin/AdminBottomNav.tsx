@@ -2,7 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { LayoutDashboard, Users, Bike, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function AdminBottomNav() {
+export function AdminBottomNav({ isHidden }: { isHidden?: boolean }) {
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -34,7 +34,10 @@ export function AdminBottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[60] md:hidden bg-zuvvi-indigo/95 backdrop-blur-xl border-t border-white/5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+    <nav className={cn(
+      "fixed bottom-0 left-0 right-0 z-[60] md:hidden bg-zuvvi-indigo/95 backdrop-blur-xl border-t border-white/5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.5)] transition-transform duration-300",
+      isHidden ? "translate-y-full" : "translate-y-0"
+    )}>
       <div className="flex items-center justify-between max-w-md mx-auto px-6">
         {items.map((item) => (
           <Link
