@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.20
+**Versão:** 1.21
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -752,6 +752,58 @@ Rollback antes da produção: remover somente os quatro arquivos novos e reverte
 **Classificação da microetapa PIX-07R:** **APROVADA E CONGELADA**.
 
 A aprovação reconcilia somente o arquivo ausente no GitHub. Ela não cria nova funcionalidade, não modifica o comportamento visível do aplicativo e, por isso, não possui teste manual de tela. A integração OAuth continua bloqueada até nova microetapa com allowlist própria.
+
+**Autorização e allowlist da microetapa PIX-08A-T — prova da conexão OAuth atômica:**
+
+Objetivo único: desenhar e validar, em Supabase local descartável, uma evolução da função `public.pix_oauth_credentials_upsert` para manter na mesma transação a credencial privada criptografada e a projeção pública `motoristas.conta_mercado_pago_id`. Esta microetapa cria somente template, teste e workflow; não versiona nem aplica a migration definitiva e não integra o aplicativo.
+
+Baseline revalidado em 25/08/2026:
+
+- commit-base da branch Pix: `fd81d62595ddabad997fd747b95b2ad86068d432`;
+- `main` remota continua ancestral da branch Pix;
+- hashes congelados: migration de unicidade `729eef58...`, migration PIX-01 `8c753499...`, `motorista-pagamento.functions.ts` `fcafe924...`, `package.json` `71b9e8dc...` e `bun.lock` `43a4359a...`;
+- Supabase principal permanece na migration `20260824222419_unicidade_conta_mercado_pago_motorista`, com 84 pagamentos, quatro Pix, índice público de conta única, sem schema `private` e sem `pix_oauth_credentials_upsert`;
+- changelog e documentação atuais do Supabase revisados; nenhuma alteração recente exige ampliar esta prova isolada;
+- a função-base PIX-01 é `SECURITY INVOKER`, possui `search_path` fixo e execução revogada de `public`, `anon` e `authenticated`, concedida somente a `service_role`.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template`;
+- criar `supabase/tests/pix_08_oauth_atomic_connection.sql`;
+- criar `.github/workflows/pix-db-oauth-atomic-connection.yml`.
+
+Comportamento permitido no template:
+
+- substituir somente o corpo da função existente `public.pix_oauth_credentials_upsert`, preservando assinatura, tipo de retorno, `SECURITY INVOKER`, `search_path` e grants;
+- normalizar o identificador Mercado Pago uma única vez;
+- persistir os envelopes privados e atualizar `public.motoristas.conta_mercado_pago_id` na mesma chamada transacional;
+- preservar reconexão, rotação de token, validade, escopo e tipo de token definidos pela PIX-01;
+- falhar fechado se motorista não existir, conta Mercado Pago estiver duplicada ou os envelopes forem inválidos;
+- garantir rollback integral quando qualquer uma das duas gravações falhar.
+
+Travas:
+
+- não criar nem versionar migration definitiva nesta microetapa; o workflow deve gerar uma migration temporária exclusivamente pela Supabase CLI;
+- não aplicar migration, DDL, DML ou reparo no Supabase principal;
+- não alterar migrations PIX-01 a PIX-04 nem a migration reconciliada PIX-07R;
+- não modificar Server Functions, callback, componentes, telas, autenticação ou fluxo OAuth atual;
+- não usar segredo, token, credencial ou dado real;
+- não alterar `package.json`, `bun.lock`, dinheiro, cartão ou core e não fazer merge.
+
+Testes obrigatórios:
+
+- conexão inicial grava projeção pública e credencial privada coerentes;
+- reconexão/rotação atualiza ambos sem duplicar a linha privada;
+- conta Mercado Pago já vinculada a outro motorista é rejeitada;
+- falha na unicidade pública reverte a gravação privada intermediária;
+- envelope inválido não altera a projeção pública anterior;
+- motorista inexistente não cria credencial órfã;
+- `anon` e `authenticated` continuam sem execução, enquanto `service_role` mantém apenas o acesso previsto;
+- função continua `SECURITY INVOKER`, com `search_path` fixo;
+- repetir pgTAP PIX-01 a PIX-04 e PIX-07R, PIX-05, PIX-06, lint, advisors, ESLint, TypeScript, build, hashes e diff da allowlist.
+
+Rollback: remover somente os três arquivos novos e reverter esta seção documental. Não existe rollback de produção porque escrita remota e migration definitiva estão proibidas.
 
 ### Etapa 1 — Integridade mínima do banco
 
