@@ -165,13 +165,21 @@ export async function buscarPagamentoPixCanonico(
       .filter((id): id is string => id !== null);
 
     if (matches.length === 0) return null;
-    if (matches.length !== 1) throw new Error("PIX_RECONCILIACAO_REFERENCIA_AMBIGUA");
-    paymentId = matches[0];
+    const matchedPaymentId = matches[0];
+    if (matches.length !== 1 || !matchedPaymentId) {
+      throw new Error("PIX_RECONCILIACAO_REFERENCIA_AMBIGUA");
+    }
+    paymentId = matchedPaymentId;
+  }
+
+  const canonicalPaymentId = paymentId;
+  if (!canonicalPaymentId) {
+    throw new Error("PIX_RECONCILIACAO_ENTRADA_INVALIDA");
   }
 
   const paymentUrl = new URL(
-    `${MERCADO_PAGO_API_BASE}/v1/payments/${encodeURIComponent(paymentId)}`,
+    `${MERCADO_PAGO_API_BASE}/v1/payments/${encodeURIComponent(canonicalPaymentId)}`,
   );
   const paymentPayload = await requestJson(paymentUrl, input.accessToken, fetchImpl);
-  return parseCanonicalPayment(paymentPayload, input, paymentId);
+  return parseCanonicalPayment(paymentPayload, input, canonicalPaymentId);
 }
