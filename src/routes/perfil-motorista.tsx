@@ -70,7 +70,9 @@ function PerfilMotorista() {
           ) : error || !status ? (
             <div className="py-4 text-center">
               <p className="font-bold">Não foi possível carregar seu perfil.</p>
-              <p className="mt-1 text-xs text-white/50">Volte para a tela de corrida e tente novamente.</p>
+              <p className="mt-1 text-xs text-white/50">
+                Volte para a tela de corrida e tente novamente.
+              </p>
             </div>
           ) : (
             <div className="flex items-center gap-4">
@@ -100,7 +102,9 @@ function PerfilMotorista() {
 
         <section className="space-y-3">
           <div className="px-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">Recebimentos</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">
+              Recebimentos
+            </p>
             <h2 className="mt-1 text-lg font-black">Mercado Pago</h2>
             <p className="mt-1 text-xs leading-relaxed text-white/45">
               Gerencie aqui a conta usada para receber pagamentos Pix das corridas.
@@ -113,7 +117,9 @@ function PerfilMotorista() {
 
         <section className="space-y-3">
           <div className="px-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Conta e segurança</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+              Conta e segurança
+            </p>
             <h2 className="mt-1 text-lg font-black">Sessão</h2>
           </div>
           <button
@@ -148,7 +154,11 @@ function PerfilMotorista() {
             <Bike className="h-6 w-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Corrida</span>
           </Link>
-          <button type="button" disabled className="flex flex-col items-center gap-1 text-muted-foreground opacity-50">
+          <button
+            type="button"
+            disabled
+            className="flex flex-col items-center gap-1 text-muted-foreground opacity-50"
+          >
             <Clock className="h-6 w-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Ganhos</span>
           </button>

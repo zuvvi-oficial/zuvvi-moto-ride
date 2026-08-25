@@ -36,7 +36,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { criarAvaliacao } from "@/lib/avaliacoes.functions";
 import { MapView } from "@/components/MapView";
-import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";
 
 import { getMapboxToken } from "@/lib/user.functions";
 import {
@@ -108,7 +107,7 @@ function HomeMotorista() {
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
   const playSound = useSoundStore((state: any) => state.play);
   const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
-  
+
   // Estado explícito para corrida finalizada
   const [completedRideNotice, setCompletedRideNotice] = useState<{
     id: string;
@@ -126,11 +125,11 @@ function HomeMotorista() {
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
-  const lastRouteCoordsRef = useRef<{ 
-    driverLat: number; 
-    driverLng: number; 
-    targetLat: number; 
-    targetLng: number; 
+  const lastRouteCoordsRef = useRef<{
+    driverLat: number;
+    driverLng: number;
+    targetLat: number;
+    targetLng: number;
     phase: "pickup" | "destination";
   } | null>(null);
 
@@ -189,11 +188,9 @@ function HomeMotorista() {
   const chatClosedSyncInFlightRef = useRef(false);
   const chatClosedSyncPendingRef = useRef(false);
 
-
-
   const handleChatOpenChange = (open: boolean) => {
     if (open && !activeRide?.id) return;
-    
+
     if (open && activeRide?.id) {
       chatSessionRideIdRef.current = activeRide.id;
       chatOpenRef.current = true;
@@ -211,7 +208,7 @@ function HomeMotorista() {
     const currentRideId = activeRide.id;
 
     if (chatSessionRideIdRef.current !== currentRideId) return;
-    
+
     if (chatRefreshInFlightRef.current) {
       chatRefreshPendingRef.current = true;
       return;
@@ -229,13 +226,13 @@ function HomeMotorista() {
 
         await marcarEntreguesFn({ data: { corridaId: currentRideId } });
         if (activeChatRideIdRef.current !== currentRideId) break;
-        
+
         await marcarLidasFn({ data: { corridaId: currentRideId } });
         if (activeChatRideIdRef.current !== currentRideId) break;
 
         const atualizado = await carregarChatFn({ data: { corridaId: currentRideId } });
         if (activeChatRideIdRef.current !== currentRideId) break;
-        
+
         setChatData(atualizado as ChatData);
         setChatUnreadCount((atualizado as ChatData).naoLidas ?? 0);
         setChatError(null);
@@ -245,7 +242,6 @@ function HomeMotorista() {
         chatSessionRideIdRef.current === currentRideId &&
         activeChatRideIdRef.current === currentRideId
       );
-
     } catch {
       if (activeChatRideIdRef.current === currentRideId) {
         setChatError("Não foi possível carregar o chat.");
@@ -317,7 +313,6 @@ function HomeMotorista() {
     chatClosedSyncPendingRef.current = false;
   }, [activeRide?.id]);
 
-
   useEffect(() => {
     const corridaId = activeRide?.id;
     if (!corridaId) return;
@@ -326,7 +321,9 @@ function HomeMotorista() {
     let chatChannel: ReturnType<typeof supabase.channel> | null = null;
 
     const startRealtime = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (cancelled) return;
 
       if (session?.access_token) {
@@ -435,7 +432,6 @@ function HomeMotorista() {
     };
   }, [chatOpen, activeRide?.id, atualizarPresencaFn, refreshChat]);
 
-
   useEffect(() => {
     const corridaId = activeRide?.id;
     if (!corridaId) return;
@@ -445,16 +441,14 @@ function HomeMotorista() {
     const runHeartbeat = async () => {
       if (document.visibilityState !== "visible") return;
 
-      const isDigitando = 
-        chatOpenRef.current && 
-        chatSessionRideIdRef.current === corridaId;
+      const isDigitando = chatOpenRef.current && chatSessionRideIdRef.current === corridaId;
 
       try {
         await atualizarPresencaFn({
           data: {
             corridaId,
-            digitando: isDigitando ? digitandoRef.current : false
-          }
+            digitando: isDigitando ? digitandoRef.current : false,
+          },
         });
       } catch (err) {
         // Silently fail
@@ -473,14 +467,13 @@ function HomeMotorista() {
         } else if (activeChatRideIdRef.current === corridaId) {
           void syncChatFechado();
         }
-
       } else {
         // Hidden: send digitando=false best effort
         void atualizarPresencaFn({
           data: {
             corridaId,
-            digitando: false
-          }
+            digitando: false,
+          },
         }).catch(() => {});
       }
     };
@@ -497,7 +490,6 @@ function HomeMotorista() {
         } else if (activeChatRideIdRef.current === corridaId) {
           void syncChatFechado();
         }
-
       }
     };
 
@@ -518,13 +510,15 @@ function HomeMotorista() {
     };
   }, [activeRide?.id, atualizarPresencaFn, refreshChat, syncChatFechado]);
 
-
-
   const handleEnviarMensagem = async (conteudo: string) => {
-    if (!activeRide?.id || chatSessionRideIdRef.current !== activeRide.id || chatOpenRef.current !== true) {
+    if (
+      !activeRide?.id ||
+      chatSessionRideIdRef.current !== activeRide.id ||
+      chatOpenRef.current !== true
+    ) {
       throw new Error("Chat não está disponível.");
     }
-    
+
     setChatSending(true);
     try {
       const clientMessageId = crypto.randomUUID();
@@ -546,7 +540,11 @@ function HomeMotorista() {
 
   const handleDigitandoChange = (digitando: boolean) => {
     digitandoRef.current = digitando;
-    if (activeRide?.id && chatSessionRideIdRef.current === activeRide.id && chatOpenRef.current === true) {
+    if (
+      activeRide?.id &&
+      chatSessionRideIdRef.current === activeRide.id &&
+      chatOpenRef.current === true
+    ) {
       void atualizarPresencaFn({
         data: {
           corridaId: activeRide.id,
@@ -578,24 +576,24 @@ function HomeMotorista() {
     // 1. Vibração forte
     const vibracaoPadrao = [400, 150, 400, 150, 400];
     const duracaoVibracao = vibracaoPadrao.reduce((a, b) => a + b, 0);
-    
+
     if ("vibrate" in navigator) {
       navigator.vibrate(vibracaoPadrao);
     }
 
     // 2. Sino personalizado - disparado quase simultaneamente para manter vínculo com gesto
-    playSound("/sounds/zuvvi_volt_ping.mp3").catch((e: any) => 
-      console.error("[HomeMotorista] Erro ao tocar sino:", e)
+    playSound("/sounds/zuvvi_volt_ping.mp3").catch((e: any) =>
+      console.error("[HomeMotorista] Erro ao tocar sino:", e),
     );
 
     // Aguarda vibração terminar para prosseguir com a voz
-    await new Promise(resolve => setTimeout(resolve, Math.max(duracaoVibracao, 1500)));
+    await new Promise((resolve) => setTimeout(resolve, Math.max(duracaoVibracao, 1500)));
 
     // 3. Voz feminina (Web Speech API)
     if ("speechSynthesis" in window) {
       const valor = oferta.valor_estimado;
       const distKm = (oferta.distancia_aprox_m / 1000).toFixed(1).replace(".", ",");
-      
+
       let valorTexto = `${Math.floor(valor)} reais`;
       if (valor % 1 !== 0) {
         const centavos = Math.round((valor % 1) * 100);
@@ -603,7 +601,7 @@ function HomeMotorista() {
       }
 
       const frase = `Nova corrida disponível. A ${distKm} quilômetros de distância, valor estimado de ${valorTexto}.`;
-      
+
       const utterance = new SpeechSynthesisUtterance(frase);
       utterance.lang = "pt-BR";
       utterance.rate = 0.9;
@@ -612,14 +610,16 @@ function HomeMotorista() {
       // Tentar carregar vozes e selecionar uma feminina
       const setVoice = () => {
         const voices = window.speechSynthesis.getVoices();
-        const ptVoices = voices.filter(v => v.lang.startsWith("pt"));
-        const femaleVoice = ptVoices.find(v => 
-          v.name.toLowerCase().includes("female") || 
-          v.name.toLowerCase().includes("mulher") ||
-          v.name.toLowerCase().includes("maria") ||
-          v.name.toLowerCase().includes("luciana")
-        ) || ptVoices[0];
-        
+        const ptVoices = voices.filter((v) => v.lang.startsWith("pt"));
+        const femaleVoice =
+          ptVoices.find(
+            (v) =>
+              v.name.toLowerCase().includes("female") ||
+              v.name.toLowerCase().includes("mulher") ||
+              v.name.toLowerCase().includes("maria") ||
+              v.name.toLowerCase().includes("luciana"),
+          ) || ptVoices[0];
+
         if (femaleVoice) utterance.voice = femaleVoice;
       };
 
@@ -637,18 +637,17 @@ function HomeMotorista() {
     if (ofertas.length > 0) {
       const currentIds = new Set(ofertas.map((o: any) => o.id));
       const newOfertas = ofertas.filter((o: any) => !lastOfertasIds.has(o.id));
-      
+
       if (newOfertas.length > 0) {
         // Dispara o alerta para a oferta mais relevante (primeira da lista)
         dispararSequenciaAlerta(newOfertas[0]);
       }
-      
+
       setLastOfertasIds(currentIds);
     } else if (lastOfertasIds.size > 0) {
       setLastOfertasIds(new Set());
     }
   }, [ofertas, lastOfertasIds, dispararSequenciaAlerta]);
-
 
   const mutation = useMutation({
     mutationFn: (disponivel: boolean) => updateMotoristaDisponibilidade({ data: { disponivel } }),
@@ -745,7 +744,7 @@ function HomeMotorista() {
 
   const handleIniciarCorrida = async (rideId: string) => {
     if (codigoEmbarque.length !== 4) return;
-    
+
     if (processingRideId) return;
     setProcessingRideId(rideId);
     try {
@@ -884,10 +883,10 @@ function HomeMotorista() {
 
     const driverLat = status.ultima_lat;
     const driverLng = status.ultima_lng;
-    
+
     const isTrip = activeRide.status === "em_andamento";
     const phase = isTrip ? "destination" : "pickup";
-    
+
     const targetLat = isTrip ? activeRide.destino_lat : activeRide.origem_lat;
     const targetLng = isTrip ? activeRide.destino_lng : activeRide.origem_lng;
 
@@ -908,10 +907,11 @@ function HomeMotorista() {
     // 4 & 5. Rota Directions
     const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
     if (hasValidDriver && hasValidTarget && routeStatuses.includes(activeRide.status)) {
-      const coordsChanged = !lastRouteCoordsRef.current || 
-        lastRouteCoordsRef.current.driverLat !== driverLat || 
-        lastRouteCoordsRef.current.driverLng !== driverLng || 
-        lastRouteCoordsRef.current.targetLat !== targetLat || 
+      const coordsChanged =
+        !lastRouteCoordsRef.current ||
+        lastRouteCoordsRef.current.driverLat !== driverLat ||
+        lastRouteCoordsRef.current.driverLng !== driverLng ||
+        lastRouteCoordsRef.current.targetLat !== targetLat ||
         lastRouteCoordsRef.current.targetLng !== targetLng ||
         lastRouteCoordsRef.current.phase !== phase;
 
@@ -920,17 +920,17 @@ function HomeMotorista() {
           routeAbortRef.current.abort();
           routeAbortRef.current = null;
         }
-        
+
         const controller = new AbortController();
         routeAbortRef.current = controller;
 
         const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${driverLng},${driverLat};${targetLng},${targetLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
 
         fetch(url, { signal: controller.signal })
-          .then(res => res.json())
-          .then(data => {
+          .then((res) => res.json())
+          .then((data) => {
             if (controller.signal.aborted) return;
-            
+
             if (data.code !== "Ok" || !data.routes?.[0]) {
               setRouteError("Rota temporariamente indisponível.");
               return;
@@ -946,14 +946,14 @@ function HomeMotorista() {
             } else {
               map.addSource(sourceId, {
                 type: "geojson",
-                data: route
+                data: route,
               });
               map.addLayer({
                 id: layerId,
                 type: "line",
                 source: sourceId,
                 layout: { "line-join": "round", "line-cap": "round" },
-                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 }
+                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
               });
             }
 
@@ -966,13 +966,19 @@ function HomeMotorista() {
               routeFittedRideRef.current = fitKey;
             }
 
-            lastRouteCoordsRef.current = { driverLat: driverLat!, driverLng: driverLng!, targetLat: targetLat!, targetLng: targetLng!, phase };
-            
+            lastRouteCoordsRef.current = {
+              driverLat: driverLat!,
+              driverLng: driverLng!,
+              targetLat: targetLat!,
+              targetLng: targetLng!,
+              phase,
+            };
+
             if (routeAbortRef.current === controller) {
               routeAbortRef.current = null;
             }
           })
-          .catch(err => {
+          .catch((err) => {
             if (err.name !== "AbortError") {
               setRouteError("Rota temporariamente indisponível.");
             }
@@ -984,7 +990,7 @@ function HomeMotorista() {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
       }
-      
+
       const sourceId = "zuvvi-driver-pickup-route-source";
       const layerId = "zuvvi-driver-pickup-route-layer";
       if (map.getLayer(layerId)) map.removeLayer(layerId);
@@ -1023,14 +1029,14 @@ function HomeMotorista() {
         }
         driverMarkerRef.current = null;
       }
-      
+
       // 3. Resetar referências operacionais
       routeFittedRideRef.current = null;
       lastRouteCoordsRef.current = null;
       setRouteError(null);
       setIsPickupMapReady(false);
-      
-      // 4. IMPORTANTE: Não tentar acessar layers/sources aqui 
+
+      // 4. IMPORTANTE: Não tentar acessar layers/sources aqui
       // O componente MapView cuida do map.remove() que já limpa tudo.
       // Apenas anulamos a referência da instância.
       pickupMapInstance.current = null;
@@ -1066,11 +1072,10 @@ function HomeMotorista() {
   const chatDataAtual = chatData?.corridaId === activeRide?.id ? chatData : null;
   const chatOpenAtual = chatOpen && chatSessionRideIdRef.current === activeRide?.id;
   const unreadCountDisplay = chatUnreadCount > 99 ? "99+" : chatUnreadCount.toString();
-  const chatButtonAria = chatUnreadCount > 0 
-    ? `Chat com passageiro, ${chatUnreadCount} mensagens não lidas`
-    : "Chat com passageiro";
-
-
+  const chatButtonAria =
+    chatUnreadCount > 0
+      ? `Chat com passageiro, ${chatUnreadCount} mensagens não lidas`
+      : "Chat com passageiro";
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white pb-32 font-poppins">
@@ -1088,7 +1093,7 @@ function HomeMotorista() {
             <h1 className="text-sm font-bold uppercase">{status.nome?.split(" ")[0]}</h1>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <NotificationBell />
           {activeRide ? (
@@ -1320,7 +1325,6 @@ function HomeMotorista() {
               )}
             </button>
 
-
             <button
               onClick={() => setShowCancelModal(true)}
               disabled={!!processingRideId}
@@ -1342,9 +1346,7 @@ function HomeMotorista() {
                 </p>
               </div>
             </div>
-            <MercadoPagoConnect />
           </div>
-
         ) : (
           <div className="space-y-4">
             {ofertas.length === 0 ? (
@@ -1476,7 +1478,7 @@ function HomeMotorista() {
                 <CheckCircle2 className="w-10 h-10 text-zuvvi-volt" />
               </div>
             </div>
-            
+
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
                 FINALIZAR CORRIDA?
@@ -1497,7 +1499,7 @@ function HomeMotorista() {
               <button
                 onClick={async () => {
                   if (!activeRide?.id || processingRideId) return;
-                  
+
                   // Capturar dados para o notice antes da finalização
                   const rideData = {
                     id: activeRide.id,
@@ -1510,10 +1512,10 @@ function HomeMotorista() {
                   try {
                     // 1. Backend
                     await finalizarCorridaFn({ data: { rideId: activeRide.id } });
-                    
+
                     // 2. Fechar modal
                     setShowFinalizeConfirmation(false);
-                    
+
                     // 3. Resetar estado de avaliação
                     setNotaAvaliacao(0);
                     setComentarioAvaliacao("");
@@ -1521,17 +1523,19 @@ function HomeMotorista() {
 
                     // 4. Sucesso visual desacoplado
                     setCompletedRideNotice(rideData);
-                    
+
                     // 5. Limpar estados locais de chat para a corrida encerrada
                     setChatOpen(false);
                     chatOpenRef.current = false;
                     setChatData(null);
                     setChatUnreadCount(0);
-                    
+
                     // 5. Invalidação best-effort (não derruba a página)
-                    void queryClient.invalidateQueries({ queryKey: ["motorista-status"] })
-                      .catch(err => console.error("Erro ao sincronizar status pós-finalização:", err));
-                    
+                    void queryClient
+                      .invalidateQueries({ queryKey: ["motorista-status"] })
+                      .catch((err) =>
+                        console.error("Erro ao sincronizar status pós-finalização:", err),
+                      );
                   } catch (err: any) {
                     toast.error(err.message || "Erro ao finalizar corrida.");
                   } finally {
@@ -1559,7 +1563,7 @@ function HomeMotorista() {
               <div className="w-20 h-20 rounded-[2rem] bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20">
                 <CheckCircle2 className="w-10 h-10 text-zuvvi-volt" />
               </div>
-              
+
               <div className="space-y-1">
                 <h2 className="text-xl font-black text-white uppercase tracking-tighter">
                   CORRIDA FINALIZADA
@@ -1571,18 +1575,22 @@ function HomeMotorista() {
 
               <div className="w-full bg-white/5 rounded-3xl p-5 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Valor</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">
+                    Valor
+                  </span>
                   <span className="text-lg font-black text-zuvvi-volt">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                      completedRideNotice.valorEstimado
+                      completedRideNotice.valorEstimado,
                     )}
                   </span>
                 </div>
-                
+
                 <div className="h-px bg-white/5 w-full" />
-                
+
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Tipo</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">
+                    Tipo
+                  </span>
                   <span className="text-[9px] font-black uppercase tracking-widest text-white">
                     {completedRideNotice.formaPagamento}
                   </span>
@@ -1591,15 +1599,21 @@ function HomeMotorista() {
                 <div className="h-px bg-white/5 w-full" />
 
                 <div className="space-y-0.5 text-left">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-white/40">Destino</span>
-                  <p className="text-[9px] font-bold text-white line-clamp-1">{completedRideNotice.destinoNome}</p>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-white/40">
+                    Destino
+                  </span>
+                  <p className="text-[9px] font-bold text-white line-clamp-1">
+                    {completedRideNotice.destinoNome}
+                  </p>
                 </div>
               </div>
 
               {!avaliacaoSucesso ? (
                 <div className="w-full bg-white/5 rounded-[2rem] p-5 space-y-4 border border-white/5">
-                  <p className="text-[9px] font-black text-zuvvi-volt uppercase tracking-widest">Avaliar Passageiro</p>
-                  
+                  <p className="text-[9px] font-black text-zuvvi-volt uppercase tracking-widest">
+                    Avaliar Passageiro
+                  </p>
+
                   <div className="flex justify-center gap-1.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
@@ -1607,8 +1621,8 @@ function HomeMotorista() {
                         onClick={() => setNotaAvaliacao(star)}
                         className="p-1 transition-transform active:scale-90"
                       >
-                        <Star 
-                          className={`w-6 h-6 ${notaAvaliacao >= star ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/10"}`} 
+                        <Star
+                          className={`w-6 h-6 ${notaAvaliacao >= star ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/10"}`}
                         />
                       </button>
                     ))}
@@ -1645,7 +1659,11 @@ function HomeMotorista() {
                     disabled={notaAvaliacao === 0 || enviandoAvaliacao}
                     className="w-full py-3.5 rounded-xl bg-zuvvi-volt text-zuvvi-indigo text-[9px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {enviandoAvaliacao ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    {enviandoAvaliacao ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Send className="w-3 h-3" />
+                    )}
                     ENVIAR NOTA
                   </button>
                 </div>
@@ -1678,16 +1696,14 @@ function HomeMotorista() {
             <Clock className="w-6 h-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Ganhos</span>
           </button>
-          <button
+          <a
+            href="/perfil-motorista"
             className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              window.location.href = "/auth/login";
-            }}
+            aria-label="Abrir perfil do motorista"
           >
             <User className="w-6 h-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Sair</span>
-          </button>
+            <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>
+          </a>
         </div>
       </nav>
 
@@ -1703,7 +1719,8 @@ function HomeMotorista() {
                   Cancelar Corrida?
                 </h2>
                 <p className="text-xs text-white/40 leading-relaxed">
-                  O cancelamento frequente pode afetar sua nota e prioridade no recebimento de novas ofertas.
+                  O cancelamento frequente pode afetar sua nota e prioridade no recebimento de novas
+                  ofertas.
                 </p>
               </div>
             </div>
