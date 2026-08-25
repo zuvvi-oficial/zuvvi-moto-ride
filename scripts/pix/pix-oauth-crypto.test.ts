@@ -94,8 +94,14 @@ test("rejeita chave incorreta ou malformada", async () => {
 
 test("rejeita envelope adulterado, malformado ou de versão desconhecida", async () => {
   const envelope = await encryptOAuthSecret("segredo", TEST_KEY);
-  const lastCharacter = envelope.at(-1);
-  const tampered = `${envelope.slice(0, -1)}${lastCharacter === "A" ? "B" : "A"}`;
+  const parts = envelope.split(".");
+  assert.equal(parts.length, 3);
+
+  const ciphertext = parts[2]!;
+  const firstCharacter = ciphertext.at(0);
+  assert.ok(firstCharacter);
+  const tamperedCiphertext = `${firstCharacter === "A" ? "B" : "A"}${ciphertext.slice(1)}`;
+  const tampered = `${parts[0]}.${parts[1]}.${tamperedCiphertext}`;
 
   await assert.rejects(() => decryptOAuthSecret(tampered, TEST_KEY), {
     message: "Envelope OAuth inválido.",
