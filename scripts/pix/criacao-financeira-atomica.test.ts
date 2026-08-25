@@ -41,7 +41,7 @@ assert.match(
   "cálculo existente do líquido do motorista deve ser preservado",
 );
 assert.match(
-  criarCorridaSource,
+  source,
   /formaPagamento: z\.enum\(\["pix", "cartao", "dinheiro"\]\)/,
   "os três meios de pagamento existentes devem permanecer aceitos",
 );
