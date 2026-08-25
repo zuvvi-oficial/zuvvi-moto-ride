@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
   garantirAccessTokenMotorista,
   montarCorpoCobrancaPix,
@@ -131,8 +131,11 @@ function credential(overrides: Partial<PixCredentialSnapshot> = {}): PixCredenti
 
 const pagamentoSource = readFileSync("src/lib/pagamento.server.ts", "utf8");
 const motoristaSource = readFileSync("src/lib/motorista.functions.ts", "utf8");
+const etapa3RepoPath = "supabase/migrations/20260825091547_criacao_financeira_atomica.sql";
+const etapa3RunnerPath =
+  "/tmp/zuvvi_migrations_preexistentes/20260825091547_criacao_financeira_atomica.sql";
 const etapa3Source = readFileSync(
-  "supabase/migrations/20260825091547_criacao_financeira_atomica.sql",
+  existsSync(etapa3RepoPath) ? etapa3RepoPath : etapa3RunnerPath,
   "utf8",
 );
 
