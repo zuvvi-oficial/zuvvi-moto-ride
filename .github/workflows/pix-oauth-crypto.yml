@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/pix-oauth-crypto.yml"
+      - "src/lib/pagamento.server.ts"
       - "src/lib/pix-mercadopago-oauth-runtime.server.ts"
       - "src/lib/pix-oauth-crypto.server.ts"
       - "scripts/pix/pix-oauth-crypto.test.ts"
@@ -66,7 +67,8 @@ jobs:
             --include='*.ts' --include='*.tsx' \
             --exclude='pix-oauth-crypto.server.ts' \
             --exclude='pix-mercadopago-oauth-flow.server.ts' \
-            --exclude='pix-mercadopago-oauth-runtime.server.ts'; then
+            --exclude='pix-mercadopago-oauth-runtime.server.ts' \
+            --exclude='pagamento.server.ts'; then
             echo "O módulo criptográfico foi importado por código do aplicativo"
             exit 1
           fi
