@@ -1,0 +1,128 @@
+name: PIX DB OAuth FK Index
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pix-db-oauth-fk-index.yml"
+      - "supabase/migrations/*_pix_oauth_credentials_private.sql"
+      - "supabase/migrations/*_pix_oauth_state_pkce.sql"
+      - "supabase/migrations/*_pix_oauth_tentativas_motorista_index.sql"
+      - "supabase/tests/pix_04_oauth_state_pkce.sql"
+      - "supabase/tests/pix_01f_oauth_tentativas_motorista_index.sql"
+      - "supabase/tests/fixtures/pix_01_prerequisites.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pix-db-oauth-fk-index-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pix-oauth-fk-index:
+    name: Validar índice da FK OAuth
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_CLI_VERSION: 2.115.0
+      LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - name: Checkout da branch do Pix
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Conferir Docker
+        run: docker version
+
+      - name: Instalar Supabase CLI fixada
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
+
+      - name: Preparar migrations necessárias e gerar nome oficial
+        shell: bash
+        run: |
+          set -euo pipefail
+          pix01_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_credentials_private.sql' -print -quit)"
+          pix04_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_state_pkce.sql' -print -quit)"
+          test -n "${pix01_path}"
+          test -n "${pix04_path}"
+          cp "${pix01_path}" /tmp/pix_01.sql
+          cp "${pix04_path}" /tmp/pix_04.sql
+
+          target_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_tentativas_motorista_index.sql' -print -quit)"
+          if [ -z "${target_path}" ]; then
+            npx --yes supabase@${SUPABASE_CLI_VERSION} migration new pix_oauth_tentativas_motorista_index
+            target_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_tentativas_motorista_index.sql' -print -quit)"
+            cat > "${target_path}" <<'SQL'
+          create index mercadopago_oauth_tentativas_motorista_id_idx
+            on private.mercadopago_oauth_tentativas (motorista_id);
+          SQL
+            echo "MIGRATION_GENERATED=${target_path}"
+          else
+            echo "MIGRATION_VERSIONED=${target_path}"
+          fi
+          test -n "${target_path}"
+          cp "${target_path}" /tmp/pix_oauth_fk_index.sql
+
+      - name: Isolar migrations preexistentes no runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zuvvi_migrations_preexistentes
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' \
+            -exec mv {} /tmp/zuvvi_migrations_preexistentes/ \;
+          test -z "$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print -quit)"
+
+      - name: Iniciar Supabase local descartável
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} start
+          --exclude studio,imgproxy,mailpit,logflare,vector,edge-runtime
+
+      - name: Aplicar fixture e migrations OAuth isoladas
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_01_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_01.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_04.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_oauth_fk_index.sql
+
+      - name: Repetir regressão OAuth state/PKCE
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+          supabase/tests/pix_04_oauth_state_pkce.sql --local
+
+      - name: Testar exclusivamente o índice da FK OAuth
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+          supabase/tests/pix_01f_oauth_tentativas_motorista_index.sql --local
+
+      - name: Confirmar definição exata do índice
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(psql "${LOCAL_DB_URL}" -Atc \
+            "select pg_get_indexdef('private.mercadopago_oauth_tentativas_motorista_id_idx'::regclass)")"
+          expected='CREATE INDEX mercadopago_oauth_tentativas_motorista_id_idx ON private.mercadopago_oauth_tentativas USING btree (motorista_id)'
+          test "${actual}" = "${expected}"
+
+      - name: Lint do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db lint
+          --local --schema private,public --level error --fail-on error
+
+      - name: Advisor de segurança do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors
+          --local --type security
+
+      - name: Advisor de performance do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors
+          --local --type performance
+
+      - name: Descartar stack local
+        if: always()
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup
