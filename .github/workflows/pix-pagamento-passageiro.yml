@@ -60,14 +60,24 @@ jobs:
             git diff -- bun.lock
             exit 1
           fi
-
           grep -q 'qrcode.react' bun.lock
-          route_diff="$(git diff --unified=0 -- src/routeTree.gen.ts)"
-          if printf '%s\n' "$route_diff" | grep '^+' | grep -v '^+++' | grep -v 'PagamentoPix' | grep -v "pagamento-pix" | grep -v '^+$' >/dev/null; then
-            echo "routeTree recebeu conteúdo não relacionado à nova rota Pix. Abortando."
-            printf '%s\n' "$route_diff"
+
+          deleted_route_lines="$(git diff --unified=0 -- src/routeTree.gen.ts | grep '^-' | grep -v '^---' || true)"
+          if [ -n "$deleted_route_lines" ]; then
+            echo "routeTree tentou remover conteúdo existente. Abortando."
+            git diff -- src/routeTree.gen.ts
             exit 1
           fi
+          route_additions="$(git diff --numstat -- src/routeTree.gen.ts | awk '{print $1}')"
+          if [ -z "$route_additions" ] || [ "$route_additions" -gt 30 ]; then
+            echo "Quantidade inesperada de linhas geradas para a nova rota Pix."
+            git diff -- src/routeTree.gen.ts
+            exit 1
+          fi
+          grep -q "import { Route as PagamentoPixRouteImport } from './routes/pagamento-pix'" src/routeTree.gen.ts
+          grep -q "id: '/pagamento-pix'" src/routeTree.gen.ts
+          grep -q "fullPath: '/pagamento-pix'" src/routeTree.gen.ts
+          grep -q "PagamentoPixRoute: PagamentoPixRoute" src/routeTree.gen.ts
 
       - name: Commitar somente arquivos gerados autorizados
         shell: bash
