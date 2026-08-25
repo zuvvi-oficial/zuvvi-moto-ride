@@ -13,10 +13,8 @@ on:
       - "package.json"
       - "bun.lock"
 
-# TEMPORÁRIO somente para o Prettier registrar os 3 arquivos novos da Etapa 5.
-# Após o commit de formatação, volta obrigatoriamente para contents: read.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   pagamento-passageiro:
@@ -41,40 +39,12 @@ jobs:
       - name: Instalar dependências com lock congelado
         run: bun install --frozen-lockfile
 
-      - name: Formatar somente arquivos novos da Etapa 5
-        shell: bash
-        run: |
-          set -euo pipefail
-          bunx prettier --write \
-            src/routes/pagamento-pix.tsx \
-            src/lib/pagamento-pix-status.functions.ts \
-            scripts/pix/pagamento-pix.test.ts
-
-          changed="$(git diff --name-only | sort)"
-          if [ -n "$changed" ]; then
-            while IFS= read -r file; do
-              case "$file" in
-                src/routes/pagamento-pix.tsx|src/lib/pagamento-pix-status.functions.ts|scripts/pix/pagamento-pix.test.ts) ;;
-                *) echo "Prettier alterou arquivo fora da allowlist: $file"; exit 1 ;;
-              esac
-            done <<< "$changed"
-          fi
-
-      - name: Commitar somente formatação autorizada
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            src/routes/pagamento-pix.tsx \
-            src/lib/pagamento-pix-status.functions.ts \
-            scripts/pix/pagamento-pix.test.ts
-          git commit -m "style(pix): formatar tela de pagamento"
-          git push origin HEAD:feature/pix-100-seguro
+      - name: Verificar Prettier nos arquivos novos
+        run: >-
+          bunx prettier --check
+          src/routes/pagamento-pix.tsx
+          src/lib/pagamento-pix-status.functions.ts
+          scripts/pix/pagamento-pix.test.ts
 
       - name: Executar testes exclusivos da Etapa 5
         run: bun scripts/pix/pagamento-pix.test.ts
