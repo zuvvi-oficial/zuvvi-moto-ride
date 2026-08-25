@@ -15,16 +15,16 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
-  desconectarMercadoPago,
-  getStatusConexaoMercadoPago,
-} from '@/lib/motorista-pagamento.functions';
-import { iniciarConexaoMercadoPagoPixSegura } from '@/lib/pix-mercadopago-oauth.functions';
+  desconectarMercadoPagoPixSeguro,
+  getStatusConexaoMercadoPagoPixSegura,
+  iniciarConexaoMercadoPagoPixSegura,
+} from '@/lib/pix-mercadopago-oauth.functions';
 
 export default function MercadoPagoConnect() {
   const queryClient = useQueryClient();
-  const getStatusFn = useServerFn(getStatusConexaoMercadoPago);
+  const getStatusFn = useServerFn(getStatusConexaoMercadoPagoPixSegura);
   const iniciarFn = useServerFn(iniciarConexaoMercadoPagoPixSegura);
-  const desconectarFn = useServerFn(desconectarMercadoPago);
+  const desconectarFn = useServerFn(desconectarMercadoPagoPixSeguro);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -50,7 +50,15 @@ export default function MercadoPagoConnect() {
     setErro(null);
     setIsDisconnecting(true);
     try {
-      await desconectarFn();
+      const resultado = await desconectarFn();
+      if (!resultado.desconectado) {
+        setErro(
+          resultado.motivo === 'corrida_pix_ativa'
+            ? 'Não é possível desconectar enquanto houver uma corrida Pix ativa.'
+            : 'Não é possível desconectar enquanto houver uma obrigação financeira Pix pendente.',
+        );
+        return;
+      }
       await queryClient.invalidateQueries({ queryKey: ['mercadopago-conexao'] });
     } catch {
       setErro('Não foi possível desconectar a conta. Tente novamente.');
