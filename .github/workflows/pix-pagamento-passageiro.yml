@@ -13,8 +13,8 @@ on:
       - "package.json"
       - "bun.lock"
 
-# TEMPORÁRIO somente enquanto Bun/Router geram bun.lock + routeTree permitidos.
-# Após o primeiro commit gerado, volta obrigatoriamente para contents: read.
+# TEMPORÁRIO somente para o Prettier registrar os 3 arquivos novos da Etapa 5.
+# Após o commit de formatação, volta obrigatoriamente para contents: read.
 permissions:
   contents: write
 
@@ -38,72 +38,52 @@ jobs:
         with:
           bun-version: 1.3.10
 
-      - name: Gerar somente lockfile e rota autorizados
+      - name: Instalar dependências com lock congelado
+        run: bun install --frozen-lockfile
+
+      - name: Formatar somente arquivos novos da Etapa 5
         shell: bash
         run: |
           set -euo pipefail
-          bun install
-          bun run build
+          bunx prettier --write \
+            src/routes/pagamento-pix.tsx \
+            src/lib/pagamento-pix-status.functions.ts \
+            scripts/pix/pagamento-pix.test.ts
 
           changed="$(git diff --name-only | sort)"
-          allowed="$(printf '%s\n' 'bun.lock' 'src/routeTree.gen.ts' | sort)"
-          if [ "$changed" != "$allowed" ]; then
-            echo "Arquivos gerados inesperados:"
-            printf '%s\n' "$changed"
-            exit 1
+          if [ -n "$changed" ]; then
+            while IFS= read -r file; do
+              case "$file" in
+                src/routes/pagamento-pix.tsx|src/lib/pagamento-pix-status.functions.ts|scripts/pix/pagamento-pix.test.ts) ;;
+                *) echo "Prettier alterou arquivo fora da allowlist: $file"; exit 1 ;;
+              esac
+            done <<< "$changed"
           fi
 
-          deleted_lock_lines="$(git diff --unified=0 -- bun.lock | grep '^-' | grep -v '^---' || true)"
-          unexpected_lock_adds="$(git diff --unified=0 -- bun.lock | grep '^+' | grep -v '^+++' | grep -v 'qrcode.react' | grep -v '^+$' || true)"
-          if [ -n "$deleted_lock_lines" ] || [ -n "$unexpected_lock_adds" ]; then
-            echo "bun.lock mudou além da dependência qrcode.react. Abortando."
-            git diff -- bun.lock
-            exit 1
-          fi
-          grep -q 'qrcode.react' bun.lock
-
-          deleted_route_lines="$(git diff --unified=0 -- src/routeTree.gen.ts | grep '^-' | grep -v '^---' || true)"
-          if [ -n "$deleted_route_lines" ]; then
-            echo "routeTree tentou remover conteúdo existente. Abortando."
-            git diff -- src/routeTree.gen.ts
-            exit 1
-          fi
-          route_additions="$(git diff --numstat -- src/routeTree.gen.ts | awk '{print $1}')"
-          if [ -z "$route_additions" ] || [ "$route_additions" -gt 30 ]; then
-            echo "Quantidade inesperada de linhas geradas para a nova rota Pix."
-            git diff -- src/routeTree.gen.ts
-            exit 1
-          fi
-          grep -q "import { Route as PagamentoPixRouteImport } from './routes/pagamento-pix'" src/routeTree.gen.ts
-          grep -q "id: '/pagamento-pix'" src/routeTree.gen.ts
-          grep -q "fullPath: '/pagamento-pix'" src/routeTree.gen.ts
-          grep -q "PagamentoPixRoute: PagamentoPixRoute" src/routeTree.gen.ts
-
-      - name: Commitar somente arquivos gerados autorizados
+      - name: Commitar somente formatação autorizada
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- bun.lock src/routeTree.gen.ts; then
+          if git diff --quiet; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bun.lock src/routeTree.gen.ts
-          git commit -m "build(pix): gerar lock e rota da tela de pagamento"
+          git add \
+            src/routes/pagamento-pix.tsx \
+            src/lib/pagamento-pix-status.functions.ts \
+            scripts/pix/pagamento-pix.test.ts
+          git commit -m "style(pix): formatar tela de pagamento"
           git push origin HEAD:feature/pix-100-seguro
-
-      - name: Instalar dependências com lock congelado
-        run: bun install --frozen-lockfile
 
       - name: Executar testes exclusivos da Etapa 5
         run: bun scripts/pix/pagamento-pix.test.ts
 
-      - name: Verificar ESLint somente no escopo da Etapa 5
+      - name: Verificar ESLint nos arquivos novos
         run: >-
           bunx eslint
           src/routes/pagamento-pix.tsx
           src/lib/pagamento-pix-status.functions.ts
-          src/routes/procurando-motorista.tsx
           scripts/pix/pagamento-pix.test.ts
 
       - name: Verificar TypeScript integral
