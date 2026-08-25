@@ -763,9 +763,11 @@ export type Database = {
         Row: {
           corrida_id: string
           created_at: string
+          estornado_at: string | null
           id: string
           id_transacao_mercadopago: string | null
           meio: Database["public"]["Enums"]["forma_pagamento"]
+          pago_at: string | null
           status: Database["public"]["Enums"]["pagamento_status"]
           updated_at: string
           valor_comissao: number
@@ -775,9 +777,11 @@ export type Database = {
         Insert: {
           corrida_id: string
           created_at?: string
+          estornado_at?: string | null
           id?: string
           id_transacao_mercadopago?: string | null
           meio: Database["public"]["Enums"]["forma_pagamento"]
+          pago_at?: string | null
           status?: Database["public"]["Enums"]["pagamento_status"]
           updated_at?: string
           valor_comissao: number
@@ -787,9 +791,11 @@ export type Database = {
         Update: {
           corrida_id?: string
           created_at?: string
+          estornado_at?: string | null
           id?: string
           id_transacao_mercadopago?: string | null
           meio?: Database["public"]["Enums"]["forma_pagamento"]
+          pago_at?: string | null
           status?: Database["public"]["Enums"]["pagamento_status"]
           updated_at?: string
           valor_comissao?: number
@@ -802,6 +808,81 @@ export type Database = {
             columns: ["corrida_id"]
             isOneToOne: false
             referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos_pix_tentativas: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          estado_interno: string
+          expires_at: string | null
+          failed_at: string | null
+          id: string
+          idempotency_key: string
+          mercadopago_payment_id: string | null
+          motorista_id: string
+          pagamento_id: string
+          pix_copia_cola: string | null
+          provider_status: string | null
+          provider_status_detail: string | null
+          refunded_at: string | null
+          updated_at: string
+          valor_comissao: number
+          valor_total: number
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          estado_interno?: string
+          expires_at?: string | null
+          failed_at?: string | null
+          id?: string
+          idempotency_key: string
+          mercadopago_payment_id?: string | null
+          motorista_id: string
+          pagamento_id: string
+          pix_copia_cola?: string | null
+          provider_status?: string | null
+          provider_status_detail?: string | null
+          refunded_at?: string | null
+          updated_at?: string
+          valor_comissao: number
+          valor_total: number
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          estado_interno?: string
+          expires_at?: string | null
+          failed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          mercadopago_payment_id?: string | null
+          motorista_id?: string
+          pagamento_id?: string
+          pix_copia_cola?: string | null
+          provider_status?: string | null
+          provider_status_detail?: string | null
+          refunded_at?: string | null
+          updated_at?: string
+          valor_comissao?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_pix_tentativas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_pix_tentativas_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -953,6 +1034,25 @@ export type Database = {
         Args: { p_corrida_id: string; p_motorista_id: string }
         Returns: undefined
       }
+      criar_corrida_financeira_atomica: {
+        Args: {
+          p_cidade_id: string
+          p_codigo_embarque: string
+          p_destino_lat: number
+          p_destino_lng: number
+          p_destino_nome: string
+          p_forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+          p_origem_lat: number
+          p_origem_lng: number
+          p_origem_nome: string
+          p_passageiro_id: string
+          p_valor_comissao: number
+          p_valor_estimado: number
+          p_valor_motorista: number
+          p_valor_total: number
+        }
+        Returns: string
+      }
       get_admin_id_by_auth: { Args: { auth_id: string }; Returns: string }
       get_distinct_ufs: {
         Args: never
@@ -964,6 +1064,83 @@ export type Database = {
       passageiro_tem_corrida_ativa_com_motorista: {
         Args: { p_motorista_id: string }
         Returns: boolean
+      }
+      pix_charge_attempt_claim: {
+        Args: { _corrida_id: string; _motorista_id: string }
+        Returns: {
+          idempotency_key: string
+          pagamento_id: string
+          passageiro_id: string
+          tentativa_id: string
+          valor_comissao: number
+          valor_total: number
+        }[]
+      }
+      pix_charge_attempt_complete: {
+        Args: {
+          _expires_at: string
+          _mercadopago_payment_id: string
+          _pix_copia_cola: string
+          _provider_status: string
+          _provider_status_detail: string
+          _tentativa_id: string
+        }
+        Returns: undefined
+      }
+      pix_charge_attempt_fail: {
+        Args: { _provider_status_detail: string; _tentativa_id: string }
+        Returns: boolean
+      }
+      pix_oauth_credentials_get: {
+        Args: { _motorista_id: string }
+        Returns: {
+          access_token_encrypted: string
+          connected_at: string
+          connection_status: string
+          encryption_version: number
+          expires_at: string
+          last_refreshed_at: string
+          mercadopago_user_id: string
+          motorista_id: string
+          refresh_token_encrypted: string
+          revoked_at: string
+          scope: string
+          token_type: string
+        }[]
+      }
+      pix_oauth_credentials_revoke: {
+        Args: { _motorista_id: string }
+        Returns: boolean
+      }
+      pix_oauth_credentials_upsert: {
+        Args: {
+          _access_token_encrypted: string
+          _encryption_version: number
+          _expires_at: string
+          _mercadopago_user_id: string
+          _motorista_id: string
+          _refresh_token_encrypted: string
+          _scope?: string
+          _token_type?: string
+        }
+        Returns: undefined
+      }
+      pix_oauth_state_consume: {
+        Args: { _motorista_id: string; _state_hash: string }
+        Returns: {
+          encrypted_code_verifier: string
+          envelope_version: number
+        }[]
+      }
+      pix_oauth_state_create: {
+        Args: {
+          _code_verifier_encrypted: string
+          _encryption_version: number
+          _expires_at: string
+          _motorista_id: string
+          _state_hash: string
+        }
+        Returns: string
       }
       set_motorista_online_atomic: {
         Args: { p_motorista_id: string }
