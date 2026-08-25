@@ -63,7 +63,8 @@ jobs:
           set -euo pipefail
           if grep -R "pix-oauth-crypto.server" src \
             --include='*.ts' --include='*.tsx' \
-            --exclude='pix-oauth-crypto.server.ts'; then
+            --exclude='pix-oauth-crypto.server.ts' \
+            --exclude='pix-mercadopago-oauth-flow.server.ts'; then
             echo "O módulo criptográfico foi importado por código do aplicativo"
             exit 1
           fi

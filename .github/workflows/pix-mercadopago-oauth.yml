@@ -81,7 +81,8 @@ jobs:
           set -euo pipefail
           if grep -R "pix-mercadopago-oauth.server" src \
             --include='*.ts' --include='*.tsx' \
-            --exclude='pix-mercadopago-oauth.server.ts'; then
+            --exclude='pix-mercadopago-oauth.server.ts' \
+            --exclude='pix-mercadopago-oauth-flow.server.ts'; then
             echo "O cliente OAuth foi importado por código existente do aplicativo"
             exit 1
           fi
