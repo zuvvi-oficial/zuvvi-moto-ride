@@ -36,25 +36,23 @@ jobs:
       - name: Instalar Supabase CLI fixada
         run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
 
-      - name: Gerar migration temporária PIX-08A pela CLI
+      - name: Validar migration versionada PIX-08A
         shell: bash
         run: |
           set -euo pipefail
-          test -z "$(git ls-files 'supabase/migrations/*_pix_oauth_atomic_connection.sql')"
+          expected_pix08_path="supabase/migrations/20260825021917_pix_oauth_atomic_connection.sql"
+          mapfile -t pix08_paths < <(git ls-files 'supabase/migrations/*_pix_oauth_atomic_connection.sql')
+          test "${#pix08_paths[@]}" = "1"
+          test "${pix08_paths[0]}" = "${expected_pix08_path}"
+          cmp -s docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template "${expected_pix08_path}"
 
           cp supabase/migrations/20260824222419_unicidade_conta_mercado_pago_motorista.sql /tmp/pix_07r.sql
           cp supabase/migrations/20260824233357_pix_oauth_credentials_private.sql /tmp/pix_01.sql
           cp supabase/migrations/20260824234933_pix_attempts_webhook.sql /tmp/pix_02.sql
           cp supabase/migrations/20260825001055_pix_aggregate_integrity.sql /tmp/pix_03.sql
           cp supabase/migrations/20260825004851_pix_oauth_state_pkce.sql /tmp/pix_04.sql
-
-          npx --yes supabase@${SUPABASE_CLI_VERSION} migration new pix_oauth_atomic_connection
-          pix08_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_atomic_connection.sql' -print -quit)"
-          test -n "${pix08_path}"
-          cp docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template "${pix08_path}"
-          cmp -s docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template "${pix08_path}"
-          cp "${pix08_path}" /tmp/pix_08.sql
-          echo "MIGRATION_GENERATED=${pix08_path}"
+          cp "${expected_pix08_path}" /tmp/pix_08.sql
+          echo "MIGRATION_VERSIONED=${expected_pix08_path}"
 
       - name: Isolar migrations preexistentes no runner
         shell: bash
