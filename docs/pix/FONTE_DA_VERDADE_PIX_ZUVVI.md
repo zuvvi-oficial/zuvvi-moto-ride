@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.27
+**Versão:** 1.28
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -956,6 +956,61 @@ Tudo fora desses dois workflows e desta Fonte da Verdade permanece congelado dur
 **Classificação da microetapa PIX-08B-T:** **APROVADA E CONGELADA NO GITHUB; NÃO ATIVADA NO APLICATIVO NEM APLICADA EM PRODUÇÃO**.
 
 A próxima microetapa exige nova allowlist para conectar esta camada a Server Functions autenticadas. Ela deverá continuar separada da interface e somente poderá usar os objetos de banco depois de uma autorização específica de aplicação/homologação.
+
+**Autorização e allowlist da microetapa PIX-08C-T — ponte autenticada das Server Functions:**
+
+Objetivo único: criar e testar duas novas Server Functions autenticadas que encaminhem início e conclusão do OAuth para a camada PIX-08B, vinculando obrigatoriamente cada operação ao motorista da sessão. As funções permanecerão sem importação por componente ou rota e não substituirão o fluxo atual nesta microetapa.
+
+Baseline revalidado em 25/08/2026:
+
+- checkpoint da branch Pix: `2cd598990e98b4aeb4bc71b38ffd1bb39ab7631c`;
+- `main` remota continua ancestral da branch e a Pull Request `#2` permanece aberta, draft, mesclável e sem merge;
+- hashes congelados: criptografia `ccd9606b...`, cliente OAuth `4b2cf519...`, fluxo PIX-08B `ed194264...`, adaptador Supabase `22536817...`, workflow PIX-08A `3987789d...`, `package.json` `71b9e8dc...` e `bun.lock` `43a4359a...`;
+- fluxo ativo congelado: `motorista-pagamento.functions.ts` `fcafe924...` e callback `445532b6...`;
+- Supabase principal permanece na migration `20260824222419`, com 84 pagamentos, quatro Pix, schema `private` inexistente e zero funções OAuth novas aplicadas;
+- documentação atual do Supabase confirma `getClaims` para validação de identidade e recomenda cliente `service_role` separado e exclusivamente servidor; nenhuma breaking change recente altera este desenho.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `src/lib/pix-mercadopago-oauth-runtime.server.ts`;
+- criar `src/lib/pix-mercadopago-oauth.functions.ts`;
+- criar `scripts/pix/pix-mercadopago-oauth-functions.test.ts`;
+- modificar `.github/workflows/pix-db-oauth-atomic-connection.yml` exclusivamente para compilar e testar a PIX-08C;
+- modificar `.github/workflows/pix-oauth-crypto.yml` e `.github/workflows/pix-mercadopago-oauth.yml` exclusivamente para reconhecer o novo runtime `.server.ts` como consumidor autorizado, mantendo bloqueados todos os demais arquivos e o bundle público.
+
+Comportamento permitido:
+
+- criar uma Server Function de início, protegida por `requireSupabaseAuth`, sem entrada controlada pelo navegador e retornando somente `authorizationUrl`;
+- criar uma Server Function de conclusão, também autenticada, aceitando exclusivamente `code` e `state` com schema estrito;
+- obter `auth_user_id` somente de `context.userId`, localizar `usuarios.id`, confirmar `is_motorista = true` e confirmar a existência da linha correspondente em `motoristas`;
+- nunca aceitar `usuario_id`, `motorista_id`, token, conta Mercado Pago, URL de retorno ou configuração enviados pelo navegador;
+- usar `supabaseAdmin` somente depois da autenticação e da vinculação explícita da sessão ao motorista, pois as RPCs OAuth permanecem concedidas apenas à `service_role`;
+- exigir `MERCADOPAGO_CLIENT_ID`, `MERCADOPAGO_CLIENT_SECRET` e `PIX_OAUTH_ENCRYPTION_KEY` somente no servidor, sem valor padrão, log ou retorno;
+- preservar exatamente a URL de callback atual `https://zuvvi-moto-ride.lovable.app/motorista/mercadopago-callback`;
+- sanitizar falhas de autenticação de perfil, configuração, banco, criptografia e Mercado Pago sem devolver detalhes internos.
+
+Travas:
+
+- não modificar nem importar as funções novas em `motorista-pagamento.functions.ts`, callback, componente ou rota;
+- não ativar ou substituir o fluxo atual, não alterar interface e não fazer chamada real ao Mercado Pago;
+- não criar ou alterar migration, schema, RLS, grant, tipo gerado, variável remota ou dado;
+- não aplicar DDL, DML ou migration no Supabase principal;
+- não incluir segredo, token, chave ou dado real em código, teste, log ou commit;
+- não alterar autenticação geral, dinheiro, cartão, corridas, suporte ou core e não fazer merge.
+
+Testes obrigatórios:
+
+- a identidade utilizada vem somente do `context.userId` autenticado e é resolvida para um único motorista correspondente;
+- usuário inexistente, não motorista, motorista sem linha própria, UUID inválido e falha de consulta são bloqueados antes do fluxo OAuth;
+- payload de conclusão aceita somente `code` e `state` e rejeita campos extras, inclusive `motorista_id` e `usuario_id`;
+- início não devolve state separado; conclusão não devolve token ou segredo;
+- configurações ausentes ou inválidas falham fechadas e sem chamar RPC ou rede;
+- runtime usa somente o cliente privilegiado injetado no servidor e os três RPCs já congelados;
+- nenhuma função nova aparece no bundle público e nenhum arquivo de tela a importa;
+- repetir PIX-08A, PIX-08B, PIX-01 a PIX-07R, lint, advisors, ESLint, TypeScript, build, hashes e diff da allowlist.
+
+Rollback: remover somente os três arquivos novos, restaurar os três workflows aos hashes do checkpoint `2cd5989` e reverter esta seção documental. Não existe rollback de produção porque ativação e escrita remota continuam proibidas.
 
 ### Etapa 1 — Integridade mínima do banco
 
