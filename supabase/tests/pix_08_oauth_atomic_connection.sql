@@ -1,6 +1,6 @@
 begin;
 
-select plan(24);
+select plan(25);
 
 select has_function(
   'public',
@@ -31,6 +31,14 @@ select ok(
     'EXECUTE'
   ),
   'service_role executa conexão OAuth'
+);
+select ok(
+  has_table_privilege(
+    'service_role',
+    'public.motoristas',
+    'SELECT,UPDATE'
+  ),
+  'fixture reproduz os grants reais necessários em motoristas'
 );
 select ok(
   not (
