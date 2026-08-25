@@ -53,6 +53,7 @@ export type PixPaymentBodyInput = Readonly<{
   passageiroId: string;
   passageiroNome: string | null;
   passageiroEmail: string | null;
+  externalReference: string;
 }>;
 
 const GENERIC_ERROR = "Não foi possível gerar o pagamento Pix. Tente novamente.";
@@ -61,6 +62,7 @@ const DUPLICATE_CHARGE_ERROR = "Já existe uma tentativa de cobrança Pix para e
 const TOKEN_REFRESH_MARGIN_MS = 5 * 60 * 1_000;
 const OAUTH_REDIRECT_URI = "https://zuvvi-moto-ride.lovable.app/motorista/mercadopago-callback";
 const ENCRYPTION_VERSION = 1;
+const EXTERNAL_REFERENCE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/u;
 
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;
@@ -171,7 +173,8 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
     !Number.isFinite(valorComissao) ||
     valorTotal <= 0 ||
     valorComissao < 0 ||
-    valorComissao > valorTotal
+    valorComissao > valorTotal ||
+    !EXTERNAL_REFERENCE_PATTERN.test(input.externalReference)
   ) {
     throw new Error(GENERIC_ERROR);
   }
@@ -179,6 +182,7 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
   return {
     transaction_amount: valorTotal,
     application_fee: valorComissao,
+    external_reference: input.externalReference,
     description: "Corrida Zuvvi",
     payment_method_id: "pix",
     payer: {
@@ -250,6 +254,26 @@ async function obterAccessTokenValido(
     encryptionKey,
     dependencies,
   );
+}
+
+async function compensarFalhaCriacaoPixSemCobrancaConhecida(
+  supabaseAdmin: any,
+  rideId: string,
+  motoristaId: string,
+  tentativaId: string,
+  providerStatusDetail: string,
+): Promise<void> {
+  const { data, error } = await supabaseAdmin.rpc("pix_charge_failure_compensate", {
+    _corrida_id: rideId,
+    _motorista_id: motoristaId,
+    _tentativa_id: tentativaId,
+    _provider_status_detail: providerStatusDetail,
+  });
+
+  if (error || data !== true) {
+    console.error("[Pagamento] Falha ao compensar criação Pix sem cobrança externa conhecida.");
+    throw new Error(GENERIC_ERROR);
+  }
 }
 
 export async function prepararCobrancaPixAntesAceiteServer(
@@ -354,6 +378,7 @@ export async function criarCobrancaPixAposAceiteServer(
         passageiroId,
         passageiroNome: passageiro.nome,
         passageiroEmail: passageiro.email,
+        externalReference: idempotencyKey,
       }),
       requestOptions: { idempotencyKey },
     });
@@ -364,20 +389,32 @@ export async function criarCobrancaPixAposAceiteServer(
     providerStatus = response.status ?? null;
     providerStatusDetail = response.status_detail ?? null;
     expiresAt = response.date_of_expiration ?? null;
-  } catch (error) {
-    console.error("[Pagamento] Falha ao criar Pix na conta OAuth do motorista:", error);
-    await (supabaseAdmin as any).rpc("pix_charge_attempt_fail", {
-      _tentativa_id: tentativaId,
-      _provider_status_detail: "mercadopago_create_error",
-    });
+  } catch {
+    console.error("[Pagamento] Falha ao criar Pix na conta OAuth do motorista.");
+    await compensarFalhaCriacaoPixSemCobrancaConhecida(
+      supabaseAdmin as any,
+      rideId,
+      motoristaId,
+      tentativaId,
+      "mercadopago_create_error",
+    );
     throw new Error(GENERIC_ERROR);
   }
 
   if (!mpPaymentId || !qrCode || !qrCodeBase64) {
-    await (supabaseAdmin as any).rpc("pix_charge_attempt_fail", {
-      _tentativa_id: tentativaId,
-      _provider_status_detail: "mercadopago_invalid_response",
-    });
+    if (!mpPaymentId) {
+      await compensarFalhaCriacaoPixSemCobrancaConhecida(
+        supabaseAdmin as any,
+        rideId,
+        motoristaId,
+        tentativaId,
+        "mercadopago_invalid_response",
+      );
+    } else {
+      console.error(
+        "[Pagamento] Resposta Pix incompleta com cobrança externa conhecida; mantendo para reconciliação.",
+      );
+    }
     throw new Error(GENERIC_ERROR);
   }
 
@@ -393,7 +430,9 @@ export async function criarCobrancaPixAposAceiteServer(
     },
   );
   if (completeError) {
-    console.error("[Pagamento] Falha ao persistir resultado Pix:", completeError);
+    console.error(
+      "[Pagamento] Falha ao persistir resultado Pix; mantendo cobrança para reconciliação.",
+    );
     throw new Error(GENERIC_ERROR);
   }
 
