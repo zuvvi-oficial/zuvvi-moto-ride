@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.21
+**Versão:** 1.22
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -804,6 +804,25 @@ Testes obrigatórios:
 - repetir pgTAP PIX-01 a PIX-04 e PIX-07R, PIX-05, PIX-06, lint, advisors, ESLint, TypeScript, build, hashes e diff da allowlist.
 
 Rollback: remover somente os três arquivos novos e reverter esta seção documental. Não existe rollback de produção porque escrita remota e migration definitiva estão proibidas.
+
+**Fechamento da microetapa PIX-08A-T — prova da conexão OAuth atômica:**
+
+- autorização documental registrada no commit `21f464394a285b663527c1f8e84674d696b27201`;
+- template, teste e workflow registrados no commit `cd4d83f5c65489a49e21843970671e50bc7a48e3`;
+- a primeira execução dedicada `32800191125` aplicou o template corretamente, mas falhou antes da primeira conexão porque a fixture mínima não reproduzia os grants `SELECT` e `UPDATE` que `service_role` já possui em `public.motoristas` no Supabase principal;
+- a causa foi corrigida somente no ambiente descartável: o workflow passou a conceder esses dois privilégios à fixture e o pgTAP passou a verificá-los explicitamente; nenhuma função foi elevada para `SECURITY DEFINER` e nenhum grant foi executado no Supabase principal;
+- correção mínima registrada no commit `f9a9a4b6595087f1350bd1ede37c8c334f8aeef3`;
+- execução dedicada final `32800937314`: PIX-08A-T 25/25, PIX-01 33/33, PIX-02 48/48, PIX-03 22/22, PIX-04 45/45 e PIX-07R 10/10 testes pgTAP aprovados;
+- PIX-05 11/11 e PIX-06 10/10 testes aprovados dentro da execução dedicada; ESLint, TypeScript, build integral, hashes congelados, lint do banco e advisors também aprovados;
+- os outros sete workflows da branch finalizaram aprovados; o PIX-05 apresentou uma falha aleatória preexistente em sua primeira tentativa e foi aprovado sem alteração de código ao repetir apenas o job falho;
+- a Supabase CLI `2.115.0` gerou no runner o caminho exato `supabase/migrations/20260825021917_pix_oauth_atomic_connection.sql`; o arquivo foi usado apenas durante o teste e ainda não está versionado;
+- conferência somente leitura do Supabase principal manteve migration final `20260824222419`, 84 pagamentos, quatro Pix, índice público de conta única, schema `private` ausente e função `pix_oauth_credentials_upsert` ausente;
+- nenhuma migration, DDL, DML, segredo, token ou dado foi aplicado ao Supabase principal; aplicativo, callback, Server Functions, dinheiro, cartão e core não foram alterados;
+- a Pull Request `#2` permanece aberta em modo draft, sem merge na `main`.
+
+**Classificação da microetapa PIX-08A-T:** **APROVADA EM AMBIENTE DESCARTÁVEL E CONGELADA**.
+
+A próxima microetapa poderá versionar exatamente o conteúdo aprovado no caminho gerado pela CLI, usando `20260825021917_pix_oauth_atomic_connection.sql`, mas continuará proibida de aplicar a migration no Supabase principal sem autorização posterior específica.
 
 ### Etapa 1 — Integridade mínima do banco
 
