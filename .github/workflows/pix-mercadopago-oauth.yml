@@ -91,4 +91,8 @@ jobs:
           fi
 
       - name: Provar ausência de alteração em dependências
-        run: git diff --exit-code origin/main...HEAD -- package.json bun.lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum package.json | cut -d ' ' -f1)" = "71b9e8dc6ef0028172aed34993d150a1d5f77adad5c7b5168046c7d0b8cd6f50"
+          test "$(sha256sum bun.lock | cut -d ' ' -f1)" = "43a4359a9fb245f3c46484da57fb1342957f657780f7ee5c50ae1354aa64619f"
