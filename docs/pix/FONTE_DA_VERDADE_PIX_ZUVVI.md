@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.10  
+**Versão:** 1.11  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -401,6 +401,53 @@ Rollback antes da produção: nenhum, pois a migration permanecerá somente na b
 **Classificação da microetapa PIX-02:** **APROVADA NO AMBIENTE LOCAL DESCARTÁVEL**.
 
 A aprovação comprova a fundação de dados e a regressão acumulada da PIX-01/PIX-02. Não equivale a homologação, não habilita Pix no aplicativo e não autoriza aplicação no Supabase principal.
+
+**Autorização e allowlist da microetapa PIX-03 — integridade agregada de pagamentos:**
+
+Objetivo único: adicionar somente a integridade mínima do agregado financeiro Pix em `public.pagamentos`, sem criar cobrança, alterar status, modificar registros existentes ou mudar o comportamento do aplicativo.
+
+Baseline revalidado em 25/08/2026:
+
+- última migration do projeto principal: `20260824222419`;
+- `pagamentos` possui 84 registros, sendo quatro Pix pendentes;
+- zero pagamentos com `id_transacao_mercadopago` preenchido;
+- zero duplicidades por `corrida_id`, tanto no conjunto total quanto no recorte Pix;
+- zero IDs Mercado Pago duplicados;
+- `pagamentos` possui somente o índice da chave primária;
+- colunas `pago_at` e `estornado_at` inexistentes;
+- migrations PIX-01 e PIX-02 continuam inexistentes no projeto principal e aprovadas somente no ambiente descartável.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `.github/workflows/pix-db-aggregate-integrity.yml`;
+- criar `docs/pix/sql/PIX03_INTEGRIDADE_AGREGADA.sql.template`;
+- criar `supabase/tests/fixtures/pix_03_prerequisites.sql`;
+- criar `supabase/tests/pix_03_integridade_agregada.sql`;
+- após a primeira execução integral aprovada, criar exatamente uma migration `supabase/migrations/<timestamp>_pix_aggregate_integrity.sql`, usando o nome gerado pela Supabase CLI `2.115.0`.
+
+Objetos SQL permitidos:
+
+- adicionar `public.pagamentos.pago_at timestamptz null`;
+- adicionar `public.pagamentos.estornado_at timestamptz null`;
+- criar índice de cobertura em `pagamentos(corrida_id)`;
+- criar índice único parcial em `pagamentos(corrida_id) where meio = 'pix'`;
+- criar índice único parcial em `pagamentos(id_transacao_mercadopago) where id_transacao_mercadopago is not null`;
+- executar pré-condições somente de leitura que abortem a migration se houver duplicidade incompatível com os índices únicos.
+
+Travas:
+
+- não alterar nenhum registro existente e não fazer backfill;
+- não alterar tipo, default, nulabilidade ou valor de nenhuma coluna preexistente;
+- não modificar enum, RLS, policy, grant, função, trigger ou FK;
+- não modificar migrations, fixtures ou testes PIX-01/PIX-02;
+- não alterar aplicativo, core, corrida, cotação, comissão, dinheiro ou cartão;
+- não aplicar migration no Supabase principal;
+- nenhuma credencial do projeto principal no GitHub Actions;
+- migration PIX-03 somente será versionada depois da regressão PIX-01/PIX-02, testes PIX-03, testes negativos de pré-condição, lint e advisors passarem;
+- após o versionamento, toda a bateria será repetida.
+
+Rollback antes da produção: nenhum, pois a migration permanecerá somente na branch. Rollback da branch: remover apenas os cinco arquivos exclusivos da PIX-03. Rollback futuro de produção será lógico e aditivo; não apagar colunas ou evidências financeiras.
 
 ### Etapa 1 — Integridade mínima do banco
 
