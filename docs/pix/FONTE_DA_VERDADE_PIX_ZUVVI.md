@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.15
+**Versão:** 1.16
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -598,6 +598,25 @@ Testes obrigatórios:
 - conferência somente leitura de que o Supabase principal permaneceu intacto.
 
 Rollback antes da produção: remover somente os três arquivos novos e reverter esta seção documental. Não existe rollback de banco porque esta microetapa proíbe qualquer escrita no Supabase.
+
+**Fechamento da microetapa PIX-05 — primitivas criptográficas OAuth no servidor:**
+
+- módulo criado em `src/lib/pix-oauth-crypto.server.ts`, sem importação por qualquer arquivo do aplicativo;
+- geração de `state` com 32 bytes e `code_verifier` com 64 bytes, ambos aleatórios e em base64url sem padding;
+- PKCE implementado exclusivamente com `S256`, comprovado pelo vetor oficial do RFC 7636;
+- envelopes `v1` implementados com AES-256-GCM, IV aleatório de 96 bits, tag de 128 bits e contexto autenticado `zuvvi:pix-oauth:v1`;
+- nenhuma chave padrão, segredo real, variável de ambiente, log sensível ou dependência foi criada;
+- execução local: 11/11 testes criptográficos, ESLint, TypeScript e build aprovados;
+- execução GitHub Actions `32796263430`: 11/11 testes, TypeScript integral, build, isolamento do bundle público e `bun.lock` congelado aprovados;
+- commit que concluiu os três arquivos novos: `5378254b815d28d8652431ac86766d88e6deb1ea`;
+- regressões GitHub Actions aprovadas: PIX-01 `32796263334`, PIX-02 `32796263429`, PIX-03 `32796263342` e PIX-04 `32796263321`;
+- nenhum arquivo existente do aplicativo, conexão, callback, banco, migration, dependência, dinheiro, cartão ou core foi alterado;
+- conferência final somente leitura do Supabase principal: última migration `20260824222419`, 84 pagamentos, quatro Pix, schema `private` inexistente e migration PIX-04 não aplicada;
+- Pull Request `#2` permaneceu rascunho, sem merge e sem escrita no projeto principal.
+
+**Classificação da microetapa PIX-05:** **APROVADA E CONGELADA**.
+
+A aprovação comprova apenas as primitivas criptográficas isoladas. Elas ainda não são chamadas pelo fluxo Mercado Pago, não exigem teste manual no aplicativo e não alteram o comportamento atual. A integração com Server Functions, a migration PIX-04 e o callback permanece bloqueada até uma microetapa posterior com ambiente compatível e allowlist própria.
 
 ### Etapa 1 — Integridade mínima do banco
 
