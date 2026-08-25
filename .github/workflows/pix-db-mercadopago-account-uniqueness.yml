@@ -147,13 +147,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main --depth=1
+          BASELINE=f70b4f19d26f827e6741692cf6b3c9570d3aede9
+          git fetch origin "$BASELINE" --depth=1
+          test "$(git cat-file -t "$BASELINE")" = "commit"
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import { execFileSync } from 'node:child_process';
 
+          const baseline = 'f70b4f19d26f827e6741692cf6b3c9570d3aede9';
           const atual = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const base = JSON.parse(execFileSync('git', ['show', 'origin/main:package.json'], { encoding: 'utf8' }));
+          const base = JSON.parse(execFileSync('git', ['show', `${baseline}:package.json`], { encoding: 'utf8' }));
 
           if (atual.dependencies?.['qrcode.react'] !== '4.2.0') {
             throw new Error('qrcode.react deve permanecer fixado em 4.2.0');
@@ -164,14 +167,14 @@ jobs:
           }
           NODE
 
-          lock_patch="$(git diff --unified=0 origin/main -- bun.lock)"
+          lock_patch="$(git diff --unified=0 "$BASELINE" -- bun.lock)"
           deleted_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^-' | grep -v '^---' || true)"
           added_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^+' | grep -v '^+++' || true)"
           added_count="$(printf '%s\n' "$added_lock_lines" | sed '/^$/d' | wc -l | tr -d ' ')"
 
           if [ -n "$deleted_lock_lines" ] || [ "$added_count" -ne 3 ]; then
             echo "bun.lock mudou além da entrada QR autorizada"
-            git diff origin/main -- bun.lock
+            git diff "$BASELINE" -- bun.lock
             exit 1
           fi
           grep -q '"qrcode.react": "4.2.0"' bun.lock
