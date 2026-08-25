@@ -10,6 +10,7 @@ const MOTORISTA_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 type Options = Readonly<{
   publicAccountId?: string | null;
+  credentialPresent?: boolean;
   credentialStatus?: string;
   credentialUserId?: string;
   revokedAt?: string | null;
@@ -48,6 +49,7 @@ function createClient(options: Options = {}) {
       if (options.rpcError) return { data: null, error: { code: "rpc_error" } };
 
       if (functionName === "pix_oauth_credentials_get") {
+        if (options.credentialPresent === false) return { data: [], error: null };
         return {
           data: [
             {
@@ -86,6 +88,13 @@ test("status conectado exige projeção pública e credencial privada ativas e c
     conectado: true,
   });
   assert.equal(calls.filter(({ name }) => name === "pix_oauth_credentials_get").length, 1);
+});
+
+test("conta pública sozinha não torna motorista elegível para Pix", async () => {
+  const { client } = createClient({ credentialPresent: false });
+  assert.deepEqual(await getPixMercadoPagoSecureConnectionStatus(client, MOTORISTA_ID), {
+    conectado: false,
+  });
 });
 
 test("status seguro reprova ausência pública, revogação e conta privada divergente", async () => {
