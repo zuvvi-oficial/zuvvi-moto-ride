@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { getCorrida, cancelarCorrida, verificarTimeoutCorrida } from '@/lib/user.functions';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,6 +57,18 @@ function ProcurandoMotorista() {
   const cancelarCorridaFn = useServerFn(cancelarCorrida);
   const verificarTimeoutCorridaFn = useServerFn(verificarTimeoutCorrida);
 
+  const navigateAfterDriverAccepted = useCallback(
+    (formaPagamento?: string) => {
+      if (formaPagamento === "pix") {
+        navigate({ to: "/pagamento-pix", search: { rideId } });
+        return;
+      }
+
+      navigate({ to: "/acompanhamento", search: { rideId } });
+    },
+    [navigate, rideId],
+  );
+
   // Proteção contra chamadas duplicadas de verificarTimeoutCorrida
   const timeoutCheckInFlightRef = useRef(false);
   // Timer de retry controlado
@@ -95,7 +107,7 @@ function ProcurandoMotorista() {
           clearTimeout(retryTimeoutRef.current);
           retryTimeoutRef.current = null;
         }
-        navigate({ to: '/acompanhamento', search: { rideId } });
+        navigateAfterDriverAccepted(corrida?.forma_pagamento);
       } else if (result.status === 'solicitada') {
         // Servidor diz que ainda não expirou (diferença de relógio)
         // Não declarar sem_motorista localmente. Aguardar e verificar novamente.
@@ -129,7 +141,7 @@ function ProcurandoMotorista() {
         if (data && data.motorista_id && assignedStatuses.includes(data.status)) {
           motoristaEncontradoRef.current = true;
           setMotoristaEncontrado(true);
-          navigate({ to: '/acompanhamento', search: { rideId } });
+          navigateAfterDriverAccepted(data.forma_pagamento);
           return;
         }
 
@@ -181,7 +193,7 @@ function ProcurandoMotorista() {
               motoristaEncontradoRef.current = true;
               setMotoristaEncontrado(true);
               toast.success("Motorista encontrou você!");
-              navigate({ to: '/acompanhamento', search: { rideId } });
+              navigateAfterDriverAccepted(updatedRide.forma_pagamento);
             }
           }
         )
@@ -194,7 +206,7 @@ function ProcurandoMotorista() {
               if (data && data.motorista_id && assignedStatuses.includes(data.status) && !motoristaEncontradoRef.current) {
                 motoristaEncontradoRef.current = true;
                 setMotoristaEncontrado(true);
-                navigate({ to: '/acompanhamento', search: { rideId } });
+                navigateAfterDriverAccepted(data.forma_pagamento);
               }
             } catch (err) {
               console.error('Erro na checagem extra pós-subscribe:', err);
@@ -210,7 +222,7 @@ function ProcurandoMotorista() {
         supabase.removeChannel(channel);
       }
     };
-  }, [rideId, getCorridaFn, navigate]);
+  }, [rideId, getCorridaFn, navigate, navigateAfterDriverAccepted]);
 
   // Effect de contagem regressiva baseada no created_at real da corrida
   useEffect(() => {
@@ -526,7 +538,7 @@ function ProcurandoMotorista() {
             </div>
             <button 
               className="bg-zuvvi-indigo text-zuvvi-volt px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-transform"
-              onClick={() => navigate({ to: '/acompanhamento', search: { rideId } })}
+              onClick={() => navigateAfterDriverAccepted(corrida.forma_pagamento)}
             >
               Ver Mapa
             </button>
