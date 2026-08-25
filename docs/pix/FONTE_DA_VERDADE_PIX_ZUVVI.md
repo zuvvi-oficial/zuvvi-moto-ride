@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.17
+**Versão:** 1.18
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -674,7 +674,7 @@ Testes obrigatórios:
 
 Rollback antes da produção: remover somente os três arquivos novos e reverter esta seção documental. Não existe rollback de banco porque esta microetapa proíbe qualquer escrita no Supabase.
 
-**Fechamento parcial da microetapa PIX-06 — cliente OAuth Mercado Pago no servidor:**
+**Fechamento da microetapa PIX-06 — cliente OAuth Mercado Pago no servidor:**
 
 - adaptador criado em `src/lib/pix-mercadopago-oauth.server.ts`, sem importação por qualquer arquivo existente do aplicativo;
 - URL de autorização limitada ao endpoint oficial, callback HTTPS estático, `state`, `code_challenge` e método `S256`, sem segredo ou verifier;
@@ -682,14 +682,18 @@ Rollback antes da produção: remover somente os três arquivos novos e reverter
 - nenhuma credencial real, variável de ambiente, log sensível, chamada de rede real, persistência ou alteração de comportamento foi criada;
 - execução local: PIX-06 `10/10`, regressão criptográfica PIX-05 `11/11`, ESLint, TypeScript integral, formatação dos três arquivos novos e build aprovados;
 - hashes de `pix-oauth-crypto.server.ts`, `motorista-pagamento.functions.ts`, callback, `package.json` e `bun.lock` permaneceram idênticos ao baseline;
-- commit local de implementação: `dd2a332d4d6b798aceb34a09359aed69168b5fbf`;
-- o push para `feature/pix-100-seguro` foi bloqueado pela ausência de autenticação GitHub nesta sessão; nenhuma tentativa de contornar credenciais foi feita;
-- por consequência, o workflow novo ainda não executou no GitHub Actions e a etapa não pode ser congelada;
+- commit remoto de implementação: `4c9f2803cd99add6484d04e32e3e9ff4781bbda8`;
+- a primeira execução remota PIX-06 `32797792713` aprovou código, 21 testes acumulados, ESLint, TypeScript, build e isolamento, mas falhou exclusivamente porque o checkout raso não continha a referência `origin/main` usada pela prova de dependências;
+- a correção determinística alterou somente `.github/workflows/pix-mercadopago-oauth.yml`, substituindo a referência Git ausente pela verificação dos hashes congelados de `package.json` e `bun.lock`, no commit `d0dfb157010ac1a7cc19b575730b3918f78f3da5`;
+- execução final PIX-06 `32798102533`: 10/10 testes do cliente, regressão PIX-05 11/11, ESLint, TypeScript integral, build, isolamento do bundle público e hashes das dependências aprovados;
+- regressões GitHub Actions aprovadas no mesmo commit: PIX-01 `32798102526`, PIX-02 `32798102540`, PIX-03 `32798102528`, PIX-04 `32798102622` e PIX-05 `32798102537`;
+- diff remoto permaneceu limitado aos quatro caminhos autorizados: esta Fonte da Verdade, adaptador, teste e workflow exclusivos da PIX-06;
+- a Pull Request `#2` permanece aberta em modo draft, sem merge na `main`;
 - conferência somente leitura do Supabase principal permaneceu em 84 pagamentos, quatro Pix, sem schema `private`, sem `pix_oauth_state_create` e última migration `20260824222419`; nenhuma escrita foi realizada.
 
-**Classificação da microetapa PIX-06:** **PARCIALMENTE APROVADA — BLOQUEADA NO ENVIO AO GITHUB**.
+**Classificação da microetapa PIX-06:** **APROVADA E CONGELADA**.
 
-Para concluir a mesma microetapa, é obrigatório autenticar um meio autorizado de escrita no GitHub, enviar os commits à branch Pix, aguardar o workflow e as regressões, revisar o diff remoto e registrar as evidências. Nenhuma próxima microetapa poderá começar antes disso.
+A aprovação comprova somente o cliente OAuth isolado e exclusivamente de servidor. Ele ainda não é importado pelo aplicativo, não persiste credenciais, não usa segredo real, não chama o Mercado Pago em testes e não modifica o comportamento do motorista. A ligação com estado OAuth, criptografia, persistência e callback continua bloqueada até uma microetapa posterior com allowlist própria.
 
 ### Etapa 1 — Integridade mínima do banco
 
