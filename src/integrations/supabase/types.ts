@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -1124,6 +1124,10 @@ export type Database = {
           _token_type?: string
         }
         Returns: undefined
+      }
+      pix_oauth_disconnect_safe: {
+        Args: { _motorista_id: string }
+        Returns: string
       }
       pix_oauth_state_consume: {
         Args: { _motorista_id: string; _state_hash: string }
