@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.19
+**Versão:** 1.20
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -735,6 +735,23 @@ Testes obrigatórios:
 - conferir diff remoto limitado à allowlist e repetir a fotografia somente leitura do Supabase principal.
 
 Rollback antes da produção: remover somente os quatro arquivos novos e reverter esta seção documental. Não existe rollback de produção porque nenhuma escrita remota está autorizada.
+
+**Fechamento da microetapa PIX-07R — reconciliação da unicidade da conta Mercado Pago:**
+
+- allowlist registrada antes da implementação no commit `eae24ec55e281ba363a7389ea4a53259863f9cb3`;
+- migration histórica recuperada em `supabase/migrations/20260824222419_unicidade_conta_mercado_pago_motorista.sql`, contendo somente o índice único parcial já presente no catálogo real;
+- implementação e testes enviados no commit `659a88a1534739f85efb04319fc3a36419d70a07`;
+- execução dedicada `32799187019`: PIX-07R 10/10, PIX-01 33/33, PIX-02 48/48, PIX-03 22/22 e PIX-04 45/45 testes pgTAP aprovados;
+- a mesma execução repetiu PIX-05 11/11 e PIX-06 10/10, além de lint do schema sem erros, advisors de segurança/performance sem issues, ESLint, TypeScript integral, build e hashes das dependências aprovados;
+- regressões independentes aprovadas no mesmo commit: PIX-01 `32799186896`, PIX-02 `32799186906`, PIX-03 `32799186932`, PIX-04 `32799186892`, PIX-05 `32799186921` e PIX-06 `32799186911`;
+- diff de implementação limitado aos quatro arquivos novos autorizados; nenhum arquivo existente do aplicativo foi alterado;
+- conferência somente leitura do Supabase principal manteve 84 pagamentos, quatro Pix, schema `private` ainda ausente, migration final `20260824222419` e definição idêntica do índice `idx_motoristas_conta_mercado_pago_unica`;
+- nenhuma migration, reparo de histórico, DDL, DML ou dado foi executado no Supabase principal;
+- a Pull Request `#2` permanece aberta em modo draft, sem merge na `main`.
+
+**Classificação da microetapa PIX-07R:** **APROVADA E CONGELADA**.
+
+A aprovação reconcilia somente o arquivo ausente no GitHub. Ela não cria nova funcionalidade, não modifica o comportamento visível do aplicativo e, por isso, não possui teste manual de tela. A integração OAuth continua bloqueada até nova microetapa com allowlist própria.
 
 ### Etapa 1 — Integridade mínima do banco
 
