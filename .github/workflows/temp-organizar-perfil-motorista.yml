@@ -27,9 +27,11 @@ jobs:
         with:
           bun-version: 1.3.10
 
-      - name: Reorganizar somente a Home do motorista
+      - name: Restaurar Home original e reaplicar somente o necessario
         shell: bash
         run: |
+          set -euo pipefail
+          git show 99a17f8ecc9d0831879f95ef8c68f73ba909a834:src/routes/home-motorista.tsx > src/routes/home-motorista.tsx
           python3 - <<'PY'
           from pathlib import Path
 
@@ -38,12 +40,12 @@ jobs:
 
           old_import = 'import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";\n'
           if text.count(old_import) != 1:
-              raise SystemExit("Import MercadoPagoConnect inesperado na Home")
+              raise SystemExit("Import MercadoPagoConnect inesperado na Home original")
           text = text.replace(old_import, "")
 
           old_widget = "            <MercadoPagoConnect />\n"
           if text.count(old_widget) != 1:
-              raise SystemExit("Bloco MercadoPagoConnect inesperado na Home")
+              raise SystemExit("Bloco MercadoPagoConnect inesperado na Home original")
           text = text.replace(old_widget, "")
 
           old_logout = "\n".join([
@@ -59,17 +61,18 @@ jobs:
               "          </button>",
           ])
           new_profile = "\n".join([
-              "          <a",
-              '            href="/perfil-motorista"',
+              "          <button",
+              '            type="button"',
               '            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"',
+              '            onClick={() => navigate({ to: "/perfil-motorista" })}',
               '            aria-label="Abrir perfil do motorista"',
               "          >",
               '            <User className="w-6 h-6" />',
               '            <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>',
-              "          </a>",
+              "          </button>",
           ])
           if text.count(old_logout) != 1:
-              raise SystemExit("Bloco de logout da barra inferior inesperado")
+              raise SystemExit("Bloco de logout inesperado na Home original")
           text = text.replace(old_logout, new_profile)
 
           path.write_text(text)
@@ -78,23 +81,21 @@ jobs:
       - name: Instalar dependencias congeladas
         run: bun install --frozen-lockfile
 
-      - name: Formatar somente arquivos permitidos
-        run: bunx prettier --write src/routes/perfil-motorista.tsx src/routes/home-motorista.tsx
+      - name: Verificar formato e ESLint da nova tela
+        run: |
+          bunx prettier --check src/routes/perfil-motorista.tsx
+          bunx eslint src/routes/perfil-motorista.tsx
 
-      - name: Verificar ESLint da nova tela
-        run: bunx eslint src/routes/perfil-motorista.tsx
-
-      - name: Gerar route tree e executar build
+      - name: Executar build com rota gerada
         run: bun run build
 
       - name: Verificar TypeScript integral
         run: bunx tsc --noEmit
 
-      - name: Provar reorganizacao isolada
+      - name: Provar diff cirurgico e isolamento
         shell: bash
         run: |
           set -euo pipefail
-          test -f src/routes/perfil-motorista.tsx
           grep -q 'createFileRoute("/perfil-motorista")' src/routes/perfil-motorista.tsx
           grep -q 'MercadoPagoConnect' src/routes/perfil-motorista.tsx
           grep -q 'Sair da conta' src/routes/perfil-motorista.tsx
@@ -102,7 +103,7 @@ jobs:
             echo "Mercado Pago ainda ficou na Home"
             exit 1
           fi
-          grep -q 'href="/perfil-motorista"' src/routes/home-motorista.tsx
+          grep -q 'navigate({ to: "/perfil-motorista" })' src/routes/home-motorista.tsx
           grep -q '>Perfil</span>' src/routes/home-motorista.tsx
           if grep -q '>Sair</span>' src/routes/home-motorista.tsx; then
             echo "Logout direto ainda existe na barra inferior"
@@ -110,25 +111,29 @@ jobs:
           fi
           grep -q '/perfil-motorista' src/routeTree.gen.ts
 
+          total_changes=$(git diff --numstat 99a17f8ecc9d0831879f95ef8c68f73ba909a834 -- src/routes/home-motorista.tsx | awk '{print $1+$2}')
+          echo "Linhas efetivamente alteradas na Home versus baseline: ${total_changes:-0}"
+          test "${total_changes:-999}" -le 30
+
           mapfile -t changed < <(git diff --name-only)
           printf 'Arquivos alterados pelo runner:\n%s\n' "${changed[*]}"
           for file in "${changed[@]}"; do
             case "$file" in
-              src/routes/perfil-motorista.tsx|src/routes/home-motorista.tsx|src/routeTree.gen.ts) ;;
+              src/routes/home-motorista.tsx|src/routeTree.gen.ts) ;;
               *) echo "Arquivo fora da allowlist alterado pelo runner: $file"; exit 1 ;;
             esac
           done
 
-      - name: Commitar somente perfil, Home e route tree
+      - name: Commitar somente limpeza cirurgica da Home
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/routes/perfil-motorista.tsx src/routes/home-motorista.tsx src/routeTree.gen.ts
+          git add src/routes/home-motorista.tsx src/routeTree.gen.ts
           if git diff --cached --quiet; then
             echo "Nenhuma alteracao para commitar"
             exit 0
           fi
-          git commit -m "feat(motorista): mover Mercado Pago e logout para perfil"
+          git commit -m "refactor(motorista): manter reorganizacao com diff minimo"
           git push origin HEAD:feature/pix-100-seguro
