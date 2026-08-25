@@ -17,13 +17,13 @@ import {
 import {
   desconectarMercadoPago,
   getStatusConexaoMercadoPago,
-  iniciarConexaoMercadoPago,
 } from '@/lib/motorista-pagamento.functions';
+import { iniciarConexaoMercadoPagoPixSegura } from '@/lib/pix-mercadopago-oauth.functions';
 
 export default function MercadoPagoConnect() {
   const queryClient = useQueryClient();
   const getStatusFn = useServerFn(getStatusConexaoMercadoPago);
-  const iniciarFn = useServerFn(iniciarConexaoMercadoPago);
+  const iniciarFn = useServerFn(iniciarConexaoMercadoPagoPixSegura);
   const desconectarFn = useServerFn(desconectarMercadoPago);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
@@ -38,9 +38,8 @@ export default function MercadoPagoConnect() {
     setErro(null);
     setIsRedirecting(true);
     try {
-      const { url, state } = await iniciarFn();
-      window.sessionStorage.setItem('zuvvi_mp_oauth_state', state);
-      window.location.href = url;
+      const { authorizationUrl } = await iniciarFn();
+      window.location.href = authorizationUrl;
     } catch {
       setErro('Não foi possível iniciar a conexão. Tente novamente.');
       setIsRedirecting(false);
