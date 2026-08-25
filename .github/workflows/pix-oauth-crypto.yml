@@ -1,0 +1,76 @@
+name: PIX OAuth Crypto
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pix-oauth-crypto.yml"
+      - "src/lib/pix-oauth-crypto.server.ts"
+      - "scripts/pix/pix-oauth-crypto.test.ts"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pix-oauth-crypto-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pix-05-crypto:
+    name: Testar primitivas OAuth exclusivamente no servidor
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout da branch do Pix
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Instalar Bun fixado
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Compilar somente módulo e teste PIX-05
+        run: >-
+          bunx tsc
+          --target ES2022
+          --module NodeNext
+          --moduleResolution NodeNext
+          --lib ES2022,DOM
+          --types node
+          --strict
+          --skipLibCheck
+          --outDir /tmp/pix-oauth-crypto
+          src/lib/pix-oauth-crypto.server.ts
+          scripts/pix/pix-oauth-crypto.test.ts
+
+      - name: Executar testes criptográficos isolados
+        run: node --test /tmp/pix-oauth-crypto/scripts/pix/pix-oauth-crypto.test.js
+
+      - name: Verificar TypeScript integral
+        run: bunx tsc --noEmit
+
+      - name: Executar build de produção
+        run: bun run build
+
+      - name: Provar isolamento do módulo no servidor
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R "pix-oauth-crypto.server" src \
+            --include='*.ts' --include='*.tsx' \
+            --exclude='pix-oauth-crypto.server.ts'; then
+            echo "O módulo criptográfico foi importado por código do aplicativo"
+            exit 1
+          fi
+          if grep -R "zuvvi:pix-oauth:v1" .output/public; then
+            echo "Contexto criptográfico encontrado no bundle público"
+            exit 1
+          fi
+
+      - name: Provar ausência de alteração em dependências
+        run: git diff --exit-code -- package.json bun.lock
