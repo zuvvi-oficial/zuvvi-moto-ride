@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.22
+**Versão:** 1.23
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -823,6 +823,42 @@ Rollback: remover somente os três arquivos novos e reverter esta seção docume
 **Classificação da microetapa PIX-08A-T:** **APROVADA EM AMBIENTE DESCARTÁVEL E CONGELADA**.
 
 A próxima microetapa poderá versionar exatamente o conteúdo aprovado no caminho gerado pela CLI, usando `20260825021917_pix_oauth_atomic_connection.sql`, mas continuará proibida de aplicar a migration no Supabase principal sem autorização posterior específica.
+
+**Autorização e allowlist da microetapa PIX-08A-V — versionamento da conexão OAuth atômica:**
+
+Objetivo único: transformar o template aprovado e testado na migration definitiva de código, usando exatamente o nome gerado pela Supabase CLI na execução aprovada. Esta microetapa apenas versiona o SQL e adapta o workflow para testar o arquivo versionado; não aplica a migration no Supabase principal e não integra o aplicativo.
+
+Baseline revalidado em 25/08/2026:
+
+- commit-base da branch Pix: `de8560d9052e871d72254eaf5325f9baec1fb2bb`;
+- `main` remota continua ancestral da branch e a Pull Request `#2` permanece draft, aberta e sem merge;
+- conteúdo aprovado do template: SHA-256 `03a20534684b268e2e268cad62e745af73688cbd33ec8160965c1ea909ed1750`;
+- teste PIX-08A-T congelado: SHA-256 `903995ab41e7bec7bec4288a1e26357837372fb14df9cad883fd407f454b8ab5`;
+- `package.json` e `bun.lock` permanecem nos hashes congelados `71b9e8dc...` e `43a4359a...`;
+- Supabase principal permanece na migration `20260824222419`, com 84 pagamentos, quatro Pix, sem schema `private` e sem `pix_oauth_credentials_upsert`.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `supabase/migrations/20260825021917_pix_oauth_atomic_connection.sql`;
+- modificar `.github/workflows/pix-db-oauth-atomic-connection.yml` exclusivamente para usar e conferir a migration versionada.
+
+Regras obrigatórias:
+
+- o arquivo versionado deve ser byte a byte idêntico ao template aprovado;
+- o workflow deve falhar se o nome exato estiver ausente, se existir outra migration com o mesmo sufixo ou se o conteúdo divergir do template;
+- a migration deve continuar sendo aplicada apenas no Supabase local descartável do CI;
+- repetir PIX-08A-T, todas as regressões PIX-01 a PIX-07R, PIX-05, PIX-06, lint, advisors, ESLint, TypeScript, build e hashes congelados;
+- não alterar função, assinatura, grants, teste pgTAP, template, migrations anteriores ou dependências.
+
+Travas:
+
+- não aplicar migration, DDL, DML ou reparo no Supabase principal;
+- não alterar Server Functions, callback, componentes, telas, autenticação ou fluxo OAuth atual;
+- não usar segredo, token, credencial ou dado real;
+- não alterar dinheiro, cartão ou core e não fazer merge.
+
+Rollback: remover somente a migration nova, restaurar o workflow ao hash `862e981b2feaa1648a97598f0f377d3bc1b98efa31027b1870249bb52a4c8254` e reverter esta seção documental. Não existe rollback de produção porque escrita remota continua proibida.
 
 ### Etapa 1 — Integridade mínima do banco
 
