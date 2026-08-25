@@ -64,7 +64,7 @@ jobs:
 
           git rm .github/workflows/temp-fix-pix-etapa5-baseline.yml
 
-          mapfile -t changed < <(git diff --name-only | sort)
+          mapfile -t changed < <(git diff HEAD --name-only | sort)
           printf 'Arquivos alterados:\n%s\n' "${changed[*]}"
           test "${#changed[@]}" = "3"
           test "${changed[0]}" = ".github/workflows/pix-db-mercadopago-account-uniqueness.yml"
