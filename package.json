@@ -57,6 +57,7 @@
     "mapbox-gl": "^3.28.1",
     "mercadopago": "^3.4.0",
     "nanoid": "^6.0.1",
+    "qrcode.react": "4.2.0",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
