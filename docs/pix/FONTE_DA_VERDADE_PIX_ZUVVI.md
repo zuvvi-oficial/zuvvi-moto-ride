@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.24
+**Versão:** 1.25
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -876,6 +876,54 @@ Rollback: remover somente a migration nova, restaurar o workflow ao hash `862e98
 **Classificação da microetapa PIX-08A-V:** **APROVADA E CONGELADA NO GITHUB; NÃO APLICADA EM PRODUÇÃO**.
 
 A próxima microetapa deverá receber nova allowlist antes de conectar o fluxo OAuth do servidor à função atômica. A existência da migration no GitHub não autoriza sua aplicação no Supabase principal.
+
+**Autorização e allowlist da microetapa PIX-08B-T — orquestração OAuth isolada no servidor:**
+
+Objetivo único: criar e testar uma camada nova, exclusivamente de servidor, que componha as primitivas já aprovadas de state, PKCE, cliente Mercado Pago, criptografia e persistência atômica. A camada permanecerá desconectada das Server Functions e da interface atuais; portanto, não altera o comportamento do aplicativo nesta microetapa.
+
+Baseline revalidado em 25/08/2026:
+
+- commit-base da branch Pix: `e37be5a740adb99e70f8c57d12d88b7fd4dbf547`;
+- `main` remota continua ancestral da branch e a Pull Request `#2` permanece draft, aberta e sem merge;
+- hashes congelados: criptografia `ccd9606b...`, cliente OAuth `4b2cf519...`, migration atômica `03a20534...`, workflow PIX-08A `321f3a5b...`, `package.json` `71b9e8dc...` e `bun.lock` `43a4359a...`;
+- fluxo atualmente ativo congelado: `motorista-pagamento.functions.ts` no hash `fcafe924...` e callback no hash `445532b6...`;
+- Supabase principal permanece na migration `20260824222419`, com 84 pagamentos, quatro Pix, sem schema `private` e sem funções OAuth novas aplicadas.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `src/lib/pix-mercadopago-oauth-flow.server.ts`;
+- criar `src/lib/pix-mercadopago-oauth-supabase.server.ts`;
+- criar `scripts/pix/pix-mercadopago-oauth-flow.test.ts`;
+- modificar `.github/workflows/pix-db-oauth-atomic-connection.yml` exclusivamente para incluir os arquivos e testes desta microetapa na regressão integral.
+
+Comportamento permitido:
+
+- início: gerar state e verifier imprevisíveis, derivar PKCE S256, guardar somente hash do state e verifier cifrado com validade máxima de cinco minutos e devolver somente a URL oficial;
+- conclusão: validar e consumir state uma única vez por motorista, decifrar o verifier, trocar o code, cifrar Access Token e Refresh Token e chamar exatamente `pix_oauth_credentials_upsert` para persistência atômica;
+- adaptador Supabase deve chamar exclusivamente `pix_oauth_state_create`, `pix_oauth_state_consume` e `pix_oauth_credentials_upsert` por cliente de servidor;
+- retornar somente dados mínimos e nunca expor state separado, verifier, tokens, chave, erro interno ou resposta bruta do provedor;
+- falhar fechado diante de state ausente, expirado, reutilizado ou pertencente a outro motorista, versão de envelope desconhecida, RPC malformado, falha de rede, cifra ou persistência.
+
+Travas:
+
+- não modificar `motorista-pagamento.functions.ts`, `motorista.mercadopago-callback.tsx`, componentes ou rotas;
+- não ativar o novo fluxo, não mudar redirect URI e não fazer chamada real ao Mercado Pago;
+- não criar migration, não alterar schema, RLS, grants ou tipos gerados;
+- não aplicar DDL, DML ou migration no Supabase principal;
+- não usar segredo, token, credencial ou dado real;
+- não alterar dinheiro, cartão, autenticação geral ou core e não fazer merge.
+
+Testes obrigatórios:
+
+- início persiste hash e envelope, monta PKCE e não devolve state/verifier;
+- conclusão consome state uma única vez, troca code com o verifier correto, cifra os dois tokens e chama uma única vez a função atômica com todos os campos validados;
+- replay, motorista diferente, expiração, versão desconhecida e respostas RPC vazias/malformadas falham antes de persistir credenciais;
+- falhas de provedor, cifra e banco não vazam detalhes nem tokens;
+- adaptador comprova os três nomes de RPC e seus argumentos exatos;
+- repetir PIX-08A, PIX-01 a PIX-07R, PIX-05, PIX-06, lint, advisors, ESLint, TypeScript, build, hashes e diff da allowlist.
+
+Rollback: remover somente os três arquivos novos de servidor/teste, restaurar o workflow ao hash `321f3a5b410277e75c0f712a93e92a83c71be5e39bce13491eac1109e63de086` e reverter esta seção documental. Não existe rollback de produção porque nenhuma ativação ou escrita remota está autorizada.
 
 ### Etapa 1 — Integridade mínima do banco
 
