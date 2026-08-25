@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.28
+**Versão:** 1.29
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -973,6 +973,7 @@ Baseline revalidado em 25/08/2026:
 Arquivos permitidos:
 
 - modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `src/lib/pix-mercadopago-oauth-input.ts` somente com o schema estrito e sem segredo ou acesso a banco;
 - criar `src/lib/pix-mercadopago-oauth-runtime.server.ts`;
 - criar `src/lib/pix-mercadopago-oauth.functions.ts`;
 - criar `scripts/pix/pix-mercadopago-oauth-functions.test.ts`;
