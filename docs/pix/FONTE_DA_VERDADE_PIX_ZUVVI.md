@@ -1,10 +1,10 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.14
+**Versão:** 1.15
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
-**Commit-base auditado:** `433b7b13ae8729212edc345f0059f64c61af5437`
+**Commit-base auditado:** `0a014dedc56e947601dea756b5d12cc991be3656`
 **Supabase:** projeto `qycblinfvijhfjcmdoof`  
 **Status:** planejamento fechado; nenhuma alteração de código ou banco autorizada por este documento isoladamente.
 
@@ -540,6 +540,64 @@ Rollback antes da produção: nenhum, pois a migration permanecerá somente na b
 **Classificação da microetapa PIX-04:** **APROVADA NO AMBIENTE LOCAL DESCARTÁVEL**.
 
 A aprovação comprova somente a fundação de banco para state de uso único e PKCE. O fluxo atual do aplicativo ainda não usa esses objetos; a integração do servidor e do callback será uma microetapa posterior, com allowlist própria e novo ciclo de testes. Esta aprovação não habilita Pix, não aplica migration no Supabase principal e não autoriza merge.
+
+**Autorização e allowlist da microetapa PIX-05 — primitivas criptográficas OAuth no servidor:**
+
+Objetivo único: criar e validar um módulo isolado, exclusivamente de servidor, para gerar `state`, gerar `code_verifier`, calcular `code_challenge` PKCE `S256`, calcular o hash SHA-256 do `state` e cifrar/decifrar envelopes OAuth com AES-256-GCM. Esta microetapa não liga o módulo ao fluxo atual e não altera comportamento do aplicativo.
+
+Baseline revalidado em 25/08/2026:
+
+- commit-base da branch Pix: `0a014dedc56e947601dea756b5d12cc991be3656`;
+- Pull Request `#2` permanece rascunho, aberto, sem merge e mesclável;
+- build e TypeScript do checkpoint PIX-04 aprovados;
+- Supabase principal continua na migration `20260824222419`, sem schema `private` e sem migrations PIX-01/02/03/04;
+- implementação atual ainda usa `crypto.randomUUID()` como `state`, valida o estado apenas no navegador, não usa PKCE e não persiste tokens;
+- documentação oficial do Mercado Pago revalidada: o processo sensível deve ser gerenciado no servidor; PKCE `S256` é recomendado; o `code_verifier` deve ter 43–128 caracteres; o código de autorização é único e expira em dez minutos;
+- changelog atual do Supabase revisado; nenhuma mudança encontrada altera o escopo deste módulo isolado.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `src/lib/pix-oauth-crypto.server.ts`;
+- criar `scripts/pix/pix-oauth-crypto.test.ts`;
+- criar `.github/workflows/pix-oauth-crypto.yml`.
+
+Comportamentos permitidos no novo módulo:
+
+- gerar `state` criptograficamente aleatório com 32 bytes e codificação base64url sem padding;
+- gerar `code_verifier` criptograficamente aleatório com 64 bytes e codificação base64url sem padding;
+- validar `code_verifier` segundo o conjunto de caracteres e comprimento do PKCE;
+- calcular `code_challenge` exclusivamente por `BASE64URL(SHA-256(code_verifier))`;
+- calcular SHA-256 hexadecimal do `state` sem registrar o valor bruto;
+- cifrar segredo com AES-256-GCM, IV aleatório de 96 bits e contexto autenticado versionado;
+- decifrar somente envelopes `v1` íntegros e rejeitar chave, versão, formato ou autenticação inválidos com erro sanitizado;
+- aceitar a chave de criptografia somente como argumento codificado de exatamente 32 bytes, sem valor padrão e sem persistência.
+
+Travas:
+
+- não ler nem criar segredo real, arquivo `.env`, secret do GitHub, variável no Lovable ou configuração no Supabase;
+- não incluir segredo, `state`, verifier ou token em logs, mensagens ou fixtures;
+- não usar algoritmo próprio, modo ECB/CBC, IV fixo, chave derivada de texto ou fallback inseguro;
+- não importar o módulo no cliente nem remover o sufixo `.server.ts`;
+- não modificar `package.json`, `bun.lock`, configuração global, dependências ou Design System;
+- não modificar `src/lib/motorista-pagamento.functions.ts`, `src/components/motorista/MercadoPagoConnect.tsx`, `src/routes/motorista.mercadopago-callback.tsx` ou qualquer arquivo existente do aplicativo;
+- não modificar banco, migration, RLS, grant, função SQL, Edge Function ou dados;
+- não alterar conexão, callback, desconexão, oferta, aceite, cobrança ou estado de corrida;
+- não alterar core, dinheiro, cartão, suporte, passageiros, motoristas, cidades ou painel administrativo;
+- não aplicar migration no Supabase principal e não fazer merge.
+
+Testes obrigatórios:
+
+- vetor oficial PKCE `S256` do RFC 7636;
+- formato, comprimento e não repetição prática de `state` e `code_verifier`;
+- hash SHA-256 conhecido e determinístico;
+- round-trip AES-256-GCM sem exposição do texto puro;
+- IV aleatório produzindo envelopes diferentes para o mesmo texto;
+- rejeição de chave incorreta, chave malformada, envelope adulterado, versão desconhecida e verifier inválido;
+- TypeScript `--noEmit`, build de produção e diff restrito à allowlist;
+- conferência somente leitura de que o Supabase principal permaneceu intacto.
+
+Rollback antes da produção: remover somente os três arquivos novos e reverter esta seção documental. Não existe rollback de banco porque esta microetapa proíbe qualquer escrita no Supabase.
 
 ### Etapa 1 — Integridade mínima do banco
 
