@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.13
+**Versão:** 1.14
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -523,6 +523,23 @@ Testes obrigatórios:
 - regressão integral PIX-01/PIX-02/PIX-03, lint e advisors em banco local descartável.
 
 Rollback antes da produção: nenhum, pois a migration permanecerá somente na branch e no Pull Request rascunho. Rollback da branch: remover apenas os quatro arquivos exclusivos da PIX-04 e a alteração desta fonte da verdade. Rollback futuro de produção será lógico e aditivo; não apagar tentativas nem evidências de segurança.
+
+**Fechamento da microetapa PIX-04 — estado OAuth de uso único e PKCE:**
+
+- execução inicial `32795093870`: PIX-01 33/33, PIX-02 48/48, PIX-03 22/22 e PIX-04 45/45; lint sem erros e advisors de segurança/performance sem issues;
+- nome definitivo gerado pela Supabase CLI `2.115.0`: `20260825004851_pix_oauth_state_pkce.sql`;
+- migration versionada em `supabase/migrations/20260825004851_pix_oauth_state_pkce.sql`, com conteúdo byte a byte idêntico ao template aprovado;
+- commit de versionamento da migration PIX-04: `468a2f655769f2d2f72265740ae38af735a02b71`;
+- execução final `32795302534`: migration definitiva detectada, PIX-01 33/33, PIX-02 48/48, PIX-03 22/22 e PIX-04 45/45; lint sem erros e advisors sem issues;
+- comprovados isolamento por motorista, consumo atômico único, bloqueio de replay e expiração, rejeição de hash/versão/janela inválidos, RLS forçada, grants mínimos e ausência de colunas de segredo bruto;
+- build de produção e TypeScript `--noEmit` executados com código de saída zero; avisos preexistentes não foram corrigidos por estarem fora do escopo;
+- nenhum arquivo do aplicativo, callback, conexão, desconexão, corrida, dinheiro, cartão ou core foi alterado;
+- conferência final somente leitura do Supabase principal: última migration `20260824222419`, 84 pagamentos, quatro Pix, schema `private` inexistente, objetos PIX-04 inexistentes e migration PIX-04 não aplicada;
+- Pull Request `#2` permaneceu rascunho, sem merge, e o projeto principal permaneceu sem escrita.
+
+**Classificação da microetapa PIX-04:** **APROVADA NO AMBIENTE LOCAL DESCARTÁVEL**.
+
+A aprovação comprova somente a fundação de banco para state de uso único e PKCE. O fluxo atual do aplicativo ainda não usa esses objetos; a integração do servidor e do callback será uma microetapa posterior, com allowlist própria e novo ciclo de testes. Esta aprovação não habilita Pix, não aplica migration no Supabase principal e não autoriza merge.
 
 ### Etapa 1 — Integridade mínima do banco
 
