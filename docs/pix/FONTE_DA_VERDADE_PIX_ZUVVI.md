@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.26
+**Versão:** 1.27
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -936,6 +936,26 @@ Rollback: remover somente os três arquivos novos de servidor/teste, restaurar o
 - após a correção, todos os workflows acumulados devem ser repetidos e aprovados antes do fechamento da microetapa.
 
 Tudo fora desses dois workflows e desta Fonte da Verdade permanece congelado durante a correção.
+
+**Fechamento da microetapa PIX-08B-T — orquestração OAuth isolada no servidor:**
+
+- autorização inicial registrada no commit `4f1c1c6c386364da68a009d0288dea30a3dc1858`;
+- módulos servidor, adaptador Supabase injetável, 10 testes isolados e ampliação da regressão PIX-08A registrados no commit `a53877316fbf895e51d732d21efedff50d7b838c`;
+- a implementação não foi ligada às Server Functions, ao callback ou à interface atuais e não realiza chamadas reais ao Mercado Pago;
+- execução local final: 10/10 testes novos, ESLint, TypeScript integral, build de produção, verificações do bundle público e `git diff --check` aprovados;
+- os workflows PIX-05 e PIX-06 detectaram inicialmente a nova importação servidor como falso positivo; a correção foi autorizada no commit `c78adcbb251bfec7651cf5cc93059571a9911422` e limitada aos dois testes de isolamento no commit `db97bc160da45c01bed7bec9ff00883996fa6899`;
+- a correção aceita somente `pix-mercadopago-oauth-flow.server.ts` como consumidor adicional e mantém bloqueadas importações por qualquer outro arquivo e vazamento no bundle público;
+- os oito workflows finalizaram aprovados: PIX-06 `32803467911`, PIX-05 `32803467974`, PIX-01 `32803467982`, PIX-02 `32803467936`, PIX-03 `32803467981`, PIX-04 `32803467985`, PIX-08A `32803468007` e PIX-07R `32803468022`;
+- o PIX-07R oscilou uma vez no teste criptográfico preexistente de envelope adulterado e foi aprovado ao repetir somente o job falho, sem alteração de código;
+- diff completo da microetapa limitado aos sete caminhos autorizados; fluxo ativo, callback, componentes, rotas, migrations, dependências, dinheiro, cartão e core permaneceram intactos;
+- hashes congelados confirmados: `motorista-pagamento.functions.ts` `fcafe924...`, callback `445532b6...`, `package.json` `71b9e8dc...` e `bun.lock` `43a4359a...`;
+- conferência somente leitura do Supabase principal: migration final `20260824222419`, 84 pagamentos, quatro Pix, schema `private` inexistente e zero funções `pix_oauth_state_create`, `pix_oauth_state_consume` ou `pix_oauth_credentials_upsert`;
+- nenhuma migration, DDL, DML, segredo, token, credencial ou dado foi aplicado ao Supabase principal;
+- a Pull Request `#2` permanece aberta, draft, mesclável e sem merge.
+
+**Classificação da microetapa PIX-08B-T:** **APROVADA E CONGELADA NO GITHUB; NÃO ATIVADA NO APLICATIVO NEM APLICADA EM PRODUÇÃO**.
+
+A próxima microetapa exige nova allowlist para conectar esta camada a Server Functions autenticadas. Ela deverá continuar separada da interface e somente poderá usar os objetos de banco depois de uma autorização específica de aplicação/homologação.
 
 ### Etapa 1 — Integridade mínima do banco
 
