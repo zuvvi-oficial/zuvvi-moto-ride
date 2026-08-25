@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { parsePixMercadoPagoOAuthCompletionInput } from "./pix-mercadopago-oauth-input";
 import type { PixOAuthServerSupabaseClient } from "./pix-mercadopago-oauth-runtime.server";
@@ -48,7 +49,7 @@ async function createAuthenticatedAccountContext(authUserId: string) {
 }
 
 export const iniciarConexaoMercadoPagoPixSegura = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
       const runtime = await createAuthenticatedRuntime();
@@ -59,7 +60,7 @@ export const iniciarConexaoMercadoPagoPixSegura = createServerFn({ method: "POST
   });
 
 export const concluirConexaoMercadoPagoPixSegura = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator(parsePixMercadoPagoOAuthCompletionInput)
   .handler(async ({ data, context }) => {
     try {
@@ -71,7 +72,7 @@ export const concluirConexaoMercadoPagoPixSegura = createServerFn({ method: "POS
   });
 
 export const getStatusConexaoMercadoPagoPixSegura = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
       const account = await createAuthenticatedAccountContext(context.userId);
@@ -82,7 +83,7 @@ export const getStatusConexaoMercadoPagoPixSegura = createServerFn({ method: "GE
   });
 
 export const desconectarMercadoPagoPixSeguro = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
       const account = await createAuthenticatedAccountContext(context.userId);
