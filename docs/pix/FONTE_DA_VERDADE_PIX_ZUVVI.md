@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.29
+**Versão:** 1.30
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -1012,6 +1012,23 @@ Testes obrigatórios:
 - repetir PIX-08A, PIX-08B, PIX-01 a PIX-07R, lint, advisors, ESLint, TypeScript, build, hashes e diff da allowlist.
 
 Rollback: remover somente os três arquivos novos, restaurar os três workflows aos hashes do checkpoint `2cd5989` e reverter esta seção documental. Não existe rollback de produção porque ativação e escrita remota continuam proibidas.
+
+**Fechamento da microetapa PIX-08C-T — ponte autenticada das Server Functions:**
+
+- autorização documental registrada nos commits `ea65567370e9683fc67f9e1a1b26dcbcd8c7d315` e `b7e1ea172d0ad0d88c4d1ed69ef50766ba3beb32`;
+- implementação técnica registrada no commit `416b38e3a1f50214b3a7ebd3986ce6bd191b09d6`;
+- criadas duas Server Functions autenticadas e ainda isoladas da interface: início sem entrada do navegador e conclusão com schema estrito limitado a `code` e `state`;
+- identidade resolvida exclusivamente de `context.userId`, com confirmação de `usuarios.is_motorista = true` e da linha correspondente em `motoristas` antes de RPC ou chamada ao provedor;
+- configuração sensível exigida somente no servidor, sem valor padrão, log ou retorno; bundle público comprovado sem chave, segredo, tokens de teste ou endpoint de troca OAuth;
+- execução local aprovada: 6/6 testes PIX-08C e 37/37 testes OAuth acumulados, ESLint, TypeScript integral, build de produção, Prettier e `git diff --check` com código de saída zero;
+- diff técnico limitado aos sete caminhos autorizados; fluxo ativo, callback, componentes, rotas, migrations, dependências, dinheiro, cartão, suporte e core permaneceram intactos;
+- GitHub Actions aprovou as oito execuções independentes: `32825895241`, `32825895109`, `32825895059`, `32825895061`, `32825895188`, `32825895118`, `32825895048` e `32825895058`;
+- conferência final somente leitura do Supabase principal manteve 84 pagamentos, quatro Pix, schema `private` inexistente, zero funções `pix_oauth_state_create`, `pix_oauth_state_consume` ou `pix_oauth_credentials_upsert` e última migration `20260824222419`;
+- nenhuma migration, DDL, DML, segredo, variável remota, token, credencial ou dado foi aplicado ao Supabase principal;
+- as funções novas não foram importadas por componente ou rota, nenhuma chamada real ao Mercado Pago ocorreu e nenhum teste manual do aplicativo é aplicável nesta microetapa isolada;
+- a Pull Request `#2` permanece sem merge e esta entrega não autoriza ativação nem produção.
+
+**Classificação da microetapa PIX-08C-T:** **APROVADA E CONGELADA NO GITHUB; NÃO ATIVADA NO APLICATIVO NEM APLICADA EM PRODUÇÃO**.
 
 ### Etapa 1 — Integridade mínima do banco
 
