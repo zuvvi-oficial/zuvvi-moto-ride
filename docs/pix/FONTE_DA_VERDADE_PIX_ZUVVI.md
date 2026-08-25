@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.23
+**Versão:** 1.24
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -859,6 +859,23 @@ Travas:
 - não alterar dinheiro, cartão ou core e não fazer merge.
 
 Rollback: remover somente a migration nova, restaurar o workflow ao hash `862e981b2feaa1648a97598f0f377d3bc1b98efa31027b1870249bb52a4c8254` e reverter esta seção documental. Não existe rollback de produção porque escrita remota continua proibida.
+
+**Fechamento da microetapa PIX-08A-V — versionamento da conexão OAuth atômica:**
+
+- autorização documental registrada no commit `f2a694b8bd17803ac7240acf4ff90e57437f2c99`;
+- migration e adaptação exclusiva do workflow registradas no commit `4fff73d8e22e46c568f737e9f7d9af93ae7e7ac8`;
+- `supabase/migrations/20260825021917_pix_oauth_atomic_connection.sql` foi versionada com SHA-256 `03a20534684b268e2e268cad62e745af73688cbd33ec8160965c1ea909ed1750`, idêntico ao template aprovado;
+- o diff técnico contém somente a migration nova e o workflow PIX-08A; teste, template, dependências, migrations anteriores e aplicativo permaneceram intactos;
+- execução dedicada `32801883550`: PIX-08A 25/25, PIX-01 33/33, PIX-02 48/48, PIX-03 22/22, PIX-04 45/45 e PIX-07R 10/10 testes pgTAP aprovados;
+- PIX-05 11/11 e PIX-06 10/10 testes aprovados dentro da execução dedicada; lint do banco, advisors, ESLint, TypeScript, build integral e hashes congelados também aprovados;
+- todos os oito workflows acionados pelo commit finalizaram com sucesso, sem repetição ou correção adicional;
+- conferência somente leitura do Supabase principal manteve migration final `20260824222419`, 84 pagamentos, quatro Pix, schema `private` ausente e função `pix_oauth_credentials_upsert` ausente;
+- nenhuma migration, DDL, DML, segredo, token ou dado foi aplicado ao Supabase principal; core, aplicativo, dinheiro e cartão permaneceram intactos;
+- a Pull Request `#2` permanece aberta em modo draft, sem merge na `main`.
+
+**Classificação da microetapa PIX-08A-V:** **APROVADA E CONGELADA NO GITHUB; NÃO APLICADA EM PRODUÇÃO**.
+
+A próxima microetapa deverá receber nova allowlist antes de conectar o fluxo OAuth do servidor à função atômica. A existência da migration no GitHub não autoriza sua aplicação no Supabase principal.
 
 ### Etapa 1 — Integridade mínima do banco
 
