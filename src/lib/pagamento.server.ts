@@ -1,6 +1,11 @@
 // Motor server-only da Etapa 4: cobrança Pix após aceite do motorista.
 // A criação financeira atômica da Etapa 3 permanece intocada.
 import { MercadoPagoConfig, Payment } from "mercadopago";
+import {
+  buscarPagamentoPixCanonico,
+  falhaCriacaoMercadoPagoPermiteCompensacao,
+  type PixCanonicalPayment,
+} from "./pix-mercadopago-reconcile.server";
 
 export type PixChargeResult = {
   paymentId: string;
@@ -276,6 +281,65 @@ async function compensarFalhaCriacaoPixSemCobrancaConhecida(
   }
 }
 
+async function persistirResultadoPix(
+  supabaseAdmin: any,
+  tentativaId: string,
+  payment: Readonly<{
+    paymentId: string;
+    status: string | null;
+    statusDetail: string | null;
+    qrCode: string;
+    expiresAt: string | null;
+  }>,
+): Promise<boolean> {
+  const { error } = await supabaseAdmin.rpc("pix_charge_attempt_complete", {
+    _tentativa_id: tentativaId,
+    _mercadopago_payment_id: payment.paymentId,
+    _provider_status: payment.status,
+    _provider_status_detail: payment.statusDetail,
+    _pix_copia_cola: payment.qrCode,
+    _expires_at: payment.expiresAt,
+  });
+  return !error;
+}
+
+async function reconciliarEPersistirPagamentoPix(
+  supabaseAdmin: any,
+  input: Readonly<{
+    accessToken: string;
+    tentativaId: string;
+    externalReference: string;
+    valorTotal: number;
+    mercadoPagoUserId: string;
+    paymentId?: string | null;
+  }>,
+): Promise<PixChargeResult | null> {
+  const canonical: PixCanonicalPayment | null = await buscarPagamentoPixCanonico({
+    accessToken: input.accessToken,
+    externalReference: input.externalReference,
+    expectedAmount: input.valorTotal,
+    expectedMercadoPagoUserId: input.mercadoPagoUserId,
+    paymentId: input.paymentId ?? null,
+  });
+
+  if (!canonical) return null;
+
+  const persisted = await persistirResultadoPix(supabaseAdmin, input.tentativaId, {
+    paymentId: canonical.paymentId,
+    status: canonical.status,
+    statusDetail: canonical.statusDetail,
+    qrCode: canonical.qrCode,
+    expiresAt: canonical.expiresAt,
+  });
+  if (!persisted) throw new Error(GENERIC_ERROR);
+
+  return {
+    paymentId: canonical.paymentId,
+    qrCode: canonical.qrCode,
+    qrCodeBase64: canonical.qrCodeBase64,
+  };
+}
+
 export async function prepararCobrancaPixAntesAceiteServer(
   rideId: string,
   motoristaId: string,
@@ -319,12 +383,15 @@ export async function criarCobrancaPixAposAceiteServer(
     .select("conta_mercado_pago_id")
     .eq("id", motoristaId)
     .maybeSingle();
-  if (motoristaError || !motorista) throw new Error(INVALID_ACCOUNT_ERROR);
+  if (motoristaError || !motorista || !motorista.conta_mercado_pago_id) {
+    throw new Error(INVALID_ACCOUNT_ERROR);
+  }
+  const mercadoPagoUserId = motorista.conta_mercado_pago_id;
 
   const accessToken = await obterAccessTokenValido(
     supabaseAdmin as any,
     motoristaId,
-    motorista.conta_mercado_pago_id,
+    mercadoPagoUserId,
   );
 
   const { data: claimRows, error: claimError } = await (supabaseAdmin as any).rpc(
@@ -389,49 +456,83 @@ export async function criarCobrancaPixAposAceiteServer(
     providerStatus = response.status ?? null;
     providerStatusDetail = response.status_detail ?? null;
     expiresAt = response.date_of_expiration ?? null;
-  } catch {
-    console.error("[Pagamento] Falha ao criar Pix na conta OAuth do motorista.");
-    await compensarFalhaCriacaoPixSemCobrancaConhecida(
-      supabaseAdmin as any,
-      rideId,
-      motoristaId,
-      tentativaId,
-      "mercadopago_create_error",
-    );
-    throw new Error(GENERIC_ERROR);
-  }
-
-  if (!mpPaymentId || !qrCode || !qrCodeBase64) {
-    if (!mpPaymentId) {
+  } catch (error) {
+    if (falhaCriacaoMercadoPagoPermiteCompensacao(error)) {
+      console.error("[Pagamento] Mercado Pago rejeitou a criação Pix sem cobrança externa.");
       await compensarFalhaCriacaoPixSemCobrancaConhecida(
         supabaseAdmin as any,
         rideId,
         motoristaId,
         tentativaId,
-        "mercadopago_invalid_response",
+        "mercadopago_create_rejected",
       );
-    } else {
-      console.error(
-        "[Pagamento] Resposta Pix incompleta com cobrança externa conhecida; mantendo para reconciliação.",
-      );
+      throw new Error(GENERIC_ERROR);
     }
+
+    try {
+      const reconciled = await reconciliarEPersistirPagamentoPix(supabaseAdmin as any, {
+        accessToken,
+        tentativaId,
+        externalReference: idempotencyKey,
+        valorTotal,
+        mercadoPagoUserId,
+      });
+      if (reconciled) return reconciled;
+    } catch {
+      // Estado externo permanece incerto; não compensar nem criar uma segunda cobrança.
+    }
+
+    console.error(
+      "[Pagamento] Estado da criação Pix incerto; tentativa mantida para reconciliação.",
+    );
     throw new Error(GENERIC_ERROR);
   }
 
-  const { error: completeError } = await (supabaseAdmin as any).rpc(
-    "pix_charge_attempt_complete",
-    {
-      _tentativa_id: tentativaId,
-      _mercadopago_payment_id: mpPaymentId,
-      _provider_status: providerStatus,
-      _provider_status_detail: providerStatusDetail,
-      _pix_copia_cola: qrCode,
-      _expires_at: expiresAt,
-    },
-  );
-  if (completeError) {
+  if (!mpPaymentId || !qrCode || !qrCodeBase64) {
+    try {
+      const reconciled = await reconciliarEPersistirPagamentoPix(supabaseAdmin as any, {
+        accessToken,
+        tentativaId,
+        externalReference: idempotencyKey,
+        valorTotal,
+        mercadoPagoUserId,
+        paymentId: mpPaymentId,
+      });
+      if (reconciled) return reconciled;
+    } catch {
+      // A resposta externa não foi validada canonicamente; falhar fechado.
+    }
+
     console.error(
-      "[Pagamento] Falha ao persistir resultado Pix; mantendo cobrança para reconciliação.",
+      "[Pagamento] Resposta Pix incompleta; tentativa mantida para reconciliação canônica.",
+    );
+    throw new Error(GENERIC_ERROR);
+  }
+
+  const persisted = await persistirResultadoPix(supabaseAdmin as any, tentativaId, {
+    paymentId: mpPaymentId,
+    status: providerStatus,
+    statusDetail: providerStatusDetail,
+    qrCode,
+    expiresAt,
+  });
+  if (!persisted) {
+    try {
+      const reconciled = await reconciliarEPersistirPagamentoPix(supabaseAdmin as any, {
+        accessToken,
+        tentativaId,
+        externalReference: idempotencyKey,
+        valorTotal,
+        mercadoPagoUserId,
+        paymentId: mpPaymentId,
+      });
+      if (reconciled) return reconciled;
+    } catch {
+      // Mantém a cobrança externa intacta para Webhook/reconciliação posterior.
+    }
+
+    console.error(
+      "[Pagamento] Falha ao persistir resultado Pix; cobrança mantida para reconciliação.",
     );
     throw new Error(GENERIC_ERROR);
   }
