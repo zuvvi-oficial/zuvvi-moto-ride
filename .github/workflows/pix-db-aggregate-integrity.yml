@@ -1,0 +1,200 @@
+name: PIX DB Aggregate Integrity
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pix-db-aggregate-integrity.yml"
+      - "docs/pix/sql/PIX03_INTEGRIDADE_AGREGADA.sql.template"
+      - "supabase/migrations/*_pix_oauth_credentials_private.sql"
+      - "supabase/migrations/*_pix_attempts_webhook.sql"
+      - "supabase/migrations/*_pix_aggregate_integrity.sql"
+      - "supabase/tests/pix_01_oauth_credentials.sql"
+      - "supabase/tests/pix_02_attempts_webhook.sql"
+      - "supabase/tests/pix_03_integridade_agregada.sql"
+      - "supabase/tests/fixtures/pix_01_prerequisites.sql"
+      - "supabase/tests/fixtures/pix_02_prerequisites.sql"
+      - "supabase/tests/fixtures/pix_03_prerequisites.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pix-db-aggregate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pix-03-aggregate-integrity:
+    name: Testar regressão PIX-01/02 e integridade PIX-03
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_CLI_VERSION: 2.115.0
+      LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      PGHOST: 127.0.0.1
+      PGPORT: 54322
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - name: Checkout da branch do Pix
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Conferir Docker
+        run: docker version
+
+      - name: Instalar Supabase CLI fixada
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
+
+      - name: Preparar migrations PIX-01, PIX-02 e PIX-03
+        shell: bash
+        run: |
+          set -euo pipefail
+          pix01_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_credentials_private.sql' -print -quit)"
+          pix02_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_attempts_webhook.sql' -print -quit)"
+          test -n "${pix01_path}"
+          test -n "${pix02_path}"
+          cp "${pix01_path}" /tmp/pix_01.sql
+          cp "${pix02_path}" /tmp/pix_02.sql
+
+          pix03_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_aggregate_integrity.sql' -print -quit)"
+          if [ -z "${pix03_path}" ]; then
+            npx --yes supabase@${SUPABASE_CLI_VERSION} migration new pix_aggregate_integrity
+            pix03_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_aggregate_integrity.sql' -print -quit)"
+            cp docs/pix/sql/PIX03_INTEGRIDADE_AGREGADA.sql.template "${pix03_path}"
+            echo "MIGRATION_GENERATED=${pix03_path}"
+          else
+            echo "MIGRATION_VERSIONED=${pix03_path}"
+          fi
+          test -n "${pix03_path}"
+          cp "${pix03_path}" /tmp/pix_03.sql
+
+      - name: Isolar migrations preexistentes no runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zuvvi_migrations_preexistentes
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' \
+            -exec mv {} /tmp/zuvvi_migrations_preexistentes/ \;
+          test -z "$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print -quit)"
+
+      - name: Iniciar Supabase local descartável
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} start
+          --exclude studio,imgproxy,mailpit,logflare,vector,edge-runtime
+
+      - name: Aplicar fixtures e migrations PIX-01, PIX-02 e PIX-03
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration_table_exists="$(psql "${LOCAL_DB_URL}" -Atc \
+            "select to_regclass('supabase_migrations.schema_migrations') is not null")"
+          if [ "${migration_table_exists}" = "t" ]; then
+            migration_count="$(psql "${LOCAL_DB_URL}" -Atc \
+              'select count(*) from supabase_migrations.schema_migrations')"
+            test "${migration_count}" = "0"
+          fi
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_01_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_01.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_02_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_03_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_02.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_03.sql
+
+      - name: Repetir regressão pgTAP da PIX-01
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+          supabase/tests/pix_01_oauth_credentials.sql --local
+
+      - name: Repetir regressão pgTAP da PIX-02
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+          supabase/tests/pix_02_attempts_webhook.sql --local
+
+      - name: Executar testes pgTAP exclusivos da PIX-03
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+          supabase/tests/pix_03_integridade_agregada.sql --local
+
+      - name: Testar abortagem por corrida Pix duplicada
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_name="pix03_dup_corrida"
+          createdb "${db_name}"
+          psql -d "${db_name}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_02_prerequisites.sql
+          psql -d "${db_name}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_03_prerequisites.sql
+          psql -d "${db_name}" -v ON_ERROR_STOP=1 <<'SQL'
+          insert into public.pagamentos (id, corrida_id, meio)
+          values
+            ('51000000-0000-4000-8000-000000000001'::uuid,
+             '61000000-0000-4000-8000-000000000001'::uuid, 'pix'),
+            ('51000000-0000-4000-8000-000000000002'::uuid,
+             '61000000-0000-4000-8000-000000000001'::uuid, 'pix');
+          SQL
+          if psql -d "${db_name}" -v ON_ERROR_STOP=1 -f /tmp/pix_03.sql \
+            > /tmp/pix03_dup_corrida.log 2>&1; then
+            echo "A migration deveria abortar com corrida Pix duplicada"
+            exit 1
+          fi
+          grep -q "PIX03_DUPLICATE_PIX_CORRIDA" /tmp/pix03_dup_corrida.log
+          test "$(psql -d "${db_name}" -Atc \
+            "select count(*) from information_schema.columns where table_schema='public' and table_name='pagamentos' and column_name in ('pago_at','estornado_at')")" = "0"
+          dropdb "${db_name}"
+
+      - name: Testar abortagem por ID Mercado Pago duplicado
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_name="pix03_dup_mp"
+          createdb "${db_name}"
+          psql -d "${db_name}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_02_prerequisites.sql
+          psql -d "${db_name}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_03_prerequisites.sql
+          psql -d "${db_name}" -v ON_ERROR_STOP=1 <<'SQL'
+          insert into public.pagamentos (
+            id, corrida_id, meio, id_transacao_mercadopago
+          )
+          values
+            ('52000000-0000-4000-8000-000000000001'::uuid,
+             '62000000-0000-4000-8000-000000000001'::uuid,
+             'pix', 'mp-duplicado'),
+            ('52000000-0000-4000-8000-000000000002'::uuid,
+             '62000000-0000-4000-8000-000000000002'::uuid,
+             'pix', 'mp-duplicado');
+          SQL
+          if psql -d "${db_name}" -v ON_ERROR_STOP=1 -f /tmp/pix_03.sql \
+            > /tmp/pix03_dup_mp.log 2>&1; then
+            echo "A migration deveria abortar com ID Mercado Pago duplicado"
+            exit 1
+          fi
+          grep -q "PIX03_DUPLICATE_MERCADOPAGO_TRANSACTION" /tmp/pix03_dup_mp.log
+          test "$(psql -d "${db_name}" -Atc \
+            "select count(*) from information_schema.columns where table_schema='public' and table_name='pagamentos' and column_name in ('pago_at','estornado_at')")" = "0"
+          dropdb "${db_name}"
+
+      - name: Lint do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db lint
+          --local --schema private,public --level error --fail-on error
+
+      - name: Advisor de segurança do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors
+          --local --type security
+
+      - name: Advisor de performance do banco local
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors
+          --local --type performance
+
+      - name: Descartar stack local
+        if: always()
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup
