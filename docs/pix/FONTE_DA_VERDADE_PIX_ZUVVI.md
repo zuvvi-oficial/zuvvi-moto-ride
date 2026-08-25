@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.25
+**Versão:** 1.26
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -924,6 +924,18 @@ Testes obrigatórios:
 - repetir PIX-08A, PIX-01 a PIX-07R, PIX-05, PIX-06, lint, advisors, ESLint, TypeScript, build, hashes e diff da allowlist.
 
 Rollback: remover somente os três arquivos novos de servidor/teste, restaurar o workflow ao hash `321f3a5b410277e75c0f712a93e92a83c71be5e39bce13491eac1109e63de086` e reverter esta seção documental. Não existe rollback de produção porque nenhuma ativação ou escrita remota está autorizada.
+
+**Retomada segura da PIX-08B-T após falso positivo de isolamento — allowlist corretiva:**
+
+- o commit técnico `a53877316fbf895e51d732d21efedff50d7b838c` passou nos 10 testes novos, ESLint, TypeScript e build locais;
+- os workflows PIX-05 e PIX-06 falharam somente porque suas verificações antigas tratavam qualquer importação dos módulos criptográfico/OAuth por outro arquivo `.server.ts` como importação pelo aplicativo;
+- a nova camada `pix-mercadopago-oauth-flow.server.ts` é exclusivamente de servidor e precisa importar esses dois módulos para cumprir o objetivo autorizado;
+- permanece proibida qualquer importação por componente, rota, arquivo sem sufixo `.server.ts` ou bundle público;
+- fica autorizado modificar somente `.github/workflows/pix-oauth-crypto.yml` e `.github/workflows/pix-mercadopago-oauth.yml`, além deste documento, para aceitar a importação pelo orquestrador servidor explicitamente nomeado;
+- a correção não pode enfraquecer as buscas no bundle público, aceitar outros consumidores, modificar código do aplicativo ou ampliar o escopo técnico;
+- após a correção, todos os workflows acumulados devem ser repetidos e aprovados antes do fechamento da microetapa.
+
+Tudo fora desses dois workflows e desta Fonte da Verdade permanece congelado durante a correção.
 
 ### Etapa 1 — Integridade mínima do banco
 
