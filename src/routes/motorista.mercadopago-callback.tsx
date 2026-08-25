@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { Loader2, CheckCircle2, AlertOctagon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { concluirConexaoMercadoPago } from '@/lib/motorista-pagamento.functions';
+import { concluirConexaoMercadoPagoPixSegura } from '@/lib/pix-mercadopago-oauth.functions';
 
 export const Route = createFileRoute('/motorista/mercadopago-callback')({
   head: () => ({
@@ -28,23 +28,20 @@ export const Route = createFileRoute('/motorista/mercadopago-callback')({
 
 function MercadoPagoCallback() {
   const navigate = useNavigate();
-  const concluirFn = useServerFn(concluirConexaoMercadoPago);
+  const concluirFn = useServerFn(concluirConexaoMercadoPagoPixSegura);
   const [status, setStatus] = useState<'processando' | 'sucesso' | 'erro'>('processando');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = params.get('state');
-    const savedState = window.sessionStorage.getItem('zuvvi_mp_oauth_state');
 
-    if (!code || !state || !savedState || state !== savedState) {
+    if (!code || !state) {
       setStatus('erro');
       return;
     }
 
-    window.sessionStorage.removeItem('zuvvi_mp_oauth_state');
-
-    concluirFn({ data: { code } })
+    concluirFn({ data: { code, state } })
       .then(() => setStatus('sucesso'))
       .catch(() => setStatus('erro'));
   }, [concluirFn]);
