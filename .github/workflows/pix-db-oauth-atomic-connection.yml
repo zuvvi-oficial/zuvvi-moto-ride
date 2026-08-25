@@ -7,6 +7,9 @@ on:
     paths:
       - ".github/workflows/pix-db-oauth-atomic-connection.yml"
       - "docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template"
+      - "scripts/pix/pix-mercadopago-oauth-flow.test.ts"
+      - "src/lib/pix-mercadopago-oauth-flow.server.ts"
+      - "src/lib/pix-mercadopago-oauth-supabase.server.ts"
       - "supabase/migrations/*_pix_oauth_atomic_connection.sql"
       - "supabase/tests/pix_08_oauth_atomic_connection.sql"
 
@@ -127,7 +130,7 @@ jobs:
       - name: Instalar dependências sem alterar o lockfile
         run: bun install --frozen-lockfile
 
-      - name: Repetir PIX-05 e PIX-06
+      - name: Repetir PIX-05, PIX-06 e testar PIX-08B
         shell: bash
         run: |
           set -euo pipefail
@@ -143,15 +146,19 @@ jobs:
             src/lib/pix-oauth-crypto.server.ts \
             scripts/pix/pix-oauth-crypto.test.ts \
             src/lib/pix-mercadopago-oauth.server.ts \
-            scripts/pix/pix-mercadopago-oauth.test.ts
+            scripts/pix/pix-mercadopago-oauth.test.ts \
+            src/lib/pix-mercadopago-oauth-flow.server.ts \
+            src/lib/pix-mercadopago-oauth-supabase.server.ts \
+            scripts/pix/pix-mercadopago-oauth-flow.test.ts
           node --test /tmp/pix-oauth-regression/scripts/pix/pix-oauth-crypto.test.js
           node --test /tmp/pix-oauth-regression/scripts/pix/pix-mercadopago-oauth.test.js
+          node --test /tmp/pix-oauth-regression/scripts/pix/pix-mercadopago-oauth-flow.test.js
 
       - name: Verificar código e build integral
         shell: bash
         run: |
           set -euo pipefail
-          bunx eslint src/lib/pix-oauth-crypto.server.ts src/lib/pix-mercadopago-oauth.server.ts scripts/pix/pix-oauth-crypto.test.ts scripts/pix/pix-mercadopago-oauth.test.ts
+          bunx eslint src/lib/pix-oauth-crypto.server.ts src/lib/pix-mercadopago-oauth.server.ts src/lib/pix-mercadopago-oauth-flow.server.ts src/lib/pix-mercadopago-oauth-supabase.server.ts scripts/pix/pix-oauth-crypto.test.ts scripts/pix/pix-mercadopago-oauth.test.ts scripts/pix/pix-mercadopago-oauth-flow.test.ts
           bunx tsc --noEmit
           bun run build
 
