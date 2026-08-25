@@ -1,6 +1,6 @@
 begin;
 
-select plan(19);
+select plan(22);
 
 select has_function(
   'public',
