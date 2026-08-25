@@ -9,6 +9,8 @@ on:
       - "docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template"
       - "scripts/pix/pix-mercadopago-oauth-functions.test.ts"
       - "scripts/pix/pix-mercadopago-oauth-flow.test.ts"
+      - "src/components/motorista/MercadoPagoConnect.tsx"
+      - "src/routes/motorista.mercadopago-callback.tsx"
       - "src/lib/pix-mercadopago-oauth-input.ts"
       - "src/lib/pix-mercadopago-oauth-runtime.server.ts"
       - "src/lib/pix-mercadopago-oauth.functions.ts"
@@ -170,19 +172,27 @@ jobs:
           bunx tsc --noEmit
           bun run build
 
-      - name: Provar ponte autenticada ainda desconectada da interface
+      - name: Provar ponte OAuth segura limitada à interface autorizada
         shell: bash
         run: |
           set -euo pipefail
           mapfile -t runtime_consumers < <(grep -Rl "pix-mercadopago-oauth-runtime.server" src \
             --include='*.ts' --include='*.tsx' \
-            --exclude='pix-mercadopago-oauth-runtime.server.ts')
+            --exclude='pix-mercadopago-oauth-runtime.server.ts' | sort)
           test "${#runtime_consumers[@]}" = "1"
           test "${runtime_consumers[0]}" = "src/lib/pix-mercadopago-oauth.functions.ts"
-          if grep -R "pix-mercadopago-oauth.functions" src \
+
+          mapfile -t oauth_function_consumers < <(grep -Rl "pix-mercadopago-oauth.functions" src \
             --include='*.ts' --include='*.tsx' \
-            --exclude='pix-mercadopago-oauth.functions.ts'; then
-            echo "Server Functions OAuth importadas por código existente do aplicativo"
+            --exclude='pix-mercadopago-oauth.functions.ts' | sort)
+          test "${#oauth_function_consumers[@]}" = "2"
+          test "${oauth_function_consumers[0]}" = "src/components/motorista/MercadoPagoConnect.tsx"
+          test "${oauth_function_consumers[1]}" = "src/routes/motorista.mercadopago-callback.tsx"
+
+          grep -Fq "iniciarConexaoMercadoPagoPixSegura" src/components/motorista/MercadoPagoConnect.tsx
+          grep -Fq "concluirConexaoMercadoPagoPixSegura" src/routes/motorista.mercadopago-callback.tsx
+          if grep -R "zuvvi_mp_oauth_state" src --include='*.ts' --include='*.tsx'; then
+            echo "State OAuth ainda persistido ou lido no navegador"
             exit 1
           fi
           if grep -R "PIX_OAUTH_ENCRYPTION_KEY\|client-secret-test\|access-token-test\|refresh-token-test" .output/public; then
@@ -197,7 +207,6 @@ jobs:
           test "$(sha256sum package.json | cut -d ' ' -f1)" = "71b9e8dc6ef0028172aed34993d150a1d5f77adad5c7b5168046c7d0b8cd6f50"
           test "$(sha256sum bun.lock | cut -d ' ' -f1)" = "43a4359a9fb245f3c46484da57fb1342957f657780f7ee5c50ae1354aa64619f"
           test "$(sha256sum src/lib/motorista-pagamento.functions.ts | cut -d ' ' -f1)" = "fcafe924a0b96f999625bbb0e48b961df8ed895bc1b331a3f79fb29501ad81d3"
-          test "$(sha256sum src/routes/motorista.mercadopago-callback.tsx | cut -d ' ' -f1)" = "445532b69e973f6923684e6ab356e9e8707c9a7cb2f4cc77e3b20dcd40238e07"
 
       - name: Descartar stack local
         if: always()
