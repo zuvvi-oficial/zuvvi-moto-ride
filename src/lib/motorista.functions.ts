@@ -262,6 +262,22 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
 
     if (!allCandidates || allCandidates.length === 0) return [];
 
+    let pixConectado = false;
+    if (allCandidates.some((ride) => ride.forma_pagamento === "pix")) {
+      try {
+        const { getPixMercadoPagoSecureConnectionStatus } = await import(
+          "./pix-mercadopago-account.server"
+        );
+        const statusPix = await getPixMercadoPagoSecureConnectionStatus(
+          supabaseAdmin as any,
+          user.id
+        );
+        pixConectado = statusPix.conectado;
+      } catch {
+        pixConectado = false;
+      }
+    }
+
     // 1. Extrair passageiro_id dos candidatos
     const uniquePassengerIds = Array.from(new Set(allCandidates.map(c => c.passageiro_id)));
 
@@ -301,8 +317,8 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
 
     const ofertas = allCandidates
       .filter(ride => {
-        // Corridas Pix exigem conta Mercado Pago conectada
-        if (ride.forma_pagamento === "pix" && !motorista.conta_mercado_pago_id) return false;
+        // Corridas Pix exigem credencial OAuth privada válida e coerente
+        if (ride.forma_pagamento === "pix" && !pixConectado) return false;
 
         // Filtro de recusa
         if (idsRecusados.includes(ride.id)) return false;
