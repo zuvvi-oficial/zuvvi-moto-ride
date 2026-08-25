@@ -13,6 +13,7 @@ on:
       - "scripts/pix/pix-mercadopago-account.test.ts"
       - "src/components/motorista/MercadoPagoConnect.tsx"
       - "src/routes/motorista.mercadopago-callback.tsx"
+      - "src/lib/motorista.functions.ts"
       - "src/lib/pix-mercadopago-account.server.ts"
       - "src/lib/pix-mercadopago-oauth-input.ts"
       - "src/lib/pix-mercadopago-oauth-runtime.server.ts"
@@ -236,6 +237,12 @@ jobs:
           grep -Fq "getStatusConexaoMercadoPagoPixSegura" src/components/motorista/MercadoPagoConnect.tsx
           grep -Fq "desconectarMercadoPagoPixSeguro" src/components/motorista/MercadoPagoConnect.tsx
           grep -Fq "concluirConexaoMercadoPagoPixSegura" src/routes/motorista.mercadopago-callback.tsx
+          grep -Fq "getPixMercadoPagoSecureConnectionStatus" src/lib/motorista.functions.ts
+          grep -Fq 'if (ride.forma_pagamento === "pix" && !pixConectado) return false;' src/lib/motorista.functions.ts
+          if grep -F 'ride.forma_pagamento === "pix" && !motorista.conta_mercado_pago_id' src/lib/motorista.functions.ts; then
+            echo "Ofertas Pix ainda confiam apenas no identificador público do Mercado Pago"
+            exit 1
+          fi
           if grep -F "motorista-pagamento.functions" src/components/motorista/MercadoPagoConnect.tsx; then
             echo "Interface Mercado Pago ainda depende do fluxo público antigo"
             exit 1
