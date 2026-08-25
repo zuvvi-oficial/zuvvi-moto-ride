@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.18
+**Versão:** 1.19
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -694,6 +694,47 @@ Rollback antes da produção: remover somente os três arquivos novos e reverter
 **Classificação da microetapa PIX-06:** **APROVADA E CONGELADA**.
 
 A aprovação comprova somente o cliente OAuth isolado e exclusivamente de servidor. Ele ainda não é importado pelo aplicativo, não persiste credenciais, não usa segredo real, não chama o Mercado Pago em testes e não modifica o comportamento do motorista. A ligação com estado OAuth, criptografia, persistência e callback continua bloqueada até uma microetapa posterior com allowlist própria.
+
+**Autorização e allowlist da microetapa PIX-07R — reconciliação da unicidade da conta Mercado Pago:**
+
+Objetivo único: reconciliar no GitHub a migration histórica `20260824222419_unicidade_conta_mercado_pago_motorista`, que consta como aplicada no Supabase principal, mas está ausente do diretório versionado. Esta microetapa não cria um objeto novo em produção, não reaplica a migration e não integra o OAuth ao aplicativo.
+
+Baseline revalidado em 25/08/2026:
+
+- commit-base da branch Pix: `fd848c6b1119bb7a5b9b7d5009ffb77294ecfb19`;
+- `main` remota em `ae6fb274b8e61e4f0619fc2fbe819f282b2f40cd`, já ancestral da branch Pix;
+- Supabase principal registra como última migration `20260824222419_unicidade_conta_mercado_pago_motorista`;
+- catálogo real contém `public.motoristas.conta_mercado_pago_id` como `text` nullable e o índice único parcial `idx_motoristas_conta_mercado_pago_unica`, aplicado somente quando o valor não é nulo;
+- o arquivo `supabase/migrations/20260824222419_unicidade_conta_mercado_pago_motorista.sql` não existe na `main`, na branch Pix ou no histórico Git local;
+- Supabase principal permanece com 84 pagamentos e quatro pagamentos Pix; nenhuma escrita foi realizada durante o diagnóstico.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `supabase/migrations/20260824222419_unicidade_conta_mercado_pago_motorista.sql`;
+- criar `supabase/tests/fixtures/pix_07r_prerequisites.sql`;
+- criar `supabase/tests/pix_07r_conta_mercado_pago_unica.sql`;
+- criar `.github/workflows/pix-db-mercadopago-account-uniqueness.yml`.
+
+Travas:
+
+- não aplicar ou reparar migration no Supabase principal;
+- não alterar migrations PIX-01 a PIX-04 já congeladas;
+- não modificar banco, dados, RLS, grants, funções, tabelas ou índices de produção;
+- não alterar código do aplicativo, Server Functions, callback, componentes, telas ou fluxo OAuth atual;
+- não alterar `package.json`, `bun.lock`, dependências, dinheiro, cartão ou core;
+- não usar dados reais nos testes, não criar segredo e não fazer merge.
+
+Testes obrigatórios:
+
+- confirmar que a migration versionada cria exatamente um índice único parcial sobre `conta_mercado_pago_id` não nulo;
+- permitir múltiplos motoristas com valor nulo e contas Mercado Pago distintas;
+- rejeitar a mesma conta Mercado Pago em dois motoristas e comprovar rollback da tentativa duplicada;
+- executar a migration e todos os testes em Supabase local descartável, sem credencial do projeto principal;
+- repetir pgTAP PIX-01 a PIX-04, PIX-05, PIX-06, lint do banco, advisors, ESLint, TypeScript e build;
+- conferir diff remoto limitado à allowlist e repetir a fotografia somente leitura do Supabase principal.
+
+Rollback antes da produção: remover somente os quatro arquivos novos e reverter esta seção documental. Não existe rollback de produção porque nenhuma escrita remota está autorizada.
 
 ### Etapa 1 — Integridade mínima do banco
 
