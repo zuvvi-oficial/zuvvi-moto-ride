@@ -369,6 +369,12 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
       throw new Error("Sinal de GPS desatualizado. Por favor, aguarde a atualização da localização.");
     }
 
+    const {
+      prepararCobrancaPixAntesAceiteServer,
+      criarCobrancaPixAposAceiteServer
+    } = await import("./pagamento.server");
+    const pixPreparation = await prepararCobrancaPixAntesAceiteServer(data.rideId, motoristaId);
+
     // 2. Aceite Atômico via RPC
     const { error: rpcError } = await supabaseAdmin.rpc("accept_corrida_atomic", {
       p_corrida_id: data.rideId,
@@ -386,8 +392,15 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
       if (rpcError.message.includes("não está disponível")) {
         throw new Error("Você precisa estar online.");
       }
+      if (rpcError.message.includes("Conta Mercado Pago inválida para corrida Pix")) {
+        throw new Error("Sua conta Mercado Pago precisa ser reconectada antes de aceitar corrida Pix.");
+      }
       
       throw new Error("Falha ao processar o aceite. Tente novamente.");
+    }
+
+    if (pixPreparation.isPix) {
+      await criarCobrancaPixAposAceiteServer(data.rideId, motoristaId);
     }
 
     // 3. Notificar Passageiro
