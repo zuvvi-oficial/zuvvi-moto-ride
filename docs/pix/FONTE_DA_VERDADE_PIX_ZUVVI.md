@@ -1,10 +1,10 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.12  
-**Data-base:** 24/08/2026  
+**Versão:** 1.13
+**Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
-**Commit-base auditado:** `ae6fb274b8e61e4f0619fc2fbe819f282b2f40cd`  
+**Commit-base auditado:** `433b7b13ae8729212edc345f0059f64c61af5437`
 **Supabase:** projeto `qycblinfvijhfjcmdoof`  
 **Status:** planejamento fechado; nenhuma alteração de código ou banco autorizada por este documento isoladamente.
 
@@ -465,6 +465,64 @@ Rollback antes da produção: nenhum, pois a migration permanecerá somente na b
 **Classificação da microetapa PIX-03:** **APROVADA NO AMBIENTE LOCAL DESCARTÁVEL**.
 
 A aprovação comprova que a migration é aditiva, preserva dados existentes, não interfere em dinheiro/cartão e falha fechada antes de qualquer alteração caso o baseline futuro contenha duplicidade. Não equivale a homologação, não habilita Pix no aplicativo e não autoriza aplicação no Supabase principal.
+
+**Autorização e allowlist da microetapa PIX-04 — estado OAuth de uso único e PKCE:**
+
+Objetivo único: criar somente a fundação de banco para que uma futura integração OAuth Mercado Pago valide o `state` no servidor, aceite cada tentativa uma única vez e guarde o `code_verifier` PKCE apenas como envelope cifrado. Esta microetapa não conecta conta, não troca código por token e não altera o fluxo atual do aplicativo.
+
+Baseline revalidado em 25/08/2026:
+
+- última migration do projeto principal: `20260824222419`;
+- schema `private` inexistente no projeto principal;
+- tabela `private.mercadopago_oauth_tentativas` inexistente;
+- funções `public.pix_oauth_state_create` e `public.pix_oauth_state_consume` inexistentes;
+- migrations PIX-01, PIX-02 e PIX-03 continuam inexistentes no projeto principal e aprovadas somente no ambiente descartável;
+- o fluxo atual valida `state` apenas no navegador, não usa PKCE e descarta tokens/validade/escopos após a troca do código;
+- documentação oficial do Mercado Pago revalidada: `state` deve identificar a mesma solicitação, o código de autorização é único e expira em dez minutos, e PKCE com `S256` usa `code_verifier` entre 43 e 128 caracteres;
+- documentação atual do Supabase revalidada para funções com grants explícitos, `search_path` fixo e isolamento de objetos privados.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `.github/workflows/pix-db-oauth-state.yml`;
+- criar `docs/pix/sql/PIX04_OAUTH_STATE_PKCE.sql.template`;
+- criar `supabase/tests/pix_04_oauth_state_pkce.sql`;
+- após a primeira execução integral aprovada, criar exatamente uma migration `supabase/migrations/<timestamp>_pix_oauth_state_pkce.sql`, usando o nome gerado pela Supabase CLI `2.115.0`.
+
+Objetos SQL permitidos:
+
+- criar somente `private.mercadopago_oauth_tentativas`, vinculada a `public.motoristas`, contendo hash SHA-256 hexadecimal do `state`, envelope cifrado do `code_verifier`, versão da cifra, expiração, consumo e criação;
+- criar somente um índice parcial para tentativas ainda não consumidas;
+- criar somente `public.pix_oauth_state_create`, `SECURITY INVOKER`, para persistir uma tentativa com validade máxima de dez minutos;
+- criar somente `public.pix_oauth_state_consume`, `SECURITY INVOKER`, para consumir atomicamente uma tentativa não vencida e devolvê-la uma única vez;
+- habilitar e forçar RLS na nova tabela, revogar acesso de `public`, `anon` e `authenticated` e conceder o mínimo necessário exclusivamente a `service_role`;
+- revogar execução das duas funções de `public`, `anon` e `authenticated` e conceder execução exclusivamente a `service_role`.
+
+Travas:
+
+- não armazenar `state` bruto nem `code_verifier` bruto;
+- não armazenar Access Token, Refresh Token, segredo OAuth ou credencial real nesta tabela;
+- não usar `SECURITY DEFINER`;
+- não criar policy permissiva nem conceder acesso ao navegador;
+- não alterar qualquer objeto existente, inclusive a tabela privada de credenciais da PIX-01;
+- não modificar migrations, fixtures ou testes PIX-01/PIX-02/PIX-03;
+- não alterar `src/lib/motorista-pagamento.functions.ts`, `src/components/motorista/MercadoPagoConnect.tsx`, `src/routes/motorista.mercadopago-callback.tsx` ou qualquer arquivo do aplicativo;
+- não alterar conexão, callback, desconexão, oferta ou aceite de corrida;
+- não alterar core, pagamentos existentes, dinheiro, cartão, suporte, cidades, passageiros ou motoristas;
+- não aplicar migration no Supabase principal e não usar credenciais do projeto principal no GitHub Actions;
+- migration PIX-04 somente será versionada depois da regressão PIX-01/PIX-02/PIX-03, testes PIX-04, testes de replay/expiração/identidade, lint e advisors passarem;
+- após o versionamento, toda a bateria será repetida.
+
+Testes obrigatórios:
+
+- catálogo, PK/FK, constraints, RLS, grants e ACLs das funções;
+- criação válida e isolamento por motorista;
+- consumo correto uma única vez;
+- rejeição de replay, tentativa vencida, hash inválido, versão de cifra inválida e janela acima de dez minutos;
+- comprovação de que não existem colunas para `state` bruto ou `code_verifier` bruto;
+- regressão integral PIX-01/PIX-02/PIX-03, lint e advisors em banco local descartável.
+
+Rollback antes da produção: nenhum, pois a migration permanecerá somente na branch e no Pull Request rascunho. Rollback da branch: remover apenas os quatro arquivos exclusivos da PIX-04 e a alteração desta fonte da verdade. Rollback futuro de produção será lógico e aditivo; não apagar tentativas nem evidências de segurança.
 
 ### Etapa 1 — Integridade mínima do banco
 
