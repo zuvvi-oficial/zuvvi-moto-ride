@@ -1091,6 +1091,15 @@ export type Database = {
         Args: { _provider_status_detail: string; _tentativa_id: string }
         Returns: boolean
       }
+      pix_charge_failure_compensate: {
+        Args: {
+          _corrida_id: string
+          _motorista_id: string
+          _provider_status_detail: string
+          _tentativa_id: string
+        }
+        Returns: boolean
+      }
       pix_oauth_credentials_get: {
         Args: { _motorista_id: string }
         Returns: {
