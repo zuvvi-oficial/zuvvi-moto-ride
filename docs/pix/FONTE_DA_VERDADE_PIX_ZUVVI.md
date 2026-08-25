@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.11  
+**Versão:** 1.12  
 **Data-base:** 24/08/2026  
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -448,6 +448,23 @@ Travas:
 - após o versionamento, toda a bateria será repetida.
 
 Rollback antes da produção: nenhum, pois a migration permanecerá somente na branch. Rollback da branch: remover apenas os cinco arquivos exclusivos da PIX-03. Rollback futuro de produção será lógico e aditivo; não apagar colunas ou evidências financeiras.
+
+**Fechamento da microetapa PIX-03 — integridade agregada de pagamentos:**
+
+- execução inicial `32792557853`: PIX-01 33/33, PIX-02 48/48, PIX-03 22/22, dois testes negativos de pré-condição aprovados, lint sem erros e advisors de segurança/performance sem issues;
+- nome definitivo gerado pela Supabase CLI `2.115.0`: `20260825001055_pix_aggregate_integrity.sql`;
+- migration versionada em `supabase/migrations/20260825001055_pix_aggregate_integrity.sql`, com conteúdo byte a byte idêntico ao template aprovado;
+- commit de versionamento da PIX-03: `6a0f2d40c72976116d5c0c8f72d9f85d1a973909`;
+- execução final `32792737321`: PIX-01 33/33, PIX-02 48/48, PIX-03 22/22, abortagem por corrida Pix duplicada aprovada, abortagem por ID Mercado Pago duplicado aprovada, lint sem erros e advisors sem issues;
+- regressões adicionais `PIX DB Foundation` (`32792737309`) e `PIX DB Attempts and Webhook Events` (`32792737341`) concluídas com sucesso;
+- build de produção e TypeScript `--noEmit` executados no commit definitivo com código de saída zero; avisos preexistentes não foram corrigidos por estarem fora do escopo;
+- nenhuma linha de aplicativo, enum, RLS, policy, grant, função, trigger, FK, dinheiro ou cartão foi alterada;
+- conferência somente leitura do Supabase principal: última migration `20260824222419`, 84 pagamentos, quatro Pix, zero duplicidade de corrida Pix, zero ID externo duplicado, colunas PIX-03 inexistentes e migrations PIX-01/02/03 não aplicadas;
+- Pull Request `#2` permaneceu rascunho, sem merge, e o projeto principal permaneceu sem escrita.
+
+**Classificação da microetapa PIX-03:** **APROVADA NO AMBIENTE LOCAL DESCARTÁVEL**.
+
+A aprovação comprova que a migration é aditiva, preserva dados existentes, não interfere em dinheiro/cartão e falha fechada antes de qualquer alteração caso o baseline futuro contenha duplicidade. Não equivale a homologação, não habilita Pix no aplicativo e não autoriza aplicação no Supabase principal.
 
 ### Etapa 1 — Integridade mínima do banco
 
