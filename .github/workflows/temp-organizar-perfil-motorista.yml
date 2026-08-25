@@ -61,15 +61,14 @@ jobs:
               "          </button>",
           ])
           new_profile = "\n".join([
-              "          <button",
-              '            type="button"',
+              "          <a",
+              '            href="/perfil-motorista"',
               '            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"',
-              '            onClick={() => navigate({ to: "/perfil-motorista" })}',
               '            aria-label="Abrir perfil do motorista"',
               "          >",
               '            <User className="w-6 h-6" />',
               '            <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>',
-              "          </button>",
+              "          </a>",
           ])
           if text.count(old_logout) != 1:
               raise SystemExit("Bloco de logout inesperado na Home original")
@@ -103,7 +102,7 @@ jobs:
             echo "Mercado Pago ainda ficou na Home"
             exit 1
           fi
-          grep -q 'navigate({ to: "/perfil-motorista" })' src/routes/home-motorista.tsx
+          grep -q 'href="/perfil-motorista"' src/routes/home-motorista.tsx
           grep -q '>Perfil</span>' src/routes/home-motorista.tsx
           if grep -q '>Sair</span>' src/routes/home-motorista.tsx; then
             echo "Logout direto ainda existe na barra inferior"
