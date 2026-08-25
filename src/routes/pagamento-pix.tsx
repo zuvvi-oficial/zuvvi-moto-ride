@@ -266,7 +266,9 @@ function PagamentoPixPassageiro() {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="text-center">
-            <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.24em]">Zuvvi Moto</p>
+            <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.24em]">
+              Zuvvi Moto
+            </p>
             <h1 className="text-sm font-black uppercase tracking-wide">Pagamento Pix</h1>
           </div>
           <div className="w-11" aria-hidden="true" />
@@ -275,16 +277,22 @@ function PagamentoPixPassageiro() {
 
       <main className="max-w-4xl mx-auto px-5 sm:px-6 py-7 sm:py-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
         {!isOnline && (
-          <div className="mb-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 flex gap-3" role="status">
+          <div
+            className="mb-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 flex gap-3"
+            role="status"
+          >
             <WifiOff className="w-5 h-5 text-amber-200 shrink-0 mt-0.5" />
             <p className="text-sm text-amber-50/90">
-              Sem conexão. Se o QR já apareceu, você pode pagar normalmente. A confirmação será atualizada quando a internet voltar.
+              Sem conexão. Se o QR já apareceu, você pode pagar normalmente. A confirmação será
+              atualizada quando a internet voltar.
             </p>
           </div>
         )}
 
         {wasOffline && isOnline && (
-          <div className="sr-only" aria-live="polite">Conexão restabelecida. Atualizando pagamento.</div>
+          <div className="sr-only" aria-live="polite">
+            Conexão restabelecida. Atualizando pagamento.
+          </div>
         )}
 
         {snapshot.status === "pago" ? (
@@ -333,18 +341,29 @@ function PagamentoPixPassageiro() {
 
               <div className="mt-7 rounded-2xl border border-white/10 bg-black/10 p-4 flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">Valor da corrida</p>
-                  <p className="text-2xl sm:text-3xl font-black text-white mt-1">{formatMoney(snapshot.valor)}</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">
+                    Valor da corrida
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-black text-white mt-1">
+                    {formatMoney(snapshot.valor)}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">Tempo restante</p>
-                  <p className="text-2xl font-black tabular-nums text-zuvvi-volt mt-1">{formatCountdown(remainingSeconds)}</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">
+                    Tempo restante
+                  </p>
+                  <p className="text-2xl font-black tabular-nums text-zuvvi-volt mt-1">
+                    {formatCountdown(remainingSeconds)}
+                  </p>
                 </div>
               </div>
 
               <div className="mt-auto pt-6 flex items-start gap-3 text-xs text-white/45 leading-relaxed">
                 <ShieldCheck className="w-4 h-4 text-zuvvi-volt shrink-0 mt-0.5" />
-                <p>O pagamento é confirmado pelo servidor. Tocar em “Já paguei” apenas atualiza a consulta.</p>
+                <p>
+                  O pagamento é confirmado pelo servidor. Tocar em “Já paguei” apenas atualiza a
+                  consulta.
+                </p>
               </div>
             </section>
 
@@ -355,11 +374,16 @@ function PagamentoPixPassageiro() {
                     <Loader2 className="w-9 h-9 text-zuvvi-volt animate-spin" />
                   </div>
                   <p className="mt-5 text-lg font-black">Preparando código Pix</p>
-                  <p className="mt-2 text-sm text-white/50 max-w-xs">Isso pode levar alguns instantes. Não feche a solicitação.</p>
+                  <p className="mt-2 text-sm text-white/50 max-w-xs">
+                    Isso pode levar alguns instantes. Não feche a solicitação.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-5">
-                  <div className="mx-auto w-fit bg-white p-4 rounded-3xl shadow-xl" aria-label="QR Code do pagamento Pix">
+                  <div
+                    className="mx-auto w-fit bg-white p-4 rounded-3xl shadow-xl"
+                    aria-label="QR Code do pagamento Pix"
+                  >
                     <QRCodeSVG
                       value={snapshot.pixCopiaCola!}
                       size={220}
@@ -372,7 +396,10 @@ function PagamentoPixPassageiro() {
                   </div>
 
                   <div>
-                    <label htmlFor="pix-code" className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/45 mb-2">
+                    <label
+                      htmlFor="pix-code"
+                      className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/45 mb-2"
+                    >
                       Pix Copia e Cola
                     </label>
                     <div
@@ -418,9 +445,13 @@ function SuccessState({ valor, onContinue }: { valor: number; onContinue: () => 
       <div className="mx-auto w-20 h-20 rounded-full bg-zuvvi-volt text-zuvvi-indigo flex items-center justify-center shadow-[0_0_40px_rgba(198,255,61,0.24)]">
         <CheckCircle2 className="w-10 h-10" />
       </div>
-      <p className="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">Pagamento confirmado</p>
+      <p className="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">
+        Pagamento confirmado
+      </p>
       <h2 className="mt-2 text-3xl font-black">{formatMoney(valor)}</h2>
-      <p className="mt-3 text-sm text-white/60">Tudo certo. Sua corrida foi liberada com segurança.</p>
+      <p className="mt-3 text-sm text-white/60">
+        Tudo certo. Sua corrida foi liberada com segurança.
+      </p>
       <button
         type="button"
         onClick={onContinue}

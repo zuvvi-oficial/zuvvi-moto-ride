@@ -15,10 +15,7 @@ assert.equal(getPixPaymentTimeoutSeconds("59"), 300);
 assert.equal(getPixPaymentTimeoutSeconds("901"), 300);
 assert.equal(getPixPaymentTimeoutSeconds("abc"), 300);
 
-assert.equal(
-  calcularDeadlinePix(createdAt, null, 300),
-  "2026-08-25T12:05:00.000Z",
-);
+assert.equal(calcularDeadlinePix(createdAt, null, 300), "2026-08-25T12:05:00.000Z");
 assert.equal(
   calcularDeadlinePix(createdAt, "2026-08-25T12:03:00.000Z", 300),
   "2026-08-25T12:03:00.000Z",
@@ -29,10 +26,7 @@ assert.equal(
 );
 
 assert.equal(
-  derivarEstadoPagamentoPix(
-    { pagamentoStatus: "pendente", corridaStatus: "aceita" },
-    now,
-  ).status,
+  derivarEstadoPagamentoPix({ pagamentoStatus: "pendente", corridaStatus: "aceita" }, now).status,
   "gerando",
 );
 
