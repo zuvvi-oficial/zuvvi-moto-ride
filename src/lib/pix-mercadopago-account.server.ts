@@ -77,15 +77,15 @@ export async function getPixMercadoPagoSecureConnectionStatus(
 
     const conectado = Boolean(
       publicAccountId &&
-        credential &&
-        credential.connectionStatus === "active" &&
-        credential.revokedAt === null &&
-        credential.encryptionVersion > 0 &&
-        typeof credential.accessTokenEncrypted === "string" &&
-        credential.accessTokenEncrypted.length > 0 &&
-        typeof credential.refreshTokenEncrypted === "string" &&
-        credential.refreshTokenEncrypted.length > 0 &&
-        credential.mercadoPagoUserId === publicAccountId,
+      credential &&
+      credential.connectionStatus === "active" &&
+      credential.revokedAt === null &&
+      credential.encryptionVersion > 0 &&
+      typeof credential.accessTokenEncrypted === "string" &&
+      credential.accessTokenEncrypted.length > 0 &&
+      typeof credential.refreshTokenEncrypted === "string" &&
+      credential.refreshTokenEncrypted.length > 0 &&
+      credential.mercadoPagoUserId === publicAccountId,
     );
 
     return Object.freeze({ conectado });
