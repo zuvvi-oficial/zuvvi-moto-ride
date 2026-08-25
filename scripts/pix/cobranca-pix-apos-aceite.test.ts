@@ -115,18 +115,37 @@ function credential(overrides: Partial<PixCredentialSnapshot> = {}): PixCredenti
 }
 
 {
+  const externalReference = "zuvvi-pix-44444444-4444-4444-8444-444444444444";
   const body = montarCorpoCobrancaPix({
     valorTotal: 18.5,
     valorComissao: 3.7,
     passageiroId: "22222222-2222-4222-8222-222222222222",
     passageiroNome: "Passageiro",
     passageiroEmail: "passageiro@example.com",
+    externalReference,
   });
 
   assert.equal(body.transaction_amount, 18.5);
   assert.equal(body.application_fee, 3.7);
   assert.equal(body.payment_method_id, "pix");
-  console.log("APPLICATION_FEE_COMISSAO_CONGELADA_OK");
+  assert.equal(body.external_reference, externalReference);
+  console.log("APPLICATION_FEE_E_EXTERNAL_REFERENCE_OK");
+}
+
+{
+  assert.throws(
+    () =>
+      montarCorpoCobrancaPix({
+        valorTotal: 18.5,
+        valorComissao: 3.7,
+        passageiroId: "22222222-2222-4222-8222-222222222222",
+        passageiroNome: "Passageiro",
+        passageiroEmail: "passageiro@example.com",
+        externalReference: "referencia com espaco",
+      }),
+    /Não foi possível gerar o pagamento Pix/,
+  );
+  console.log("EXTERNAL_REFERENCE_INVALIDA_BLOQUEADA_OK");
 }
 
 const pagamentoSource = readFileSync("src/lib/pagamento.server.ts", "utf8");
@@ -145,8 +164,21 @@ assert.doesNotMatch(
   "Etapa 4 não pode usar o token geral da plataforma",
 );
 assert.match(pagamentoSource, /application_fee:\s*valorComissao/);
+assert.match(pagamentoSource, /external_reference:\s*input\.externalReference/);
+assert.match(pagamentoSource, /externalReference:\s*idempotencyKey/);
 assert.match(pagamentoSource, /pix_charge_attempt_claim/);
 assert.match(pagamentoSource, /pix_charge_attempt_complete/);
+assert.match(pagamentoSource, /pix_charge_failure_compensate/);
+assert.match(pagamentoSource, /if \(!mpPaymentId\) \{/);
+assert.match(
+  pagamentoSource,
+  /Resposta Pix incompleta com cobrança externa conhecida; mantendo para reconciliação/,
+);
+assert.doesNotMatch(
+  pagamentoSource,
+  /console\.error\("\[Pagamento\] Falha ao criar Pix na conta OAuth do motorista:",\s*error\)/,
+  "erro bruto do provedor não deve ser registrado no log",
+);
 assert.match(pagamentoSource, /pix_oauth_credentials_get/);
 assert.match(pagamentoSource, /refreshAccessToken/);
 
