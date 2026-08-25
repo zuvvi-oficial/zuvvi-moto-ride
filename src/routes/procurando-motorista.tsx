@@ -57,6 +57,16 @@ function ProcurandoMotorista() {
   const cancelarCorridaFn = useServerFn(cancelarCorrida);
   const verificarTimeoutCorridaFn = useServerFn(verificarTimeoutCorrida);
 
+  // Gancho mínimo da Etapa 5: somente Pix passa pela tela de pagamento.
+  // Dinheiro e cartão preservam exatamente o handoff existente para acompanhamento.
+  const navigateAfterDriverAssigned = (formaPagamento?: string | null) => {
+    if (formaPagamento === 'pix') {
+      navigate({ to: '/pagamento-pix', search: { rideId } });
+      return;
+    }
+    navigate({ to: '/acompanhamento', search: { rideId } });
+  };
+
   // Proteção contra chamadas duplicadas de verificarTimeoutCorrida
   const timeoutCheckInFlightRef = useRef(false);
   // Timer de retry controlado
@@ -95,7 +105,7 @@ function ProcurandoMotorista() {
           clearTimeout(retryTimeoutRef.current);
           retryTimeoutRef.current = null;
         }
-        navigate({ to: '/acompanhamento', search: { rideId } });
+        navigateAfterDriverAssigned(corrida?.forma_pagamento);
       } else if (result.status === 'solicitada') {
         // Servidor diz que ainda não expirou (diferença de relógio)
         // Não declarar sem_motorista localmente. Aguardar e verificar novamente.
@@ -125,11 +135,11 @@ function ProcurandoMotorista() {
         setCorrida(data);
 
         const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
-        // Caso B: já atribuída — navegar para acompanhamento
+        // Caso B: já atribuída — Pix paga antes do acompanhamento; demais meios preservados.
         if (data && data.motorista_id && assignedStatuses.includes(data.status)) {
           motoristaEncontradoRef.current = true;
           setMotoristaEncontrado(true);
-          navigate({ to: '/acompanhamento', search: { rideId } });
+          navigateAfterDriverAssigned(data.forma_pagamento);
           return;
         }
 
@@ -175,13 +185,13 @@ function ProcurandoMotorista() {
               return; // Não navegar para acompanhamento
             }
 
-            // Preservar fluxo de aceite do motorista
+            // Preservar fluxo de aceite do motorista; Pix recebe handoff exclusivo de pagamento.
             const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
             if (updatedRide.motorista_id && assignedStatuses.includes(updatedRide.status) && !motoristaEncontradoRef.current) {
               motoristaEncontradoRef.current = true;
               setMotoristaEncontrado(true);
               toast.success("Motorista encontrou você!");
-              navigate({ to: '/acompanhamento', search: { rideId } });
+              navigateAfterDriverAssigned(updatedRide.forma_pagamento);
             }
           }
         )
@@ -194,7 +204,7 @@ function ProcurandoMotorista() {
               if (data && data.motorista_id && assignedStatuses.includes(data.status) && !motoristaEncontradoRef.current) {
                 motoristaEncontradoRef.current = true;
                 setMotoristaEncontrado(true);
-                navigate({ to: '/acompanhamento', search: { rideId } });
+                navigateAfterDriverAssigned(data.forma_pagamento);
               }
             } catch (err) {
               console.error('Erro na checagem extra pós-subscribe:', err);
@@ -299,6 +309,7 @@ function ProcurandoMotorista() {
 
   const pgto = formatPagamento(corrida.forma_pagamento);
   const PgtoIcon = pgto.icon;
+  const isPix = corrida.forma_pagamento === 'pix';
 
   const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
 
@@ -370,11 +381,15 @@ function ProcurandoMotorista() {
             {/* Status Text — anunciável por tecnologia assistiva */}
             <div className="text-center space-y-2" aria-live="polite" aria-atomic="true">
               <h2 className="text-xl font-black text-white uppercase tracking-tight">
-                {motoristaEncontrado ? "Motorista a caminho!" : "Procurando pilotos próximos"}
+                {motoristaEncontrado
+                  ? isPix ? "Motorista encontrado!" : "Motorista a caminho!"
+                  : "Procurando pilotos próximos"}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {motoristaEncontrado 
-                  ? "Aguarde, seu piloto já está vindo ao seu encontro."
+                  ? isPix
+                    ? "Agora conclua o pagamento Pix para liberar sua corrida."
+                    : "Aguarde, seu piloto já está vindo ao seu encontro."
                   : "Estamos enviando seu pedido para os melhores pilotos da região."}
               </p>
             </div>
@@ -521,14 +536,16 @@ function ProcurandoMotorista() {
               </div>
               <div>
                 <p className="text-xs font-black uppercase tracking-wider">Motorista aceitou!</p>
-                <p className="text-[10px] font-bold opacity-80 uppercase tracking-tight">Preparando viagem...</p>
+                <p className="text-[10px] font-bold opacity-80 uppercase tracking-tight">
+                  {isPix ? "Pagamento Pix necessário" : "Preparando viagem..."}
+                </p>
               </div>
             </div>
             <button 
               className="bg-zuvvi-indigo text-zuvvi-volt px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-transform"
-              onClick={() => navigate({ to: '/acompanhamento', search: { rideId } })}
+              onClick={() => navigateAfterDriverAssigned(corrida.forma_pagamento)}
             >
-              Ver Mapa
+              {isPix ? "Pagar Pix" : "Ver Mapa"}
             </button>
           </div>
         </div>
