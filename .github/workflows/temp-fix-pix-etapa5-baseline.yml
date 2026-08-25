@@ -78,6 +78,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/pix-db-oauth-atomic-connection.yml .github/workflows/pix-db-mercadopago-account-uniqueness.yml
-          git add -u .github/workflows/temp-fix-pix-etapa5-baseline.yml
           git commit -m "test(pix): eliminar falso positivo da Etapa 5"
           git push origin HEAD:feature/pix-100-seguro
