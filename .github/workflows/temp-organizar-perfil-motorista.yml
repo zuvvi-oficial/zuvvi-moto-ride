@@ -84,11 +84,11 @@ jobs:
       - name: Verificar ESLint da nova tela
         run: bunx eslint src/routes/perfil-motorista.tsx
 
-      - name: Verificar TypeScript integral
-        run: bunx tsc --noEmit
-
       - name: Gerar route tree e executar build
         run: bun run build
+
+      - name: Verificar TypeScript integral
+        run: bunx tsc --noEmit
 
       - name: Provar reorganizacao isolada
         shell: bash
