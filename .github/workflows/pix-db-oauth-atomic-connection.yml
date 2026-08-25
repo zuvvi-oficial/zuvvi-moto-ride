@@ -7,17 +7,22 @@ on:
     paths:
       - ".github/workflows/pix-db-oauth-atomic-connection.yml"
       - "docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template"
+      - "docs/pix/sql/PIX08D_OAUTH_SAFE_DISCONNECT.sql.template"
       - "scripts/pix/pix-mercadopago-oauth-functions.test.ts"
       - "scripts/pix/pix-mercadopago-oauth-flow.test.ts"
+      - "scripts/pix/pix-mercadopago-account.test.ts"
       - "src/components/motorista/MercadoPagoConnect.tsx"
       - "src/routes/motorista.mercadopago-callback.tsx"
+      - "src/lib/pix-mercadopago-account.server.ts"
       - "src/lib/pix-mercadopago-oauth-input.ts"
       - "src/lib/pix-mercadopago-oauth-runtime.server.ts"
       - "src/lib/pix-mercadopago-oauth.functions.ts"
       - "src/lib/pix-mercadopago-oauth-flow.server.ts"
       - "src/lib/pix-mercadopago-oauth-supabase.server.ts"
       - "supabase/migrations/*_pix_oauth_atomic_connection.sql"
+      - "supabase/migrations/*_pix_oauth_safe_disconnect.sql"
       - "supabase/tests/pix_08_oauth_atomic_connection.sql"
+      - "supabase/tests/pix_08d_oauth_safe_disconnect.sql"
 
 permissions:
   contents: read
@@ -28,7 +33,7 @@ concurrency:
 
 jobs:
   pix-08a-oauth-atomic-connection:
-    name: Testar conexão OAuth atômica e regressão Pix
+    name: Testar conexão, status e desconexão OAuth seguros
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -45,7 +50,7 @@ jobs:
       - name: Instalar Supabase CLI fixada
         run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
 
-      - name: Validar migration versionada PIX-08A
+      - name: Validar migrations OAuth versionadas e gerar nome oficial PIX-08D
         shell: bash
         run: |
           set -euo pipefail
@@ -55,12 +60,25 @@ jobs:
           test "${pix08_paths[0]}" = "${expected_pix08_path}"
           cmp -s docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template "${expected_pix08_path}"
 
+          pix08d_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_safe_disconnect.sql' -print -quit)"
+          if [ -z "${pix08d_path}" ]; then
+            npx --yes supabase@${SUPABASE_CLI_VERSION} migration new pix_oauth_safe_disconnect
+            pix08d_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_safe_disconnect.sql' -print -quit)"
+            cp docs/pix/sql/PIX08D_OAUTH_SAFE_DISCONNECT.sql.template "${pix08d_path}"
+            echo "MIGRATION_GENERATED=${pix08d_path}"
+          else
+            cmp -s docs/pix/sql/PIX08D_OAUTH_SAFE_DISCONNECT.sql.template "${pix08d_path}"
+            echo "MIGRATION_VERSIONED=${pix08d_path}"
+          fi
+          test -n "${pix08d_path}"
+
           cp supabase/migrations/20260824222419_unicidade_conta_mercado_pago_motorista.sql /tmp/pix_07r.sql
           cp supabase/migrations/20260824233357_pix_oauth_credentials_private.sql /tmp/pix_01.sql
           cp supabase/migrations/20260824234933_pix_attempts_webhook.sql /tmp/pix_02.sql
           cp supabase/migrations/20260825001055_pix_aggregate_integrity.sql /tmp/pix_03.sql
           cp supabase/migrations/20260825004851_pix_oauth_state_pkce.sql /tmp/pix_04.sql
           cp "${expected_pix08_path}" /tmp/pix_08.sql
+          cp "${pix08d_path}" /tmp/pix_08d.sql
           echo "MIGRATION_VERSIONED=${expected_pix08_path}"
 
       - name: Isolar migrations preexistentes no runner
@@ -77,7 +95,7 @@ jobs:
           npx --yes supabase@${SUPABASE_CLI_VERSION} start
           --exclude studio,imgproxy,mailpit,logflare,vector,edge-runtime
 
-      - name: Aplicar fixtures e fundações Pix até PIX-08A
+      - name: Aplicar fixtures e fundações Pix até PIX-08D
         shell: bash
         run: |
           set -euo pipefail
@@ -93,6 +111,8 @@ jobs:
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
             -f supabase/tests/fixtures/pix_07r_prerequisites.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -c \
+            'alter table public.motoristas add column updated_at timestamptz not null default now()'
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -c \
             'grant select, update on table public.motoristas to service_role'
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_07r.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_01.sql
@@ -104,11 +124,31 @@ jobs:
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_02.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_03.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_04.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 <<'SQL'
+          create type public.corrida_status as enum (
+            'solicitada','buscando_motorista','aceita','motorista_a_caminho',
+            'motorista_chegou','em_andamento','concluida','cancelada','sem_motorista'
+          );
+          create type public.pagamento_status as enum ('pendente','pago','falhou','estornado');
+          create table public.corridas (
+            id uuid primary key,
+            passageiro_id uuid not null,
+            motorista_id uuid references public.motoristas(id),
+            status public.corrida_status not null,
+            forma_pagamento public.forma_pagamento not null
+          );
+          alter table public.pagamentos
+            add column status public.pagamento_status not null default 'pendente';
+          grant select on table public.corridas, public.pagamentos to service_role;
+          SQL
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_08d.sql
 
-      - name: Executar teste exclusivo PIX-08A
-        run: >-
-          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
-          supabase/tests/pix_08_oauth_atomic_connection.sql --local
+      - name: Executar testes exclusivos PIX-08A e PIX-08D
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_08_oauth_atomic_connection.sql --local
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_08d_oauth_safe_disconnect.sql --local
 
       - name: Repetir regressão pgTAP PIX-01 a PIX-04 e PIX-07R
         shell: bash
@@ -136,7 +176,7 @@ jobs:
       - name: Instalar dependências sem alterar o lockfile
         run: bun install --frozen-lockfile
 
-      - name: Repetir PIX-05, PIX-06 e testar PIX-08B e PIX-08C
+      - name: Repetir PIX-05, PIX-06 e testar PIX-08B, PIX-08C e conta segura
         shell: bash
         run: |
           set -euo pipefail
@@ -158,17 +198,20 @@ jobs:
             scripts/pix/pix-mercadopago-oauth-flow.test.ts \
             src/lib/pix-mercadopago-oauth-input.ts \
             src/lib/pix-mercadopago-oauth-runtime.server.ts \
-            scripts/pix/pix-mercadopago-oauth-functions.test.ts
+            scripts/pix/pix-mercadopago-oauth-functions.test.ts \
+            src/lib/pix-mercadopago-account.server.ts \
+            scripts/pix/pix-mercadopago-account.test.ts
           node --test /tmp/pix-oauth-regression/scripts/pix/pix-oauth-crypto.test.js
           node --test /tmp/pix-oauth-regression/scripts/pix/pix-mercadopago-oauth.test.js
           node --test /tmp/pix-oauth-regression/scripts/pix/pix-mercadopago-oauth-flow.test.js
           node --test /tmp/pix-oauth-regression/scripts/pix/pix-mercadopago-oauth-functions.test.js
+          node --test /tmp/pix-oauth-regression/scripts/pix/pix-mercadopago-account.test.js
 
       - name: Verificar código e build integral
         shell: bash
         run: |
           set -euo pipefail
-          bunx eslint src/lib/pix-oauth-crypto.server.ts src/lib/pix-mercadopago-oauth.server.ts src/lib/pix-mercadopago-oauth-flow.server.ts src/lib/pix-mercadopago-oauth-supabase.server.ts src/lib/pix-mercadopago-oauth-input.ts src/lib/pix-mercadopago-oauth-runtime.server.ts src/lib/pix-mercadopago-oauth.functions.ts scripts/pix/pix-oauth-crypto.test.ts scripts/pix/pix-mercadopago-oauth.test.ts scripts/pix/pix-mercadopago-oauth-flow.test.ts scripts/pix/pix-mercadopago-oauth-functions.test.ts
+          bunx eslint src/lib/pix-oauth-crypto.server.ts src/lib/pix-mercadopago-oauth.server.ts src/lib/pix-mercadopago-oauth-flow.server.ts src/lib/pix-mercadopago-oauth-supabase.server.ts src/lib/pix-mercadopago-oauth-input.ts src/lib/pix-mercadopago-oauth-runtime.server.ts src/lib/pix-mercadopago-oauth.functions.ts src/lib/pix-mercadopago-account.server.ts scripts/pix/pix-oauth-crypto.test.ts scripts/pix/pix-mercadopago-oauth.test.ts scripts/pix/pix-mercadopago-oauth-flow.test.ts scripts/pix/pix-mercadopago-oauth-functions.test.ts scripts/pix/pix-mercadopago-account.test.ts
           bunx tsc --noEmit
           bun run build
 
@@ -190,7 +233,13 @@ jobs:
           test "${oauth_function_consumers[1]}" = "src/routes/motorista.mercadopago-callback.tsx"
 
           grep -Fq "iniciarConexaoMercadoPagoPixSegura" src/components/motorista/MercadoPagoConnect.tsx
+          grep -Fq "getStatusConexaoMercadoPagoPixSegura" src/components/motorista/MercadoPagoConnect.tsx
+          grep -Fq "desconectarMercadoPagoPixSeguro" src/components/motorista/MercadoPagoConnect.tsx
           grep -Fq "concluirConexaoMercadoPagoPixSegura" src/routes/motorista.mercadopago-callback.tsx
+          if grep -F "motorista-pagamento.functions" src/components/motorista/MercadoPagoConnect.tsx; then
+            echo "Interface Mercado Pago ainda depende do fluxo público antigo"
+            exit 1
+          fi
           if grep -R "zuvvi_mp_oauth_state" src --include='*.ts' --include='*.tsx'; then
             echo "State OAuth ainda persistido ou lido no navegador"
             exit 1
