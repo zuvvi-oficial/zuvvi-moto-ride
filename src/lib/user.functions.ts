@@ -281,50 +281,41 @@ export const criarCorrida = createServerFn({ method: "POST" })
     }
 
     const codigoEmbarque = Math.floor(1000 + Math.random() * 9000).toString();
+    const comissaoPct = Number(cidade.comissao_pct || 0);
+    const valorComissao = Math.round((data.valorCotado * (comissaoPct / 100)) * 100) / 100;
+    const valorMotorista = Math.round((data.valorCotado - valorComissao) * 100) / 100;
 
-    const { data: corrida, error: insertError } = await supabaseAdmin
-      .from("corridas")
-      .insert({
-        passageiro_id: usuario.id,
-        cidade_id: usuario.cidade_id,
-        origem_lat: data.origemLat,
-        origem_lng: data.origemLng,
-        destino_lat: data.destinoLat,
-        destino_lng: data.destinoLng,
-        valor_estimado: data.valorCotado,
-        forma_pagamento: data.formaPagamento,
-        codigo_embarque: codigoEmbarque,
-        status: 'solicitada',
-        origem_nome: data.origemNome || 'Sua localização',
-        destino_nome: data.destinoNome || 'Destino'
-      } as any)
-      .select()
-      .single();
+    // A RPC é versionada nesta microetapa. O cast fica restrito a esta chamada
+    // enquanto os tipos gerados refletem apenas o schema atualmente em produção.
+    const { data: corridaId, error: atomicError } = await (supabaseAdmin as any).rpc(
+      "criar_corrida_financeira_atomica",
+      {
+        p_passageiro_id: usuario.id,
+        p_cidade_id: usuario.cidade_id,
+        p_origem_lat: data.origemLat,
+        p_origem_lng: data.origemLng,
+        p_destino_lat: data.destinoLat,
+        p_destino_lng: data.destinoLng,
+        p_valor_estimado: data.valorCotado,
+        p_forma_pagamento: data.formaPagamento,
+        p_codigo_embarque: codigoEmbarque,
+        p_origem_nome: data.origemNome || 'Sua localização',
+        p_destino_nome: data.destinoNome || 'Destino',
+        p_valor_total: data.valorCotado,
+        p_valor_motorista: valorMotorista,
+        p_valor_comissao: valorComissao
+      }
+    );
 
-    if (insertError) {
-      if (insertError.code === "23505") throw new Error("Você já possui uma corrida ativa.");
+    if (atomicError || !corridaId) {
+      if (atomicError?.code === "23505") {
+        throw new Error("Você já possui uma corrida ativa.");
+      }
+      console.error("Erro criação financeira atômica:", atomicError);
       throw new Error("Falha ao registrar a corrida.");
     }
 
-    // Registrar pagamento
-    try {
-      const comissaoPct = Number(cidade.comissao_pct || 0);
-      const valorComissao = Math.round((data.valorCotado * (comissaoPct / 100)) * 100) / 100;
-      const valorMotorista = Math.round((data.valorCotado - valorComissao) * 100) / 100;
-
-      await supabaseAdmin.from("pagamentos").insert({
-        corrida_id: corrida.id,
-        meio: data.formaPagamento,
-        valor_total: data.valorCotado,
-        valor_motorista: valorMotorista,
-        valor_comissao: valorComissao,
-        status: 'pendente'
-      } as any);
-    } catch (err) {
-      console.error("Erro pagamento:", err);
-    }
-
-    return { success: true, rideId: corrida.id };
+    return { success: true, rideId: corridaId as string };
   });
 
 export const getCorrida = createServerFn({ method: "GET" })
