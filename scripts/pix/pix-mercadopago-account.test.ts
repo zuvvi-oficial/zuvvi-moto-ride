@@ -20,7 +20,8 @@ type Options = Readonly<{
 
 function createClient(options: Options = {}) {
   const calls: Array<Readonly<{ kind: string; name: string; args?: unknown }>> = [];
-  const publicAccountId = options.publicAccountId === undefined ? "123456789" : options.publicAccountId;
+  const publicAccountId =
+    options.publicAccountId === undefined ? "123456789" : options.publicAccountId;
 
   const client = {
     from(table: string) {
@@ -121,7 +122,10 @@ test("desconexão segura mapeia sucesso e bloqueios sem expor detalhes internos"
 });
 
 test("resultado inesperado ou erro RPC de desconexão falha de modo sanitizado", async () => {
-  for (const options of [{ disconnectResult: "unexpected" }, { rpcError: true }] satisfies Options[]) {
+  for (const options of [
+    { disconnectResult: "unexpected" },
+    { rpcError: true },
+  ] satisfies Options[]) {
     const { client } = createClient(options);
     await assert.rejects(disconnectPixMercadoPagoSafely(client, MOTORISTA_ID), {
       message: "Não foi possível desconectar a conta Mercado Pago com segurança.",
