@@ -1,0 +1,167 @@
+name: PIX DB OAuth Atomic Connection
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pix-db-oauth-atomic-connection.yml"
+      - "docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template"
+      - "supabase/migrations/*_pix_oauth_atomic_connection.sql"
+      - "supabase/tests/pix_08_oauth_atomic_connection.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pix-db-oauth-atomic-connection-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pix-08a-oauth-atomic-connection:
+    name: Testar conexão OAuth atômica e regressão Pix
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_CLI_VERSION: 2.115.0
+      LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - name: Checkout da branch do Pix
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Conferir Docker
+        run: docker version
+
+      - name: Instalar Supabase CLI fixada
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
+
+      - name: Gerar migration temporária PIX-08A pela CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git ls-files 'supabase/migrations/*_pix_oauth_atomic_connection.sql')"
+
+          cp supabase/migrations/20260824222419_unicidade_conta_mercado_pago_motorista.sql /tmp/pix_07r.sql
+          cp supabase/migrations/20260824233357_pix_oauth_credentials_private.sql /tmp/pix_01.sql
+          cp supabase/migrations/20260824234933_pix_attempts_webhook.sql /tmp/pix_02.sql
+          cp supabase/migrations/20260825001055_pix_aggregate_integrity.sql /tmp/pix_03.sql
+          cp supabase/migrations/20260825004851_pix_oauth_state_pkce.sql /tmp/pix_04.sql
+
+          npx --yes supabase@${SUPABASE_CLI_VERSION} migration new pix_oauth_atomic_connection
+          pix08_path="$(find supabase/migrations -maxdepth 1 -type f -name '*_pix_oauth_atomic_connection.sql' -print -quit)"
+          test -n "${pix08_path}"
+          cp docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template "${pix08_path}"
+          cmp -s docs/pix/sql/PIX08_OAUTH_ATOMIC_CONNECTION.sql.template "${pix08_path}"
+          cp "${pix08_path}" /tmp/pix_08.sql
+          echo "MIGRATION_GENERATED=${pix08_path}"
+
+      - name: Isolar migrations preexistentes no runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zuvvi_migrations_preexistentes
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' \
+            -exec mv {} /tmp/zuvvi_migrations_preexistentes/ \;
+          test -z "$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print -quit)"
+
+      - name: Iniciar Supabase local descartável
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} start
+          --exclude studio,imgproxy,mailpit,logflare,vector,edge-runtime
+
+      - name: Aplicar fixtures e fundações Pix até PIX-08A
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration_table_exists="$(psql "${LOCAL_DB_URL}" -Atc \
+            "select to_regclass('supabase_migrations.schema_migrations') is not null")"
+          if [ "${migration_table_exists}" = "t" ]; then
+            migration_count="$(psql "${LOCAL_DB_URL}" -Atc \
+              'select count(*) from supabase_migrations.schema_migrations')"
+            test "${migration_count}" = "0"
+          fi
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_01_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_07r_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_07r.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_01.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_08.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_02_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_03_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_02.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_03.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_04.sql
+
+      - name: Executar teste exclusivo PIX-08A
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+          supabase/tests/pix_08_oauth_atomic_connection.sql --local
+
+      - name: Repetir regressão pgTAP PIX-01 a PIX-04 e PIX-07R
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_01_oauth_credentials.sql --local
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_02_attempts_webhook.sql --local
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_03_integridade_agregada.sql --local
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_04_oauth_state_pkce.sql --local
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_07r_conta_mercado_pago_unica.sql --local
+
+      - name: Lint e advisors do banco local
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db lint --local --schema private,public --level error --fail-on error
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors --local --type security
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors --local --type performance
+
+      - name: Instalar Bun fixado
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Repetir PIX-05 e PIX-06
+        shell: bash
+        run: |
+          set -euo pipefail
+          bunx tsc \
+            --target ES2022 \
+            --module NodeNext \
+            --moduleResolution NodeNext \
+            --lib ES2022,DOM \
+            --types node \
+            --strict \
+            --skipLibCheck \
+            --outDir /tmp/pix-oauth-regression \
+            src/lib/pix-oauth-crypto.server.ts \
+            scripts/pix/pix-oauth-crypto.test.ts \
+            src/lib/pix-mercadopago-oauth.server.ts \
+            scripts/pix/pix-mercadopago-oauth.test.ts
+          node --test /tmp/pix-oauth-regression/scripts/pix/pix-oauth-crypto.test.js
+          node --test /tmp/pix-oauth-regression/scripts/pix/pix-mercadopago-oauth.test.js
+
+      - name: Verificar código e build integral
+        shell: bash
+        run: |
+          set -euo pipefail
+          bunx eslint src/lib/pix-oauth-crypto.server.ts src/lib/pix-mercadopago-oauth.server.ts scripts/pix/pix-oauth-crypto.test.ts scripts/pix/pix-mercadopago-oauth.test.ts
+          bunx tsc --noEmit
+          bun run build
+
+      - name: Provar dependências congeladas
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum package.json | cut -d ' ' -f1)" = "71b9e8dc6ef0028172aed34993d150a1d5f77adad5c7b5168046c7d0b8cd6f50"
+          test "$(sha256sum bun.lock | cut -d ' ' -f1)" = "43a4359a9fb245f3c46484da57fb1342957f657780f7ee5c50ae1354aa64619f"
+
+      - name: Descartar stack local
+        if: always()
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup
