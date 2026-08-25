@@ -1,4 +1,4 @@
-name: TEMP Fix Pix Etapa5 Baseline
+name: TEMP Corrigir Contraprova Etapa 5
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  fix-baseline:
+  corrigir-contraprova:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -21,63 +21,63 @@ jobs:
           ref: feature/pix-100-seguro
           fetch-depth: 0
 
-      - name: Ajustar somente baseline das duas contraprovas
+      - name: Corrigir somente a prova de limpeza das dependencias
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
 
-          baseline = "f70b4f19d26f827e6741692cf6b3c9570d3aede9"
           paths = [
               Path('.github/workflows/pix-db-oauth-atomic-connection.yml'),
               Path('.github/workflows/pix-db-mercadopago-account-uniqueness.yml'),
           ]
+          old = '          test -z "$(git status --porcelain)"'
+          new = '''          if ! git diff --quiet -- package.json bun.lock; then
+            echo "package.json ou bun.lock foram alterados pelo runner"
+            git diff -- package.json bun.lock
+            exit 1
+          fi'''
 
           for path in paths:
               text = path.read_text()
-              required = [
-                  'git fetch origin main --depth=1',
-                  "execFileSync('git', ['show', 'origin/main:package.json']",
-                  'git diff --unified=0 origin/main -- bun.lock',
-              ]
-              for needle in required:
-                  if text.count(needle) != 1:
-                      raise SystemExit(f"Marcador inesperado em {path}: {needle}")
-
-              text = text.replace(
-                  'git fetch origin main --depth=1',
-                  f'git fetch origin feature/pix-100-seguro --depth=100\n          test "$(git cat-file -t {baseline})" = "commit"',
-              )
-              text = text.replace('origin/main:package.json', f'{baseline}:package.json')
-              text = text.replace('origin/main -- bun.lock', f'{baseline} -- bun.lock')
+              if text.count(old) != 1:
+                  raise SystemExit(f"Marcador de falso positivo inesperado em {path}")
+              text = text.replace(old, new)
               path.write_text(text)
           PY
 
-      - name: Provar que Etapa 5 alterou dependencias somente pelo QR
+      - name: Provar escopo e remover o workflow temporario
         shell: bash
         run: |
           set -euo pipefail
-          BASELINE=f70b4f19d26f827e6741692cf6b3c9570d3aede9
-          package_changes="$(git diff --numstat "$BASELINE" -- package.json | awk '{print $1+$2}')"
-          lock_changes="$(git diff --numstat "$BASELINE" -- bun.lock | awk '{print $1+$2}')"
-          test "${package_changes:-999}" = "1"
-          test "${lock_changes:-999}" = "3"
-          grep -q '"qrcode.react": "4.2.0"' package.json
-          grep -q '"qrcode.react": "4.2.0"' bun.lock
-          grep -q '"qrcode.react": \["qrcode.react@4.2.0"' bun.lock
+          grep -Fq 'git diff --quiet -- package.json bun.lock' .github/workflows/pix-db-oauth-atomic-connection.yml
+          grep -Fq 'git diff --quiet -- package.json bun.lock' .github/workflows/pix-db-mercadopago-account-uniqueness.yml
+          if grep -Fq 'test -z "$(git status --porcelain)"' .github/workflows/pix-db-oauth-atomic-connection.yml; then
+            echo "A prova ampla antiga permaneceu no workflow OAuth atomico"
+            exit 1
+          fi
+          if grep -Fq 'test -z "$(git status --porcelain)"' .github/workflows/pix-db-mercadopago-account-uniqueness.yml; then
+            echo "A prova ampla antiga permaneceu no workflow de unicidade"
+            exit 1
+          fi
 
-          mapfile -t changed < <(git diff --name-only)
-          test "${#changed[@]}" = "2"
+          git rm .github/workflows/temp-fix-pix-etapa5-baseline.yml
+
+          mapfile -t changed < <(git diff --name-only | sort)
+          printf 'Arquivos alterados:\n%s\n' "${changed[*]}"
+          test "${#changed[@]}" = "3"
           test "${changed[0]}" = ".github/workflows/pix-db-mercadopago-account-uniqueness.yml"
           test "${changed[1]}" = ".github/workflows/pix-db-oauth-atomic-connection.yml"
+          test "${changed[2]}" = ".github/workflows/temp-fix-pix-etapa5-baseline.yml"
 
-      - name: Commitar somente os dois workflows
+      - name: Commitar somente a correcao da contraprova
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/pix-db-oauth-atomic-connection.yml .github/workflows/pix-db-mercadopago-account-uniqueness.yml
-          git commit -m "test(pix): fixar baseline da contraprova Etapa 5"
+          git add -u .github/workflows/temp-fix-pix-etapa5-baseline.yml
+          git commit -m "test(pix): eliminar falso positivo da Etapa 5"
           git push origin HEAD:feature/pix-100-seguro
