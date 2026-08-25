@@ -46,24 +46,28 @@ jobs:
               raise SystemExit("Bloco MercadoPagoConnect inesperado na Home")
           text = text.replace(old_widget, "")
 
-          old_logout = '''          <button
-            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              window.location.href = "/auth/login";
-            }}
-          >
-            <User className="w-6 h-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Sair</span>
-          </button>'''
-          new_profile = '''          <a
-            href="/perfil-motorista"
-            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"
-            aria-label="Abrir perfil do motorista"
-          >
-            <User className="w-6 h-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>
-          </a>'''
+          old_logout = "\n".join([
+              "          <button",
+              '            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"',
+              "            onClick={async () => {",
+              "              await supabase.auth.signOut();",
+              '              window.location.href = "/auth/login";',
+              "            }}",
+              "          >",
+              '            <User className="w-6 h-6" />',
+              '            <span className="text-[8px] font-black uppercase tracking-widest">Sair</span>',
+              "          </button>",
+          ])
+          new_profile = "\n".join([
+              "          <a",
+              '            href="/perfil-motorista"',
+              '            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"',
+              '            aria-label="Abrir perfil do motorista"',
+              "          >",
+              '            <User className="w-6 h-6" />',
+              '            <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>',
+              "          </a>",
+          ])
           if text.count(old_logout) != 1:
               raise SystemExit("Bloco de logout da barra inferior inesperado")
           text = text.replace(old_logout, new_profile)
@@ -74,8 +78,8 @@ jobs:
       - name: Instalar dependencias congeladas
         run: bun install --frozen-lockfile
 
-      - name: Verificar formato da nova tela
-        run: bunx prettier --check src/routes/perfil-motorista.tsx
+      - name: Formatar somente arquivos permitidos
+        run: bunx prettier --write src/routes/perfil-motorista.tsx src/routes/home-motorista.tsx
 
       - name: Verificar ESLint da nova tela
         run: bunx eslint src/routes/perfil-motorista.tsx
@@ -110,18 +114,18 @@ jobs:
           printf 'Arquivos alterados pelo runner:\n%s\n' "${changed[*]}"
           for file in "${changed[@]}"; do
             case "$file" in
-              src/routes/home-motorista.tsx|src/routeTree.gen.ts) ;;
+              src/routes/perfil-motorista.tsx|src/routes/home-motorista.tsx|src/routeTree.gen.ts) ;;
               *) echo "Arquivo fora da allowlist alterado pelo runner: $file"; exit 1 ;;
             esac
           done
 
-      - name: Commitar somente Home e route tree gerada
+      - name: Commitar somente perfil, Home e route tree
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/routes/home-motorista.tsx src/routeTree.gen.ts
+          git add src/routes/perfil-motorista.tsx src/routes/home-motorista.tsx src/routeTree.gen.ts
           if git diff --cached --quiet; then
             echo "Nenhuma alteracao para commitar"
             exit 0
