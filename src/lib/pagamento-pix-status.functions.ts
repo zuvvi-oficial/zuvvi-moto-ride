@@ -3,13 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 export type PagamentoPixTelaStatus =
-  | "gerando"
-  | "aguardando"
-  | "analisando"
-  | "pago"
-  | "expirado"
-  | "falhou"
-  | "estornado";
+  "gerando" | "aguardando" | "analisando" | "pago" | "expirado" | "falhou" | "estornado";
 
 export type PagamentoPixTelaSnapshot = Readonly<{
   status: PagamentoPixTelaStatus;
@@ -66,9 +60,7 @@ export function calcularDeadlinePix(
   const zuvviDeadlineMs = createdAtMs + timeoutSeconds * 1_000;
   const providerDeadlineMs = parseDateMs(providerExpiresAt);
   const effectiveDeadlineMs =
-    providerDeadlineMs !== null
-      ? Math.min(zuvviDeadlineMs, providerDeadlineMs)
-      : zuvviDeadlineMs;
+    providerDeadlineMs !== null ? Math.min(zuvviDeadlineMs, providerDeadlineMs) : zuvviDeadlineMs;
 
   return new Date(effectiveDeadlineMs).toISOString();
 }
@@ -133,7 +125,7 @@ function remainingSeconds(deadlineAt: string | null, nowMs: number): number | nu
 
 export const getPagamentoPixPassageiroStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => statusSchema.parse(data))
+  .validator((data: unknown) => statusSchema.parse(data))
   .handler(async ({ context, data }): Promise<PagamentoPixTelaSnapshot> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -169,26 +161,26 @@ export const getPagamentoPixPassageiroStatus = createServerFn({ method: "GET" })
 
     if (pagamentoError || !pagamento) throw new Error("Pagamento Pix não encontrado.");
 
+    // A tabela Pix já existe no banco real, mas os tipos gerados do projeto ainda não a incluem.
+    // O cast fica limitado a esta consulta server-side até a regeneração oficial dos tipos.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: tentativaRows, error: tentativaError } = await (supabaseAdmin as any)
       .from("pagamentos_pix_tentativas")
-      .select(
-        "estado_interno, provider_status, pix_copia_cola, expires_at, created_at",
-      )
+      .select("estado_interno, provider_status, pix_copia_cola, expires_at, created_at")
       .eq("pagamento_id", pagamento.id)
       .order("created_at", { ascending: false })
       .limit(1);
 
     if (tentativaError) throw new Error("Não foi possível atualizar o pagamento Pix.");
 
-    const tentativa = Array.isArray(tentativaRows) && tentativaRows.length > 0
-      ? (tentativaRows[0] as Record<string, unknown>)
-      : null;
+    const tentativa =
+      Array.isArray(tentativaRows) && tentativaRows.length > 0
+        ? (tentativaRows[0] as Record<string, unknown>)
+        : null;
 
     const nowMs = Date.now();
     const serverNow = new Date(nowMs).toISOString();
-    const timeoutSeconds = getPixPaymentTimeoutSeconds(
-      process.env["PIX_PAYMENT_TIMEOUT_SECONDS"],
-    );
+    const timeoutSeconds = getPixPaymentTimeoutSeconds(process.env["PIX_PAYMENT_TIMEOUT_SECONDS"]);
 
     const derived = derivarEstadoPagamentoPix(
       {
@@ -207,13 +199,9 @@ export const getPagamentoPixPassageiroStatus = createServerFn({ method: "GET" })
             ? tentativa["pix_copia_cola"]
             : null,
         tentativaCreatedAt:
-          tentativa && typeof tentativa["created_at"] === "string"
-            ? tentativa["created_at"]
-            : null,
+          tentativa && typeof tentativa["created_at"] === "string" ? tentativa["created_at"] : null,
         providerExpiresAt:
-          tentativa && typeof tentativa["expires_at"] === "string"
-            ? tentativa["expires_at"]
-            : null,
+          tentativa && typeof tentativa["expires_at"] === "string" ? tentativa["expires_at"] : null,
       },
       nowMs,
       timeoutSeconds,
