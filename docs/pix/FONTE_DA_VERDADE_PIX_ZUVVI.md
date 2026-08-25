@@ -1,6 +1,6 @@
 # FONTE DA VERDADE — PIX ZUVVI
 
-**Versão:** 1.16
+**Versão:** 1.17
 **Data-base:** 25/08/2026
 **Responsável pela execução:** Codex  
 **Repositório:** `zuvvi-oficial/zuvvi-moto-ride`  
@@ -617,6 +617,79 @@ Rollback antes da produção: remover somente os três arquivos novos e reverter
 **Classificação da microetapa PIX-05:** **APROVADA E CONGELADA**.
 
 A aprovação comprova apenas as primitivas criptográficas isoladas. Elas ainda não são chamadas pelo fluxo Mercado Pago, não exigem teste manual no aplicativo e não alteram o comportamento atual. A integração com Server Functions, a migration PIX-04 e o callback permanece bloqueada até uma microetapa posterior com ambiente compatível e allowlist própria.
+
+**Autorização e allowlist da microetapa PIX-06 — cliente OAuth Mercado Pago no servidor:**
+
+Objetivo único: criar e validar um adaptador isolado, exclusivamente de servidor, para montar a URL de autorização com PKCE `S256`, trocar um código de autorização por credenciais OAuth e renovar credenciais pelo `refresh_token`. Esta microetapa não persiste tokens, não usa credencial real, não altera o fluxo atual e não faz requisição ao Mercado Pago durante os testes.
+
+Baseline revalidado em 25/08/2026:
+
+- commit-base da branch Pix: `113479a2f7fc92dabfefcd7a8ce14ebfb12b543e`;
+- hashes dos arquivos existentes congelados antes da escrita: `pix-oauth-crypto.server.ts` `ccd9606b...`, `motorista-pagamento.functions.ts` `fcafe924...`, callback `445532b6...`, `package.json` `71b9e8dc...` e `bun.lock` `43a4359a...`;
+- documentação oficial do Mercado Pago revalidada: o processo sensível deve permanecer no servidor; a autorização PKCE usa `code_challenge_method=S256`; a troca envia `code_verifier`; o retorno contém Access Token, Refresh Token, `user_id`, `expires_in`, escopo e tipo de token;
+- changelog e documentação de segurança atuais do Supabase revisados; nenhuma mudança afeta este adaptador sem banco;
+- Supabase principal permanece na migration `20260824222419`, com 84 pagamentos, quatro Pix, sem schema `private` e sem `pix_oauth_state_create`.
+
+Arquivos permitidos:
+
+- modificar somente `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md`;
+- criar `src/lib/pix-mercadopago-oauth.server.ts`;
+- criar `scripts/pix/pix-mercadopago-oauth.test.ts`;
+- criar `.github/workflows/pix-mercadopago-oauth.yml`.
+
+Comportamentos permitidos no novo adaptador:
+
+- validar configuração, callback HTTPS, `state`, challenge/verifier PKCE e códigos OAuth;
+- montar a URL oficial de autorização sem incluir segredo ou `code_verifier`;
+- enviar a troca de código exclusivamente ao endpoint HTTPS fixo do Mercado Pago;
+- enviar `code_verifier` no fluxo `authorization_code`;
+- renovar credenciais exclusivamente com `grant_type=refresh_token`;
+- validar estritamente a resposta antes de disponibilizá-la ao futuro orquestrador;
+- limitar tamanho de resposta e tempo de rede;
+- retornar erros sanitizados sem token, segredo, payload do provedor ou dados internos;
+- aceitar `fetch` e relógio injetáveis apenas para testes isolados, sem fallback de credencial.
+
+Travas:
+
+- não importar nem modificar o adaptador em qualquer arquivo existente do aplicativo;
+- não modificar `pix-oauth-crypto.server.ts`, Server Functions atuais, callback, componente Mercado Pago ou telas;
+- não ler/criar segredo real, `.env`, secret GitHub/Lovable/Supabase ou credencial Sandbox;
+- não registrar URL sensível, código, state, verifier, Access Token, Refresh Token, client secret ou resposta do provedor;
+- não modificar banco, migration, RLS, grant, RPC, Edge Function ou dados;
+- não alterar conexão, desconexão, oferta, aceite, cobrança ou estado de corrida;
+- não alterar `package.json`, `bun.lock`, dependências, dinheiro, cartão ou core;
+- não aplicar migration no Supabase principal e não fazer merge.
+
+Testes obrigatórios:
+
+- URL oficial com `state`, callback e PKCE `S256`, provando ausência de segredo e verifier;
+- troca de código com corpo exato e resposta válida;
+- renovação com rotação de Access Token e Refresh Token;
+- normalização segura de `user_id` numérico;
+- rejeição de callback inseguro, challenge/verifier inválido e entrada excessiva;
+- rejeição de HTTP não aprovado, timeout, resposta grande, JSON inválido, campos ausentes e validade inválida;
+- prova de que mensagem de erro não contém segredo nem payload do provedor;
+- testes sem acesso de rede real, TypeScript, ESLint, build e diff limitado à allowlist;
+- regressão PIX-05 e conferência somente leitura do Supabase principal.
+
+Rollback antes da produção: remover somente os três arquivos novos e reverter esta seção documental. Não existe rollback de banco porque esta microetapa proíbe qualquer escrita no Supabase.
+
+**Fechamento parcial da microetapa PIX-06 — cliente OAuth Mercado Pago no servidor:**
+
+- adaptador criado em `src/lib/pix-mercadopago-oauth.server.ts`, sem importação por qualquer arquivo existente do aplicativo;
+- URL de autorização limitada ao endpoint oficial, callback HTTPS estático, `state`, `code_challenge` e método `S256`, sem segredo ou verifier;
+- troca de código e renovação limitadas ao endpoint HTTPS fixo do Mercado Pago, com timeout, limite de resposta, validação estrita e erros sanitizados;
+- nenhuma credencial real, variável de ambiente, log sensível, chamada de rede real, persistência ou alteração de comportamento foi criada;
+- execução local: PIX-06 `10/10`, regressão criptográfica PIX-05 `11/11`, ESLint, TypeScript integral, formatação dos três arquivos novos e build aprovados;
+- hashes de `pix-oauth-crypto.server.ts`, `motorista-pagamento.functions.ts`, callback, `package.json` e `bun.lock` permaneceram idênticos ao baseline;
+- commit local de implementação: `dd2a332d4d6b798aceb34a09359aed69168b5fbf`;
+- o push para `feature/pix-100-seguro` foi bloqueado pela ausência de autenticação GitHub nesta sessão; nenhuma tentativa de contornar credenciais foi feita;
+- por consequência, o workflow novo ainda não executou no GitHub Actions e a etapa não pode ser congelada;
+- conferência somente leitura do Supabase principal permaneceu em 84 pagamentos, quatro Pix, sem schema `private`, sem `pix_oauth_state_create` e última migration `20260824222419`; nenhuma escrita foi realizada.
+
+**Classificação da microetapa PIX-06:** **PARCIALMENTE APROVADA — BLOQUEADA NO ENVIO AO GITHUB**.
+
+Para concluir a mesma microetapa, é obrigatório autenticar um meio autorizado de escrita no GitHub, enviar os commits à branch Pix, aguardar o workflow e as regressões, revisar o diff remoto e registrar as evidências. Nenhuma próxima microetapa poderá começar antes disso.
 
 ### Etapa 1 — Integridade mínima do banco
 
