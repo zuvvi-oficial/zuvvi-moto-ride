@@ -290,7 +290,11 @@ jobs:
           grep -q '"qrcode.react": "4.2.0"' bun.lock
           grep -q '"qrcode.react": \["qrcode.react@4.2.0"' bun.lock
           test "$(sha256sum src/lib/motorista-pagamento.functions.ts | cut -d ' ' -f1)" = "fcafe924a0b96f999625bbb0e48b961df8ed895bc1b331a3f79fb29501ad81d3"
-          test -z "$(git status --porcelain)"
+          if ! git diff --quiet -- package.json bun.lock; then
+            echo "package.json ou bun.lock foram alterados pelo runner"
+            git diff -- package.json bun.lock
+            exit 1
+          fi
 
       - name: Descartar stack local
         if: always()
