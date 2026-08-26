@@ -56,10 +56,13 @@ export type PixTokenRefreshDependencies = Readonly<{
 export type PixPaymentBodyInput = Readonly<{
   valorTotal: number;
   valorComissao: number;
+  corridaId: string;
   passageiroId: string;
   passageiroNome: string | null;
   passageiroEmail: string | null;
+  passageiroCelular?: string | null;
   passageiroCpf?: string | null;
+  passageiroCreatedAt?: string | null;
   externalReference: string;
 }>;
 
@@ -68,6 +71,8 @@ const INVALID_ACCOUNT_ERROR = "A conta Mercado Pago do motorista não está cone
 const DUPLICATE_CHARGE_ERROR = "Já existe uma tentativa de cobrança Pix para esta corrida.";
 const TOKEN_REFRESH_MARGIN_MS = 5 * 60 * 1_000;
 const OAUTH_REDIRECT_URI = "https://zuvvi-moto-ride.lovable.app/motorista/mercadopago-callback";
+const DEFAULT_PIX_NOTIFICATION_URL =
+  "https://zuvvi-moto-ride.lovable.app/api/mercadopago/webhook?source_news=webhooks";
 const ENCRYPTION_VERSION = 1;
 const EXTERNAL_REFERENCE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/u;
 
@@ -79,6 +84,47 @@ function requireEnvironment(name: string): string {
   const value = process.env[name];
   if (!value || value !== value.trim()) throw new Error(GENERIC_ERROR);
   return value;
+}
+
+function getPixNotificationUrl(): string {
+  const configured = process.env["PIX_MERCADOPAGO_WEBHOOK_URL"]?.trim();
+  if (!configured) return DEFAULT_PIX_NOTIFICATION_URL;
+  try {
+    const url = new URL(configured);
+    if (url.protocol !== "https:") return DEFAULT_PIX_NOTIFICATION_URL;
+    url.searchParams.set("source_news", "webhooks");
+    return url.toString();
+  } catch {
+    return DEFAULT_PIX_NOTIFICATION_URL;
+  }
+}
+
+function splitPassengerName(value: string | null): Readonly<{ firstName: string; lastName?: string }> {
+  const normalized = value?.trim().replace(/\s+/gu, " ") ?? "";
+  const parts = normalized.split(" ").filter(Boolean);
+  const firstName = parts[0] || "Passageiro";
+  const lastName = parts.slice(1).join(" ");
+  return Object.freeze(lastName ? { firstName, lastName } : { firstName });
+}
+
+function normalizeBrazilPhone(
+  value: string | null | undefined,
+): Readonly<{ area_code: string; number: string }> | null {
+  let digits = value?.replace(/\D/gu, "") ?? "";
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) {
+    digits = digits.slice(2);
+  }
+  if (digits.length !== 10 && digits.length !== 11) return null;
+  const areaCode = digits.slice(0, 2);
+  const number = digits.slice(2);
+  if (!/^[1-9]\d$/u.test(areaCode) || !/^\d{8,9}$/u.test(number)) return null;
+  return Object.freeze({ area_code: areaCode, number });
+}
+
+function normalizeRegistrationDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
 }
 
 function readCredentialRow(data: unknown): PixCredentialSnapshot | null {
@@ -187,18 +233,45 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
     throw new Error(GENERIC_ERROR);
   }
 
+  const { firstName, lastName } = splitPassengerName(input.passageiroNome);
+  const phone = normalizeBrazilPhone(input.passageiroCelular);
+  const registrationDate = normalizeRegistrationDate(input.passageiroCreatedAt);
+  const identification =
+    passageiroCpf.length === 11 ? { type: "CPF" as const, number: passageiroCpf } : null;
+  const payer = {
+    email: input.passageiroEmail?.trim() || `passageiro+${input.passageiroId}@zuvvi.app`,
+    first_name: firstName,
+    ...(lastName ? { last_name: lastName } : {}),
+    ...(identification ? { identification } : {}),
+    ...(phone ? { phone } : {}),
+  };
+
   return {
     transaction_amount: valorTotal,
     application_fee: valorComissao,
     external_reference: input.externalReference,
     description: "Corrida Zuvvi",
     payment_method_id: "pix",
-    payer: {
-      email: input.passageiroEmail ?? `passageiro+${input.passageiroId}@zuvvi.app`,
-      first_name: input.passageiroNome ?? "Passageiro",
-      ...(passageiroCpf.length === 11
-        ? { identification: { type: "CPF", number: passageiroCpf } }
-        : {}),
+    notification_url: getPixNotificationUrl(),
+    payer,
+    additional_info: {
+      items: [
+        {
+          id: input.corridaId,
+          title: "Corrida Zuvvi Moto",
+          description: "Transporte urbano por motocicleta",
+          category_id: "transport",
+          quantity: 1,
+          unit_price: valorTotal,
+        },
+      ],
+      payer: {
+        first_name: firstName,
+        ...(lastName ? { last_name: lastName } : {}),
+        ...(identification ? { identification } : {}),
+        ...(phone ? { phone } : {}),
+        ...(registrationDate ? { registration_date: registrationDate } : {}),
+      },
     },
   } as const;
 }
@@ -433,7 +506,7 @@ export async function criarCobrancaPixAposAceiteServer(
 
   const { data: passageiro, error: passageiroError } = await supabaseAdmin
     .from("usuarios")
-    .select("id, nome, email, cpf")
+    .select("id, nome, email, celular, cpf, created_at")
     .eq("id", passageiroId)
     .maybeSingle();
   if (passageiroError || !passageiro) throw new Error(GENERIC_ERROR);
@@ -452,10 +525,13 @@ export async function criarCobrancaPixAposAceiteServer(
       body: montarCorpoCobrancaPix({
         valorTotal,
         valorComissao,
+        corridaId: rideId,
         passageiroId,
         passageiroNome: passageiro.nome,
         passageiroEmail: passageiro.email,
+        passageiroCelular: passageiro.celular,
         passageiroCpf: passageiro.cpf,
+        passageiroCreatedAt: passageiro.created_at,
         externalReference: idempotencyKey,
       }),
       requestOptions: { idempotencyKey, meliSessionId: deviceId },
@@ -467,6 +543,12 @@ export async function criarCobrancaPixAposAceiteServer(
     providerStatus = response.status ?? null;
     providerStatusDetail = response.status_detail ?? null;
     expiresAt = response.date_of_expiration ?? null;
+
+    if (providerStatus?.toLowerCase() === "rejected") {
+      console.warn("[PixPaymentDiag] payment_rejected", {
+        statusDetail: providerStatusDetail?.slice(0, 120) ?? "unknown",
+      });
+    }
   } catch (error) {
     const providerError = error as any;
     const rawCause = providerError?.cause;
