@@ -457,6 +457,13 @@ export async function criarCobrancaPixAposAceiteServer(
     providerStatusDetail = response.status_detail ?? null;
     expiresAt = response.date_of_expiration ?? null;
   } catch (error) {
+    console.error("[PixPaymentDiag] create_failed", {
+      status: typeof (error as any)?.status === "number" ? (error as any).status : 0,
+      errorCode:
+        typeof (error as any)?.error === "string"
+          ? (error as any).error.slice(0, 128)
+          : "unknown",
+    });
     if (falhaCriacaoMercadoPagoPermiteCompensacao(error)) {
       console.error("[Pagamento] Mercado Pago rejeitou a criação Pix sem cobrança externa.");
       await compensarFalhaCriacaoPixSemCobrancaConhecida(
