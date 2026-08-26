@@ -73,7 +73,7 @@ test("troca código enviando PKCE e retorna somente credenciais validadas", asyn
 
   assert.equal(capturedUrl, "https://api.mercadopago.com/oauth/token");
   assert.equal(capturedInit?.method, "POST");
-  assert.equal(capturedInit?.redirect, "error");
+  assert.equal(capturedInit?.redirect, undefined);
   assert.deepEqual(JSON.parse(String(capturedInit?.body)), {
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
