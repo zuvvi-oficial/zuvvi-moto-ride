@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { getMapboxToken, cotarCorrida, criarCorrida } from '@/lib/user.functions';
+import { ensureMercadoPagoDeviceId } from '@/lib/pix-device-id';
+import { registrarPixDeviceSession } from '@/lib/pix-device-session.functions';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode } from 'lucide-react';
@@ -39,6 +41,7 @@ function ConfirmarCorrida() {
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const cotarCorridaFn = useServerFn(cotarCorrida);
   const criarCorridaFn = useServerFn(criarCorrida);
+  const registrarPixDeviceSessionFn = useServerFn(registrarPixDeviceSession);
 
   const createInFlightRef = useRef(false);
 
@@ -56,6 +59,11 @@ function ConfirmarCorrida() {
     setIsCreating(true);
 
     try {
+      if (metodoPagamento === 'pix') {
+        const deviceId = await ensureMercadoPagoDeviceId();
+        await registrarPixDeviceSessionFn({ data: { deviceId } });
+      }
+
       const result = await criarCorridaFn({
         data: {
           origemLat: originLat,
