@@ -9,6 +9,7 @@ export type PagamentoPixTelaSnapshot = Readonly<{
   status: PagamentoPixTelaStatus;
   valor: number;
   pixCopiaCola: string | null;
+  ticketUrl: string | null;
   deadlineAt: string | null;
   remainingSeconds: number | null;
   serverNow: string;
@@ -123,6 +124,22 @@ function remainingSeconds(deadlineAt: string | null, nowMs: number): number | nu
   return Math.max(0, Math.ceil((deadlineMs - nowMs) / 1_000));
 }
 
+function safeTicketUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    const hostname = url.hostname.toLowerCase();
+    const isMercadoPago =
+      hostname === "mercadopago.com.br" ||
+      hostname.endsWith(".mercadopago.com.br") ||
+      hostname === "mercadopago.com" ||
+      hostname.endsWith(".mercadopago.com");
+    return url.protocol === "https:" && isMercadoPago ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export const getPagamentoPixPassageiroStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => statusSchema.parse(data))
@@ -180,7 +197,7 @@ export const getPagamentoPixPassageiroStatus = createServerFn({ method: "GET" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: tentativaRows, error: tentativaError } = await (supabaseAdmin as any)
       .from("pagamentos_pix_tentativas")
-      .select("estado_interno, provider_status, pix_copia_cola, expires_at, created_at")
+      .select("estado_interno, provider_status, pix_copia_cola, ticket_url, expires_at, created_at")
       .eq("pagamento_id", pagamento.id)
       .order("created_at", { ascending: false })
       .limit(1);
@@ -221,17 +238,18 @@ export const getPagamentoPixPassageiroStatus = createServerFn({ method: "GET" })
       timeoutSeconds,
     );
 
+    const isPayable = derived.status === "aguardando" || derived.status === "analisando";
     const pixCopiaCola =
-      derived.status === "aguardando" || derived.status === "analisando"
-        ? tentativa && typeof tentativa["pix_copia_cola"] === "string"
-          ? tentativa["pix_copia_cola"]
-          : null
+      isPayable && tentativa && typeof tentativa["pix_copia_cola"] === "string"
+        ? tentativa["pix_copia_cola"]
         : null;
+    const ticketUrl = isPayable ? safeTicketUrl(tentativa?.["ticket_url"]) : null;
 
     return Object.freeze({
       status: derived.status,
       valor: Number(pagamento.valor_total),
       pixCopiaCola,
+      ticketUrl,
       deadlineAt: derived.deadlineAt,
       remainingSeconds: remainingSeconds(derived.deadlineAt, nowMs),
       serverNow,
