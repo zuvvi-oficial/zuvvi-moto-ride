@@ -463,12 +463,29 @@ export async function criarCobrancaPixAposAceiteServer(
     providerStatusDetail = response.status_detail ?? null;
     expiresAt = response.date_of_expiration ?? null;
   } catch (error) {
+    const providerError = error as any;
+    const rawCause = providerError?.cause;
+    const providerCauses = Array.isArray(rawCause)
+      ? rawCause
+      : rawCause && typeof rawCause === "object"
+        ? [rawCause]
+        : [];
+    const sanitizeDiagnostic = (value: unknown): string => {
+      if (typeof value !== "string" && typeof value !== "number") return "unknown";
+      return String(value)
+        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, "[redacted-email]")
+        .replace(/\b\d{6,}\b/gu, "[redacted-number]")
+        .slice(0, 240);
+    };
+
     console.error("[PixPaymentDiag] create_failed", {
-      status: typeof (error as any)?.status === "number" ? (error as any).status : 0,
-      errorCode:
-        typeof (error as any)?.error === "string"
-          ? (error as any).error.slice(0, 128)
-          : "unknown",
+      status: typeof providerError?.status === "number" ? providerError.status : 0,
+      errorCode: sanitizeDiagnostic(providerError?.error),
+      message: sanitizeDiagnostic(providerError?.message),
+      causeCodes: providerCauses.slice(0, 4).map((cause: any) => sanitizeDiagnostic(cause?.code)),
+      causeDescriptions: providerCauses
+        .slice(0, 4)
+        .map((cause: any) => sanitizeDiagnostic(cause?.description)),
     });
     if (falhaCriacaoMercadoPagoPermiteCompensacao(error)) {
       console.error("[Pagamento] Mercado Pago rejeitou a criação Pix sem cobrança externa.");
