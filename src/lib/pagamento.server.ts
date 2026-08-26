@@ -273,7 +273,7 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
         ...(registrationDate ? { registration_date: registrationDate } : {}),
       },
     },
-  } as const;
+  };
 }
 
 async function carregarCredencialMotorista(
