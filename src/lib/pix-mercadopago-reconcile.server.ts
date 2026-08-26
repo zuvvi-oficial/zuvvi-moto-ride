@@ -10,6 +10,7 @@ export type PixCanonicalPayment = Readonly<{
   statusDetail: string | null;
   qrCode: string;
   qrCodeBase64: string;
+  ticketUrl: string | null;
   expiresAt: string | null;
 }>;
 
@@ -36,6 +37,23 @@ function asNonBlankString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function asMercadoPagoTicketUrl(value: unknown): string | null {
+  const raw = asNonBlankString(value);
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    const hostname = url.hostname.toLowerCase();
+    const isMercadoPago =
+      hostname === "mercadopago.com.br" ||
+      hostname.endsWith(".mercadopago.com.br") ||
+      hostname === "mercadopago.com" ||
+      hostname.endsWith(".mercadopago.com");
+    return url.protocol === "https:" && isMercadoPago ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function asIdentifier(value: unknown): string | null {
@@ -96,6 +114,7 @@ function parseCanonicalPayment(
   const transactionAmount = Number(record?.["transaction_amount"]);
   const qrCode = asNonBlankString(transactionData?.["qr_code"]);
   const qrCodeBase64 = asNonBlankString(transactionData?.["qr_code_base64"]);
+  const ticketUrl = asMercadoPagoTicketUrl(transactionData?.["ticket_url"]);
   const status = asNonBlankString(record?.["status"]);
   const statusDetail = asNonBlankString(record?.["status_detail"]);
   const expiresAt = asNonBlankString(record?.["date_of_expiration"]);
@@ -123,6 +142,7 @@ function parseCanonicalPayment(
     statusDetail,
     qrCode,
     qrCodeBase64,
+    ticketUrl,
     expiresAt,
   });
 }
