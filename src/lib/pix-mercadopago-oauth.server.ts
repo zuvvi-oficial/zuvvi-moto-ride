@@ -106,7 +106,9 @@ function readSafeRemoteErrorCode(payload: unknown): string | undefined {
   const candidates = [payload["error"], payload["error_code"], payload["code"]];
   for (const candidate of candidates) {
     const normalized =
-      typeof candidate === "number" && Number.isSafeInteger(candidate) ? String(candidate) : candidate;
+      typeof candidate === "number" && Number.isSafeInteger(candidate)
+        ? String(candidate)
+        : candidate;
 
     if (typeof normalized === "string" && SAFE_REMOTE_CODE_PATTERN.test(normalized)) {
       return normalized;
@@ -208,7 +210,8 @@ export function createMercadoPagoOAuthClient(
   async function requestToken(payload: Record<string, string>): Promise<MercadoPagoOAuthTokenSet> {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), timeoutMs);
-    const grantType = payload["grant_type"] === "refresh_token" ? "refresh_token" : "authorization_code";
+    const grantType =
+      payload["grant_type"] === "refresh_token" ? "refresh_token" : "authorization_code";
 
     try {
       let response: Response;
