@@ -12,6 +12,7 @@ export type PixChargeResult = {
   paymentId: string;
   qrCode: string;
   qrCodeBase64: string;
+  ticketUrl: string | null;
 };
 
 export type PixCredentialSnapshot = Readonly<{
@@ -96,6 +97,22 @@ function getPixNotificationUrl(): string {
     return url.toString();
   } catch {
     return DEFAULT_PIX_NOTIFICATION_URL;
+  }
+}
+
+function normalizeMercadoPagoTicketUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    const hostname = url.hostname.toLowerCase();
+    const isMercadoPago =
+      hostname === "mercadopago.com.br" ||
+      hostname.endsWith(".mercadopago.com.br") ||
+      hostname === "mercadopago.com" ||
+      hostname.endsWith(".mercadopago.com");
+    return url.protocol === "https:" && isMercadoPago ? url.toString() : null;
+  } catch {
+    return null;
   }
 }
 
@@ -368,6 +385,7 @@ async function persistirResultadoPix(
     status: string | null;
     statusDetail: string | null;
     qrCode: string;
+    ticketUrl: string | null;
     expiresAt: string | null;
   }>,
 ): Promise<boolean> {
@@ -379,7 +397,35 @@ async function persistirResultadoPix(
     _pix_copia_cola: payment.qrCode,
     _expires_at: payment.expiresAt,
   });
-  return !error;
+  if (error) return false;
+
+  if (payment.ticketUrl) {
+    const { error: ticketError } = await supabaseAdmin
+      .from("pagamentos_pix_tentativas")
+      .update({ ticket_url: payment.ticketUrl })
+      .eq("id", tentativaId);
+    if (ticketError) {
+      console.error("[PixPaymentDiag] ticket_url_persist_failed");
+    }
+  }
+
+  return true;
+}
+
+async function persistirErroCriacaoPix(
+  supabaseAdmin: any,
+  tentativaId: string,
+  errorCode: string,
+  errorMessage: string,
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("pagamentos_pix_tentativas")
+    .update({
+      provider_error_code: errorCode.slice(0, 120),
+      provider_error_message: errorMessage.slice(0, 240),
+    })
+    .eq("id", tentativaId);
+  if (error) console.error("[PixPaymentDiag] provider_error_persist_failed");
 }
 
 async function reconciliarEPersistirPagamentoPix(
@@ -408,6 +454,7 @@ async function reconciliarEPersistirPagamentoPix(
     status: canonical.status,
     statusDetail: canonical.statusDetail,
     qrCode: canonical.qrCode,
+    ticketUrl: canonical.ticketUrl,
     expiresAt: canonical.expiresAt,
   });
   if (!persisted) throw new Error(GENERIC_ERROR);
@@ -416,6 +463,7 @@ async function reconciliarEPersistirPagamentoPix(
     paymentId: canonical.paymentId,
     qrCode: canonical.qrCode,
     qrCodeBase64: canonical.qrCodeBase64,
+    ticketUrl: canonical.ticketUrl,
   };
 }
 
@@ -514,6 +562,7 @@ export async function criarCobrancaPixAposAceiteServer(
   let mpPaymentId: string | null = null;
   let qrCode: string | null = null;
   let qrCodeBase64: string | null = null;
+  let ticketUrl: string | null = null;
   let providerStatus: string | null = null;
   let providerStatusDetail: string | null = null;
   let expiresAt: string | null = null;
@@ -540,6 +589,9 @@ export async function criarCobrancaPixAposAceiteServer(
     mpPaymentId = response.id != null ? String(response.id) : null;
     qrCode = response.point_of_interaction?.transaction_data?.qr_code ?? null;
     qrCodeBase64 = response.point_of_interaction?.transaction_data?.qr_code_base64 ?? null;
+    ticketUrl = normalizeMercadoPagoTicketUrl(
+      response.point_of_interaction?.transaction_data?.ticket_url,
+    );
     providerStatus = response.status ?? null;
     providerStatusDetail = response.status_detail ?? null;
     expiresAt = response.date_of_expiration ?? null;
@@ -564,16 +616,25 @@ export async function criarCobrancaPixAposAceiteServer(
         .replace(/\b\d{6,}\b/gu, "[redacted-number]")
         .slice(0, 240);
     };
+    const diagnosticCode = sanitizeDiagnostic(providerError?.error);
+    const diagnosticMessage = sanitizeDiagnostic(providerError?.message);
 
     console.error("[PixPaymentDiag] create_failed", {
       status: typeof providerError?.status === "number" ? providerError.status : 0,
-      errorCode: sanitizeDiagnostic(providerError?.error),
-      message: sanitizeDiagnostic(providerError?.message),
+      errorCode: diagnosticCode,
+      message: diagnosticMessage,
       causeCodes: providerCauses.slice(0, 4).map((cause: any) => sanitizeDiagnostic(cause?.code)),
       causeDescriptions: providerCauses
         .slice(0, 4)
         .map((cause: any) => sanitizeDiagnostic(cause?.description)),
     });
+    await persistirErroCriacaoPix(
+      supabaseAdmin as any,
+      tentativaId,
+      diagnosticCode,
+      diagnosticMessage,
+    );
+
     if (falhaCriacaoMercadoPagoPermiteCompensacao(error)) {
       console.error("[Pagamento] Mercado Pago rejeitou a criação Pix sem cobrança externa.");
       await compensarFalhaCriacaoPixSemCobrancaConhecida(
@@ -631,6 +692,7 @@ export async function criarCobrancaPixAposAceiteServer(
     status: providerStatus,
     statusDetail: providerStatusDetail,
     qrCode,
+    ticketUrl,
     expiresAt,
   });
   if (!persisted) {
@@ -654,7 +716,7 @@ export async function criarCobrancaPixAposAceiteServer(
     throw new Error(GENERIC_ERROR);
   }
 
-  return { paymentId: mpPaymentId, qrCode, qrCodeBase64 };
+  return { paymentId: mpPaymentId, qrCode, qrCodeBase64, ticketUrl };
 }
 
 // Mantém a Server Function existente disponível, agora sempre validando que o chamador
