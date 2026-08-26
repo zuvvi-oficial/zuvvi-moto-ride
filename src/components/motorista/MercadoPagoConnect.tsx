@@ -28,6 +28,7 @@ export default function MercadoPagoConnect() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['mercadopago-conexao'],
@@ -36,6 +37,7 @@ export default function MercadoPagoConnect() {
 
   const conectar = async () => {
     setErro(null);
+    setSucesso(null);
     setIsRedirecting(true);
     try {
       const { authorizationUrl } = await iniciarFn();
@@ -48,6 +50,7 @@ export default function MercadoPagoConnect() {
 
   const desconectar = async () => {
     setErro(null);
+    setSucesso(null);
     setIsDisconnecting(true);
     try {
       const resultado = await desconectarFn();
@@ -59,7 +62,10 @@ export default function MercadoPagoConnect() {
         );
         return;
       }
-      await queryClient.invalidateQueries({ queryKey: ['mercadopago-conexao'] });
+
+      queryClient.setQueryData(['mercadopago-conexao'], { conectado: false });
+      setSucesso('Conta Mercado Pago desconectada com sucesso.');
+      void queryClient.invalidateQueries({ queryKey: ['mercadopago-conexao'] });
     } catch {
       setErro('Não foi possível desconectar a conta. Tente novamente.');
     } finally {
@@ -136,6 +142,15 @@ export default function MercadoPagoConnect() {
         </div>
       ) : (
         <div className="space-y-3">
+          {sucesso && (
+            <div className="space-y-1" role="status" aria-live="polite">
+              <p className="text-xs font-bold text-zuvvi-volt">{sucesso}</p>
+              <p className="text-[11px] leading-relaxed text-white/50">
+                Para escolher outra conta, saia da conta atual no site do Mercado Pago ou use uma
+                janela anônima antes de continuar.
+              </p>
+            </div>
+          )}
           <p className="text-xs text-white/60">
             Conecte sua conta Mercado Pago para receber os pagamentos das suas corridas.
           </p>
@@ -146,6 +161,8 @@ export default function MercadoPagoConnect() {
           >
             {isRedirecting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : sucesso ? (
+              'Conectar outra conta Mercado Pago'
             ) : (
               'Conectar conta Mercado Pago'
             )}
