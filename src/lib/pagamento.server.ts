@@ -6,6 +6,7 @@ import {
   falhaCriacaoMercadoPagoPermiteCompensacao,
   type PixCanonicalPayment,
 } from "./pix-mercadopago-reconcile.server";
+import { obterPixDeviceIdValido } from "./pix-device-session.server";
 
 export type PixChargeResult = {
   paymentId: string;
@@ -352,7 +353,7 @@ export async function prepararCobrancaPixAntesAceiteServer(
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: corrida, error: corridaError } = await supabaseAdmin
     .from("corridas")
-    .select("id, forma_pagamento, status, motorista_id")
+    .select("id, passageiro_id, forma_pagamento, status, motorista_id")
     .eq("id", rideId)
     .maybeSingle();
 
@@ -361,6 +362,8 @@ export async function prepararCobrancaPixAntesAceiteServer(
   if (corrida.status !== "solicitada" || corrida.motorista_id !== null) {
     throw new Error("Esta corrida não está mais disponível.");
   }
+
+  await obterPixDeviceIdValido(supabaseAdmin as any, corrida.passageiro_id);
 
   const { data: motorista, error: motoristaError } = await supabaseAdmin
     .from("motoristas")
@@ -426,6 +429,8 @@ export async function criarCobrancaPixAposAceiteServer(
   const valorComissao = Number(claim["valor_comissao"]);
   if (!tentativaId || !passageiroId || !idempotencyKey) throw new Error(GENERIC_ERROR);
 
+  const deviceId = await obterPixDeviceIdValido(supabaseAdmin as any, passageiroId);
+
   const { data: passageiro, error: passageiroError } = await supabaseAdmin
     .from("usuarios")
     .select("id, nome, email, cpf")
@@ -453,7 +458,7 @@ export async function criarCobrancaPixAposAceiteServer(
         passageiroCpf: passageiro.cpf,
         externalReference: idempotencyKey,
       }),
-      requestOptions: { idempotencyKey },
+      requestOptions: { idempotencyKey, meliSessionId: deviceId },
     });
 
     mpPaymentId = response.id != null ? String(response.id) : null;
