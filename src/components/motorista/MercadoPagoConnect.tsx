@@ -28,6 +28,7 @@ export default function MercadoPagoConnect() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['mercadopago-conexao'],
@@ -36,6 +37,7 @@ export default function MercadoPagoConnect() {
 
   const conectar = async () => {
     setErro(null);
+    setSucesso(null);
     setIsRedirecting(true);
     try {
       const { url, state } = await iniciarFn();
@@ -49,12 +51,15 @@ export default function MercadoPagoConnect() {
 
   const desconectar = async () => {
     setErro(null);
+    setSucesso(null);
     setIsDisconnecting(true);
     try {
       await desconectarFn();
-      await queryClient.invalidateQueries({ queryKey: ['mercadopago-conexao'] });
-    } catch {
-      setErro('Não foi possível desconectar a conta. Tente novamente.');
+      queryClient.setQueryData(['mercadopago-conexao'], { conectado: false });
+      setSucesso('Conta Mercado Pago desconectada com sucesso.');
+      void queryClient.invalidateQueries({ queryKey: ['mercadopago-conexao'] });
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : 'Não foi possível desconectar a conta. Tente novamente.');
     } finally {
       setIsDisconnecting(false);
     }
@@ -129,6 +134,7 @@ export default function MercadoPagoConnect() {
         </div>
       ) : (
         <div className="space-y-3">
+          {sucesso && <p className="text-xs font-bold text-zuvvi-volt">{sucesso}</p>}
           <p className="text-xs text-white/60">
             Conecte sua conta Mercado Pago para receber os pagamentos das suas corridas.
           </p>
