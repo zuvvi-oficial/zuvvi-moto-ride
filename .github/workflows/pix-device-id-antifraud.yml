@@ -1,0 +1,46 @@
+name: PIX Device ID antifraude
+
+on:
+  push:
+    branches:
+      - feature/pix-100-seguro
+    paths:
+      - ".github/workflows/pix-device-id-antifraud.yml"
+      - "src/lib/pix-device-id.ts"
+      - "src/lib/pix-device-session.functions.ts"
+      - "src/lib/pix-device-session.server.ts"
+      - "src/lib/pagamento.server.ts"
+      - "src/routes/confirmar-corrida.tsx"
+      - "supabase/migrations/*pix_device_session_antifraud.sql"
+      - "scripts/pix/device-id-antifraud.test.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar-device-id-pix:
+    name: Teste, TypeScript e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Instalar Bun fixado
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Instalar dependencias sem alterar lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Contraprova Device ID Pix
+        run: bun scripts/pix/device-id-antifraud.test.ts
+
+      - name: Verificar TypeScript integral
+        run: bunx tsc --noEmit
+
+      - name: Build de producao
+        run: bun run build
