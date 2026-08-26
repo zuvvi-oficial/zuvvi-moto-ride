@@ -11,6 +11,8 @@ import {
 } from "../../src/lib/pix-mercadopago-reconcile.server";
 
 const motoristaId = "11111111-1111-4111-8111-111111111111";
+const passageiroId = "22222222-2222-4222-8222-222222222222";
+const corridaId = "33333333-3333-4333-8333-333333333333";
 const mercadoPagoUserId = "123456789";
 const now = Date.parse("2026-08-25T09:30:00.000Z");
 const externalReference = "zuvvi-pix-44444444-4444-4444-8444-444444444444";
@@ -151,9 +153,13 @@ function canonicalPayment(overrides: Record<string, unknown> = {}) {
   const body = montarCorpoCobrancaPix({
     valorTotal: 18.5,
     valorComissao: 3.7,
-    passageiroId: "22222222-2222-4222-8222-222222222222",
-    passageiroNome: "Passageiro",
+    corridaId,
+    passageiroId,
+    passageiroNome: "Maria da Silva",
     passageiroEmail: "passageiro@example.com",
+    passageiroCelular: "+55 (43) 99999-9999",
+    passageiroCpf: "123.456.789-09",
+    passageiroCreatedAt: "2026-08-20T10:00:00.000Z",
     externalReference,
   });
 
@@ -161,7 +167,17 @@ function canonicalPayment(overrides: Record<string, unknown> = {}) {
   assert.equal(body.application_fee, 3.7);
   assert.equal(body.payment_method_id, "pix");
   assert.equal(body.external_reference, externalReference);
-  console.log("APPLICATION_FEE_E_EXTERNAL_REFERENCE_OK");
+  assert.match(body.notification_url, /^https:\/\/zuvvi-moto-ride\.lovable\.app\/api\/mercadopago\/webhook/);
+  assert.match(body.notification_url, /source_news=webhooks/);
+  assert.equal(body.payer.first_name, "Maria");
+  assert.equal(body.payer.last_name, "da Silva");
+  assert.deepEqual(body.payer.phone, { area_code: "43", number: "999999999" });
+  assert.deepEqual(body.payer.identification, { type: "CPF", number: "12345678909" });
+  assert.equal(body.additional_info.items[0]?.id, corridaId);
+  assert.equal(body.additional_info.items[0]?.unit_price, 18.5);
+  assert.equal(body.additional_info.payer.first_name, "Maria");
+  assert.equal(body.additional_info.payer.registration_date, "2026-08-20T10:00:00.000Z");
+  console.log("APPLICATION_FEE_ANTIFRAUDE_E_WEBHOOK_OK");
 }
 
 {
@@ -170,7 +186,8 @@ function canonicalPayment(overrides: Record<string, unknown> = {}) {
       montarCorpoCobrancaPix({
         valorTotal: 18.5,
         valorComissao: 3.7,
-        passageiroId: "22222222-2222-4222-8222-222222222222",
+        corridaId,
+        passageiroId,
         passageiroNome: "Passageiro",
         passageiroEmail: "passageiro@example.com",
         externalReference: "referencia com espaco",
@@ -303,6 +320,8 @@ function canonicalPayment(overrides: Record<string, unknown> = {}) {
 
 const pagamentoSource = readFileSync("src/lib/pagamento.server.ts", "utf8");
 const reconciliacaoSource = readFileSync("src/lib/pix-mercadopago-reconcile.server.ts", "utf8");
+const webhookSource = readFileSync("src/lib/pix-mercadopago-webhook.server.ts", "utf8");
+const serverSource = readFileSync("src/server.ts", "utf8");
 const motoristaSource = readFileSync("src/lib/motorista.functions.ts", "utf8");
 const etapa3RepoPath = "supabase/migrations/20260825091547_criacao_financeira_atomica.sql";
 const etapa3RunnerPath =
@@ -319,6 +338,10 @@ assert.doesNotMatch(
 );
 assert.match(pagamentoSource, /application_fee:\s*valorComissao/);
 assert.match(pagamentoSource, /external_reference:\s*input\.externalReference/);
+assert.match(pagamentoSource, /notification_url:\s*getPixNotificationUrl\(\)/);
+assert.match(pagamentoSource, /additional_info/);
+assert.match(pagamentoSource, /passageiroCelular/);
+assert.match(pagamentoSource, /requestOptions:\s*\{\s*idempotencyKey,\s*meliSessionId:\s*deviceId\s*\}/);
 assert.match(pagamentoSource, /externalReference:\s*idempotencyKey/);
 assert.match(pagamentoSource, /pix_charge_attempt_claim/);
 assert.match(pagamentoSource, /pix_charge_attempt_complete/);
@@ -341,6 +364,13 @@ assert.match(reconciliacaoSource, /\/v1\/payments\//);
 assert.match(reconciliacaoSource, /collectorId !== input\.expectedMercadoPagoUserId/);
 assert.match(reconciliacaoSource, /paymentMethodId !== "pix"/);
 assert.match(reconciliacaoSource, /currencyId !== "BRL"/);
+
+assert.match(webhookSource, /sincronizarPagamentoPixComMercadoPago/);
+assert.match(webhookSource, /id_transacao_mercadopago/);
+assert.match(webhookSource, /expectedMotoristaId/);
+assert.match(webhookSource, /Nenhum status do payload é confiado/);
+assert.match(serverSource, /isMercadoPagoWebhookRequest/);
+assert.match(serverSource, /handleMercadoPagoWebhook/);
 
 const aceitarStart = motoristaSource.indexOf("export const aceitarCorrida");
 const aceitarEnd = motoristaSource.indexOf("export const recusarCorrida", aceitarStart);
