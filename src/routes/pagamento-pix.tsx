@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   Clipboard,
   Clock3,
+  ExternalLink,
   Loader2,
   RefreshCw,
   RotateCcw,
@@ -419,6 +420,18 @@ function PagamentoPixPassageiro() {
                     {copied ? <Check className="w-5 h-5" /> : <Clipboard className="w-5 h-5" />}
                     {copied ? "Código copiado" : "Copiar código Pix"}
                   </button>
+
+                  {snapshot.ticketUrl && (
+                    <a
+                      href={snapshot.ticketUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full min-h-12 rounded-2xl border border-zuvvi-volt/30 bg-zuvvi-volt/10 text-zuvvi-volt font-black uppercase tracking-[0.08em] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Abrir Pix no Mercado Pago
+                    </a>
+                  )}
 
                   <button
                     type="button"
