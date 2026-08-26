@@ -3,6 +3,7 @@ const TOKEN_ENDPOINT = "https://api.mercadopago.com/oauth/token";
 const PKCE_VALUE_PATTERN = /^[A-Za-z0-9._~-]{43,128}$/u;
 const STATE_PATTERN = /^[A-Za-z0-9_-]{43,128}$/u;
 const MERCADOPAGO_USER_ID_PATTERN = /^\d{1,128}$/u;
+const SAFE_REMOTE_CODE_PATTERN = /^[A-Za-z0-9._-]{1,128}$/u;
 const MAX_TOKEN_RESPONSE_CHARS = 65_536;
 const MAX_TOKEN_CHARS = 8_192;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -99,6 +100,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function readSafeRemoteErrorCode(payload: unknown): string | undefined {
+  if (!isRecord(payload)) return undefined;
+
+  const candidates = [payload["error"], payload["error_code"], payload["code"]];
+  for (const candidate of candidates) {
+    const normalized =
+      typeof candidate === "number" && Number.isSafeInteger(candidate) ? String(candidate) : candidate;
+
+    if (typeof normalized === "string" && SAFE_REMOTE_CODE_PATTERN.test(normalized)) {
+      return normalized;
+    }
+  }
+
+  return undefined;
+}
+
 function readToken(value: unknown): string {
   if (
     typeof value !== "string" ||
@@ -191,24 +208,63 @@ export function createMercadoPagoOAuthClient(
   async function requestToken(payload: Record<string, string>): Promise<MercadoPagoOAuthTokenSet> {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), timeoutMs);
+    const grantType = payload["grant_type"] === "refresh_token" ? "refresh_token" : "authorization_code";
 
     try {
-      const response = await fetchImplementation(TOKEN_ENDPOINT, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        redirect: "error",
-        signal: abortController.signal,
-      });
-      const responsePayload = await readJsonResponse(response);
-      if (!response.ok) remoteError();
+      let response: Response;
+      try {
+        response = await fetchImplementation(TOKEN_ENDPOINT, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          redirect: "error",
+          signal: abortController.signal,
+        });
+      } catch {
+        console.error("[PixOAuthDiag] token_transport_failed", {
+          grantType,
+          reason: abortController.signal.aborted ? "timeout" : "network",
+        });
+        remoteError();
+      }
 
-      return parseTokenSet(responsePayload, now);
-    } catch {
-      remoteError();
+      let responsePayload: unknown;
+      try {
+        responsePayload = await readJsonResponse(response);
+      } catch {
+        console.error("[PixOAuthDiag] token_response_unreadable", {
+          grantType,
+          status: response.status,
+        });
+        remoteError();
+      }
+
+      if (!response.ok) {
+        console.error("[PixOAuthDiag] token_exchange_rejected", {
+          grantType,
+          status: response.status,
+          errorCode: readSafeRemoteErrorCode(responsePayload) ?? "unknown",
+        });
+        remoteError();
+      }
+
+      try {
+        const tokenSet = parseTokenSet(responsePayload, now);
+        console.info("[PixOAuthDiag] token_exchange_accepted", {
+          grantType,
+          status: response.status,
+        });
+        return tokenSet;
+      } catch {
+        console.error("[PixOAuthDiag] token_response_invalid_shape", {
+          grantType,
+          status: response.status,
+        });
+        remoteError();
+      }
     } finally {
       clearTimeout(timeout);
     }

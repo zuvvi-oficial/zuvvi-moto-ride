@@ -18,6 +18,18 @@ const STATE_TTL_MS = 5 * 60 * 1_000;
 const START_ERROR = "Não foi possível iniciar a conexão segura com o Mercado Pago.";
 const COMPLETE_ERROR = "Não foi possível concluir a conexão segura com o Mercado Pago.";
 
+type CompletionStage =
+  | "validate_input"
+  | "consume_state"
+  | "decrypt_verifier"
+  | "exchange_token"
+  | "encrypt_tokens"
+  | "persist_credentials";
+
+function logCompletionStage(stage: CompletionStage): void {
+  console.info("[PixOAuthDiag] completion_stage", { stage });
+}
+
 export type PixOAuthStateRecord = Readonly<{
   motoristaId: string;
   stateHash: string;
@@ -141,30 +153,46 @@ export function createPixMercadoPagoOAuthFlow(
     },
 
     async completeConnection(input) {
+      let stage: CompletionStage = "validate_input";
+
       try {
+        logCompletionStage(stage);
         const motoristaId = requireUuid(input.motoristaId);
         const state = requireState(input.state);
         const code = requireAuthorizationCode(input.code);
         const stateHash = await hashOAuthState(state);
+
+        stage = "consume_state";
+        logCompletionStage(stage);
         const consumedState = await config.persistence.consumeState({ motoristaId, stateHash });
 
         if (!consumedState || consumedState.encryptionVersion !== ENCRYPTION_VERSION) {
           throw new Error("invalid");
         }
 
+        stage = "decrypt_verifier";
+        logCompletionStage(stage);
         const codeVerifier = await decryptOAuthSecret(
           consumedState.encryptedCodeVerifier,
           config.encryptionKey,
         );
+
+        stage = "exchange_token";
+        logCompletionStage(stage);
         const tokenSet = await config.oauthClient.exchangeAuthorizationCode({
           code,
           codeVerifier,
         });
+
+        stage = "encrypt_tokens";
+        logCompletionStage(stage);
         const [encryptedAccessToken, encryptedRefreshToken] = await Promise.all([
           encryptOAuthSecret(tokenSet.accessToken, config.encryptionKey),
           encryptOAuthSecret(tokenSet.refreshToken, config.encryptionKey),
         ]);
 
+        stage = "persist_credentials";
+        logCompletionStage(stage);
         await config.persistence.upsertCredentialsAtomically({
           motoristaId,
           mercadoPagoUserId: tokenSet.userId,
@@ -176,8 +204,10 @@ export function createPixMercadoPagoOAuthFlow(
           ...(tokenSet.tokenType ? { tokenType: tokenSet.tokenType } : {}),
         });
 
+        console.info("[PixOAuthDiag] completion_succeeded", { stage });
         return Object.freeze({ connected: true as const });
       } catch {
+        console.error("[PixOAuthDiag] completion_failed", { stage });
         throw new Error(COMPLETE_ERROR);
       }
     },
