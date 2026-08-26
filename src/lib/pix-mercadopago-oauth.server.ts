@@ -223,7 +223,6 @@ export function createMercadoPagoOAuthClient(
             "Content-Type": "application/json",
           },
           body: JSON.stringify(payload),
-          redirect: "error",
           signal: abortController.signal,
         });
       } catch {
