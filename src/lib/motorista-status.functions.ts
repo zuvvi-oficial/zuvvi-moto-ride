@@ -12,6 +12,7 @@ const ACTIVE_RIDE_STATUSES = [
 /**
  * Busca a corrida ativa vinculada ao motorista (ID derivado server-side).
  * FAIL CLOSED se houver mais de uma corrida ativa.
+ * Corrida Pix só se torna operacional para o motorista após pagamento confirmado.
  */
 async function fetchActiveRide(supabaseAdmin: any, motoristaId: string) {
   const { data, error } = await supabaseAdmin
@@ -28,7 +29,31 @@ async function fetchActiveRide(supabaseAdmin: any, motoristaId: string) {
     throw new Error("Inconsistência operacional detectada. Contate o suporte.");
   }
 
-  return data?.[0] ?? null;
+  const activeRide = data?.[0] ?? null;
+  if (!activeRide || activeRide.forma_pagamento !== "pix") return activeRide;
+
+  // Reconciliar o provedor antes de expor uma corrida Pix como operacional.
+  try {
+    const { sincronizarPagamentoPixComMercadoPago } = await import(
+      "./pix-payment-sync.server"
+    );
+    await sincronizarPagamentoPixComMercadoPago({
+      rideId: activeRide.id,
+      expectedMotoristaId: motoristaId,
+    });
+  } catch {
+    // Fail closed: indisponibilidade externa nunca libera corrida Pix pendente.
+  }
+
+  const { data: pagamento, error: pagamentoError } = await supabaseAdmin
+    .from("pagamentos")
+    .select("status")
+    .eq("corrida_id", activeRide.id)
+    .eq("meio", "pix")
+    .maybeSingle();
+
+  if (pagamentoError || !pagamento || pagamento.status !== "pago") return null;
+  return activeRide;
 }
 
 /**
