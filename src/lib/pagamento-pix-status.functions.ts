@@ -137,6 +137,20 @@ export const getPagamentoPixPassageiroStatus = createServerFn({ method: "GET" })
 
     if (passageiroError || !passageiro) throw new Error("Pagamento Pix não encontrado.");
 
+    // Antes de renderizar o estado, consulta o Mercado Pago com o token do motorista.
+    // A sincronização é fail-closed: indisponibilidade externa mantém o estado local pendente.
+    try {
+      const { sincronizarPagamentoPixComMercadoPago } = await import(
+        "./pix-payment-sync.server"
+      );
+      await sincronizarPagamentoPixComMercadoPago({
+        rideId: data.rideId,
+        expectedPassageiroId: passageiro.id,
+      });
+    } catch {
+      // O snapshot local continua sendo a fonte segura enquanto o provedor não responde.
+    }
+
     const { data: corrida, error: corridaError } = await supabaseAdmin
       .from("corridas")
       .select("id, passageiro_id, forma_pagamento, status")
