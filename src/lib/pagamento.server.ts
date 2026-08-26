@@ -58,6 +58,7 @@ export type PixPaymentBodyInput = Readonly<{
   passageiroId: string;
   passageiroNome: string | null;
   passageiroEmail: string | null;
+  passageiroCpf?: string | null;
   externalReference: string;
 }>;
 
@@ -173,6 +174,7 @@ export async function garantirAccessTokenMotorista(
 export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
   const valorTotal = roundCurrency(input.valorTotal);
   const valorComissao = roundCurrency(input.valorComissao);
+  const passageiroCpf = input.passageiroCpf?.replace(/\D/gu, "") ?? "";
   if (
     !Number.isFinite(valorTotal) ||
     !Number.isFinite(valorComissao) ||
@@ -193,6 +195,9 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
     payer: {
       email: input.passageiroEmail ?? `passageiro+${input.passageiroId}@zuvvi.app`,
       first_name: input.passageiroNome ?? "Passageiro",
+      ...(passageiroCpf.length === 11
+        ? { identification: { type: "CPF", number: passageiroCpf } }
+        : {}),
     },
   } as const;
 }
@@ -423,7 +428,7 @@ export async function criarCobrancaPixAposAceiteServer(
 
   const { data: passageiro, error: passageiroError } = await supabaseAdmin
     .from("usuarios")
-    .select("id, nome, email")
+    .select("id, nome, email, cpf")
     .eq("id", passageiroId)
     .maybeSingle();
   if (passageiroError || !passageiro) throw new Error(GENERIC_ERROR);
@@ -445,6 +450,7 @@ export async function criarCobrancaPixAposAceiteServer(
         passageiroId,
         passageiroNome: passageiro.nome,
         passageiroEmail: passageiro.email,
+        passageiroCpf: passageiro.cpf,
         externalReference: idempotencyKey,
       }),
       requestOptions: { idempotencyKey },
