@@ -1,4 +1,4 @@
-name: PIX Device ID antifraude
+name: PIX fluxo seguro
 
 on:
   push:
@@ -10,17 +10,24 @@ on:
       - "src/lib/pix-device-session.functions.ts"
       - "src/lib/pix-device-session.server.ts"
       - "src/lib/pagamento.server.ts"
+      - "src/lib/pagamento-pix-status.functions.ts"
+      - "src/lib/pix-mercadopago-reconcile.server.ts"
+      - "src/lib/pix-mercadopago-webhook.server.ts"
       - "src/routes/confirmar-corrida.tsx"
+      - "src/routes/pagamento-pix.tsx"
+      - "src/server.ts"
       - "supabase/migrations/*pix_device_session_antifraud.sql"
+      - "supabase/migrations/*pix_ticket_url_diagnostics.sql"
       - "scripts/pix/device-id-antifraud.test.ts"
+      - "scripts/pix/cobranca-pix-apos-aceite.test.ts"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validar-device-id-pix:
-    name: Teste, TypeScript e build
+  validar-pix:
+    name: Testes Pix, TypeScript e build
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -38,6 +45,9 @@ jobs:
 
       - name: Contraprova Device ID Pix
         run: bun scripts/pix/device-id-antifraud.test.ts
+
+      - name: Contraprova cobranca Pix e Webhook
+        run: bun scripts/pix/cobranca-pix-apos-aceite.test.ts
 
       - name: Verificar TypeScript integral
         run: bunx tsc --noEmit
