@@ -110,7 +110,7 @@ jobs:
           npx --yes supabase@${SUPABASE_CLI_VERSION} start
           --exclude studio,imgproxy,mailpit,logflare,vector,edge-runtime
 
-      - name: Aplicar fixtures e fundações Pix até OAuth pendente
+      - name: Aplicar fixtures e fundações Pix até OAuth seguro anterior à 1.1
         shell: bash
         run: |
           set -euo pipefail
@@ -132,8 +132,6 @@ jobs:
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_07r.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_01.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_08.sql
-          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_11.sql
-          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_12.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
             -f supabase/tests/fixtures/pix_02_prerequisites.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
@@ -160,12 +158,19 @@ jobs:
           SQL
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_08d.sql
 
-      - name: Executar testes exclusivos OAuth e autorização pendente
+      - name: Executar regressões históricas PIX-08A e PIX-08D
         shell: bash
         run: |
           set -euo pipefail
           npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_08_oauth_atomic_connection.sql --local
           npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_08d_oauth_safe_disconnect.sql --local
+
+      - name: Aplicar Etapas 1.1 e 1.2 e testar autorização pendente
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_11.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_12.sql
           npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_12_oauth_pending_authorization.sql --local
 
       - name: Repetir regressão pgTAP PIX-01 a PIX-04 e PIX-07R
