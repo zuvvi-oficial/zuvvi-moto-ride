@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/pix-mercadopago-oauth.yml"
       - "src/lib/pagamento.server.ts"
+      - "src/lib/pix-mercadopago-oauth.functions.ts"
       - "src/lib/pix-mercadopago-oauth-runtime.server.ts"
       - "src/lib/pix-mercadopago-oauth.server.ts"
       - "src/lib/pix-payment-sync.server.ts"
@@ -91,6 +92,7 @@ jobs:
             --exclude='pix-mercadopago-oauth.server.ts' \
             --exclude='pix-mercadopago-oauth-flow.server.ts' \
             --exclude='pix-mercadopago-oauth-runtime.server.ts' \
+            --exclude='pix-mercadopago-oauth.functions.ts' \
             --exclude='pix-payment-sync.server.ts' \
             --exclude='pagamento.server.ts'; then
             echo "O cliente OAuth foi importado por código existente do aplicativo"
