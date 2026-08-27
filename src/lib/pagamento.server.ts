@@ -285,7 +285,6 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
       payer: {
         first_name: firstName,
         ...(lastName ? { last_name: lastName } : {}),
-        ...(identification ? { identification } : {}),
         ...(phone ? { phone } : {}),
         ...(registrationDate ? { registration_date: registrationDate } : {}),
       },
