@@ -15,8 +15,24 @@ export type PixOAuthRpcClient = Readonly<{
   rpc(functionName: string, args: Record<string, unknown>): PromiseLike<RpcResponse>;
 }>;
 
+export type PixOAuthPendingStatus =
+  | Readonly<{ pendente: false }>
+  | Readonly<{ pendente: true; confirmationExpiresAt: string }>;
+
+export type PixOAuthPendingConfirmationResult =
+  | Readonly<{ conectado: true; jaEstavaConectado: boolean }>
+  | Readonly<{
+      conectado: false;
+      motivo: "expirada" | "ausente" | "conta_de_outro_motorista";
+    }>;
+
 function persistenceError(): never {
   throw new Error(PERSISTENCE_ERROR);
+}
+
+function requireMotoristaId(value: unknown): string {
+  if (typeof value !== "string" || !UUID_PATTERN.test(value)) persistenceError();
+  return value.toLowerCase();
 }
 
 function readCreatedState(data: unknown): void {
@@ -49,6 +65,34 @@ function readPendingConfirmationExpiry(data: unknown): string {
   const timestamp = Date.parse(data);
   if (!Number.isFinite(timestamp) || timestamp <= 0) persistenceError();
   return new Date(timestamp).toISOString();
+}
+
+function readPendingStatus(data: unknown): PixOAuthPendingStatus {
+  if (data === null) return Object.freeze({ pendente: false });
+  return Object.freeze({
+    pendente: true,
+    confirmationExpiresAt: readPendingConfirmationExpiry(data),
+  });
+}
+
+function readPendingConfirmationResult(data: unknown): PixOAuthPendingConfirmationResult {
+  if (data === "connected") {
+    return Object.freeze({ conectado: true, jaEstavaConectado: false });
+  }
+  if (data === "already_connected") {
+    return Object.freeze({ conectado: true, jaEstavaConectado: true });
+  }
+  if (data === "expired") {
+    return Object.freeze({ conectado: false, motivo: "expirada" });
+  }
+  if (data === "not_found") {
+    return Object.freeze({ conectado: false, motivo: "ausente" });
+  }
+  if (data === "ownership_conflict") {
+    return Object.freeze({ conectado: false, motivo: "conta_de_outro_motorista" });
+  }
+
+  return persistenceError();
 }
 
 export function createPixOAuthSupabasePersistenceFromClient(
@@ -94,4 +138,30 @@ export function createPixOAuthSupabasePersistenceFromClient(
       return Object.freeze({ confirmationExpiresAt: readPendingConfirmationExpiry(data) });
     },
   });
+}
+
+export async function getPixOAuthPendingAuthorizationStatus(
+  client: PixOAuthRpcClient,
+  motoristaId: string,
+): Promise<PixOAuthPendingStatus> {
+  const normalizedMotoristaId = requireMotoristaId(motoristaId);
+  const { data, error } = await client.rpc("pix_oauth_pending_authorization_status", {
+    _motorista_id: normalizedMotoristaId,
+  });
+
+  if (error) persistenceError();
+  return readPendingStatus(data);
+}
+
+export async function confirmPixOAuthPendingAuthorization(
+  client: PixOAuthRpcClient,
+  motoristaId: string,
+): Promise<PixOAuthPendingConfirmationResult> {
+  const normalizedMotoristaId = requireMotoristaId(motoristaId);
+  const { data, error } = await client.rpc("pix_oauth_pending_authorization_confirm", {
+    _motorista_id: normalizedMotoristaId,
+  });
+
+  if (error) persistenceError();
+  return readPendingConfirmationResult(data);
 }
