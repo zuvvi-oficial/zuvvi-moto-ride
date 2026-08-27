@@ -3,7 +3,7 @@ import test from "node:test";
 import type { MercadoPagoOAuthClient } from "../../src/lib/pix-mercadopago-oauth.server.js";
 import {
   createPixMercadoPagoOAuthFlow,
-  type PixOAuthCredentialRecord,
+  type PixOAuthPendingAuthorizationRecord,
   type PixOAuthPersistence,
   type PixOAuthStateRecord,
 } from "../../src/lib/pix-mercadopago-oauth-flow.server.js";
@@ -25,6 +25,7 @@ const CODE = "TG-AUTHORIZATION-CODE";
 const ENCRYPTION_KEY = Buffer.alloc(32, 7).toString("base64");
 const FIXED_NOW = 1_700_000_000_000;
 const EXPIRES_AT = new Date(FIXED_NOW + 15_552_000_000).toISOString();
+const PENDING_EXPIRES_AT = new Date(FIXED_NOW + 10 * 60_000).toISOString();
 const COMPLETE_ERROR = "Não foi possível concluir a conexão segura com o Mercado Pago.";
 
 const TOKEN_SET = Object.freeze({
@@ -53,7 +54,7 @@ function createPersistence(overrides: Partial<PixOAuthPersistence> = {}): PixOAu
   return {
     createState: async () => undefined,
     consumeState: async () => null,
-    upsertCredentialsAtomically: async () => undefined,
+    storePendingAuthorization: async () => ({ confirmationExpiresAt: PENDING_EXPIRES_AT }),
     ...overrides,
   };
 }
@@ -121,11 +122,11 @@ test("falha ao persistir início não devolve URL nem detalhe interno", async ()
   });
 });
 
-test("conclusão consome state, usa verifier correto e persiste tokens cifrados atomicamente", async () => {
+test("conclusão consome state, cifra tokens e persiste somente autorização pendente", async () => {
   const encryptedVerifier = await encryptOAuthSecret(VERIFIER, ENCRYPTION_KEY);
   let consumedInput: { motoristaId: string; stateHash: string } | undefined;
   let exchangeInput: { code: string; codeVerifier: string } | undefined;
-  let persisted: PixOAuthCredentialRecord | undefined;
+  let persisted: PixOAuthPendingAuthorizationRecord | undefined;
   const flow = createPixMercadoPagoOAuthFlow({
     encryptionKey: ENCRYPTION_KEY,
     oauthClient: createOAuthClient({
@@ -139,8 +140,9 @@ test("conclusão consome state, usa verifier correto e persiste tokens cifrados 
         consumedInput = input;
         return { encryptedCodeVerifier: encryptedVerifier, encryptionVersion: 1 };
       },
-      upsertCredentialsAtomically: async (input) => {
+      storePendingAuthorization: async (input) => {
         persisted = input;
+        return { confirmationExpiresAt: PENDING_EXPIRES_AT };
       },
     }),
   });
@@ -151,7 +153,10 @@ test("conclusão consome state, usa verifier correto e persiste tokens cifrados 
     state: STATE,
   });
 
-  assert.deepEqual(result, { connected: true });
+  assert.deepEqual(result, {
+    pending: true,
+    confirmationExpiresAt: PENDING_EXPIRES_AT,
+  });
   assert.deepEqual(consumedInput, {
     motoristaId: MOTORISTA_ID,
     stateHash: await hashOAuthState(STATE),
@@ -179,7 +184,7 @@ test("state consumido não pode ser reutilizado", async () => {
   const encryptedVerifier = await encryptOAuthSecret(VERIFIER, ENCRYPTION_KEY);
   let available = true;
   let exchanges = 0;
-  let upserts = 0;
+  let pendingWrites = 0;
   const flow = createPixMercadoPagoOAuthFlow({
     encryptionKey: ENCRYPTION_KEY,
     oauthClient: createOAuthClient({
@@ -194,8 +199,9 @@ test("state consumido não pode ser reutilizado", async () => {
         available = false;
         return { encryptedCodeVerifier: encryptedVerifier, encryptionVersion: 1 };
       },
-      upsertCredentialsAtomically: async () => {
-        upserts += 1;
+      storePendingAuthorization: async () => {
+        pendingWrites += 1;
+        return { confirmationExpiresAt: PENDING_EXPIRES_AT };
       },
     }),
   });
@@ -206,12 +212,12 @@ test("state consumido não pode ser reutilizado", async () => {
     { message: COMPLETE_ERROR },
   );
   assert.equal(exchanges, 1);
-  assert.equal(upserts, 1);
+  assert.equal(pendingWrites, 1);
 });
 
 test("state ausente, expirado ou de outro motorista falha antes do provedor", async () => {
   let exchanges = 0;
-  let upserts = 0;
+  let pendingWrites = 0;
   let consumedMotoristaId = "";
   const flow = createPixMercadoPagoOAuthFlow({
     encryptionKey: ENCRYPTION_KEY,
@@ -226,8 +232,9 @@ test("state ausente, expirado ou de outro motorista falha antes do provedor", as
         consumedMotoristaId = motoristaId;
         return null;
       },
-      upsertCredentialsAtomically: async () => {
-        upserts += 1;
+      storePendingAuthorization: async () => {
+        pendingWrites += 1;
+        return { confirmationExpiresAt: PENDING_EXPIRES_AT };
       },
     }),
   });
@@ -238,7 +245,7 @@ test("state ausente, expirado ou de outro motorista falha antes do provedor", as
   );
   assert.equal(consumedMotoristaId, OUTRO_MOTORISTA_ID);
   assert.equal(exchanges, 0);
-  assert.equal(upserts, 0);
+  assert.equal(pendingWrites, 0);
 });
 
 test("versão de envelope desconhecida falha antes de trocar o code", async () => {
@@ -290,7 +297,7 @@ test("falhas do provedor ou da persistência são sanitizadas e não vazam token
         encryptedCodeVerifier: encryptedVerifier,
         encryptionVersion: 1,
       }),
-      upsertCredentialsAtomically: async () => {
+      storePendingAuthorization: async () => {
         throw new Error(`database-secret ${TOKEN_SET.accessToken}`);
       },
     }),
@@ -338,7 +345,7 @@ test("entradas inválidas falham antes de consumir state", async () => {
   assert.equal(consumes, 0);
 });
 
-test("adaptador chama exatamente os três RPCs e mapeia seus argumentos", async () => {
+test("adaptador chama exatamente os três RPCs e mapeia autorização pendente", async () => {
   const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
   const client: PixOAuthRpcClient = {
     rpc: async (name, args) => {
@@ -352,7 +359,10 @@ test("adaptador chama exatamente os três RPCs e mapeia seus argumentos", async 
           error: null,
         };
       }
-      return { data: null, error: null };
+      if (name === "pix_oauth_pending_authorization_upsert") {
+        return { data: PENDING_EXPIRES_AT, error: null };
+      }
+      return { data: null, error: { code: "unexpected_rpc" } };
     },
   };
   const persistence = createPixOAuthSupabasePersistenceFromClient(client);
@@ -368,7 +378,7 @@ test("adaptador chama exatamente os três RPCs e mapeia seus argumentos", async 
     motoristaId: MOTORISTA_ID,
     stateHash: "a".repeat(64),
   });
-  await persistence.upsertCredentialsAtomically({
+  const pending = await persistence.storePendingAuthorization({
     motoristaId: MOTORISTA_ID,
     mercadoPagoUserId: TOKEN_SET.userId,
     encryptedAccessToken: "v1.access-envelope",
@@ -383,6 +393,7 @@ test("adaptador chama exatamente os três RPCs e mapeia seus argumentos", async 
     encryptedCodeVerifier: "v1.envelope",
     encryptionVersion: 1,
   });
+  assert.deepEqual(pending, { confirmationExpiresAt: PENDING_EXPIRES_AT });
   assert.deepEqual(calls, [
     {
       name: "pix_oauth_state_create",
@@ -399,14 +410,14 @@ test("adaptador chama exatamente os três RPCs e mapeia seus argumentos", async 
       args: { _motorista_id: MOTORISTA_ID, _state_hash: "a".repeat(64) },
     },
     {
-      name: "pix_oauth_credentials_upsert",
+      name: "pix_oauth_pending_authorization_upsert",
       args: {
         _motorista_id: MOTORISTA_ID,
         _mercadopago_user_id: TOKEN_SET.userId,
         _access_token_encrypted: "v1.access-envelope",
         _refresh_token_encrypted: "v1.refresh-envelope",
         _encryption_version: 1,
-        _expires_at: EXPIRES_AT,
+        _token_expires_at: EXPIRES_AT,
         _scope: TOKEN_SET.scope,
         _token_type: TOKEN_SET.tokenType,
       },
@@ -435,7 +446,7 @@ test("adaptador converte ausência em null e rejeita RPC malformado ou com erro"
   );
   await assert.rejects(
     () =>
-      failed.upsertCredentialsAtomically({
+      failed.storePendingAuthorization({
         motoristaId: MOTORISTA_ID,
         mercadoPagoUserId: TOKEN_SET.userId,
         encryptedAccessToken: "v1.access",
