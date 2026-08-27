@@ -29,11 +29,7 @@ export type PixOAuthPendingConfirmationResult =
   | Readonly<{ conectado: true; jaEstavaConectado: boolean }>
   | Readonly<{
       conectado: false;
-      motivo:
-        | "expirada"
-        | "ausente"
-        | "conta_de_outro_motorista"
-        | "conta_da_plataforma";
+      motivo: "expirada" | "ausente" | "conta_de_outro_motorista" | "conta_da_plataforma";
     }>;
 
 function persistenceError(): never {
