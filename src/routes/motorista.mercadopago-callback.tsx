@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, CheckCircle2, AlertOctagon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  cancelarAutorizacaoPendenteMercadoPagoPixSegura,
   confirmarConexaoMercadoPagoPixSegura,
   concluirConexaoMercadoPagoPixSegura,
   getAutorizacaoPendenteMercadoPagoPixSegura,
@@ -30,14 +31,28 @@ export const Route = createFileRoute("/motorista/mercadopago-callback")({
   component: MercadoPagoCallback,
 });
 
-type CallbackStatus = "processando" | "pendente" | "confirmando" | "conectado" | "erro";
+type CallbackStatus =
+  | "processando"
+  | "pendente"
+  | "confirmando"
+  | "cancelando"
+  | "troca"
+  | "conectado"
+  | "erro";
+
+type PendingView = Readonly<{
+  accountHint: string;
+  reconexao: boolean;
+}>;
 
 function MercadoPagoCallback() {
   const navigate = useNavigate();
   const concluirFn = useServerFn(concluirConexaoMercadoPagoPixSegura);
   const getPendingFn = useServerFn(getAutorizacaoPendenteMercadoPagoPixSegura);
   const confirmarFn = useServerFn(confirmarConexaoMercadoPagoPixSegura);
+  const cancelarFn = useServerFn(cancelarAutorizacaoPendenteMercadoPagoPixSegura);
   const [status, setStatus] = useState<CallbackStatus>("processando");
+  const [pendencia, setPendencia] = useState<PendingView | null>(null);
   const [erro, setErro] = useState(
     "Não foi possível validar a autorização com o Mercado Pago. Tente novamente.",
   );
@@ -47,9 +62,19 @@ function MercadoPagoCallback() {
 
     const recuperarPendencia = async () => {
       try {
-        const pendencia = await getPendingFn();
+        const resultado = await getPendingFn();
         if (!ativo) return;
-        setStatus(pendencia.pendente ? "pendente" : "erro");
+        if (!resultado.pendente) {
+          setPendencia(null);
+          setStatus("erro");
+          return;
+        }
+
+        setPendencia({
+          accountHint: resultado.accountHint,
+          reconexao: resultado.reconexao,
+        });
+        setStatus("pendente");
       } catch {
         if (ativo) setStatus("erro");
       }
@@ -68,7 +93,11 @@ function MercadoPagoCallback() {
       try {
         const resultado = await concluirFn({ data: { code, state } });
         if (!ativo) return;
-        setStatus(resultado.pending === true ? "pendente" : "erro");
+        if (resultado.pending !== true) {
+          setStatus("erro");
+          return;
+        }
+        await recuperarPendencia();
       } catch {
         await recuperarPendencia();
       }
@@ -96,6 +125,10 @@ function MercadoPagoCallback() {
         setErro("A autorização expirou. Inicie a conexão com o Mercado Pago novamente.");
       } else if (resultado.motivo === "conta_de_outro_motorista") {
         setErro("Esta conta Mercado Pago já está vinculada a outro motorista Zuvvi.");
+      } else if (resultado.motivo === "conta_da_plataforma") {
+        setErro(
+          "Esta é a conta Mercado Pago da plataforma Zuvvi e não pode receber corridas como conta de motorista.",
+        );
       } else {
         setErro("Não há uma autorização pendente para confirmar. Inicie a conexão novamente.");
       }
@@ -103,6 +136,23 @@ function MercadoPagoCallback() {
     } catch {
       setStatus("erro");
     }
+  };
+
+  const trocarConta = async () => {
+    setErro("Não foi possível cancelar esta autorização. Tente novamente.");
+    setStatus("cancelando");
+
+    try {
+      await cancelarFn();
+      setPendencia(null);
+      setStatus("troca");
+    } catch {
+      setStatus("erro");
+    }
+  };
+
+  const abrirMercadoPago = () => {
+    window.open("https://www.mercadopago.com.br/", "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -118,39 +168,82 @@ function MercadoPagoCallback() {
           </>
         )}
 
-        {status === "pendente" && (
+        {status === "pendente" && pendencia && (
           <>
             <div className="w-16 h-16 bg-zuvvi-volt/10 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8 text-zuvvi-volt" />
             </div>
-            <h1 className="text-lg font-bold uppercase italic">Autorização recebida</h1>
+            <h1 className="text-lg font-bold uppercase italic">
+              {pendencia.reconexao ? "Reconectar conta?" : "Autorização recebida"}
+            </h1>
+            <p className="text-sm font-bold text-zuvvi-volt">
+              Conta autorizada: final ••••{pendencia.accountHint}
+            </p>
             <p className="text-sm text-white/60">
-              O Mercado Pago autorizou o acesso, mas sua conta ainda não está conectada. Confirme
-              abaixo para ativar os recebimentos Pix nesta conta.
+              {pendencia.reconexao
+                ? "Esta é uma conta que já pertenceu ao seu cadastro Zuvvi. Ela continua desconectada até você confirmar a reconexão."
+                : "O Mercado Pago autorizou o acesso, mas esta conta ainda não está conectada. Confirme abaixo somente se esta é a conta correta para receber suas corridas."}
             </p>
             <Button
               onClick={confirmar}
               className="w-full h-12 bg-zuvvi-volt text-zuvvi-indigo hover:bg-zuvvi-volt/90 font-black uppercase text-[11px] tracking-widest rounded-xl"
             >
-              Confirmar conexão
+              {pendencia.reconexao ? "Reconectar esta conta" : "Confirmar conexão"}
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate({ to: "/onboarding-motorista" })}
+              onClick={trocarConta}
               className="w-full h-12 font-black uppercase text-[11px] tracking-widest rounded-xl"
+            >
+              Trocar de conta
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => navigate({ to: "/onboarding-motorista" })}
+              className="w-full h-11 font-bold uppercase text-[10px] tracking-widest rounded-xl"
             >
               Voltar sem conectar
             </Button>
           </>
         )}
 
-        {status === "confirmando" && (
+        {(status === "confirmando" || status === "cancelando") && (
           <>
             <Loader2 className="w-8 h-8 text-zuvvi-volt animate-spin mx-auto" />
-            <h1 className="text-lg font-bold uppercase italic">Confirmando conexão</h1>
+            <h1 className="text-lg font-bold uppercase italic">
+              {status === "confirmando" ? "Confirmando conexão" : "Cancelando autorização"}
+            </h1>
             <p className="text-sm text-white/60">
-              Estamos ativando com segurança a conta que você acabou de confirmar.
+              {status === "confirmando"
+                ? "Estamos validando a conta e ativando a conexão somente após sua confirmação."
+                : "A conta continuará desconectada enquanto você escolhe outra conta Mercado Pago."}
             </p>
+          </>
+        )}
+
+        {status === "troca" && (
+          <>
+            <div className="w-16 h-16 bg-zuvvi-volt/10 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8 text-zuvvi-volt" />
+            </div>
+            <h1 className="text-lg font-bold uppercase italic">Autorização cancelada</h1>
+            <p className="text-sm text-white/60">
+              Nenhuma conta foi conectada. Abra o Mercado Pago, saia da conta atual e entre na conta
+              que deseja usar. Depois volte à Zuvvi e inicie a conexão novamente.
+            </p>
+            <Button
+              onClick={abrirMercadoPago}
+              className="w-full h-12 bg-zuvvi-volt text-zuvvi-indigo hover:bg-zuvvi-volt/90 font-black uppercase text-[11px] tracking-widest rounded-xl"
+            >
+              Abrir Mercado Pago para trocar conta
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: "/onboarding-motorista" })}
+              className="w-full h-12 font-black uppercase text-[11px] tracking-widest rounded-xl"
+            >
+              Voltar e conectar novamente
+            </Button>
           </>
         )}
 
