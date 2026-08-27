@@ -9,6 +9,7 @@ on:
       - "src/lib/pagamento.server.ts"
       - "src/lib/pix-mercadopago-oauth-runtime.server.ts"
       - "src/lib/pix-oauth-crypto.server.ts"
+      - "src/lib/pix-payment-sync.server.ts"
       - "scripts/pix/pix-oauth-crypto.test.ts"
 
 permissions:
