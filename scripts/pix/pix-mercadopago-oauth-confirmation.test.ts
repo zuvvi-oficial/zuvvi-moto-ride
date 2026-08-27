@@ -128,10 +128,9 @@ test("adaptador rejeita motorista ou platform user inválidos antes do RPC", asy
   await assert.rejects(cancelPixOAuthPendingAuthorization(client, "invalid"), {
     message: PERSISTENCE_ERROR,
   });
-  await assert.rejects(
-    confirmPixOAuthPendingAuthorization(client, "invalid", PLATFORM_USER_ID),
-    { message: PERSISTENCE_ERROR },
-  );
+  await assert.rejects(confirmPixOAuthPendingAuthorization(client, "invalid", PLATFORM_USER_ID), {
+    message: PERSISTENCE_ERROR,
+  });
   await assert.rejects(confirmPixOAuthPendingAuthorization(client, MOTORISTA_ID, "invalid"), {
     message: PERSISTENCE_ERROR,
   });
