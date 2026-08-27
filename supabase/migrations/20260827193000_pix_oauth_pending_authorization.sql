@@ -158,6 +158,10 @@ begin
   return _confirmation_expires_at;
 exception
   when unique_violation then
+    if sqlerrm = 'PIX_MP_ACCOUNT_OWNED_BY_OTHER_MOTORISTA' then
+      raise;
+    end if;
+
     raise exception using
       errcode = '23505',
       message = 'PIX_MP_ACCOUNT_PENDING_BY_OTHER_MOTORISTA';
