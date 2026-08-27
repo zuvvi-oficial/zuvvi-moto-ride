@@ -5,6 +5,7 @@ import type {
 
 const PERSISTENCE_ERROR = "Não foi possível persistir a conexão OAuth com segurança.";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const MERCADOPAGO_USER_ID_PATTERN = /^\d{1,128}$/u;
 
 type RpcResponse = Readonly<{
   data: unknown;
@@ -20,13 +21,19 @@ export type PixOAuthPendingStatus =
   | Readonly<{
       pendente: true;
       confirmationExpiresAt: string;
+      accountHint: string;
+      reconexao: boolean;
     }>;
 
 export type PixOAuthPendingConfirmationResult =
   | Readonly<{ conectado: true; jaEstavaConectado: boolean }>
   | Readonly<{
       conectado: false;
-      motivo: "expirada" | "ausente" | "conta_de_outro_motorista";
+      motivo:
+        | "expirada"
+        | "ausente"
+        | "conta_de_outro_motorista"
+        | "conta_da_plataforma";
     }>;
 
 function persistenceError(): never {
@@ -36,6 +43,13 @@ function persistenceError(): never {
 function requireMotoristaId(value: unknown): string {
   if (typeof value !== "string" || !UUID_PATTERN.test(value)) persistenceError();
   return value.toLowerCase();
+}
+
+function requireMercadoPagoUserId(value: unknown): string {
+  if (typeof value !== "string" || !MERCADOPAGO_USER_ID_PATTERN.test(value)) {
+    persistenceError();
+  }
+  return value;
 }
 
 function readCreatedState(data: unknown): void {
@@ -72,9 +86,25 @@ function readPendingConfirmationExpiry(data: unknown): string {
 
 function readPendingStatus(data: unknown): PixOAuthPendingStatus {
   if (data === null) return Object.freeze({ pendente: false });
+  if (typeof data !== "object" || Array.isArray(data)) persistenceError();
+
+  const row = data as Record<string, unknown>;
+  const accountHint = row["account_hint"];
+  const reconexao = row["reconnection"];
+  if (
+    typeof accountHint !== "string" ||
+    accountHint.length < 1 ||
+    accountHint.length > 4 ||
+    typeof reconexao !== "boolean"
+  ) {
+    persistenceError();
+  }
+
   return Object.freeze({
     pendente: true,
-    confirmationExpiresAt: readPendingConfirmationExpiry(data),
+    confirmationExpiresAt: readPendingConfirmationExpiry(row["confirmation_expires_at"]),
+    accountHint,
+    reconexao,
   });
 }
 
@@ -93,6 +123,9 @@ function readPendingConfirmationResult(data: unknown): PixOAuthPendingConfirmati
   }
   if (data === "ownership_conflict") {
     return Object.freeze({ conectado: false, motivo: "conta_de_outro_motorista" });
+  }
+  if (data === "platform_account") {
+    return Object.freeze({ conectado: false, motivo: "conta_da_plataforma" });
   }
 
   return persistenceError();
@@ -148,7 +181,7 @@ export async function getPixOAuthPendingAuthorizationStatus(
   motoristaId: string,
 ): Promise<PixOAuthPendingStatus> {
   const normalizedMotoristaId = requireMotoristaId(motoristaId);
-  const { data, error } = await client.rpc("pix_oauth_pending_authorization_status", {
+  const { data, error } = await client.rpc("pix_oauth_pending_authorization_summary", {
     _motorista_id: normalizedMotoristaId,
   });
 
@@ -156,13 +189,29 @@ export async function getPixOAuthPendingAuthorizationStatus(
   return readPendingStatus(data);
 }
 
+export async function cancelPixOAuthPendingAuthorization(
+  client: PixOAuthRpcClient,
+  motoristaId: string,
+): Promise<boolean> {
+  const normalizedMotoristaId = requireMotoristaId(motoristaId);
+  const { data, error } = await client.rpc("pix_oauth_pending_authorization_cancel", {
+    _motorista_id: normalizedMotoristaId,
+  });
+
+  if (error || typeof data !== "boolean") persistenceError();
+  return data;
+}
+
 export async function confirmPixOAuthPendingAuthorization(
   client: PixOAuthRpcClient,
   motoristaId: string,
+  platformMercadoPagoUserId: string,
 ): Promise<PixOAuthPendingConfirmationResult> {
   const normalizedMotoristaId = requireMotoristaId(motoristaId);
+  const normalizedPlatformUserId = requireMercadoPagoUserId(platformMercadoPagoUserId);
   const { data, error } = await client.rpc("pix_oauth_pending_authorization_confirm", {
     _motorista_id: normalizedMotoristaId,
+    _platform_mercadopago_user_id: normalizedPlatformUserId,
   });
 
   if (error) persistenceError();
