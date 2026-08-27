@@ -32,13 +32,7 @@ export const Route = createFileRoute("/motorista/mercadopago-callback")({
 });
 
 type CallbackStatus =
-  | "processando"
-  | "pendente"
-  | "confirmando"
-  | "cancelando"
-  | "troca"
-  | "conectado"
-  | "erro";
+  "processando" | "pendente" | "confirmando" | "cancelando" | "troca" | "conectado" | "erro";
 
 type PendingView = Readonly<{
   accountHint: string;
