@@ -113,6 +113,60 @@ A árvore será construída de forma explícita, sem merge automático de arquiv
 9. reconsultar Supabase e provar baseline inalterado;
 10. manter PR draft e sem merge para `main`.
 
+## Resultado do primeiro CI após o merge
+
+Merge controlado criado em:
+
+`5ef467c7ea9ace6004dd34c3ab02f8a5dfadfa15`
+
+O merge preservou `MercadoPagoConnect.tsx` e `types.ts` da branch Pix, trouxe `motorista-pagamento.functions.ts` e `.lovable/plan.md` da `main`, e deixou a branch com `behind_by = 0` em relação à `main`.
+
+Foram disparados 13 workflows Pix: 9 passaram e 4 falharam. As quatro falhas foram investigadas antes de qualquer correção:
+
+1. **PIX Pagamento passageiro** — falha somente de Prettier em `src/lib/pagamento-pix-status.functions.ts`; arquivo não foi tocado pelo merge.
+2. **PIX OAuth Crypto** — testes criptográficos, TypeScript e build passaram; falha somente na guarda de isolamento porque `src/lib/pix-payment-sync.server.ts` importa legitimamente e de forma server-only `pix-oauth-crypto.server` para renovar credenciais durante reconciliação de pagamento.
+3. **PIX Mercado Pago OAuth Client** — 10/10 testes OAuth, regressão crypto, ESLint, TypeScript e build passaram; falha somente na mesma guarda de isolamento porque `src/lib/pix-payment-sync.server.ts` importa legitimamente e de forma server-only `pix-mercadopago-oauth.server` para refresh token.
+4. **PIX DB OAuth Atomic Connection** — toda a bateria pgTAP, lint/advisors, testes OAuth, TypeScript e build passou; falha no último guard por hash SHA-256 rígido e antigo de `src/lib/motorista-pagamento.functions.ts`, que foi intencionalmente substituído pela versão exata da `main` durante esta integração.
+
+Nenhuma das quatro falhas demonstrou regressão funcional do Pix ou do core. Elas demonstraram dívida de higiene/guardas da própria bateria Pix.
+
+## Submicroetapa 0.4F — saneamento mínimo da bateria CI Pix
+
+### Objetivo único
+
+Fazer a bateria refletir a arquitetura Pix já existente e a baseline integrada, sem alterar comportamento funcional.
+
+### Allowlist 0.4F
+
+Somente estes arquivos podem ser alterados:
+
+1. `src/lib/pagamento-pix-status.functions.ts` — **somente formatação Prettier**, sem alteração lógica.
+2. `.github/workflows/pix-oauth-crypto.yml` — incluir `src/lib/pix-payment-sync.server.ts` como consumidor server-only autorizado e como path que dispara o workflow.
+3. `.github/workflows/pix-mercadopago-oauth.yml` — incluir `src/lib/pix-payment-sync.server.ts` como consumidor server-only autorizado e como path que dispara o workflow.
+4. `.github/workflows/pix-db-oauth-atomic-connection.yml` — substituir somente o hash rígido e obsoleto de `src/lib/motorista-pagamento.functions.ts` por uma comparação com a versão canônica de `origin/main`, já buscada no próprio step; nenhuma flexibilização de package/lock permitida.
+5. `docs/pix/checkpoints/ETAPA_0_4_INTEGRACAO_MAIN.md` — registrar evidências e classificação.
+
+### Explicitamente proibido na 0.4F
+
+- modificar `src/lib/pix-payment-sync.server.ts`;
+- modificar qualquer lógica OAuth, pagamento, cobrança ou corrida;
+- modificar `package.json` ou `bun.lock`;
+- modificar migrations, RPCs, tabelas ou dados;
+- escrever no Supabase;
+- alterar `main`;
+- tocar em arquivo não listado acima.
+
+### Critério de aprovação 0.4F
+
+- diff restrito integralmente à allowlist;
+- a alteração no `.functions.ts` ser somente de whitespace/formatação;
+- as duas guardas de isolamento continuarem proibindo qualquer consumidor não autorizado;
+- o guard do arquivo legado exigir igualdade exata com `origin/main` em vez de aceitar qualquer conteúdo;
+- CI Pix do novo SHA ficar verde ou qualquer falha residual ser comprovadamente externa/transitória e repetida com sucesso;
+- TypeScript e build continuarem passando;
+- Supabase permanecer byte/logicamente no mesmo baseline operacional;
+- `main` permanecer inalterada e PR continuar draft/não mergeada.
+
 ## Rollback
 
 Se qualquer arquivo fora da allowlist mudar, se o fluxo seguro for substituído, ou se os testes técnicos falharem por causa da integração, parar a etapa e retornar a branch ao checkpoint anterior à integração funcional. Nenhuma correção em cascata é permitida.
