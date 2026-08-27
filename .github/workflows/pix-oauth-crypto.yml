@@ -68,6 +68,7 @@ jobs:
             --exclude='pix-oauth-crypto.server.ts' \
             --exclude='pix-mercadopago-oauth-flow.server.ts' \
             --exclude='pix-mercadopago-oauth-runtime.server.ts' \
+            --exclude='pix-payment-sync.server.ts' \
             --exclude='pagamento.server.ts'; then
             echo "O módulo criptográfico foi importado por código do aplicativo"
             exit 1
