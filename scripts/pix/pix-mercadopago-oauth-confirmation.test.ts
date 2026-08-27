@@ -11,7 +11,10 @@ const EXPIRES_AT = "2026-08-27T20:40:00.000Z";
 const PERSISTENCE_ERROR = "Não foi possível persistir a conexão OAuth com segurança.";
 
 function createClient(
-  handler: (functionName: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>,
+  handler: (
+    functionName: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: unknown }>,
 ): PixOAuthRpcClient {
   return { rpc: handler };
 }
@@ -88,7 +91,10 @@ test("adaptador rejeita motorista inválido antes do RPC", async () => {
 });
 
 test("RPC com erro ou retorno inesperado falha de modo sanitizado", async () => {
-  const failingClient = createClient(async () => ({ data: null, error: { code: "secret-db-error" } }));
+  const failingClient = createClient(async () => ({
+    data: null,
+    error: { code: "secret-db-error" },
+  }));
   await assert.rejects(getPixOAuthPendingAuthorizationStatus(failingClient, MOTORISTA_ID), {
     message: PERSISTENCE_ERROR,
   });
