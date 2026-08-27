@@ -6,131 +6,270 @@
 **Checkpoint anterior:** `docs/pix/checkpoints/ETAPA_0_4_INTEGRACAO_MAIN.md`  
 **Branch:** `feature/pix-100-seguro`  
 **Supabase:** `qycblinfvijhfjcmdoof`  
-**Classificação inicial:** EM EXECUÇÃO
+**Classificação final:** APROVADA
 
-## Objetivo único
+## Objetivo
 
-Criar a propriedade histórica privada `mercadopago_user_id -> motorista_id` para impedir que uma mesma conta Mercado Pago, depois de pertencente a um motorista Zuvvi, seja apropriada por outro motorista após desconexão/revogação.
+Criar propriedade histórica privada `mercadopago_user_id -> motorista_id`, impedindo que uma conta Mercado Pago já pertencente a um motorista Zuvvi seja apropriada por outro motorista depois de desconexão/revogação.
 
-Esta microetapa NÃO altera ainda a experiência de confirmação do OAuth. O fluxo pendente/confirmado pertence às Etapas 1.2 e 1.3.
+Esta microetapa não altera ainda a experiência de confirmação OAuth. O fluxo pendente e a confirmação explícita pertencem às Etapas 1.2 e 1.3.
 
-## Baseline comprovado antes da escrita
+## Baseline antes da escrita
 
 - `main`: `de4d054643f7c67f22ee9c183a84af05f0809db7`;
-- branch Pix após Etapa 0.4 aprovada: `49e5df7713cadd10c685f9448423581699634ad6`;
-- branch está 0 commits atrás da `main`;
-- PR #2 permanece aberta, draft e não mergeada;
-- Supabase possui 2 registros de credenciais OAuth: 1 ativo e 1 revogado;
-- existem 2 motoristas e 2 `mercadopago_user_id` distintos nos registros atuais;
-- 0 conflitos históricos detectados entre os registros existentes;
-- a unicidade pública atual é parcial: só protege `motoristas.conta_mercado_pago_id` quando não nulo;
-- a unicidade privada atual é parcial: só protege `mercadopago_user_id` quando `connection_status = 'active'`;
-- o RPC atual `pix_oauth_credentials_upsert` permite trocar o `mercadopago_user_id` do mesmo motorista e não registra propriedade histórica.
+- branch após Etapa 0.4: `49e5df7713cadd10c685f9448423581699634ad6`;
+- branch 0 commits atrás da `main`;
+- PR #2 aberta, draft e não mergeada;
+- Supabase: 2 credenciais OAuth, sendo 1 ativa e 1 revogada;
+- 2 motoristas e 2 `mercadopago_user_id` distintos nos registros existentes;
+- 0 conflitos históricos detectados;
+- unicidade pública anterior válida apenas enquanto `conta_mercado_pago_id` não era nulo;
+- unicidade privada anterior válida apenas enquanto `connection_status = 'active'`;
+- `pix_oauth_credentials_upsert` anterior não preservava propriedade histórica.
 
-## Decisão sobre o backfill
+## Decisão de backfill
 
-Existe uma credencial revogada originada do teste conhecido em que a Cardápio Mix autorizou/reconectou uma conta Mercado Pago errada pela sessão já aberta no navegador.
+A credencial revogada preexistente veio do caso conhecido de conexão errada em teste, no qual uma sessão Mercado Pago já aberta foi reaproveitada.
 
-Para não transformar um vínculo de teste incorreto em propriedade histórica permanente:
+Para não eternizar um vínculo incorreto:
 
-- o backfill automático da Etapa 1.1 será feito SOMENTE a partir de credenciais `active` no momento da migration;
-- credenciais preexistentes `revoked` não serão apropriadas automaticamente;
-- a partir da nova migration, toda nova ativação via `pix_oauth_credentials_upsert` deverá reivindicar a propriedade antes de persistir a credencial;
-- a conta da plataforma/integrador será tratada explicitamente na Etapa 1.3 e não será hardcoded nesta migration.
+- backfill automático somente das credenciais `active` no momento da migration;
+- credenciais `revoked` anteriores à Etapa 1.1 não são apropriadas automaticamente;
+- toda nova ativação posterior à migration reivindica propriedade antes de persistir credenciais;
+- bloqueio da conta da própria plataforma/integrador fica para a Etapa 1.3.
 
-## Modelo aprovado para teste
+## Implementação aprovada
 
-Nova tabela privada mínima:
+### Tabela privada
+
+Criada:
 
 `private.mercadopago_conta_propriedade`
 
 Campos:
 
 - `mercadopago_user_id text` — chave primária permanente;
-- `motorista_id uuid` — proprietário Zuvvi;
+- `motorista_id uuid` — proprietário histórico Zuvvi;
 - `claimed_at timestamptz`;
 - `last_seen_at timestamptz`.
 
-Não conterá Access Token, Refresh Token, Client Secret, Service Role ou qualquer outro segredo.
+Não contém Access Token, Refresh Token, Client Secret, Service Role ou qualquer outro segredo.
 
-### Decisão de integridade deliberada
+### Decisão deliberada: sem FK para motorista
 
-`motorista_id` NÃO terá FK com `public.motoristas` nesta etapa.
+`motorista_id` não possui FK para `public.motoristas`.
 
-Motivo: uma FK com `ON DELETE RESTRICT` alteraria o comportamento do core ao excluir motorista; uma FK com `CASCADE` apagaria justamente o histórico que precisamos preservar. A existência do motorista será validada pelo RPC server-only no momento da reivindicação. Assim a reserva histórica sobrevive ao ciclo de vida do cadastro sem alterar deleção do core.
+Motivo:
 
-## Regra da propriedade
+- `ON DELETE RESTRICT` mudaria o comportamento do core na exclusão de motorista;
+- `ON DELETE CASCADE` destruiria a própria reserva histórica;
+- existência do motorista é validada no RPC server-only no momento da reivindicação.
 
-A reivindicação retorna apenas um dos estados:
+Assim a propriedade histórica sobrevive sem alterar o ciclo de vida do cadastro do core.
 
-- `claimed` — primeira propriedade registrada;
-- `owned_by_same_motorista` — reconexão/uso pelo mesmo proprietário;
-- `owned_by_other_motorista` — conta já pertence historicamente a outro motorista.
+### RPC de propriedade
 
-O RPC de credenciais deve rejeitar a ativação quando a reivindicação retornar `owned_by_other_motorista`.
+Criado:
 
-Desconectar NÃO apaga a propriedade histórica.
+`public.pix_oauth_account_owner_claim(uuid, text)`
 
-Não será criada nesta etapa função de liberação/transferência. Eventual liberação futura será processo administrativo separado e auditado.
+Estados possíveis:
 
-## Allowlist 1.1
+- `claimed` — primeira propriedade;
+- `owned_by_same_motorista` — mesma conta e mesmo proprietário;
+- `owned_by_other_motorista` — conta já pertencente a outro motorista.
 
-Somente estes caminhos podem mudar:
+A função:
+
+- é `SECURITY DEFINER`;
+- possui `search_path` fixo;
+- só pode ser executada por `service_role`;
+- valida existência do motorista;
+- não oferece operação de transferência ou liberação;
+- não expõe dados ao navegador.
+
+### Proteção no upsert OAuth
+
+`public.pix_oauth_credentials_upsert(...)` foi substituída preservando o comportamento anterior, mas agora reivindica/valida propriedade antes da ativação.
+
+Se a conta pertencer historicamente a outro motorista, aborta com:
+
+`PIX_MP_ACCOUNT_OWNED_BY_OTHER_MOTORISTA`
+
+Desconectar/revogar credenciais não remove a propriedade histórica.
+
+## Migration canônica
+
+A migration foi primeiro testada na branch com um nome provisório. Após aprovação do CI, foi aplicada ao Supabase pelo fluxo oficial `apply_migration`.
+
+O Supabase registrou a versão canônica:
+
+`20260827190752_pix_mp_account_historical_ownership`
+
+O GitHub foi imediatamente reconciliado para o mesmo timestamp, sem reaplicar SQL.
+
+Arquivo canônico final:
+
+`supabase/migrations/20260827190752_pix_mp_account_historical_ownership.sql`
+
+O arquivo provisório foi removido. Portanto esta etapa não deixa novo drift de histórico Git/Supabase.
+
+## Allowlist final comprovada
+
+Comparação desde o checkpoint aprovado da Etapa 0.4 mostrou exatamente 4 caminhos alterados:
 
 1. `docs/pix/checkpoints/ETAPA_1_1_PROPRIEDADE_HISTORICA_MP.md`;
-2. `supabase/migrations/20260827185500_pix_mp_account_historical_ownership.sql`;
+2. `supabase/migrations/20260827190752_pix_mp_account_historical_ownership.sql`;
 3. `supabase/tests/pix_11_mp_account_historical_ownership.sql`;
 4. `.github/workflows/pix-db-mercadopago-account-uniqueness.yml`.
 
-## Proibido
+Nenhum `.tsx`, callback OAuth, pagamento, corrida, dinheiro, cartão, GPS, mapa, tarifa, matching, autenticação geral ou outro core foi alterado.
 
-- alterar qualquer arquivo `.tsx`/UI;
-- alterar callback OAuth nesta microetapa;
-- alterar arquivos TypeScript de pagamento/corrida;
-- alterar migrations antigas;
-- alterar dinheiro/cartão;
-- alterar GPS, mapa, tarifa, matching ou autenticação geral;
-- alterar `main`;
-- usar Lovable como agente;
-- aplicar DDL/DML no Supabase de produção antes do CI local passar;
-- adicionar segredo ou identificador sensível ao Git.
+## Teste local/CI
 
-## Testes obrigatórios antes da produção
+### Primeiro ciclo
 
-1. tabela privada existe;
-2. RLS habilitada e forçada;
-3. `anon` e `authenticated` sem acesso ao schema/tabela/RPC;
-4. `service_role` possui somente operações necessárias;
-5. `service_role` não recebe DELETE na tabela histórica;
-6. backfill inclui conexão ativa preexistente;
-7. backfill não inclui conexão revogada preexistente;
-8. Motorista A + MP A: primeira reivindicação aceita;
-9. Motorista A + MP A novamente: aceita como mesmo proprietário;
-10. Motorista B + MP A: rejeitado;
-11. Motorista B + MP B: permitido;
-12. revogar credencial de A não apaga propriedade MP A;
-13. B continua bloqueado de MP A após a revogação;
-14. `pix_oauth_credentials_upsert` não consegue ativar para B uma MP historicamente de A;
-15. TypeScript/build e regressões Pix do workflow continuam verdes;
-16. diff integralmente restrito à allowlist.
+A migration foi aplicada com sucesso na stack local e o teste antigo de unicidade passou 10/10.
 
-## Portão para produção
+O teste novo obteve 35/37 inicialmente. As duas falhas foram causadas somente pelo fixture local não reproduzir um grant já existente em produção: `service_role` precisava `SELECT, UPDATE` em `public.motoristas` para o upsert atômico atualizar sua projeção pública.
 
-A migration só poderá ser aplicada no Supabase real depois de todos os testes locais/CI acima passarem.
+Nenhum SQL funcional da migration precisou ser alterado por essa falha.
 
-Depois da aplicação real, revalidar:
+Foi corrigido somente o fixture inline do workflow para reproduzir a permissão real de produção.
 
-- migration history;
-- tabela/índices/RLS/grants;
-- backfill ativo esperado;
-- credencial revogada preexistente não apropriada;
-- função de reivindicação;
-- função de upsert protegida;
-- contagens de tentativas Pix e credenciais inalteradas;
-- ausência de mudança no core.
+### Segundo ciclo
 
-## Rollback
+No SHA `5b53db52ea3d1944d861c8f7495e27098f907a7c`:
 
-Se o CI demonstrar regressão, não aplicar a migration em produção e corrigir apenas dentro da allowlist.
+- 37/37 testes de propriedade histórica passaram;
+- teste anterior de unicidade passou;
+- regressões pgTAP PIX-01 a PIX-04 passaram;
+- DB lint passou;
+- advisors security/performance passaram;
+- regressões OAuth PIX-05/PIX-06 passaram;
+- TypeScript integral passou;
+- build de produção passou;
+- guardas de dependência/lockfile passaram;
+- 13/13 workflows Pix ficaram verdes.
 
-Se houver conflito inesperado no backfill de produção, parar a aplicação; não apagar nem transferir propriedade automaticamente.
+### Terceiro ciclo — timestamp canônico
+
+Depois de alinhar o nome da migration à versão real `20260827190752`, o CI foi executado novamente no SHA `0264dc22edce23d7412328a5ae9a54d625bedec2`.
+
+Resultado final:
+
+- 13/13 workflows Pix concluídos com `success`;
+- workflow de propriedade histórica concluiu migration local, 37 testes, regressões, advisors, TypeScript e build com sucesso;
+- Cobrança após aceite, OAuth Atomic Connection, OAuth Client, OAuth Crypto, Passageiro e todos os demais workflows Pix também permaneceram verdes.
+
+## Aplicação em produção
+
+A migration foi aplicada com sucesso no Supabase de produção via fluxo de migration controlado.
+
+Migration registrada:
+
+- versão: `20260827190752`;
+- nome: `pix_mp_account_historical_ownership`.
+
+Não houve execução de migration antiga, repair de histórico ou DDL adicional fora desta migration.
+
+## Auditoria pós-produção
+
+### Dados
+
+Após a aplicação:
+
+- credenciais OAuth: 2 total;
+- ativas: 1;
+- revogadas: 1;
+- propriedades históricas: 1;
+- contas MP históricas distintas: 1;
+- motoristas históricos distintos: 1;
+- propriedade correspondente à credencial ativa: 1;
+- propriedade correspondente à credencial revogada antiga: 0.
+
+Isto comprova que o backfill ativo ocorreu e o vínculo revogado de teste não foi eternizado.
+
+### Dados financeiros preservados
+
+Continuaram exatamente:
+
+- tentativas Pix: 33;
+- `falhou`: 33;
+- `pendente`: 0;
+- `pago`: 0;
+- `estornado`: 0.
+
+A migration não modificou tentativas financeiras existentes.
+
+### Segurança da tabela
+
+Confirmado em produção:
+
+- RLS habilitada;
+- RLS forçada;
+- `anon`: sem SELECT;
+- `authenticated`: sem SELECT;
+- `service_role`: sem SELECT direto;
+- `service_role`: sem INSERT direto;
+- `service_role`: sem UPDATE direto;
+- `service_role`: sem DELETE direto.
+
+A escrita ocorre exclusivamente pela função server-only autorizada.
+
+### Segurança das funções
+
+Confirmado em produção:
+
+- `service_role` pode executar `pix_oauth_account_owner_claim`;
+- `authenticated` não pode executar;
+- `anon` não pode executar;
+- função de claim é `SECURITY DEFINER`;
+- `search_path` está fixo;
+- `pix_oauth_credentials_upsert` contém a trava histórica e rejeita conta pertencente a outro motorista.
+
+### Contraprova real sem transferência
+
+Foi consultada a propriedade histórica existente e chamada a função de claim com outro motorista existente.
+
+Resultado:
+
+`owned_by_other_motorista`
+
+Nenhuma transferência ocorreu e nenhuma credencial foi ativada nesse teste.
+
+## Estado Git/PR/core no fechamento
+
+- `main` continua em `de4d054643f7c67f22ee9c183a84af05f0809db7`;
+- branch Pix permanece 0 commits atrás da `main`;
+- PR #2 continua aberta, draft e não mergeada;
+- nenhum arquivo fora da allowlist final da 1.1 entrou no diff da etapa;
+- core permanece congelado.
+
+## Critérios da 1.1
+
+- propriedade privada permanente: PASS;
+- isolamento entre motoristas: PASS;
+- reconexão pelo mesmo proprietário permitida: PASS;
+- apropriação por outro motorista bloqueada: PASS;
+- revogação não libera propriedade: PASS;
+- backfill apenas de vínculo ativo confiável: PASS;
+- RLS/grants mínimos: PASS;
+- sem segredo na tabela histórica: PASS;
+- migration Git/Supabase reconciliada: PASS;
+- CI final 13/13: PASS;
+- core intocado: PASS.
+
+# CLASSIFICAÇÃO FINAL: APROVADA
+
+A Microetapa 1.1 está encerrada e libera a Microetapa 1.2 — OAuth em estado pendente.
+
+## Próximo portão: Etapa 1.2
+
+A 1.2 deverá impedir ativação imediata no callback OAuth.
+
+Fluxo alvo:
+
+`OAuth autorizado -> validar state/PKCE -> trocar code -> cifrar tokens -> identificar MP -> validar propriedade -> persistir autorização pendente com prazo curto -> NÃO ativar conta ainda`.
+
+A confirmação explícita e ativação definitiva ficam para a Etapa 1.3.
