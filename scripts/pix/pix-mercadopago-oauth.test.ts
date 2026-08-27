@@ -117,6 +117,44 @@ test("renova credenciais e exige rotação completa do retorno", async () => {
   assert.equal(result.refreshToken, "rotated-refresh-token");
 });
 
+test("identifica user_id da própria aplicação via client_credentials sem retornar token", async () => {
+  let requestBody: Record<string, unknown> | undefined;
+  const client = clientWith(async (_input, init) => {
+    requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return response({
+      access_token: "platform-access-token-never-returned",
+      token_type: "bearer",
+      expires_in: 21_600,
+      user_id: 5555555555,
+    });
+  });
+
+  const result = await client.getApplicationOwnerUserId();
+
+  assert.deepEqual(requestBody, {
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    grant_type: "client_credentials",
+  });
+  assert.equal(result, "5555555555");
+  assert.equal(typeof result, "string");
+  assert.equal(result.includes("platform-access-token-never-returned"), false);
+});
+
+test("client_credentials rejeita user_id inválido da aplicação", async () => {
+  const client = clientWith(async () =>
+    response({
+      access_token: "platform-access-token-never-returned",
+      expires_in: 21_600,
+      user_id: "not-numeric",
+    }),
+  );
+
+  await assert.rejects(() => client.getApplicationOwnerUserId(), {
+    message: "Não foi possível concluir a comunicação segura com o Mercado Pago.",
+  });
+});
+
 test("normaliza user_id numérico seguro", async () => {
   const client = clientWith(async () => response({ ...VALID_TOKEN_RESPONSE, user_id: 123456 }));
   const result = await client.exchangeAuthorizationCode({
