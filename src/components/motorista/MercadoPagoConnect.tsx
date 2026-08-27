@@ -48,6 +48,10 @@ export default function MercadoPagoConnect() {
     }
   };
 
+  const trocarContaMercadoPago = () => {
+    window.open('https://www.mercadopago.com.br/', '_blank', 'noopener,noreferrer');
+  };
+
   const desconectar = async () => {
     setErro(null);
     setSucesso(null);
@@ -146,27 +150,58 @@ export default function MercadoPagoConnect() {
             <div className="space-y-1" role="status" aria-live="polite">
               <p className="text-xs font-bold text-zuvvi-volt">{sucesso}</p>
               <p className="text-[11px] leading-relaxed text-white/50">
-                Para escolher outra conta, saia da conta atual no site do Mercado Pago ou use uma
-                janela anônima antes de continuar.
+                Para escolher outra conta, troque a conta aberta no Mercado Pago antes de continuar.
               </p>
             </div>
           )}
           <p className="text-xs text-white/60">
             Conecte sua conta Mercado Pago para receber os pagamentos das suas corridas.
           </p>
-          <Button
-            onClick={conectar}
-            disabled={isRedirecting}
-            className="w-full h-12 bg-zuvvi-volt text-zuvvi-indigo hover:bg-zuvvi-volt/90 font-black uppercase text-[11px] tracking-widest rounded-xl"
-          >
-            {isRedirecting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : sucesso ? (
-              'Conectar outra conta Mercado Pago'
-            ) : (
-              'Conectar conta Mercado Pago'
-            )}
-          </Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={isRedirecting}
+                className="w-full h-12 bg-zuvvi-volt text-zuvvi-indigo hover:bg-zuvvi-volt/90 font-black uppercase text-[11px] tracking-widest rounded-xl"
+              >
+                {isRedirecting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : sucesso ? (
+                  'Conectar outra conta Mercado Pago'
+                ) : (
+                  'Conectar conta Mercado Pago'
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="border-white/10 bg-zuvvi-indigo text-white font-poppins">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar conta Mercado Pago</AlertDialogTitle>
+                <AlertDialogDescription className="text-white/60">
+                  O Mercado Pago pode reutilizar automaticamente a conta que já estiver aberta neste navegador. Se quiser vincular outra conta, abra o Mercado Pago abaixo, saia da conta atual e entre na conta correta antes de continuar.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="gap-2 sm:gap-2">
+                <AlertDialogCancel className="border-white/10 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                  Cancelar
+                </AlertDialogCancel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={trocarContaMercadoPago}
+                  className="border-white/10 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                >
+                  Abrir Mercado Pago e trocar conta
+                </Button>
+                <AlertDialogAction
+                  onClick={conectar}
+                  className="bg-zuvvi-volt text-zuvvi-indigo hover:bg-zuvvi-volt/90"
+                >
+                  Usar a conta já aberta
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           {erro && <p className="text-xs text-red-500">{erro}</p>}
         </div>
       )}
