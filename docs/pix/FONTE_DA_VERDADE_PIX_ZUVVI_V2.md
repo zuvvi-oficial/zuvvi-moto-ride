@@ -948,3 +948,116 @@ Ao aprovar cada etapa, registrar neste documento:
 **0.1 — Versionar esta Fonte da Verdade V2 sem alterar código ou banco.**
 
 Somente depois da prova de que este commit alterou exclusivamente este arquivo a microetapa 0.1 poderá ser marcada como `APROVADA`.
+
+---
+
+## 13. CHECKPOINT OPERACIONAL — 27/08/2026 — ETAPA 1
+
+### 13.1 Checkpoints aprovados até aqui
+
+- Microetapa 1.1 — propriedade histórica: `APROVADA`.
+- Microetapa 1.2 — autorização OAuth pendente: `APROVADA`.
+- Microetapa 1.3 — confirmação explícita: **`PARCIALMENTE APROVADA`**.
+- A Microetapa 1.4 permanece **BLOQUEADA** até o fechamento da corretiva 1.3A.
+
+Checkpoint Git atual antes da corretiva 1.3A:
+
+- `main`: `de4d054643f7c67f22ee9c183a84af05f0809db7`;
+- branch Pix: `581aeebbbd1abbae59802711c0958396b3ec061a`;
+- migration 1.3 aplicada em produção e reconciliada no Git: `20260827203802_pix_oauth_pending_confirmation`;
+- 14/14 workflows Pix concluídos com sucesso nesse checkpoint;
+- produção permaneceu com 0 autorizações pendentes, 2 credenciais privadas, 1 credencial ativa e 1 projeção pública ativa após o teste idempotente da 1.3.
+
+### 13.2 Descoberta obrigatória que impede aprovar a 1.3
+
+A releitura da V2 e a inspeção atual do GitHub/Supabase comprovaram que a implementação 1.1–1.3 bloqueia conta historicamente pertencente a outro motorista, mas **ainda não possui uma regra explícita que identifique e proíba a conta Mercado Pago da própria plataforma/integrador Zuvvi**.
+
+Isso viola diretamente:
+
+- invariante 7 desta V2;
+- regra da Microetapa 1.2 de rejeitar conta proibida;
+- regra da Microetapa 1.3 de impedir conta da plataforma/integrador;
+- cenário obrigatório 16 da Etapa 1.
+
+A documentação oficial atual do Mercado Pago diferencia o `Client ID` da aplicação do `User ID` da conta. Portanto, **é proibido inferir que `Client ID = mercadopago_user_id`**. A identificação da conta integradora deverá ocorrer no servidor por mecanismo oficial que devolva o `user_id` da própria aplicação, sem expor credenciais ao navegador e sem registrar tokens da plataforma no banco/log.
+
+### 13.3 Microetapa corretiva 1.3A — Bloqueio da conta plataforma/integrador
+
+**Objetivo único:** impedir, de forma fail-closed e com defesa em profundidade, que a conta Mercado Pago proprietária/integrador da aplicação Zuvvi seja criada como autorização pendente, ativada como credencial de motorista ou utilizada por um fluxo Pix legado.
+
+#### Allowlist GitHub da 1.3A
+
+Arquivos existentes que podem ser alterados somente se necessários ao objetivo:
+
+- `docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI_V2.md`;
+- `src/lib/pix-mercadopago-oauth.server.ts`;
+- `src/lib/pix-mercadopago-oauth-flow.server.ts`;
+- `src/lib/pix-mercadopago-oauth-supabase.server.ts`;
+- `src/lib/pix-mercadopago-oauth-runtime.server.ts`;
+- `src/lib/pix-mercadopago-oauth.functions.ts`;
+- `src/routes/motorista.mercadopago-callback.tsx`;
+- testes OAuth Pix diretamente afetados em `scripts/pix/`.
+
+Arquivos novos permitidos:
+
+- uma única migration `supabase/migrations/*_pix_oauth_platform_account_block.sql`;
+- um único pgTAP `supabase/tests/pix_13a_oauth_platform_account_block.sql`;
+- um teste TypeScript específico da 1.3A, se necessário;
+- um workflow específico `.github/workflows/pix-oauth-platform-account-block.yml`.
+
+#### Allowlist Supabase da 1.3A
+
+Permitido:
+
+- criar uma tabela privada mínima de contas Mercado Pago proibidas, sem tokens;
+- criar uma RPC `service_role`-only para registrar/revalidar o `mercadopago_user_id` da plataforma;
+- substituir, mantendo assinaturas públicas existentes, somente as RPCs OAuth necessárias para:
+  - negar autorização pendente da conta proibida;
+  - negar ativação/upsert da conta proibida;
+  - impedir que credencial legada proibida seja devolvida ao motor Pix;
+  - tratar confirmação pendente proibida de forma sanitizada;
+- RLS forçado, grants mínimos e `search_path` fixo onde aplicável.
+
+Proibido nesta microetapa:
+
+- apagar ou revogar automaticamente credencial ativa histórica;
+- apagar propriedade histórica;
+- alterar payload de pagamento;
+- alterar `application_fee`;
+- alterar dinheiro/cartão;
+- alterar ciclo geral de corrida;
+- alterar webhook, expiração, refund ou antifraude;
+- inserir segredo, Access Token, Client Secret ou token da plataforma em tabela, commit, teste, log ou resposta.
+
+#### Comportamento obrigatório
+
+1. O servidor identifica o `user_id` próprio da aplicação por fluxo oficial e nunca o confunde com `Client ID`.
+2. Se a identidade da plataforma não puder ser determinada/registrada, o caminho de nova autorização/ativação de motorista falha fechado.
+3. A conta identificada como plataforma nunca vira pendência válida de motorista.
+4. A conta identificada como plataforma nunca vira credencial ativa de motorista.
+5. Uma credencial legada que coincida com a conta proibida não pode ser devolvida pelo getter usado no motor Pix.
+6. Nenhuma correção destrutiva é feita sobre credenciais financeiras existentes apenas por inferência.
+7. Contas normais de motoristas continuam obedecendo propriedade histórica e confirmação explícita sem regressão.
+
+#### Testes obrigatórios
+
+- identificação server-only do `user_id` da aplicação;
+- `Client ID` nunca usado como substituto de `user_id`;
+- falha de `client_credentials` bloqueia o fluxo sem vazamento de segredo;
+- plataforma não cria pendência;
+- plataforma não ativa credencial;
+- credencial legada proibida não é retornada ao motor Pix;
+- conta normal continua pendente e confirmável;
+- ownership entre motoristas continua bloqueado;
+- 1.2 e 1.3 regressam verdes;
+- RLS/grants/advisors verdes;
+- TypeScript, lint e build integral verdes;
+- bateria Pix acumulada verde.
+
+### 13.4 Estado corrente
+
+- Etapa 1: **EM EXECUÇÃO**;
+- Microetapa 1.3: `PARCIALMENTE APROVADA` até a 1.3A;
+- Microetapa atual: **1.3A — bloqueio da conta plataforma/integrador**;
+- Microetapa 1.4: **BLOQUEADA**;
+- Etapas 2–10: **BLOQUEADAS**.
