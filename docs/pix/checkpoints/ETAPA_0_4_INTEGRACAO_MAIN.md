@@ -6,7 +6,8 @@
 **Checkpoint anterior:** `docs/pix/checkpoints/ETAPA_0_3R_RECONCILIACAO_HISTORICO_GIT.md`  
 **Branch:** `feature/pix-100-seguro`  
 **Supabase:** `qycblinfvijhfjcmdoof`  
-**Classificação inicial:** EM EXECUÇÃO
+**Classificação inicial:** EM EXECUÇÃO  
+**Classificação final:** APROVADA
 
 ## Objetivo
 
@@ -166,6 +167,84 @@ Somente estes arquivos podem ser alterados:
 - TypeScript e build continuarem passando;
 - Supabase permanecer byte/logicamente no mesmo baseline operacional;
 - `main` permanecer inalterada e PR continuar draft/não mergeada.
+
+## Evidências finais da 0.4F
+
+Head funcional validado antes deste fechamento documental:
+
+`36f43aa0710998cefd21d3b2c18d96c989f0c866`
+
+Comparação contra o checkpoint de autorização `2aab388090ef198b1a968e550f74f1a4f0c65eb3`:
+
+- 6 commits de saneamento;
+- exatamente 4 arquivos funcionais/configuração alterados;
+- nenhum arquivo fora da allowlist;
+- `.github/workflows/pix-db-oauth-atomic-connection.yml`: 4 adições e 1 remoção;
+- `.github/workflows/pix-mercadopago-oauth.yml`: 2 adições;
+- `.github/workflows/pix-oauth-crypto.yml`: 2 adições;
+- `src/lib/pagamento-pix-status.functions.ts`: 1 adição e 3 remoções, somente colapso/formatação Prettier do `import()` dinâmico, sem mudança lógica.
+
+As duas guardas OAuth agora:
+
+- reconhecem `src/lib/pix-payment-sync.server.ts` exclusivamente como consumidor server-only autorizado;
+- continuam falhando para qualquer outro consumidor não listado;
+- disparam novamente quando `src/lib/pix-payment-sync.server.ts` for alterado.
+
+O guard OAuth atômico não usa mais hash congelado do arquivo legado. Em vez disso, exige igualdade byte a byte de `src/lib/motorista-pagamento.functions.ts` com `origin/main` via `cmp -s`, falhando se houver qualquer divergência.
+
+## CI final
+
+No SHA `36f43aa0710998cefd21d3b2c18d96c989f0c866`, os 13 workflows Pix foram executados novamente e todos concluíram com `success`:
+
+1. PIX OAuth Crypto;
+2. PIX Mercado Pago OAuth Client;
+3. PIX Pagamento passageiro;
+4. PIX DB Attempts and Webhook Events;
+5. PIX DB Aggregate Integrity;
+6. PIX DB OAuth State and PKCE;
+7. PIX Cobrança após aceite;
+8. PIX DB Mercado Pago Account Uniqueness;
+9. PIX Criação Financeira Atômica;
+10. PIX DB OAuth FK Index;
+11. PIX Compensação falha de cobrança;
+12. PIX DB Foundation;
+13. PIX DB OAuth Atomic Connection.
+
+O workflow de Pagamento passageiro confirmou Prettier, testes exclusivos, ESLint, TypeScript, build e guardas. Os workflows OAuth confirmaram novamente testes, TypeScript e build. O workflow OAuth Atomic Connection confirmou migrations/fixtures somente na stack local descartável, pgTAP, lint/advisors, regressões OAuth, TypeScript/build e os guards finais.
+
+## Contraprova Git final
+
+- `main` continua exatamente em `de4d054643f7c67f22ee9c183a84af05f0809db7`;
+- branch Pix está `behind_by = 0` e 201 commits à frente da `main` antes deste commit documental;
+- PR #2 continua aberta;
+- PR #2 continua `draft`;
+- PR #2 continua não mergeada;
+- após a resolução controlada dos conflitos, GitHub reporta a PR como `mergeable = true`, sem executar merge.
+
+## Contraprova Supabase final
+
+Consulta somente leitura após todo o saneamento e CI:
+
+- tentativas Pix: 33 total;
+- `falhou`: 33;
+- `criando`: 0;
+- `pendente`: 0;
+- `pago`: 0;
+- `estornado`: 0;
+- credenciais OAuth: 2 total;
+- ativas: 1;
+- revogadas: 1;
+- migration mais recente permanece `20260826200511_pix_ticket_url_diagnostics`.
+
+O baseline é idêntico ao início da Etapa 0.4. Nenhuma migration, RPC, tabela, credencial ou dado foi alterado no Supabase principal por esta etapa.
+
+## Decisão
+
+**ETAPA 0.4 — APROVADA.**
+
+A `main` foi integrada de forma controlada na branch Pix; a branch não está atrasada em relação à `main`; o fluxo Pix seguro foi preservado; a bateria CI foi reconciliada sem mudança de regra de negócio; os 13 workflows estão verdes; o Supabase principal permaneceu inalterado; e a PR permanece draft e não mergeada.
+
+A próxima etapa só pode começar a partir deste checkpoint aprovado e deve abrir nova allowlist antes de qualquer escrita funcional.
 
 ## Rollback
 
