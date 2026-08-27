@@ -15,10 +15,12 @@ export type PixOAuthRpcClient = Readonly<{
   rpc(functionName: string, args: Record<string, unknown>): PromiseLike<RpcResponse>;
 }>;
 
-export type PixOAuthPendingStatus = Readonly<{ pendente: false }> | Readonly<{
-  pendente: true;
-  confirmationExpiresAt: string;
-}>;
+export type PixOAuthPendingStatus =
+  | Readonly<{ pendente: false }>
+  | Readonly<{
+      pendente: true;
+      confirmationExpiresAt: string;
+    }>;
 
 export type PixOAuthPendingConfirmationResult =
   | Readonly<{ conectado: true; jaEstavaConectado: boolean }>
