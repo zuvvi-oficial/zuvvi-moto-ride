@@ -13,7 +13,6 @@ const INVALID_INPUT_MESSAGE = "Parâmetros OAuth Mercado Pago inválidos.";
 const REMOTE_ERROR_MESSAGE = "Não foi possível concluir a comunicação segura com o Mercado Pago.";
 
 type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
-type GrantType = "authorization_code" | "refresh_token" | "client_credentials";
 
 export type MercadoPagoOAuthTokenSet = Readonly<{
   userId: string;
@@ -32,7 +31,6 @@ export type MercadoPagoOAuthClient = Readonly<{
     codeVerifier: string;
   }): Promise<MercadoPagoOAuthTokenSet>;
   refreshAccessToken(refreshToken: string): Promise<MercadoPagoOAuthTokenSet>;
-  getApplicationOwnerUserId(): Promise<string>;
 }>;
 
 type OAuthClientConfig = Readonly<{
@@ -209,12 +207,11 @@ export function createMercadoPagoOAuthClient(
 
   if (typeof fetchImplementation !== "function" || typeof now !== "function") invalidInput();
 
-  async function requestJson(
-    payload: Record<string, string>,
-    grantType: GrantType,
-  ): Promise<unknown> {
+  async function requestToken(payload: Record<string, string>): Promise<MercadoPagoOAuthTokenSet> {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), timeoutMs);
+    const grantType =
+      payload["grant_type"] === "refresh_token" ? "refresh_token" : "authorization_code";
 
     try {
       let response: Response;
@@ -256,25 +253,22 @@ export function createMercadoPagoOAuthClient(
         remoteError();
       }
 
-      return responsePayload;
+      try {
+        const tokenSet = parseTokenSet(responsePayload, now);
+        console.info("[PixOAuthDiag] token_exchange_accepted", {
+          grantType,
+          status: response.status,
+        });
+        return tokenSet;
+      } catch {
+        console.error("[PixOAuthDiag] token_response_invalid_shape", {
+          grantType,
+          status: response.status,
+        });
+        remoteError();
+      }
     } finally {
       clearTimeout(timeout);
-    }
-  }
-
-  async function requestToken(
-    payload: Record<string, string>,
-    grantType: "authorization_code" | "refresh_token",
-  ): Promise<MercadoPagoOAuthTokenSet> {
-    const responsePayload = await requestJson(payload, grantType);
-
-    try {
-      const tokenSet = parseTokenSet(responsePayload, now);
-      console.info("[PixOAuthDiag] token_exchange_accepted", { grantType });
-      return tokenSet;
-    } catch {
-      console.error("[PixOAuthDiag] token_response_invalid_shape", { grantType });
-      remoteError();
     }
   }
 
@@ -300,45 +294,25 @@ export function createMercadoPagoOAuthClient(
       const authorizationCode = requireTrimmedString(code, 500);
       if (authorizationCode.length < 4 || !PKCE_VALUE_PATTERN.test(codeVerifier)) invalidInput();
 
-      return requestToken(
-        {
-          client_id: clientId,
-          client_secret: clientSecret,
-          grant_type: "authorization_code",
-          code: authorizationCode,
-          redirect_uri: redirectUri,
-          code_verifier: codeVerifier,
-        },
-        "authorization_code",
-      );
+      return requestToken({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "authorization_code",
+        code: authorizationCode,
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier,
+      });
     },
 
     async refreshAccessToken(refreshToken): Promise<MercadoPagoOAuthTokenSet> {
       const validatedRefreshToken = requireTrimmedString(refreshToken, MAX_TOKEN_CHARS);
 
-      return requestToken(
-        {
-          client_id: clientId,
-          client_secret: clientSecret,
-          grant_type: "refresh_token",
-          refresh_token: validatedRefreshToken,
-        },
-        "refresh_token",
-      );
-    },
-
-    async getApplicationOwnerUserId(): Promise<string> {
-      const responsePayload = await requestJson(
-        {
-          client_id: clientId,
-          client_secret: clientSecret,
-          grant_type: "client_credentials",
-        },
-        "client_credentials",
-      );
-
-      if (!isRecord(responsePayload)) remoteError();
-      return readUserId(responsePayload["user_id"]);
+      return requestToken({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "refresh_token",
+        refresh_token: validatedRefreshToken,
+      });
     },
   });
 }
