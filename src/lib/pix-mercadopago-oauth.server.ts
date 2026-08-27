@@ -32,8 +32,12 @@ export type MercadoPagoOAuthClient = Readonly<{
     codeVerifier: string;
   }): Promise<MercadoPagoOAuthTokenSet>;
   refreshAccessToken(refreshToken: string): Promise<MercadoPagoOAuthTokenSet>;
-  getApplicationOwnerUserId(): Promise<string>;
 }>;
+
+export type MercadoPagoOAuthApplicationClient = MercadoPagoOAuthClient &
+  Readonly<{
+    getApplicationOwnerUserId(): Promise<string>;
+  }>;
 
 type OAuthClientConfig = Readonly<{
   clientId: string;
@@ -199,7 +203,7 @@ async function readJsonResponse(response: Response): Promise<unknown> {
 export function createMercadoPagoOAuthClient(
   config: OAuthClientConfig,
   dependencies: OAuthClientDependencies = {},
-): MercadoPagoOAuthClient {
+): MercadoPagoOAuthApplicationClient {
   const clientId = requireTrimmedString(config.clientId, 128);
   const clientSecret = requireTrimmedString(config.clientSecret, 512);
   const redirectUri = validateRedirectUri(config.redirectUri);
