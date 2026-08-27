@@ -340,7 +340,7 @@ async function criarDependenciasOAuth(
   };
 }
 
-async function obterAccessTokenValido(
+export async function obterAccessTokenValido(
   supabaseAdmin: any,
   motoristaId: string,
   contaMercadoPagoId: string | null,
