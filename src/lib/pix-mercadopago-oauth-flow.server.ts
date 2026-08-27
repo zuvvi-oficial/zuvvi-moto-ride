@@ -24,7 +24,7 @@ type CompletionStage =
   | "decrypt_verifier"
   | "exchange_token"
   | "encrypt_tokens"
-  | "persist_credentials";
+  | "persist_pending_authorization";
 
 function logCompletionStage(stage: CompletionStage): void {
   console.info("[PixOAuthDiag] completion_stage", { stage });
@@ -43,7 +43,7 @@ export type PixOAuthConsumedState = Readonly<{
   encryptionVersion: number;
 }>;
 
-export type PixOAuthCredentialRecord = Readonly<{
+export type PixOAuthPendingAuthorizationRecord = Readonly<{
   motoristaId: string;
   mercadoPagoUserId: string;
   encryptedAccessToken: string;
@@ -60,7 +60,9 @@ export type PixOAuthPersistence = Readonly<{
     motoristaId: string;
     stateHash: string;
   }): Promise<PixOAuthConsumedState | null>;
-  upsertCredentialsAtomically(input: PixOAuthCredentialRecord): Promise<void>;
+  storePendingAuthorization(
+    input: PixOAuthPendingAuthorizationRecord,
+  ): Promise<Readonly<{ confirmationExpiresAt: string }>>;
 }>;
 
 type PixOAuthFlowConfig = Readonly<{
@@ -81,7 +83,7 @@ export type PixMercadoPagoOAuthFlow = Readonly<{
     motoristaId: string;
     code: string;
     state: string;
-  }): Promise<Readonly<{ connected: true }>>;
+  }): Promise<Readonly<{ pending: true; confirmationExpiresAt: string }>>;
 }>;
 
 function requireUuid(value: unknown): string {
@@ -191,9 +193,9 @@ export function createPixMercadoPagoOAuthFlow(
           encryptOAuthSecret(tokenSet.refreshToken, config.encryptionKey),
         ]);
 
-        stage = "persist_credentials";
+        stage = "persist_pending_authorization";
         logCompletionStage(stage);
-        await config.persistence.upsertCredentialsAtomically({
+        const pendingAuthorization = await config.persistence.storePendingAuthorization({
           motoristaId,
           mercadoPagoUserId: tokenSet.userId,
           encryptedAccessToken,
@@ -205,7 +207,10 @@ export function createPixMercadoPagoOAuthFlow(
         });
 
         console.info("[PixOAuthDiag] completion_succeeded", { stage });
-        return Object.freeze({ connected: true as const });
+        return Object.freeze({
+          pending: true as const,
+          confirmationExpiresAt: pendingAuthorization.confirmationExpiresAt,
+        });
       } catch {
         console.error("[PixOAuthDiag] completion_failed", { stage });
         throw new Error(COMPLETE_ERROR);
