@@ -26,6 +26,11 @@ type CompletionStage =
   | "encrypt_tokens"
   | "persist_pending_authorization";
 
+type MercadoPagoOAuthFlowClient = Pick<
+  MercadoPagoOAuthClient,
+  "buildAuthorizationUrl" | "exchangeAuthorizationCode"
+>;
+
 function logCompletionStage(stage: CompletionStage): void {
   console.info("[PixOAuthDiag] completion_stage", { stage });
 }
@@ -67,7 +72,7 @@ export type PixOAuthPersistence = Readonly<{
 
 type PixOAuthFlowConfig = Readonly<{
   encryptionKey: string;
-  oauthClient: MercadoPagoOAuthClient;
+  oauthClient: MercadoPagoOAuthFlowClient;
   persistence: PixOAuthPersistence;
 }>;
 
