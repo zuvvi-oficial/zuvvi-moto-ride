@@ -81,7 +81,7 @@ jobs:
           test "${#pix11_paths[@]}" = "1"
           test "${pix11_paths[0]}" = "${expected_pix11_path}"
 
-          expected_pix12_path="supabase/migrations/20260827193000_pix_oauth_pending_authorization.sql"
+          expected_pix12_path="supabase/migrations/20260827200227_pix_oauth_pending_authorization.sql"
           mapfile -t pix12_paths < <(git ls-files 'supabase/migrations/*_pix_oauth_pending_authorization.sql')
           test "${#pix12_paths[@]}" = "1"
           test "${pix12_paths[0]}" = "${expected_pix12_path}"
