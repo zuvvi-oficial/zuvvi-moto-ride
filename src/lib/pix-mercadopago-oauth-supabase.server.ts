@@ -44,6 +44,13 @@ function readConsumedState(data: unknown): PixOAuthConsumedState | null {
   });
 }
 
+function readPendingConfirmationExpiry(data: unknown): string {
+  if (typeof data !== "string") persistenceError();
+  const timestamp = Date.parse(data);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) persistenceError();
+  return new Date(timestamp).toISOString();
+}
+
 export function createPixOAuthSupabasePersistenceFromClient(
   client: PixOAuthRpcClient,
 ): PixOAuthPersistence {
@@ -71,19 +78,20 @@ export function createPixOAuthSupabasePersistenceFromClient(
       return readConsumedState(data);
     },
 
-    async upsertCredentialsAtomically(input) {
-      const { error } = await client.rpc("pix_oauth_credentials_upsert", {
+    async storePendingAuthorization(input) {
+      const { data, error } = await client.rpc("pix_oauth_pending_authorization_upsert", {
         _motorista_id: input.motoristaId,
         _mercadopago_user_id: input.mercadoPagoUserId,
         _access_token_encrypted: input.encryptedAccessToken,
         _refresh_token_encrypted: input.encryptedRefreshToken,
         _encryption_version: input.encryptionVersion,
-        _expires_at: input.expiresAt,
+        _token_expires_at: input.expiresAt,
         _scope: input.scope ?? null,
         _token_type: input.tokenType ?? null,
       });
 
       if (error) persistenceError();
+      return Object.freeze({ confirmationExpiresAt: readPendingConfirmationExpiry(data) });
     },
   });
 }
