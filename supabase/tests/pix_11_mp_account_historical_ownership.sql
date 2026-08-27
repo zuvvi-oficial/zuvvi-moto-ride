@@ -1,6 +1,6 @@
 begin;
 
-select plan(35);
+select plan(37);
 
 select has_table(
   'private',
