@@ -58,7 +58,7 @@ export type PixMercadoPagoOAuthServerActions = Readonly<{
   completeForAuthenticatedUser(
     authUserId: string,
     input: PixMercadoPagoOAuthCompletionInput,
-  ): Promise<Readonly<{ connected: true }>>;
+  ): Promise<Readonly<{ pending: true; confirmationExpiresAt: string }>>;
 }>;
 
 function requireUuid(value: unknown): string {
