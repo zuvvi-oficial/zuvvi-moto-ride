@@ -64,7 +64,7 @@ export async function getPixEtapaGateServer(
   const corrida = await carregarCorridaPix(supabaseAdmin, rideId, passageiro["id"]);
 
   if (corrida["forma_pagamento"] !== "pix") {
-    return Object.freeze({ isPix: true === false, liberado: true });
+    return Object.freeze({ isPix: false, liberado: true });
   }
 
   const { data: pagamento } = await supabaseAdmin
