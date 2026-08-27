@@ -47,7 +47,7 @@ jobs:
           set -euo pipefail
           expected_pix12_path="supabase/migrations/20260827200227_pix_oauth_pending_authorization.sql"
           expected_pix13_path="supabase/migrations/20260827203802_pix_oauth_pending_confirmation.sql"
-          expected_pix14_path="supabase/migrations/20260827211500_pix_oauth_reconnect_switch_guard.sql"
+          expected_pix14_path="supabase/migrations/20260827213952_pix_oauth_reconnect_switch_guard.sql"
 
           test -f "${expected_pix12_path}"
           test -f "${expected_pix13_path}"
