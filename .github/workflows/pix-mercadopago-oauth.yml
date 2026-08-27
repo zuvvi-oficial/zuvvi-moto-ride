@@ -90,6 +90,7 @@ jobs:
             --exclude='pix-mercadopago-oauth.server.ts' \
             --exclude='pix-mercadopago-oauth-flow.server.ts' \
             --exclude='pix-mercadopago-oauth-runtime.server.ts' \
+            --exclude='pix-payment-sync.server.ts' \
             --exclude='pagamento.server.ts'; then
             echo "O cliente OAuth foi importado por código existente do aplicativo"
             exit 1
