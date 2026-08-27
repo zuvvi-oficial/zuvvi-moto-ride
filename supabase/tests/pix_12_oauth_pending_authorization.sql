@@ -315,7 +315,9 @@ select ok(
 );
 
 update private.motorista_mercadopago_autorizacoes_pendentes
-set confirmation_expires_at = now() - interval '1 second'
+set created_at = now() - interval '20 minutes',
+    confirmation_expires_at = now() - interval '10 minutes',
+    updated_at = now() - interval '10 minutes'
 where mercadopago_user_id = 'mp-new-b';
 
 set local role service_role;
