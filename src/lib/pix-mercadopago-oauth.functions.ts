@@ -11,6 +11,7 @@ const COMPLETE_ERROR = "Não foi possível concluir a conexão segura com o Merc
 const STATUS_ERROR = "Não foi possível consultar a conexão segura com o Mercado Pago.";
 const PENDING_STATUS_ERROR = "Não foi possível consultar a autorização pendente do Mercado Pago.";
 const CONFIRM_ERROR = "Não foi possível confirmar a conexão segura com o Mercado Pago.";
+const CANCEL_PENDING_ERROR = "Não foi possível cancelar a autorização pendente do Mercado Pago.";
 const DISCONNECT_ERROR = "Não foi possível desconectar a conta Mercado Pago com segurança.";
 
 async function createAuthenticatedRuntime() {
@@ -33,7 +34,11 @@ async function createAuthenticatedAccountContext(authUserId: string) {
     { supabaseAdmin },
     { createPixOAuthMotoristaResolver },
     { getPixMercadoPagoSecureConnectionStatus, disconnectPixMercadoPagoSafely },
-    { getPixOAuthPendingAuthorizationStatus, confirmPixOAuthPendingAuthorization },
+    {
+      getPixOAuthPendingAuthorizationStatus,
+      cancelPixOAuthPendingAuthorization,
+      confirmPixOAuthPendingAuthorization,
+    },
   ] = await Promise.all([
     import("@/integrations/supabase/client.server"),
     import("./pix-mercadopago-oauth-runtime.server"),
@@ -49,7 +54,17 @@ async function createAuthenticatedAccountContext(authUserId: string) {
     motoristaId,
     getStatus: () => getPixMercadoPagoSecureConnectionStatus(accountClient, motoristaId),
     getPendingStatus: () => getPixOAuthPendingAuthorizationStatus(oauthClient, motoristaId),
-    confirmPending: () => confirmPixOAuthPendingAuthorization(oauthClient, motoristaId),
+    cancelPending: () => cancelPixOAuthPendingAuthorization(oauthClient, motoristaId),
+    async confirmPending() {
+      const { createMercadoPagoOAuthClient } = await import("./pix-mercadopago-oauth.server");
+      const platformClient = createMercadoPagoOAuthClient({
+        clientId: process.env["MERCADOPAGO_CLIENT_ID"] ?? "",
+        clientSecret: process.env["MERCADOPAGO_CLIENT_SECRET"] ?? "",
+        redirectUri: REDIRECT_URI,
+      });
+      const platformUserId = await platformClient.getApplicationOwnerUserId();
+      return confirmPixOAuthPendingAuthorization(oauthClient, motoristaId, platformUserId);
+    },
     disconnect: () => disconnectPixMercadoPagoSafely(accountClient, motoristaId),
   };
 }
@@ -96,6 +111,17 @@ export const getAutorizacaoPendenteMercadoPagoPixSegura = createServerFn({ metho
       return await account.getPendingStatus();
     } catch {
       throw new Error(PENDING_STATUS_ERROR);
+    }
+  });
+
+export const cancelarAutorizacaoPendenteMercadoPagoPixSegura = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    try {
+      const account = await createAuthenticatedAccountContext(context.userId);
+      return { cancelada: await account.cancelPending() };
+    } catch {
+      throw new Error(CANCEL_PENDING_ERROR);
     }
   });
 
