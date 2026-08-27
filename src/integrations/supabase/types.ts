@@ -812,6 +812,38 @@ export type Database = {
           },
         ]
       }
+      pagamentos_pix_device_sessions: {
+        Row: {
+          created_at: string
+          device_id: string
+          expires_at: string
+          passageiro_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          expires_at: string
+          passageiro_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          expires_at?: string
+          passageiro_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_pix_device_sessions_passageiro_id_fkey"
+            columns: ["passageiro_id"]
+            isOneToOne: true
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagamentos_pix_tentativas: {
         Row: {
           approved_at: string | null
@@ -825,9 +857,12 @@ export type Database = {
           motorista_id: string
           pagamento_id: string
           pix_copia_cola: string | null
+          provider_error_code: string | null
+          provider_error_message: string | null
           provider_status: string | null
           provider_status_detail: string | null
           refunded_at: string | null
+          ticket_url: string | null
           updated_at: string
           valor_comissao: number
           valor_total: number
@@ -844,9 +879,12 @@ export type Database = {
           motorista_id: string
           pagamento_id: string
           pix_copia_cola?: string | null
+          provider_error_code?: string | null
+          provider_error_message?: string | null
           provider_status?: string | null
           provider_status_detail?: string | null
           refunded_at?: string | null
+          ticket_url?: string | null
           updated_at?: string
           valor_comissao: number
           valor_total: number
@@ -863,9 +901,12 @@ export type Database = {
           motorista_id?: string
           pagamento_id?: string
           pix_copia_cola?: string | null
+          provider_error_code?: string | null
+          provider_error_message?: string | null
           provider_status?: string | null
           provider_status_detail?: string | null
           refunded_at?: string | null
+          ticket_url?: string | null
           updated_at?: string
           valor_comissao?: number
           valor_total?: number
@@ -1155,6 +1196,15 @@ export type Database = {
         }
         Returns: string
       }
+      pix_payment_status_project: {
+        Args: {
+          _mercadopago_payment_id: string
+          _provider_status: string
+          _provider_status_detail: string
+          _tentativa_id: string
+        }
+        Returns: string
+      }
       set_motorista_online_atomic: {
         Args: { p_motorista_id: string }
         Returns: string
@@ -1205,6 +1255,7 @@ export type Database = {
         | "concluida"
         | "cancelada"
         | "sem_motorista"
+        | "aguardando_pagamento"
       documento_status_analise:
         | "pendente"
         | "aprovado"
@@ -1385,6 +1436,7 @@ export const Constants = {
         "concluida",
         "cancelada",
         "sem_motorista",
+        "aguardando_pagamento",
       ],
       documento_status_analise: [
         "pendente",
