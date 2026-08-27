@@ -14,6 +14,7 @@ const CREATED_STATE_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const ENCRYPTION_KEY = Buffer.alloc(32, 9).toString("base64");
 const REDIRECT_URI = "https://zuvvi-moto-ride.lovable.app/motorista/mercadopago-callback";
 const FIXED_NOW = Date.parse("2026-08-25T03:30:00.000Z");
+const PENDING_EXPIRES_AT = new Date(FIXED_NOW + 10 * 60_000).toISOString();
 
 type QueryCall = Readonly<{
   table: string;
@@ -107,8 +108,8 @@ function createFakeSupabase(options: FakeOptions = {}) {
         };
       }
 
-      if (functionName === "pix_oauth_credentials_upsert") {
-        return { data: null, error: null };
+      if (functionName === "pix_oauth_pending_authorization_upsert") {
+        return { data: PENDING_EXPIRES_AT, error: null };
       }
 
       return { data: null, error: { code: "unexpected_rpc" } };
@@ -158,7 +159,7 @@ test("início usa somente a identidade autenticada e não devolve state separado
   assert.equal(fake.rpcCalls[0]?.args["_motorista_id"], MOTORISTA_ID);
 });
 
-test("conclusão mantém motorista da sessão e retorna somente confirmação", async () => {
+test("conclusão mantém motorista da sessão e retorna somente autorização pendente", async () => {
   const fake = createFakeSupabase();
   const providerCalls: Array<{ input: string; body: Record<string, unknown> }> = [];
   const providerFetch = async (input: string | URL | Request, init?: RequestInit) => {
@@ -189,19 +190,26 @@ test("conclusão mantém motorista da sessão e retorna somente confirmação", 
     state,
   });
 
-  assert.deepEqual(result, { connected: true });
-  assert.deepEqual(Object.keys(result), ["connected"]);
+  assert.deepEqual(result, {
+    pending: true,
+    confirmationExpiresAt: PENDING_EXPIRES_AT,
+  });
+  assert.deepEqual(Object.keys(result), ["pending", "confirmationExpiresAt"]);
   assert.equal(providerCalls.length, 1);
   assert.equal(providerCalls[0]?.input, "https://api.mercadopago.com/oauth/token");
   assert.equal(providerCalls[0]?.body["code"], "authorization-code-test");
   assert.equal(typeof providerCalls[0]?.body["code_verifier"], "string");
-  const upsert = fake.rpcCalls.find(
-    ({ functionName }) => functionName === "pix_oauth_credentials_upsert",
+  const pending = fake.rpcCalls.find(
+    ({ functionName }) => functionName === "pix_oauth_pending_authorization_upsert",
   );
-  assert.equal(upsert?.args["_motorista_id"], MOTORISTA_ID);
-  assert.equal(upsert?.args["_mercadopago_user_id"], "987654321");
-  assert.notEqual(upsert?.args["_access_token_encrypted"], "access-token-test");
-  assert.notEqual(upsert?.args["_refresh_token_encrypted"], "refresh-token-test");
+  assert.equal(pending?.args["_motorista_id"], MOTORISTA_ID);
+  assert.equal(pending?.args["_mercadopago_user_id"], "987654321");
+  assert.notEqual(pending?.args["_access_token_encrypted"], "access-token-test");
+  assert.notEqual(pending?.args["_refresh_token_encrypted"], "refresh-token-test");
+  assert.equal(
+    fake.rpcCalls.some(({ functionName }) => functionName === "pix_oauth_credentials_upsert"),
+    false,
+  );
 });
 
 test("schema aceita somente code e state e rejeita identidade enviada pelo navegador", () => {
@@ -319,8 +327,9 @@ test("state criado por outro motorista é recusado antes de chamar o provedor", 
 
   assert.equal(providerCalls, 0);
   assert.equal(
-    fake.rpcCalls.filter(({ functionName }) => functionName === "pix_oauth_credentials_upsert")
-      .length,
+    fake.rpcCalls.filter(
+      ({ functionName }) => functionName === "pix_oauth_pending_authorization_upsert",
+    ).length,
     0,
   );
 });
