@@ -7,8 +7,10 @@ on:
     paths:
       - ".github/workflows/pix-db-mercadopago-account-uniqueness.yml"
       - "supabase/migrations/20260824222419_unicidade_conta_mercado_pago_motorista.sql"
+      - "supabase/migrations/20260827185500_pix_mp_account_historical_ownership.sql"
       - "supabase/tests/fixtures/pix_07r_prerequisites.sql"
       - "supabase/tests/pix_07r_conta_mercado_pago_unica.sql"
+      - "supabase/tests/pix_11_mp_account_historical_ownership.sql"
 
 permissions:
   contents: read
@@ -19,7 +21,7 @@ concurrency:
 
 jobs:
   pix-07r-account-uniqueness:
-    name: Reconciliar unicidade e repetir regressão Pix
+    name: Reconciliar unicidade e propriedade histórica Mercado Pago
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -36,7 +38,7 @@ jobs:
       - name: Instalar Supabase CLI fixada
         run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
 
-      - name: Preparar migrations congeladas e reconciliação PIX-07R
+      - name: Preparar migrations congeladas e propriedade histórica
         shell: bash
         run: |
           set -euo pipefail
@@ -45,6 +47,7 @@ jobs:
           cp supabase/migrations/20260824234933_pix_attempts_webhook.sql /tmp/pix_02.sql
           cp supabase/migrations/20260825001055_pix_aggregate_integrity.sql /tmp/pix_03.sql
           cp supabase/migrations/20260825004851_pix_oauth_state_pkce.sql /tmp/pix_04.sql
+          cp supabase/migrations/20260827185500_pix_mp_account_historical_ownership.sql /tmp/pix_11.sql
 
       - name: Isolar migrations preexistentes no runner
         shell: bash
@@ -60,7 +63,7 @@ jobs:
           npx --yes supabase@${SUPABASE_CLI_VERSION} start
           --exclude studio,imgproxy,mailpit,logflare,vector,edge-runtime
 
-      - name: Aplicar fixtures, reconciliação e migrations PIX-01 a PIX-04
+      - name: Aplicar fixtures, baseline OAuth e propriedade histórica
         shell: bash
         run: |
           set -euo pipefail
@@ -71,12 +74,58 @@ jobs:
               'select count(*) from supabase_migrations.schema_migrations')"
             test "${migration_count}" = "0"
           fi
+
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
             -f supabase/tests/fixtures/pix_01_prerequisites.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
             -f supabase/tests/fixtures/pix_07r_prerequisites.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_07r.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_01.sql
+
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 <<'SQL'
+          insert into public.usuarios (
+            id, nome, perfil_ativo, is_passageiro, is_motorista
+          ) values
+            ('11000000-0000-4000-8000-000000000001'::uuid, 'Motorista PIX 11 A', 'motorista', false, true),
+            ('11000000-0000-4000-8000-000000000002'::uuid, 'Motorista PIX 11 B', 'motorista', false, true);
+
+          insert into public.motoristas (id) values
+            ('11000000-0000-4000-8000-000000000001'::uuid),
+            ('11000000-0000-4000-8000-000000000002'::uuid);
+
+          set role service_role;
+
+          select public.pix_oauth_credentials_upsert(
+            '11000000-0000-4000-8000-000000000001'::uuid,
+            'mp-preexisting-active',
+            'aes-access-preexisting-active',
+            'aes-refresh-preexisting-active',
+            1::smallint,
+            now() + interval '1 hour',
+            'offline_access read write',
+            'Bearer'
+          );
+
+          select public.pix_oauth_credentials_upsert(
+            '11000000-0000-4000-8000-000000000002'::uuid,
+            'mp-preexisting-revoked',
+            'aes-access-preexisting-revoked',
+            'aes-refresh-preexisting-revoked',
+            1::smallint,
+            now() + interval '1 hour',
+            'offline_access read write',
+            'Bearer'
+          );
+
+          select public.pix_oauth_credentials_revoke(
+            '11000000-0000-4000-8000-000000000002'::uuid
+          );
+
+          reset role;
+          SQL
+
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_11.sql
+
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
             -f supabase/tests/fixtures/pix_02_prerequisites.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
@@ -85,10 +134,14 @@ jobs:
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_03.sql
           psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_04.sql
 
-      - name: Executar teste exclusivo PIX-07R
-        run: >-
-          npx --yes supabase@${SUPABASE_CLI_VERSION} test db
-          supabase/tests/pix_07r_conta_mercado_pago_unica.sql --local
+      - name: Executar testes de unicidade e propriedade histórica
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db \
+            supabase/tests/pix_07r_conta_mercado_pago_unica.sql --local
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db \
+            supabase/tests/pix_11_mp_account_historical_ownership.sql --local
 
       - name: Repetir regressão pgTAP PIX-01 a PIX-04
         shell: bash
