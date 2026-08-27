@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
@@ -125,20 +126,41 @@ export const concluirConexaoMercadoPago = createServerFn({ method: "POST" })
   });
 
 export const desconectarMercadoPago = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const motoristaId = await getMotoristaId(context);
 
-    const { data, error } = await supabaseAdmin
+    const { data: resultado, error } = await supabaseAdmin.rpc("pix_oauth_disconnect_safe", {
+      _motorista_id: motoristaId,
+    });
+
+    if (error) {
+      console.error("[MercadoPago] Falha ao desconectar conta:", error.message);
+      throw new Error("Não foi possível desconectar a conta. Tente novamente.");
+    }
+
+    if (resultado === "blocked_active_pix") {
+      throw new Error("Não é possível desconectar enquanto houver uma corrida Pix ativa.");
+    }
+
+    if (resultado === "blocked_financial") {
+      throw new Error("Não é possível desconectar enquanto houver uma obrigação financeira Pix pendente.");
+    }
+
+    if (resultado !== "disconnected") {
+      console.error("[MercadoPago] Resultado inesperado ao desconectar conta:", resultado);
+      throw new Error("Não foi possível desconectar a conta. Tente novamente.");
+    }
+
+    const { data: motorista, error: statusError } = await supabaseAdmin
       .from("motoristas")
-      .update({ conta_mercado_pago_id: null })
+      .select("conta_mercado_pago_id")
       .eq("id", motoristaId)
-      .select("id")
       .maybeSingle();
 
-    if (error || !data) {
-      console.error("[MercadoPago] Falha ao desconectar conta:", error?.message);
+    if (statusError || !motorista || motorista.conta_mercado_pago_id !== null) {
+      console.error("[MercadoPago] Desconexão não refletida no cadastro público.");
       throw new Error("Não foi possível desconectar a conta. Tente novamente.");
     }
 
