@@ -157,9 +157,7 @@ export const getPagamentoPixPassageiroStatus = createServerFn({ method: "GET" })
     // Antes de renderizar o estado, consulta o Mercado Pago com o token do motorista.
     // A sincronização é fail-closed: indisponibilidade externa mantém o estado local pendente.
     try {
-      const { sincronizarPagamentoPixComMercadoPago } = await import(
-        "./pix-payment-sync.server"
-      );
+      const { sincronizarPagamentoPixComMercadoPago } = await import("./pix-payment-sync.server");
       await sincronizarPagamentoPixComMercadoPago({
         rideId: data.rideId,
         expectedPassageiroId: passageiro.id,
