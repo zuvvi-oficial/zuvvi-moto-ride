@@ -9,6 +9,8 @@ const REDIRECT_URI = "https://zuvvi-moto-ride.lovable.app/motorista/mercadopago-
 const START_ERROR = "Não foi possível iniciar a conexão segura com o Mercado Pago.";
 const COMPLETE_ERROR = "Não foi possível concluir a conexão segura com o Mercado Pago.";
 const STATUS_ERROR = "Não foi possível consultar a conexão segura com o Mercado Pago.";
+const PENDING_STATUS_ERROR = "Não foi possível consultar a autorização pendente do Mercado Pago.";
+const CONFIRM_ERROR = "Não foi possível confirmar a conexão segura com o Mercado Pago.";
 const DISCONNECT_ERROR = "Não foi possível desconectar a conta Mercado Pago com segurança.";
 
 async function createAuthenticatedRuntime() {
@@ -31,10 +33,12 @@ async function createAuthenticatedAccountContext(authUserId: string) {
     { supabaseAdmin },
     { createPixOAuthMotoristaResolver },
     { getPixMercadoPagoSecureConnectionStatus, disconnectPixMercadoPagoSafely },
+    { getPixOAuthPendingAuthorizationStatus, confirmPixOAuthPendingAuthorization },
   ] = await Promise.all([
     import("@/integrations/supabase/client.server"),
     import("./pix-mercadopago-oauth-runtime.server"),
     import("./pix-mercadopago-account.server"),
+    import("./pix-mercadopago-oauth-supabase.server"),
   ]);
 
   const oauthClient = supabaseAdmin as unknown as PixOAuthServerSupabaseClient;
@@ -44,6 +48,8 @@ async function createAuthenticatedAccountContext(authUserId: string) {
   return {
     motoristaId,
     getStatus: () => getPixMercadoPagoSecureConnectionStatus(accountClient, motoristaId),
+    getPendingStatus: () => getPixOAuthPendingAuthorizationStatus(oauthClient, motoristaId),
+    confirmPending: () => confirmPixOAuthPendingAuthorization(oauthClient, motoristaId),
     disconnect: () => disconnectPixMercadoPagoSafely(accountClient, motoristaId),
   };
 }
@@ -79,6 +85,28 @@ export const getStatusConexaoMercadoPagoPixSegura = createServerFn({ method: "GE
       return await account.getStatus();
     } catch {
       throw new Error(STATUS_ERROR);
+    }
+  });
+
+export const getAutorizacaoPendenteMercadoPagoPixSegura = createServerFn({ method: "GET" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    try {
+      const account = await createAuthenticatedAccountContext(context.userId);
+      return await account.getPendingStatus();
+    } catch {
+      throw new Error(PENDING_STATUS_ERROR);
+    }
+  });
+
+export const confirmarConexaoMercadoPagoPixSegura = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    try {
+      const account = await createAuthenticatedAccountContext(context.userId);
+      return await account.confirmPending();
+    } catch {
+      throw new Error(CONFIRM_ERROR);
     }
   });
 
