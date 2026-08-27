@@ -1,0 +1,189 @@
+name: PIX OAuth Pending Confirmation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pix-oauth-pending-confirmation.yml"
+      - "scripts/pix/pix-mercadopago-oauth-confirmation.test.ts"
+      - "src/lib/pix-mercadopago-oauth-supabase.server.ts"
+      - "src/lib/pix-mercadopago-oauth.functions.ts"
+      - "src/routes/motorista.mercadopago-callback.tsx"
+      - "supabase/migrations/*_pix_oauth_pending_confirmation.sql"
+      - "supabase/tests/pix_13_oauth_pending_confirmation.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pix-oauth-pending-confirmation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pix-13-pending-confirmation:
+    name: Testar confirmação explícita OAuth pendente
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_CLI_VERSION: 2.115.0
+      LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - name: Checkout da branch Pix
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Conferir Docker
+        run: docker version
+
+      - name: Instalar Supabase CLI fixada
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
+
+      - name: Validar e preparar migrations OAuth até 1.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_pix12_path="supabase/migrations/20260827200227_pix_oauth_pending_authorization.sql"
+          expected_pix13_path="supabase/migrations/20260827203000_pix_oauth_pending_confirmation.sql"
+
+          mapfile -t pix12_paths < <(git ls-files 'supabase/migrations/*_pix_oauth_pending_authorization.sql')
+          test "${#pix12_paths[@]}" = "1"
+          test "${pix12_paths[0]}" = "${expected_pix12_path}"
+
+          mapfile -t pix13_paths < <(git ls-files 'supabase/migrations/*_pix_oauth_pending_confirmation.sql')
+          test "${#pix13_paths[@]}" = "1"
+          test "${pix13_paths[0]}" = "${expected_pix13_path}"
+
+          cp supabase/migrations/20260824222419_unicidade_conta_mercado_pago_motorista.sql /tmp/pix_07r.sql
+          cp supabase/migrations/20260824233357_pix_oauth_credentials_private.sql /tmp/pix_01.sql
+          cp supabase/migrations/20260824234933_pix_attempts_webhook.sql /tmp/pix_02.sql
+          cp supabase/migrations/20260825001055_pix_aggregate_integrity.sql /tmp/pix_03.sql
+          cp supabase/migrations/20260825004851_pix_oauth_state_pkce.sql /tmp/pix_04.sql
+          cp supabase/migrations/20260825021917_pix_oauth_atomic_connection.sql /tmp/pix_08.sql
+          cp supabase/migrations/20260825123937_pix_oauth_safe_disconnect.sql /tmp/pix_08d.sql
+          cp supabase/migrations/20260827190752_pix_mp_account_historical_ownership.sql /tmp/pix_11.sql
+          cp "${expected_pix12_path}" /tmp/pix_12.sql
+          cp "${expected_pix13_path}" /tmp/pix_13.sql
+
+      - name: Isolar migrations preexistentes no runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zuvvi_migrations_preexistentes
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' \
+            -exec mv {} /tmp/zuvvi_migrations_preexistentes/ \;
+          test -z "$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print -quit)"
+
+      - name: Iniciar Supabase local descartável
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} start
+          --exclude studio,imgproxy,mailpit,logflare,vector,edge-runtime
+
+      - name: Aplicar fundações Pix até confirmação explícita
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_01_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_07r_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -c \
+            'alter table public.motoristas add column updated_at timestamptz not null default now()'
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -c \
+            'grant select, update on table public.motoristas to service_role'
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_07r.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_01.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_08.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_02_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 \
+            -f supabase/tests/fixtures/pix_03_prerequisites.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_02.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_03.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_04.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 <<'SQL'
+          create type public.corrida_status as enum (
+            'solicitada','buscando_motorista','aceita','motorista_a_caminho',
+            'motorista_chegou','em_andamento','concluida','cancelada','sem_motorista'
+          );
+          create type public.pagamento_status as enum ('pendente','pago','falhou','estornado');
+          create table public.corridas (
+            id uuid primary key,
+            passageiro_id uuid not null,
+            motorista_id uuid references public.motoristas(id),
+            status public.corrida_status not null,
+            forma_pagamento public.forma_pagamento not null
+          );
+          alter table public.pagamentos
+            add column status public.pagamento_status not null default 'pendente';
+          grant select on table public.corridas, public.pagamentos to service_role;
+          SQL
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_08d.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_11.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_12.sql
+          psql "${LOCAL_DB_URL}" -v ON_ERROR_STOP=1 -f /tmp/pix_13.sql
+
+      - name: Executar pgTAP da confirmação e regressão da pendência
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_13_oauth_pending_confirmation.sql --local
+          npx --yes supabase@${SUPABASE_CLI_VERSION} test db supabase/tests/pix_12_oauth_pending_authorization.sql --local
+
+      - name: Lint e advisors do banco local
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db lint --local --schema private,public --level error --fail-on error
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors --local --type security
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors --local --type performance
+
+      - name: Instalar Bun fixado
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Instalar dependências sem alterar lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Testar adaptador da confirmação explícita
+        shell: bash
+        run: |
+          set -euo pipefail
+          bunx tsc \
+            --target ES2022 \
+            --module NodeNext \
+            --moduleResolution NodeNext \
+            --lib ES2022,DOM \
+            --types node \
+            --strict \
+            --skipLibCheck \
+            --outDir /tmp/pix-oauth-confirmation \
+            src/lib/pix-mercadopago-oauth-flow.server.ts \
+            src/lib/pix-mercadopago-oauth-supabase.server.ts \
+            scripts/pix/pix-mercadopago-oauth-confirmation.test.ts
+          node --test /tmp/pix-oauth-confirmation/scripts/pix/pix-mercadopago-oauth-confirmation.test.js
+
+      - name: Verificar código, interface e build integral
+        shell: bash
+        run: |
+          set -euo pipefail
+          bunx eslint \
+            src/lib/pix-mercadopago-oauth-supabase.server.ts \
+            src/lib/pix-mercadopago-oauth.functions.ts \
+            src/routes/motorista.mercadopago-callback.tsx \
+            scripts/pix/pix-mercadopago-oauth-confirmation.test.ts
+          bunx tsc --noEmit
+          grep -Fq "confirmarConexaoMercadoPagoPixSegura" src/routes/motorista.mercadopago-callback.tsx
+          grep -Fq "Confirmar conexão" src/routes/motorista.mercadopago-callback.tsx
+          grep -Fq "Voltar sem conectar" src/routes/motorista.mercadopago-callback.tsx
+          grep -Fq "pix_oauth_pending_authorization_confirm" src/lib/pix-mercadopago-oauth-supabase.server.ts
+          if grep -F "pix_oauth_credentials_upsert" src/lib/pix-mercadopago-oauth-supabase.server.ts; then
+            echo "Adaptador OAuth ainda possui caminho direto para ativação sem confirmação"
+            exit 1
+          fi
+          bun run build
+
+      - name: Descartar stack local
+        if: always()
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup
