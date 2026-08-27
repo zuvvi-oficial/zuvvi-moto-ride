@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
@@ -125,7 +126,7 @@ export const concluirConexaoMercadoPago = createServerFn({ method: "POST" })
   });
 
 export const desconectarMercadoPago = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const motoristaId = await getMotoristaId(context);
