@@ -307,8 +307,10 @@ function PagamentoPixPassageiro() {
         ) : snapshot.status === "falhou" ? (
           <FinalState
             icon={<AlertTriangle className="w-9 h-9" />}
-            title="Não foi possível concluir o Pix"
-            description="A corrida não será liberada sem pagamento confirmado."
+            title="Não foi possível concluir o pagamento Pix"
+            description="O Mercado Pago não concluiu esta cobrança. Você pode solicitar uma nova corrida e tentar novamente."
+            actionLabel="Tentar novamente"
+            onAction={() => void navigate({ to: "/" })}
           />
         ) : snapshot.status === "estornado" ? (
           <FinalState
@@ -480,10 +482,14 @@ function FinalState({
   icon,
   title,
   description,
+  actionLabel,
+  onAction,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
     <div className="max-w-lg mx-auto rounded-[2rem] border border-white/10 bg-white/5 p-7 sm:p-10 text-center">
@@ -492,6 +498,15 @@ function FinalState({
       </div>
       <h2 className="mt-6 text-2xl font-black">{title}</h2>
       <p className="mt-3 text-sm text-white/55 leading-relaxed">{description}</p>
+      {actionLabel && onAction && (
+        <button
+          type="button"
+          onClick={onAction}
+          className="mt-7 w-full min-h-14 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo font-black uppercase tracking-[0.12em]"
+        >
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 }

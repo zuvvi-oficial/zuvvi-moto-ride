@@ -1,5 +1,6 @@
 const MERCADO_PAGO_API_BASE = "https://api.mercadopago.com";
 const EXTERNAL_REFERENCE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/u;
+const REJEICOES_HTTP_INCERTAS = new Set([408, 409, 423, 424, 425, 429]);
 
 export type PixCanonicalPayment = Readonly<{
   paymentId: string;
@@ -63,6 +64,48 @@ function asIdentifier(value: unknown): string | null {
 
 function cents(value: number): number {
   return Math.round(value * 100);
+}
+
+function asHttpStatus(value: unknown): number | null {
+  const normalized =
+    typeof value === "string" && /^[1-5]\d{2}$/u.test(value.trim())
+      ? Number(value.trim())
+      : value;
+
+  return typeof normalized === "number" &&
+    Number.isInteger(normalized) &&
+    normalized >= 100 &&
+    normalized <= 599
+    ? normalized
+    : null;
+}
+
+function httpStatusFromMessage(value: unknown): number | null {
+  const message = asNonBlankString(value);
+  if (!message) return null;
+
+  // Compatibilidade com erros observados no SDK em produção, por exemplo:
+  // "fill and validate error list: user_allowed_only_in_test\n: 400".
+  // O regex só aceita um status HTTP de três dígitos no final da mensagem.
+  const match = message.match(/:\s*([1-5]\d{2})\s*$/u);
+  return match?.[1] ? asHttpStatus(match[1]) : null;
+}
+
+export function obterStatusHttpErroMercadoPago(error: unknown): number | null {
+  const record = asRecord(error);
+  if (!record) return null;
+
+  const response = asRecord(record["response"]);
+  const apiResponse = asRecord(record["api_response"]);
+
+  return (
+    asHttpStatus(record["status"]) ??
+    asHttpStatus(record["statusCode"]) ??
+    asHttpStatus(response?.["status"]) ??
+    asHttpStatus(response?.["statusCode"]) ??
+    asHttpStatus(apiResponse?.["status"]) ??
+    httpStatusFromMessage(record["message"])
+  );
 }
 
 async function requestJson(
@@ -148,9 +191,17 @@ function parseCanonicalPayment(
 }
 
 export function falhaCriacaoMercadoPagoPermiteCompensacao(error: unknown): boolean {
-  const record = asRecord(error);
-  const status = typeof record?.["status"] === "number" ? record["status"] : 0;
-  return status === 400 || status === 401 || status === 403 || status === 404 || status === 422;
+  const status = obterStatusHttpErroMercadoPago(error);
+
+  // Rejeições 4xx definitivas significam que a criação foi recusada e podem fechar
+  // a tentativa imediatamente. Estados potencialmente processados/retryable ficam
+  // para reconciliação para não abrir risco de cobrança duplicada em um novo retry.
+  return (
+    status !== null &&
+    status >= 400 &&
+    status < 500 &&
+    !REJEICOES_HTTP_INCERTAS.has(status)
+  );
 }
 
 export async function buscarPagamentoPixCanonico(
