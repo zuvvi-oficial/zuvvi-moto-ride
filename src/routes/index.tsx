@@ -12,7 +12,7 @@ import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, 
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
-import { getMapboxToken, checkCityAvailability, getReverseGeocoding } from "@/lib/user.functions";
+import { getMapboxToken, checkCityAvailability, getReverseGeocoding, getRetomadaCorridaPassageiro } from "@/lib/user.functions";
 import { listarFavoritos, criarFavorito, excluirFavorito } from "@/lib/favoritos.functions";
 import { listarDestinosRecentes } from "@/lib/recentes.functions";
 import { toast } from "sonner";
@@ -78,6 +78,30 @@ function UnifiedIndex() {
 
 function HomePassageiro({ nome }: { nome: string }) {
   const navigate = useNavigate();
+  const getRetomadaCorridaPassageiroFn = useServerFn(getRetomadaCorridaPassageiro);
+
+  const { data: retomadaCorrida } = useQuery({
+    queryKey: ["retomada-corrida-passageiro"],
+    queryFn: () => getRetomadaCorridaPassageiroFn(),
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+
+  useEffect(() => {
+    if (!retomadaCorrida) return;
+
+    if (retomadaCorrida.tela === "pagamento_pix") {
+      void navigate({ to: "/pagamento-pix", search: { rideId: retomadaCorrida.rideId } });
+      return;
+    }
+
+    if (retomadaCorrida.tela === "acompanhamento") {
+      void navigate({ to: "/acompanhamento", search: { rideId: retomadaCorrida.rideId } });
+      return;
+    }
+
+    void navigate({ to: "/procurando-motorista", search: { rideId: retomadaCorrida.rideId } });
+  }, [navigate, retomadaCorrida]);
 
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);

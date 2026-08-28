@@ -262,7 +262,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
       .from("corridas")
       .select("id")
       .eq("passageiro_id", usuario.id)
-      .in("status", ['solicitada', 'buscando_motorista', 'aceita', 'motorista_a_caminho', 'motorista_chegou', 'em_andamento'])
+      .in("status", ['solicitada', 'buscando_motorista', 'aguardando_pagamento', 'aceita', 'motorista_a_caminho', 'motorista_chegou', 'em_andamento'])
       .limit(1)
       .maybeSingle();
 
@@ -358,6 +358,58 @@ export const getCorrida = createServerFn({ method: "GET" })
     const { usuarios, motoristas, ...rideData } = corrida as any;
     
     return rideData;
+  });
+
+
+export const getRetomadaCorridaPassageiro = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: usuario, error: usuarioError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+
+    if (usuarioError || !usuario) {
+      throw new Error("Usuário não encontrado");
+    }
+
+    const { data: corrida, error: corridaError } = await supabaseAdmin
+      .from("corridas")
+      .select("id, status, forma_pagamento, motorista_id")
+      .eq("passageiro_id", usuario.id)
+      .in("status", [
+        "solicitada",
+        "buscando_motorista",
+        "aguardando_pagamento",
+        "aceita",
+        "motorista_a_caminho",
+        "motorista_chegou",
+        "em_andamento"
+      ])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (corridaError) {
+      throw new Error("Falha ao consultar corrida em andamento");
+    }
+
+    if (!corrida) return null;
+
+    const motoristaAtribuido = Boolean(corrida.motorista_id);
+    const tela = !motoristaAtribuido
+      ? "procurando_motorista"
+      : corrida.forma_pagamento === "pix"
+        ? "pagamento_pix"
+        : "acompanhamento";
+
+    return {
+      rideId: corrida.id,
+      tela
+    } as const;
   });
 
 export const getReverseGeocoding = createServerFn({ method: "POST" })
