@@ -1,92 +1,63 @@
-# Homologação Etapa 2 — OAuth Pix (Branch `feature/pix-100-seguro`)
+# Diagnóstico — Botão Publish/Update desativado
 
-## Tipo de tarefa
-Somente análise. Nenhum arquivo do projeto foi alterado, nenhum commit, deploy, publicação ou alteração de banco.
+Somente leitura. Nenhuma alteração de código, configuração, banco ou publicação foi feita.
 
-## Resposta direta
+## Verificações executadas
 
-**PREVIEW ISOLADO a partir da branch/commit: IMPOSSÍVEL dentro deste projeto Lovable.**
+- `git remote -v`, `git branch -a`, `git log`, `git status`, `git diff origin/main HEAD`
+- Leitura das configurações de publicação do projeto (somente leitura)
+- Log do servidor de build (`/tmp/dev-server-logs/dev-server.log`)
 
-Não é tecnicamente possível abrir um preview isolado de `feature/pix-100-seguro` / commit `80c605cdf2841f76ce89ae42a3ace271b9394ecf` neste projeto sem afetar a main ou o site publicado. Há dois motivos independentes e concomitantes:
+## (1) Branch Git atualmente associada ao projeto
 
-### 1. A branch e o commit não existem neste projeto
-Verificado por leitura direta do git deste projeto:
-- Remote `origin` é o storage privado gerenciado pelo Lovable (`d981bf4e-…`), **não** o GitHub `zuvvi-oficial/zuvvi-moto-ride`. Não há nenhum remote GitHub conectado.
-- `git rev-parse feature/pix-100-seguro` → falha (branch inexistente, local e remota).
-- `git cat-file 80c605cdf2841f76ce89ae42a3ace271b9394ecf` → falha (commit inexistente).
-- Busca em **todas** as branches (`git log --all`) → commit não encontrado.
-
-Portanto o código da Etapa 2 segura simplesmente não está acessível a partir deste projeto hoje.
-
-### 2. Os arquivos da implementação segura não estão na main
-Confirmado por `ls`:
-- `src/lib/pix-mercadopago-oauth.functions.ts` → **não existe**
-- `src/lib/pix-mercadopago-account.server.ts` → **não existe**
-- Existe apenas a implementação antiga: `src/components/motorista/MercadoPagoConnect.tsx`, `src/routes/motorista.mercadopago-callback.tsx` e `src/lib/motorista-pagamento.functions.ts`.
-
-E essa implementação atual **depende de `sessionStorage`** para o OAuth state (confirmado por grep):
-- `MercadoPagoConnect.tsx:42` → `window.sessionStorage.setItem('zuvvi_mp_oauth_state', state)`
-- `motorista.mercadopago-callback.tsx:38` → `window.sessionStorage.getItem('zuvvi_mp_oauth_state')`
-
-Ou seja, a versão "sem sessionStorage" que você quer homologar está apenas na branch, não na main deste projeto.
-
-### 3. A Fonte da Verdade não está neste projeto
-`docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md` → **não existe** neste checkout. Ela vive no repositório GitHub `zuvvi-oficial/zuvvi-moto-ride`, que não está conectado aqui.
-
-### 4. Lovable não tem ambiente de preview por branch isolado
-Consultada a documentação oficial do Lovable: não há recurso de "preview environment por branch" ou "staging efêmero" que dispense merge/publish. O preview do Lovable reflete o estado corrente do projeto; para colocar código de uma branch no ar é preciso:
-- trocar a branch ativa no editor (o que muda o que o preview carrega), e/ou
-- publicar (o que **substitui** o deploy publicado atual).
-
-Nenhum dos dois é "isolado" — ambos tocam o mesmo projeto/URL publicado (`zuvvi-moto-ride.lovable.app`). Isso viola suas restrições (não substituir produção, não publicar a branch como produção).
-
----
-
-## Caminho seguro suportado pelo Lovable
-
-A única forma de homologar a branch sem tocar a produção atual é **isolar em um projeto Lovable separado**:
-
-### Recomendação: novo projeto Lovable dedicado (descartável)
-1. Criar um **novo** projeto Lovable vazio.
-2. Conectá-lo ao GitHub via *Plus → GitHub → Connect project* e selecionar o repo `zuvvi-oficial/zuvvi-moto-ride`.
-3. Trocar a branch ativa desse novo projeto para `feature/pix-100-seguro` (o editor do Lovable permite trocar de branch).
-4. Publicar esse novo projeto — ele ganha sua **própria** URL `*.lovable.app`, totalmente independente do `zuvvi-moto-ride.lovable.app` atual.
-5. Configurar os secrets necessários **nesse novo projeto** (sem revelar valores): `MERCADOPAGO_CLIENT_ID`, `MERCADOPAGO_CLIENT_SECRET`, `PIX_OAUTH_ENCRYPTION_KEY`.
-6. Homologar o fluxo OAuth na URL nova.
-
-**O que isso preserva:**
-- Produção atual (`zuvvi-moto-ride.lovable.app`): intacta — é outro projeto.
-- main: sem merge.
-- Banco/migrations: o novo projeto pode apontar para um Supabase separado de homologação, ou reusar o de produção apenas para leitura do estado OAuth. **Não reaplique** a migration `20260825123937_pix_oauth_safe_disconnect.sql` (já aplicada em produção).
-
-### Alternativa B (menos isolada): trocar de branch neste mesmo projeto
-Trocar a branch deste projeto para `feature/pix-100-seguro` carregaria o código no preview, **mas**:
-- exigiria conectar o GitHub `zuvvi-oficial/zuvvi-moto-ride` a este projeto (que hoje usa storage Lovable privado);
-- publicar substituiria o deploy publicado atual → **viola** "não substituir o site publicado".
-- Portanto **não recomendada** para homologação isolada.
-
-### Alternativa C: local
-Clonar o repo GitHub, dar checkout na branch e rodar localmente. Útil para inspeção de código, mas o fluxo OAuth completo exige secrets e callback HTTPS — mais trabalhoso que a Recomendação.
-
----
-
-## Relatório
+Estado real verificado agora:
 
 ```text
-PREVIEW ISOLADO: impossível (neste projeto)
-BRANCH: feature/pix-100-seguro — ausente deste projeto
-COMMIT: 80c605cdf2841f76ce89ae42a3ace271b9394ecf — ausente deste projeto
-URL DO PREVIEW: n/a (não criada)
-PRODUÇÃO ALTERADA: não
-ARQUIVOS ALTERADOS: 0
-BANCO ALTERADO: não
-MERGE REALIZADO: não
-FONTE DA VERDADE LIDA: não — docs/pix/FONTE_DA_VERDADE_PIX_ZUVVI.md ausente neste projeto
-ARQUIVOS OAuth SEGURO NA MAIN: ausentes (pix-mercadopago-oauth.functions.ts, pix-mercadopago-account.server.ts)
-DEPENDÊNCIA DE sessionStorage NA MAIN: sim (fluxo atual ainda usa)
-SECRETS NECESSÁRIOS CONFIGURADOS NESTE PROJETO: não verificado nesta tarefa (orçamento: só análise)
-PRÓXIMO PASSO SEGURA: criar novo projeto Lovable dedicado, conectá-lo ao GitHub zuvvi-oficial/zuvvi-moto-ride, branch feature/pix-100-seguro, publicar em URL própria e configurar secrets lá
+Branch ativa do editor:  edit/edt-34ebb059-0bd7-4acc-aa96-a26b37ca5bfe
+HEAD:                    a978195 "Work in progress" (28/08/2026 13:46:49 UTC)
+Branch padrão (remoto):  origin/HEAD -> origin/main
+origin/main:             7abfc35 "Fast Visual Edit"
+Remote origin:           git.private.lovable-gcp.code.storage (storage privado do Lovable)
 ```
 
-## Próximo passo para homologar o OAuth (na URL nova)
-No app do motorista, estando offline e sem corrida ativa: tela **Home do Motorista** → bloco "Conta Mercado Pago" → botão **"Conectar conta Mercado Pago"** → seguir o redirect OAuth do Mercado Pago → retornar ao callback → validar state/conta duplicada no servidor.
+Pontos importantes:
+
+1. O remote `origin` deste checkout é o **storage privado gerenciado pelo Lovable**, não o GitHub `zuvvi-oficial/zuvvi-moto-ride`. A "integração GitHub" da perspectiva deste projeto é mediada pelo Lovable; o repo GitHub é um espelho via sincronização bidirecional.
+2. O editor está numa **branch interna temporária** (`edit/edt-...`), não na `main`.
+3. A branch `feature/pix-100-seguro` **agora existe neste projeto** (local e em `origin/feature/pix-100-seguro`), com head em `5193fc1` — situação diferente da verificação anterior (quando ela não existia aqui). Ela **NÃO** está contida na `main` (`git merge-base` confirma).
+4. O conteúdo da branch Pix está presente no estado atual do editor: `git diff origin/main HEAD` mostra **117 arquivos alterados, +21.384 linhas** (migrations/tests Pix, `src/lib/pix-*.ts`, `pagamento-pix.tsx` etc.). Ou seja: o projeto Lovable carrega atualmente o código da etapa Pix, mas a `main` publicada não tem esse código.
+5. O commit mais recente (`a978195 "Work in progress"`) foi criado **agora, 13:46:49 UTC** — exatamente no horário desta sessão. É o commit automático de salvamento de sessão do Lovable sobre as edições parciais anteriores.
+
+## (2) O Lovable publica só a branch principal?
+
+**Sim.** O Lovable publica o estado da branch padrão do projeto (`main`). Não há recurso de publicar uma branch alternativa (`feature/pix-100-seguro`) nem um commit arbitrário. O fluxo suportado é: o trabalho chega à `main` (edição direta no editor ou merge/sync) e então o Publish envia a `main`. Não existe "preview/deploy por branch" neste projeto.
+
+## (3) Por que o botão de publicação está desativado agora
+
+Causas mais prováveis, em ordem de evidência:
+
+1. **Branch de edição temporária com sessão ativa.** O editor está em `edit/edt-34ebb059-...` e acabou de gerar um commit "Work in progress" (13:46:49 UTC). Enquanto há uma sessão de edição em andamento/estado não consolidado na `main`, o Publish fica indisponível até o estado ser consolidado.
+2. **Nada novo para publicar na `main`.** O Update do Publish só habilita quando há mudanças na `main` desde o último deploy. Todo o trabalho Pix (117 arquivos) está na branch de edição, não na `main` — logo, do ponto de vista da `main` publicada, não há delta publicável.
+3. Não é falta de publicação anterior: o projeto **está publicado** (`is_published: true`, visibilidade pública) em `zuvvi-moto-ride.lovable.app`.
+
+## (4) Erro de build, permissão, sync ou config bloqueando?
+
+| Hipótese | Resultado |
+| --- | --- |
+| Erro de build | **Não.** Vite sobe normal (ready em ~2s, SSR conectado). Apenas warnings de deprecação (`inputValidator`), sem erros. |
+| Working tree sujo / mudanças não commitadas | **Não.** `git status` limpo; tudo está no commit WIP. |
+| Falha de sincronização Git | **Não observada.** Local e `origin/feature/pix-100-seguro` estão alinhados (mesmo head `5193fc1`). |
+| Permissão/configuração de publicação | **Não.** Projeto publicado e público; sem indício de bloqueio de permissão. |
+| Ausência de mudanças publicáveis na `main` | **Sim — causa raiz mais provável.** O delta inteiro vive fora da `main`. |
+
+## Conclusão
+
+O botão está desativado porque a combinação atual é: (a) sessão de edição ativa numa branch temporária com commit "Work in progress" recém-criado, e (b) **zero mudanças na `main`** desde o último deploy — todo o trabalho Pix está na branch de edição e ainda não foi integrado/publicado na `main`. Não há erro de build, de permissão nem de sincronização Git.
+
+## Opções para reabilitar a publicação (não executadas)
+
+- **A.** Finalizar/consolidar o trabalho na `main` pelo próprio editor (o Lovable leva o estado editado para a `main`), o que torna o delta publicável e habilita o Update.
+- **B.** Se a intenção é publicar só quando o Pix estiver pronto: manter a branch Pix fora da `main` e, quando aprovado, integrar à `main` e publicar — sabendo que isso substitui o deploy atual em produção.
+- **C.** Se o botão continuar desativado mesmo sem sessão ativa e com mudanças na `main`, recarregar o editor; persistindo, suporte Lovable (não há causa técnica visível neste projeto).
+
+Nenhuma ação será executada sem sua instrução explícita.
