@@ -420,3 +420,271 @@ Só depois disso: revisão final, merge controlado e publicação definitiva.
 O Pix só será declarado “100% funcional” quando todas as etapas estiverem **APROVADAS**, a matriz final estiver completa, as métricas de casos novos estiverem zeradas para inconsistências, o SHA publicado for o homologado e Rafael concluir o teste guiado final.
 
 Até lá, qualquer resultado parcial será descrito pelo estado real. QR exibido não significa pagamento fechado; pagamento aprovado no provedor não significa corrida sincronizada; teste automatizado verde não substitui a contraprova real.
+
+
+---
+
+## 13. PRIORIDADE IMEDIATA — Corrida Pix presa, persistência e avisos aos dois lados
+
+> **Classificação:** microetapa corretiva prioritária, anterior à retomada da Etapa 2.  
+> **Status:** PLANEJADA — nenhuma alteração funcional autorizada por este registro documental.  
+> **Regra de retomada:** somente depois desta prioridade ser aprovada a execução retorna ao ponto anterior da contraprova: Etapa 2 bloqueada por configuração externa do Mercado Pago.
+
+### 13.1 Motivo da prioridade
+
+Em 2026-08-28 foi comprovada uma inconsistência operacional real:
+
+- corrida Pix criada às 15:17 UTC permaneceu em `aceita`;
+- pagamento permaneceu em `pendente`;
+- tentativa Pix permaneceu em `criando`;
+- Mercado Pago recusou a criação com `user_allowed_only_in_test : 400`;
+- não houve Payment ID nem QR Code;
+- passageiro e motorista ficaram vinculados a uma corrida sem cobrança utilizável;
+- o passageiro voltou a entrar às 17:43 UTC;
+- o núcleo bloqueou corretamente uma segunda solicitação porque encontrou corrida em andamento;
+- a corrida antiga não foi retomada nem exibida de modo persistente na tela do passageiro;
+- o motorista disponível consultou ofertas normalmente, mas não recebeu pedido novo porque nenhuma nova corrida pôde ser criada.
+
+Conclusão: a trava contra duas corridas funciona, mas a compensação e a projeção visual não fecharam o primeiro fluxo. O passageiro ficou bloqueado por uma corrida invisível.
+
+### 13.2 Objetivo fechado
+
+Garantir que toda corrida Pix esteja sempre em exatamente uma destas condições:
+
+1. **cobrança pendente e utilizável:** corrida e pagamento reaparecem ao reabrir o aplicativo;
+2. **pagamento confirmado:** corrida é liberada para operação;
+3. **falha terminal confirmada:** tentativa e pagamento falham, corrida é cancelada, motorista é liberado e os dois usuários recebem aviso persistente;
+4. **resultado incerto:** nenhuma nova cobrança é criada e o caso permanece em reconciliação até confirmação canônica.
+
+É proibido existir corrida ativa invisível, corrida cancelada com pagamento pendente, motorista ocupado por cobrança inexistente ou passageiro bloqueado sem explicação.
+
+### 13.3 Inventário existente confirmado
+
+A correção deve reutilizar:
+
+- RPC `public.pix_charge_failure_compensate`;
+- `public.corridas`;
+- `public.pagamentos`;
+- `public.pagamentos_pix_tentativas`;
+- `public.notificacoes`;
+- tipo existente de notificação `corrida_cancelada`;
+- `src/lib/notificacoes.server.ts`;
+- `src/components/NotificationBell.tsx`;
+- `src/lib/pagamento-pix-status.functions.ts`;
+- tela existente `/pagamento-pix`;
+- telas existentes de início do passageiro e motorista;
+- reconciliação canônica existente do Mercado Pago;
+- trigger `pix_guard_operational_before_payment_trigger`.
+
+Não criar nova tabela, nova central de notificações, segunda função de compensação, segunda tela de pagamento ou rota paralela.
+
+### 13.4 Capacidade atual da compensação
+
+A RPC existente já executa sob bloqueio transacional e, quando não existe cobrança externa conhecida:
+
+1. valida corrida, motorista, tentativa e pagamento;
+2. bloqueia compensação se existir Payment ID;
+3. exige corrida Pix em `aceita` ou `aguardando_pagamento`;
+4. exige pagamento `pendente` e tentativa `criando`;
+5. marca tentativa `falhou`;
+6. marca pagamento `falhou`;
+7. cancela a corrida;
+8. libera o motorista aprovado.
+
+A correção deve fortalecer esse caminho existente, sem substituí-lo. Casos com Payment ID continuam obrigados a passar pela consulta canônica e pelo caminho de sincronização já existente.
+
+### 13.5 Invariantes obrigatórias
+
+- Falha terminal sem cobrança externa fecha todos os estados na mesma transação.
+- Falha terminal com Payment ID só fecha após consulta canônica.
+- Timeout, indisponibilidade e erro de rede não são tratados como rejeição.
+- Repetir compensação, webhook ou reconciliação não duplica efeito nem aviso.
+- Disponibilidade do motorista não depende de tocar na notificação.
+- Aviso não substitui estado de banco.
+- Passageiro nunca é liberado apenas porque fechou ou recarregou o aplicativo.
+- Dinheiro e cartão não entram nesta lógica.
+- Uma corrida Pix pendente e válida deve ser retomada, não recriada.
+- Uma corrida Pix terminal deve permanecer consultável como desfecho, sem bloquear nova solicitação.
+
+### 13.6 Avisos persistentes
+
+#### Passageiro
+
+**Título:** Pagamento não concluído
+
+**Mensagem:** O Mercado Pago não confirmou o pagamento. Por segurança, esta corrida foi cancelada e nenhum valor foi confirmado. Solicite uma nova corrida e tente novamente ou escolha outra forma de pagamento.
+
+Ações nas telas existentes:
+
+- **Solicitar nova corrida**
+- **Escolher outra forma de pagamento**
+
+#### Motorista
+
+**Título:** Corrida cancelada
+
+**Mensagem:** O pagamento Pix do passageiro não foi confirmado. A corrida foi cancelada automaticamente e você já está disponível para receber novas solicitações.
+
+Ação na tela existente:
+
+- **Voltar a receber corridas**
+
+Regras dos avisos:
+
+- usar `public.notificacoes` e `NotificationBell`;
+- tipo existente `corrida_cancelada`;
+- vincular à corrida;
+- iniciar como `lida = false`;
+- continuar disponível após fechar e abrir o aplicativo;
+- não expor CPF, e-mail, valor sensível, status interno ou diagnóstico técnico ao motorista;
+- impedir duas notificações iguais para o mesmo evento terminal;
+- a interface persistente da corrida deve funcionar mesmo se o usuário apagar a notificação da central.
+
+### 13.7 Persistência no aplicativo do passageiro
+
+Ao entrar ou retornar ao início, o fluxo existente deverá consultar o estado real antes de permitir nova solicitação:
+
+- corrida Pix ativa e pagamento pendente utilizável: retomar `/pagamento-pix`;
+- pagamento pago: encaminhar ao acompanhamento;
+- tentativa/pagamento falhos e corrida cancelada: mostrar desfecho persistente e liberar nova solicitação;
+- estado incerto: mostrar análise/reconciliação, sem criar segunda cobrança;
+- corrida antiga ativa sem cobrança utilizável: acionar o caminho seguro de recuperação, nunca esconder.
+
+A tela inicial não poderá tratar “nenhuma corrida visível” como “nenhuma corrida ativa” sem conferir o servidor.
+
+### 13.8 Persistência no aplicativo do motorista
+
+O aplicativo do motorista deverá:
+
+- receber atualização da corrida cancelada pelo mecanismo existente;
+- remover a corrida da área operacional;
+- atualizar a disponibilidade automaticamente;
+- registrar e exibir notificação persistente;
+- não oferecer botões de chegada, início ou conclusão para corrida cancelada;
+- continuar consultando novas ofertas depois da liberação.
+
+O aviso é informativo; ele não controla a liberação financeira ou operacional.
+
+### 13.9 Ordem de execução
+
+#### Fase A — Contraprova pré-mudança
+
+- salvar SHA do GitHub e Lovable;
+- fotografar métricas de órfãos;
+- salvar definição, grants e dependências da RPC afetada;
+- declarar allowlist final;
+- identificar exatamente onde o aviso já é criado em cancelamentos comuns;
+- provar que dinheiro, cartão e painel não compartilham o trecho a alterar.
+
+#### Fase B — Fechamento atômico
+
+- ajustar somente o caminho existente de falha terminal;
+- manter bloqueio para cobrança externa conhecida;
+- inserir os dois avisos persistentes no mesmo resultado lógico;
+- garantir idempotência de estado e notificação;
+- manter erros incertos em reconciliação.
+
+#### Fase C — Retomada das telas
+
+- usar o snapshot Pix existente no passageiro;
+- restaurar corrida pendente ao reabrir;
+- mostrar desfecho terminal antes de liberar novo pedido;
+- atualizar corrida e disponibilidade no motorista;
+- reutilizar central de notificações e componentes atuais.
+
+#### Fase D — Regularização do caso legado
+
+Somente depois do código aprovado:
+
+1. consultar canonicamente o Mercado Pago;
+2. comprovar ausência de cobrança externa;
+3. executar `pix_charge_failure_compensate` com os IDs exatos;
+4. conferir tentativa `falhou`;
+5. conferir pagamento `falhou`;
+6. conferir corrida `cancelada`;
+7. conferir motorista disponível;
+8. conferir avisos persistentes;
+9. confirmar que o passageiro consegue iniciar nova solicitação.
+
+Nenhuma tabela será atualizada manualmente em comandos separados.
+
+### 13.10 Allowlist candidata
+
+A allowlist final deve ser igual ou menor que esta lista:
+
+- `src/lib/pagamento.server.ts`;
+- `src/lib/pagamento-pix-status.functions.ts`;
+- `src/lib/notificacoes.server.ts`;
+- `src/routes/pagamento-pix.tsx`;
+- trecho estritamente necessário da tela inicial do passageiro;
+- trecho estritamente necessário de `src/routes/home-motorista.tsx`;
+- testes Pix já existentes;
+- uma migração corretiva da RPC existente, apenas se a análise provar necessidade.
+
+Todo arquivo removido da necessidade deve sair da allowlist. Nenhum arquivo administrativo, mapa, tarifa, dinheiro, cartão, chat, suporte, design system ou dependência poderá entrar.
+
+### 13.11 Matriz técnica de contraprova
+
+| Cenário | Resultado obrigatório |
+|---|---|
+| Erro 400 definitivo sem Payment ID | tentativa falha, pagamento falha, corrida cancela, motorista libera |
+| `rejected` com Payment ID | consulta canônica antes do fechamento |
+| Timeout ou erro de rede | não cancelar e não criar segunda cobrança |
+| Compensação repetida | nenhum segundo efeito |
+| Webhook repetido | nenhum segundo efeito ou aviso |
+| Passageiro fecha e reabre com Pix pendente | mesma cobrança reaparece |
+| Passageiro fecha e reabre após falha | desfecho aparece e nova corrida é permitida |
+| Motorista fecha e reabre após falha | aviso aparece e motorista está disponível |
+| Tentativa de iniciar corrida sem pagamento | trigger bloqueia |
+| Corrida em dinheiro | comportamento permanece igual |
+| Painel administrativo | zero arquivos alterados |
+| Corrida Pix invisível ativa | zero casos novos |
+| Corrida cancelada com pagamento novo pendente | zero casos novos |
+| Chave de idempotência duplicada | zero |
+
+### 13.12 Teste manual guiado de Rafael
+
+1. solicitar uma corrida Pix controlada;
+2. motorista aceitar;
+3. provocar o cenário de falha definido para homologação;
+4. confirmar mensagem persistente no passageiro;
+5. fechar e abrir o aplicativo do passageiro;
+6. confirmar que o desfecho continua visível;
+7. solicitar nova corrida ou escolher outro meio;
+8. confirmar mensagem persistente no motorista;
+9. fechar e abrir o aplicativo do motorista;
+10. confirmar que o aviso continua e novas ofertas podem ser recebidas;
+11. executar uma corrida em dinheiro para contraprova de regressão.
+
+### 13.13 Critérios de aprovação
+
+A prioridade só será aprovada quando:
+
+- o caso legado estiver encerrado com prova canônica;
+- nenhuma corrida Pix nova ficar presa ou invisível;
+- os dois aplicativos persistirem o estado correto;
+- motorista e passageiro forem liberados automaticamente após falha terminal;
+- nenhum aviso for duplicado;
+- dinheiro continuar funcionando;
+- diff respeitar a allowlist;
+- banco, código, Lovable e teste manual apresentarem o mesmo resultado.
+
+### 13.14 Rollback
+
+- um commit funcional controlado;
+- migração corretiva para frente se houver alteração de RPC;
+- preservar definição anterior, grants e evidências;
+- não apagar notificações, pagamentos, tentativas ou corridas;
+- se qualquer contraprova falhar, não publicar e não avançar;
+- depois da aprovação, registrar SHA, métricas e evidência nesta seção.
+
+### 13.15 Regra de prioridade
+
+Enquanto esta microetapa estiver pendente, reprovada ou bloqueada:
+
+- não iniciar Etapa 3;
+- não retomar o teste financeiro da Etapa 2;
+- não limpar manualmente corridas para continuar testes;
+- não criar novos mecanismos paralelos.
+
+Depois de aprovada, retornar exatamente à **Etapa 2 — bloqueada por configuração externa do Mercado Pago**, preservando todo o restante deste documento.
