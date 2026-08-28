@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { exigirCpfValidoParaPix } from "./pix-cpf";
 
 const PIX_DEVICE_SESSION_TTL_MS = 10 * 60 * 1_000;
 
@@ -21,13 +22,15 @@ export const registrarPixDeviceSession = createServerFn({ method: "POST" })
 
     const { data: usuario, error: usuarioError } = await supabaseAdmin
       .from("usuarios")
-      .select("id")
+      .select("id, cpf")
       .eq("auth_user_id", context.userId)
       .maybeSingle();
 
     if (usuarioError || !usuario) {
       throw new Error("Não foi possível preparar a segurança do Pix.");
     }
+
+    exigirCpfValidoParaPix(usuario.cpf);
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + PIX_DEVICE_SESSION_TTL_MS).toISOString();

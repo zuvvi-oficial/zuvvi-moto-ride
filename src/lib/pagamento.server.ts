@@ -7,6 +7,7 @@ import {
   type PixCanonicalPayment,
 } from "./pix-mercadopago-reconcile.server";
 import { obterPixDeviceIdValido } from "./pix-device-session.server";
+import { exigirCpfValidoParaPix } from "./pix-cpf";
 
 export type PixChargeResult = {
   paymentId: string;
@@ -238,7 +239,6 @@ export async function garantirAccessTokenMotorista(
 export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
   const valorTotal = roundCurrency(input.valorTotal);
   const valorComissao = roundCurrency(input.valorComissao);
-  const passageiroCpf = input.passageiroCpf?.replace(/\D/gu, "") ?? "";
   if (
     !Number.isFinite(valorTotal) ||
     !Number.isFinite(valorComissao) ||
@@ -249,17 +249,16 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
   ) {
     throw new Error(GENERIC_ERROR);
   }
+  const passageiroCpf = exigirCpfValidoParaPix(input.passageiroCpf);
 
   const { firstName, lastName } = splitPassengerName(input.passageiroNome);
   const phone = normalizeBrazilPhone(input.passageiroCelular);
   const registrationDate = normalizeRegistrationDate(input.passageiroCreatedAt);
-  const identification =
-    passageiroCpf.length === 11 ? { type: "CPF" as const, number: passageiroCpf } : null;
   const payer = {
     email: input.passageiroEmail?.trim() || `passageiro+${input.passageiroId}@zuvvi.app`,
     first_name: firstName,
     ...(lastName ? { last_name: lastName } : {}),
-    ...(identification ? { identification } : {}),
+    identification: { type: "CPF" as const, number: passageiroCpf },
     ...(phone ? { phone } : {}),
   };
 
@@ -506,6 +505,22 @@ export async function criarCobrancaPixAposAceiteServer(
 ): Promise<PixChargeResult> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  const { data: corridaPix, error: corridaPixError } = await supabaseAdmin
+    .from("corridas")
+    .select("passageiro_id, forma_pagamento, motorista_id")
+    .eq("id", rideId)
+    .maybeSingle();
+  if (
+    corridaPixError ||
+    !corridaPix ||
+    corridaPix.forma_pagamento !== "pix" ||
+    corridaPix.motorista_id !== motoristaId
+  ) {
+    throw new Error(GENERIC_ERROR);
+  }
+
+  const deviceId = await obterPixDeviceIdValido(supabaseAdmin as any, corridaPix.passageiro_id);
+
   const { data: motorista, error: motoristaError } = await supabaseAdmin
     .from("motoristas")
     .select("conta_mercado_pago_id")
@@ -547,9 +562,14 @@ export async function criarCobrancaPixAposAceiteServer(
     typeof claim["idempotency_key"] === "string" ? claim["idempotency_key"] : null;
   const valorTotal = Number(claim["valor_total"]);
   const valorComissao = Number(claim["valor_comissao"]);
-  if (!tentativaId || !passageiroId || !idempotencyKey) throw new Error(GENERIC_ERROR);
-
-  const deviceId = await obterPixDeviceIdValido(supabaseAdmin as any, passageiroId);
+  if (
+    !tentativaId ||
+    !passageiroId ||
+    passageiroId !== corridaPix.passageiro_id ||
+    !idempotencyKey
+  ) {
+    throw new Error(GENERIC_ERROR);
+  }
 
   const { data: passageiro, error: passageiroError } = await supabaseAdmin
     .from("usuarios")

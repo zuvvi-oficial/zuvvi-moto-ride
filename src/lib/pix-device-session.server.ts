@@ -1,3 +1,5 @@
+import { exigirCpfValidoParaPix } from "./pix-cpf";
+
 function normalizePixDeviceId(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
@@ -10,6 +12,18 @@ export async function obterPixDeviceIdValido(
   supabaseAdmin: any,
   passageiroId: string,
 ): Promise<string> {
+  const { data: passageiro, error: passageiroError } = await supabaseAdmin
+    .from("usuarios")
+    .select("cpf")
+    .eq("id", passageiroId)
+    .maybeSingle();
+
+  if (passageiroError || !passageiro) {
+    throw new Error("Não foi possível validar a segurança do Pix. Tente solicitar a corrida novamente.");
+  }
+
+  exigirCpfValidoParaPix(passageiro.cpf);
+
   const { data, error } = await supabaseAdmin
     .from("pagamentos_pix_device_sessions")
     .select("device_id, expires_at")
