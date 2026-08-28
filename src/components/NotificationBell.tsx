@@ -170,12 +170,12 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
           const newNotif = payload.new as NotificationBellItem;
           queryClient.setQueryData(['notificacoes', userId], (old: NotificationBellItem[] = []) => [newNotif, ...old]);
 
-          toast(newNotif.titulo, {
-            description: newNotif.mensagem,
-          });
-
           if (isPixOperationalNotice(newNotif)) {
             onImportantNotification?.(newNotif);
+          } else {
+            toast(newNotif.titulo, {
+              description: newNotif.mensagem,
+            });
           }
 
           playNotification();
