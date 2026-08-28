@@ -688,3 +688,83 @@ Enquanto esta microetapa estiver pendente, reprovada ou bloqueada:
 - não criar novos mecanismos paralelos.
 
 Depois de aprovada, retornar exatamente à **Etapa 2 — bloqueada por configuração externa do Mercado Pago**, preservando todo o restante deste documento.
+
+
+## 14. Execução da prioridade — corrida Pix presa, persistência e avisos
+
+Data da execução: 2026-08-28 (UTC).
+
+### 14.1 Trava de escopo efetivamente respeitada
+
+Alterações de aplicação limitadas a:
+
+- `src/lib/user.functions.ts`;
+- `src/routes/index.tsx`.
+
+Alterações de banco limitadas às funções Pix já existentes:
+
+- `public.pix_charge_failure_compensate`;
+- `public.pix_charge_attempt_complete`;
+- `public.pix_payment_status_project`.
+
+Não houve alteração no painel administrativo, na home do motorista, no componente de notificações, em tabelas, enums ou rotas fora do fluxo passageiro/Pix. O sino `NotificationBell` e a tabela `public.notificacoes` foram reutilizados sem duplicação de sistema.
+
+### 14.2 Linha de base confirmada antes da correção
+
+- corridas Pix ativas: **1**;
+- tentativas antigas em `criando`: **1**;
+- corrida afetada: `4e6b336a-7cf3-438a-ab50-a78dafbd0156`;
+- corrida: `aceita`;
+- pagamento: `pendente`;
+- tentativa: `criando`;
+- ID de pagamento Mercado Pago: **nulo**;
+- QR Code: **inexistente**;
+- erro comprovado do provedor: `user_allowed_only_in_test: 400`.
+
+### 14.3 Mudança aplicada
+
+Banco:
+
+- migration `20260828180618_pix_terminal_failure_notifications_existing_flow`;
+- falha terminal continua encerrando, na mesma transação, tentativa, pagamento, corrida e disponibilidade do motorista;
+- passageiro recebe `Pagamento não concluído`;
+- motorista recebe `Corrida cancelada`;
+- inserções são idempotentes por usuário, corrida, tipo e título;
+- proprietário, modo `SECURITY INVOKER`, `search_path`, assinaturas e permissão exclusiva de `service_role` foram preservados.
+
+Aplicação:
+
+- SHA homologado: `49f50c9107536e759fb037d5b6dfdf47303a6198`;
+- `aguardando_pagamento` passou a integrar a trava de corrida ativa;
+- ao reabrir a home, o passageiro retoma a corrida existente na tela já existente correta: busca, Pix ou acompanhamento;
+- o motorista usa o sino persistente e realtime já existente;
+- compilação Lovable: `completed`, projeto `ready`, erro `null`.
+
+### 14.4 Regularização da corrida antiga
+
+A regularização foi feita exclusivamente pela função existente `pix_charge_failure_compensate`, depois de reconfirmar que não havia cobrança externa nem QR Code.
+
+Resultado atômico:
+
+- corrida: `cancelada`;
+- cancelado por: `operacao`;
+- motivo: `falha_tecnica_pagamento_pix`;
+- pagamento: `falhou`;
+- tentativa: `falhou`;
+- ID Mercado Pago no pagamento e na tentativa: **nulo**;
+- motorista aprovado: `is_disponivel = true`;
+- aviso do passageiro: criado e não lido;
+- aviso do motorista: criado e não lido.
+
+### 14.5 Contraprova final e idempotência
+
+- corridas Pix ativas presas: **0**;
+- tentativas antigas em `criando`: **0**;
+- repetição da compensação: `false` (nenhuma segunda transição);
+- total dos avisos personalizados da corrida: **2** (sem duplicação);
+- diff do SHA: exatamente os dois arquivos permitidos;
+- painel administrativo e home do motorista: **fora do diff**.
+
+Conclusão técnica desta prioridade: **APROVADA**.
+
+Pendente somente o teste manual orientado do passageiro e do motorista. Depois desse aceite, o plano retorna ao ponto anterior da Etapa 2, que continua dependente da correção externa da configuração da conta Mercado Pago.
