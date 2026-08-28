@@ -307,9 +307,9 @@ function PagamentoPixPassageiro() {
         ) : snapshot.status === "falhou" ? (
           <FinalState
             icon={<AlertTriangle className="w-9 h-9" />}
-            title="Não foi possível concluir o pagamento Pix"
-            description="O Mercado Pago não concluiu esta cobrança. Você pode solicitar uma nova corrida e tentar novamente."
-            actionLabel="Tentar novamente"
+            title="Pagamento Pix não concluído"
+            description="O pagamento não foi confirmado e a corrida foi cancelada por segurança. Nenhum valor foi confirmado. Solicite uma nova corrida e escolha outro meio de pagamento."
+            actionLabel="Escolher outro pagamento"
             onAction={() => void navigate({ to: "/" })}
           />
         ) : snapshot.status === "estornado" ? (

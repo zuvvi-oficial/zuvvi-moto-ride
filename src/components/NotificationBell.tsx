@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, CheckCheck, Trash2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useSoundStore } from '@/hooks/use-sound';
 
-interface Notificacao {
+export interface NotificationBellItem {
   id: string;
   usuario_id: string;
   tipo: string;
@@ -19,11 +20,23 @@ interface Notificacao {
   created_at: string;
 }
 
-export function NotificationBell() {
+interface NotificationBellProps {
+  onImportantNotification?: (notification: NotificationBellItem) => void;
+}
+
+const isPixOperationalNotice = (notification: NotificationBellItem) =>
+  notification.titulo === 'Pagamento não concluído' ||
+  (
+    notification.titulo === 'Corrida cancelada' &&
+    notification.mensagem.includes('pagamento Pix')
+  );
+
+export function NotificationBell({ onImportantNotification }: NotificationBellProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const queryClient = useQueryClient();
+  const initialImportantDeliveredRef = useRef(false);
   const playSound = useSoundStore((state: any) => state.play);
 
   useEffect(() => {
@@ -57,7 +70,31 @@ export function NotificationBell() {
     enabled: !!userId,
   });
 
-  const unreadCount = notificacoes.filter((n: any) => !n.lida).length;
+  const notificacoesVisiveis = notificacoes.filter(
+    (notification: NotificationBellItem) => !isPixOperationalNotice(notification)
+  );
+  const unreadCount = notificacoesVisiveis.filter((n: NotificationBellItem) => !n.lida).length;
+
+  useEffect(() => {
+    if (
+      initialImportantDeliveredRef.current ||
+      !onImportantNotification ||
+      notificacoes.length === 0
+    ) {
+      return;
+    }
+
+    initialImportantDeliveredRef.current = true;
+    const limiteRecente = Date.now() - 15 * 60 * 1000;
+    const latestImportant = notificacoes.find(
+      (notification: NotificationBellItem) =>
+        !notification.lida &&
+        isPixOperationalNotice(notification) &&
+        new Date(notification.created_at).getTime() >= limiteRecente
+    );
+
+    if (latestImportant) onImportantNotification(latestImportant);
+  }, [notificacoes, onImportantNotification]);
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -130,12 +167,16 @@ export function NotificationBell() {
           filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
-          const newNotif = payload.new as Notificacao;
-          queryClient.setQueryData(['notificacoes', userId], (old: Notificacao[] = []) => [newNotif, ...old]);
+          const newNotif = payload.new as NotificationBellItem;
+          queryClient.setQueryData(['notificacoes', userId], (old: NotificationBellItem[] = []) => [newNotif, ...old]);
 
           toast(newNotif.titulo, {
             description: newNotif.mensagem,
           });
+
+          if (isPixOperationalNotice(newNotif)) {
+            onImportantNotification?.(newNotif);
+          }
 
           playNotification();
         }
@@ -145,7 +186,7 @@ export function NotificationBell() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, queryClient]);
+  }, [userId, queryClient, onImportantNotification]);
 
   return (
     <div className="relative">
@@ -162,16 +203,16 @@ export function NotificationBell() {
         )}
       </button>
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[9998] bg-black/70 backdrop-blur-sm"
             onClick={() => {
               setShowClearConfirm(false);
               setIsOpen(false);
             }}
           />
-          <div className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+96px)] z-50 w-[calc(100vw-32px)] max-w-[420px] max-h-[70dvh] -translate-x-1/2 overflow-hidden flex flex-col rounded-3xl border border-white/10 bg-zuvvi-indigo-dark/95 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-[9999] w-[calc(100vw-32px)] max-w-[420px] max-h-[calc(100dvh-2rem)] -translate-x-1/2 overflow-hidden flex flex-col rounded-3xl border border-white/10 bg-zuvvi-indigo-dark shadow-[0_24px_80px_rgba(0,0,0,0.65)] animate-in fade-in zoom-in-95 duration-200">
             <div className="px-5 py-4 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <h3 className="text-white text-base font-semibold tracking-tight">Notificações</h3>
@@ -187,7 +228,7 @@ export function NotificationBell() {
                 </button>
               </div>
 
-              {notificacoes.length > 0 && (
+              {notificacoesVisiveis.length > 0 && (
                 <div className="mt-2 flex items-center gap-4">
                   {unreadCount > 0 && (
                     <button
@@ -213,7 +254,7 @@ export function NotificationBell() {
               )}
             </div>
 
-            {showClearConfirm && notificacoes.length > 0 && (
+            {showClearConfirm && notificacoesVisiveis.length > 0 && (
               <div className="mx-4 mt-4 rounded-2xl border border-red-300/20 bg-red-400/10 p-4">
                 <p className="text-sm font-semibold text-white">Limpar notificações?</p>
                 <p className="mt-1.5 text-xs leading-relaxed text-white/65">
@@ -241,12 +282,12 @@ export function NotificationBell() {
             )}
 
             <div className="overflow-y-auto flex-1">
-              {notificacoes.length === 0 ? (
+              {notificacoesVisiveis.length === 0 ? (
                 <div className="p-10 text-center text-white/60 text-sm">
                   Nenhuma notificação por aqui.
                 </div>
               ) : (
-                notificacoes.map((n) => (
+                notificacoesVisiveis.map((n: NotificationBellItem) => (
                   <div
                     key={n.id}
                     className={cn(
@@ -272,7 +313,8 @@ export function NotificationBell() {
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
