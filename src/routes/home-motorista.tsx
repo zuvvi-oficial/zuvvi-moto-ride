@@ -605,64 +605,64 @@ function HomeMotorista() {
   // Lista visual segura: só exibe se ONLINE, GPS ativo e sem corrida ativa
   const ofertas = isOnline && isGpsActive && !activeRide ? rawOfertas : [];
 
-  const dispararSequenciaAlerta = useCallback(async (oferta: any) => {
-    // 1. Vibração forte
-    const vibracaoPadrao = [400, 150, 400, 150, 400];
-    const duracaoVibracao = vibracaoPadrao.reduce((a, b) => a + b, 0);
-    
+  const dispararSequenciaAlerta = useCallback((oferta: any) => {
+    // Alerta Zuvvi: som, vibração e voz começam juntos com a oferta na tela.
     if ("vibrate" in navigator) {
-      navigator.vibrate(vibracaoPadrao);
+      navigator.vibrate([220, 90, 220]);
     }
 
-    // 2. Sino personalizado - disparado quase simultaneamente para manter vínculo com gesto
-    playSound("/sounds/zuvvi_volt_ping.mp3").catch((e: any) => 
+    playSound("/sounds/zuvvi_volt_ping.mp3").catch((e: any) =>
       console.error("[HomeMotorista] Erro ao tocar sino:", e)
     );
 
-    // Aguarda vibração terminar para prosseguir com a voz
-    await new Promise(resolve => setTimeout(resolve, Math.max(duracaoVibracao, 1500)));
+    if (!("speechSynthesis" in window)) return;
 
-    // 3. Voz feminina (Web Speech API)
-    if ("speechSynthesis" in window) {
-      const valor = oferta.valor_estimado;
-      const distKm = (oferta.distancia_aprox_m / 1000).toFixed(1).replace(".", ",");
-      
-      let valorTexto = `${Math.floor(valor)} reais`;
-      if (valor % 1 !== 0) {
-        const centavos = Math.round((valor % 1) * 100);
-        valorTexto += ` e ${centavos} centavos`;
-      }
+    const valor = Number(oferta.valor_estimado) || 0;
+    const valorTexto = valor.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    const destinoCompleto =
+      typeof oferta.destino_nome === "string" ? oferta.destino_nome.trim() : "";
+    const destinoFalado =
+      destinoCompleto
+        .split(",")
+        .slice(0, 3)
+        .join(",")
+        .trim() || "destino informado no aplicativo";
+    const frase = `Zuvvi. Nova corrida. Valor ${valorTexto}. Destino: ${destinoFalado}.`;
 
-      const frase = `Nova corrida disponível. A ${distKm} quilômetros de distância, valor estimado de ${valorTexto}.`;
-      
-      const utterance = new SpeechSynthesisUtterance(frase);
-      utterance.lang = "pt-BR";
-      utterance.rate = 0.9;
-      utterance.pitch = 1.1;
+    const synth = window.speechSynthesis;
+    // Uma oferta nova substitui qualquer locução antiga que ainda esteja na fila.
+    synth.cancel();
 
-      // Tentar carregar vozes e selecionar uma feminina
-      const setVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
-        const ptVoices = voices.filter(v => v.lang.startsWith("pt"));
-        const femaleVoice = ptVoices.find(v => 
-          v.name.toLowerCase().includes("female") || 
-          v.name.toLowerCase().includes("mulher") ||
-          v.name.toLowerCase().includes("maria") ||
-          v.name.toLowerCase().includes("luciana")
-        ) || ptVoices[0];
-        
-        if (femaleVoice) utterance.voice = femaleVoice;
-      };
+    const utterance = new SpeechSynthesisUtterance(frase);
+    utterance.lang = "pt-BR";
+    utterance.rate = 1.15;
+    utterance.pitch = 1.03;
+    utterance.volume = 1;
 
-      if (window.speechSynthesis.getVoices().length > 0) {
-        setVoice();
-      } else {
-        window.speechSynthesis.onvoiceschanged = setVoice;
-      }
+    const vozesPtBr = synth
+      .getVoices()
+      .filter((voice) => voice.lang.toLowerCase().replace("_", "-") === "pt-br");
+    const nomesPreferidos = [
+      "francisca",
+      "luciana",
+      "maria",
+      "google português do brasil",
+      "female",
+      "mulher",
+    ];
+    const vozPremium =
+      nomesPreferidos
+        .map((nome) =>
+          vozesPtBr.find((voice) => voice.name.toLowerCase().includes(nome))
+        )
+        .find(Boolean) || vozesPtBr[0];
 
-      window.speechSynthesis.speak(utterance);
-    }
-  }, []);
+    if (vozPremium) utterance.voice = vozPremium;
+    synth.speak(utterance);
+  }, [playSound]);
 
   useEffect(() => {
     if (ofertas.length > 0) {
