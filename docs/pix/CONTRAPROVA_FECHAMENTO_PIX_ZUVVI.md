@@ -2,7 +2,7 @@
 
 > Documento vivo de controle técnico, segurança de escopo e homologação.
 >
-> **Status geral:** ETAPA 0 — APROVADA  
+> **Status geral:** ETAPA 1 — APROVADA  
 > **Data da linha de base:** 2026-08-28 (UTC)  
 > **Responsável pela execução técnica:** Codex  
 > **Responsável pela homologação manual:** Rafael  
@@ -287,6 +287,21 @@ Teste manual de Rafael:
 
 Aprovação exige também: tentativa `falhou`, pagamento `falhou`, corrida `cancelada` e nenhuma nova corrida presa.
 
+**Execução e contraprova — 2026-08-28:**
+
+- causa já corrigida e reutilizada: commit `d8e769031f537f26fabfe6a2abbced859fcc6508`;
+- commit sincronizado no fluxo Lovable: `57fad86ac8d71957a97af925a63ce4bb90c38d74`;
+- allowlist cumprida: `scripts/pix/cobranca-pix-apos-aceite.test.ts`, `scripts/pix/pagamento-pix.test.ts`, `src/lib/pix-mercadopago-reconcile.server.ts` e `src/routes/pagamento-pix.tsx`;
+- nenhum arquivo fora da allowlist;
+- nenhuma escrita ou migração de banco;
+- screenshot de Rafael comprovou a saída da espera infinita, mensagem clara e botão “Tentar novamente” na URL publicada;
+- caso novo: tentativa `falhou`, pagamento `falhou`, corrida `cancelada`, motorista disponível;
+- caso novo recebeu ID Mercado Pago e QR, mas terminou como falha; sua causa financeira será analisada na Etapa 2;
+- nenhuma chave de idempotência duplicada;
+- o caso legado de 15:17 UTC continua isolado na linha de base e não foi alterado.
+
+**Resultado:** APROVADA.
+
 ### Etapa 2 — Geração real do QR Code
 
 Objetivo: corrigir a coerência de ambiente/contas do Mercado Pago que causa `user_allowed_only_in_test`, preservando OAuth do motorista, CPF, Device ID, idempotência e comissão.
@@ -373,7 +388,7 @@ Só depois disso: revisão final, merge controlado e publicação definitiva.
 | Etapa | GitHub base | Banco escrito? | Código funcional alterado? | Publicado? | Resultado |
 |---|---|---:|---:|---:|---|
 | 0 | `4d8172c0d87688811f39dd630b11f0f0649a34e3` | Não | Não | Não | APROVADA |
-| 1 | a preencher | — | — | — | PENDENTE |
+| 1 | `607bf131` → `57fad86a` | Não | Sim, somente 2 arquivos Pix + 2 testes | Sim, SHA sincronizado e comprovado por screenshot | APROVADA |
 | 2 | a preencher | — | — | — | PENDENTE |
 | 3 | a preencher | — | — | — | PENDENTE |
 | 4 | a preencher | — | — | — | PENDENTE |
