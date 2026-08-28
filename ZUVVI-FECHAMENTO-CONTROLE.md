@@ -1219,3 +1219,47 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 - Arquivos tocados: src/routes/procurando-motorista.tsx, ZUVVI-FECHAMENTO-CONTROLE.md.
 - Bloqueador B3 (Race Condition na Busca) marcado como resolvido.
 
+### MICROCORREÇÃO — Alerta de voz premium e imediato para nova corrida — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+
+**Objetivo restrito:** sincronizar a locução com a exibição da oferta no aplicativo do motorista, sem alterar pagamento, criação, oferta, aceite ou estados da corrida.
+
+**Causa comprovada:**
+- a locução aguardava explicitamente o término da vibração, com atraso mínimo forçado de 1,5 segundo;
+- a velocidade estava configurada em 0,9;
+- falas anteriores podiam permanecer na fila do Web Speech API;
+- a mensagem não utilizava o destino já presente na oferta.
+
+**Correção aplicada:**
+- retirada somente a espera artificial da locução;
+- som, vibração curta e voz iniciam juntos quando a nova oferta entra na tela;
+- fila de voz anterior é cancelada antes da nova locução;
+- mensagem padrão: “Zuvvi. Nova corrida. Valor [valor]. Destino: [destino].”;
+- valor utiliza `valor_estimado` e destino utiliza `destino_nome`, ambos já existentes em `getOfertasDisponiveis`;
+- voz configurada em pt-BR, velocidade 1,15, pitch 1,03 e volume 1;
+- seleção prioriza vozes brasileiras disponíveis no próprio aparelho, com fallback para a primeira pt-BR;
+- endereço falado limitado às três primeiras partes para evitar locução excessivamente longa.
+
+**Trava de escopo / contraprova:**
+- único arquivo funcional alterado: `src/routes/home-motorista.tsx`;
+- commit funcional: `6ea0c0403198c5b35339fa7af9696d9c34a4c006`;
+- nenhuma alteração no Supabase ou no banco de dados;
+- nenhuma migration, tabela, coluna, trigger, policy, RPC ou Edge Function;
+- nenhuma alteração em Pix, Mercado Pago ou cobranças;
+- nenhuma alteração no aplicativo do passageiro;
+- nenhuma alteração no painel administrativo;
+- nenhuma alteração em `getOfertasDisponiveis`, aceite, recusa, cancelamento ou status da corrida;
+- polling de ofertas preservado em 5 segundos; a correção elimina o atraso entre a oferta já visível e a fala;
+- arquivo de áudio existente `/sounds/zuvvi_volt_ping.mp3` preservado e reutilizado;
+- compilação Lovable: `completed`;
+- projeto: `ready`;
+- erro de compilação: `null`.
+
+**Critério da prova manual:**
+1. motorista online, com GPS ativo e sem corrida ativa;
+2. passageiro solicita uma corrida;
+3. quando o cartão da oferta aparecer, o início “Zuvvi. Nova corrida.” deve ocorrer imediatamente, sem a antiga espera de 1,5 segundo;
+4. a voz deve informar o mesmo valor e o mesmo destino exibidos no cartão;
+5. a fala deve estar mais rápida e não deve repetir ou enfileirar uma locução antiga;
+6. aceitar ou recusar a oferta deve continuar funcionando exatamente como antes.
+
+**STATUS:** código e compilação aprovados; aguarda prova manual do motorista.
