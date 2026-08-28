@@ -787,3 +787,29 @@ Correção mínima aplicada no SHA final `ff756a8f538bfab4732ac66448adcd31019f6f
 - erro de compilação: `null`.
 
 Conclusão final da prioridade, antes do teste humano: **APROVADA TECNICAMENTE NO SHA `ff756a8f`**.
+
+
+## 15. Correção visual dos avisos Pix após teste humano
+
+Data: 2026-08-28 (UTC).
+
+Evidência enviada pelo teste:
+
+- o passageiro recebeu o estado final em `/pagamento-pix`;
+- o motorista recebeu o cancelamento apenas no sino, sem destaque na tela principal;
+- o painel do sino do passageiro ficou preso ao contexto do cabeçalho e sofreu sobreposição de elementos da home;
+- os cancelamentos exibidos às 15:18 e 15:19 pertenciam a corridas distintas (`de9b026a-08ae-45dc-aacf-e0dee1bdf8cc` e `bd6c8d16-273d-4d08-9bbc-a80b24863ee7`), portanto não houve duplicação para a mesma corrida.
+
+Correção aplicada, sem mudança de banco:
+
+- SHA intermediário: `a4f1f55363bcc2680f5239947539f12a4c2dca78`;
+- SHA final: `cee665c2e9bf3fa21032a3717ebc2758754d8b52`;
+- `src/routes/home-motorista.tsx`: cancelamento Pix abre aviso modal diretamente na tela, informa que a corrida foi cancelada e confirma que o motorista segue disponível;
+- `src/routes/pagamento-pix.tsx`: texto final informa claramente o cancelamento e o botão passou a ser `Escolher outro pagamento`;
+- `src/components/NotificationBell.tsx`: avisos operacionais de falha Pix não aparecem mais na lista do sino, o painel passou a ser renderizado fora do cabeçalho para impedir sobreposição e o toast duplicado foi removido;
+- tabela, RPCs, status financeiros, painel administrativo e fluxos não Pix: sem alteração;
+- sincronização Lovable do SHA final: `completed`;
+- projeto: `ready`;
+- erro de compilação: `null`.
+
+Situação: **APROVADA TECNICAMENTE; AGUARDANDO NOVO TESTE VISUAL DO PASSAGEIRO E DO MOTORISTA**.
