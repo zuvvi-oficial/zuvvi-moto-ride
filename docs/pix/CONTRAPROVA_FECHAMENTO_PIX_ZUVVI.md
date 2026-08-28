@@ -2,7 +2,7 @@
 
 > Documento vivo de controle técnico, segurança de escopo e homologação.
 >
-> **Status geral:** ETAPA 1 — APROVADA  
+> **Status geral:** ETAPA 2 — BLOQUEADA POR CONFIGURAÇÃO EXTERNA  
 > **Data da linha de base:** 2026-08-28 (UTC)  
 > **Responsável pela execução técnica:** Codex  
 > **Responsável pela homologação manual:** Rafael  
@@ -319,6 +319,27 @@ Teste manual de Rafael:
 7. sair e voltar à tela;
 8. confirmar que o mesmo pagamento reaparece, sem segunda cobrança.
 
+**Execução e contraprova — 2026-08-28:**
+
+- a cobrança controlada devolveu Payment ID, QR Code, Pix Copia e Cola, ticket URL e validade de 24 horas;
+- `application_fee` foi aceita na criação; não ocorreu erro `2059`;
+- aproximadamente um segundo depois, o Mercado Pago alterou a cobrança para `rejected / rejected_high_risk`;
+- o Zuvvi corretamente encerrou tentativa e pagamento como `falhou`, cancelou a corrida e liberou o motorista;
+- as 15 ocorrências históricas de `rejected_high_risk` pertencem à mesma conta vendedora, com quatro passageiros e vários valores;
+- o passageiro do teste possui nome, e-mail, telefone e CPF matematicamente válido;
+- a sessão Device ID estava válida, normalizada e registrada antes da cobrança;
+- OAuth do motorista está `active`, não revogado, não expirado e com propriedade interna coerente;
+- a segunda conta de motorista disponível pertence a outro ambiente e retorna `user_allowed_only_in_test`;
+- proteção já existente do commit `47048f8820d577785bde9e47a0a6741d14b3793c` foi sincronizada sem reimplementação;
+- commit da Etapa 2: `be71f0f85a02b230c665a108f2f650d5b9bec354`;
+- allowlist cumprida: um teste Pix e quatro arquivos server-side exclusivos de CPF/Device ID/Pix;
+- nenhuma escrita ou migração manual de banco;
+- nenhum arquivo do painel, dinheiro ou fluxo não Pix foi alterado.
+
+**Classificação:** BLOQUEADA POR CONFIGURAÇÃO EXTERNA.
+
+**Condição objetiva de liberação:** conectar pelo OAuth existente uma conta Mercado Pago vendedora real, verificada, elegível para Pix/Split, com chave Pix, diferente da conta da plataforma e das duas contas já diagnosticadas. Depois, repetir uma única cobrança controlada. O código não deve ser alterado para contornar `rejected_high_risk`.
+
 ### Etapa 3 — Confirmação de pagamento
 
 Objetivo: provar webhook, consulta canônica, deduplicação e liberação da corrida usando os objetos existentes.
@@ -389,7 +410,7 @@ Só depois disso: revisão final, merge controlado e publicação definitiva.
 |---|---|---:|---:|---:|---|
 | 0 | `4d8172c0d87688811f39dd630b11f0f0649a34e3` | Não | Não | Não | APROVADA |
 | 1 | `607bf131` → `57fad86a` | Não | Sim, somente 2 arquivos Pix + 2 testes | Sim, SHA sincronizado e comprovado por screenshot | APROVADA |
-| 2 | a preencher | — | — | — | PENDENTE |
+| 2 | `57fad86a` → `be71f0f8` | Não | Sim, somente CPF/Device ID/Pix existente | Sim, SHA sincronizado | BLOQUEADA POR CONFIGURAÇÃO EXTERNA |
 | 3 | a preencher | — | — | — | PENDENTE |
 | 4 | a preencher | — | — | — | PENDENTE |
 | 5 | a preencher | — | — | — | PENDENTE |
