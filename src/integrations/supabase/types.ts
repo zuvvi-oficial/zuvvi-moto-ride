@@ -1141,6 +1141,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      pix_oauth_account_owner_claim: {
+        Args: { _mercadopago_user_id: string; _motorista_id: string }
+        Returns: string
+      }
       pix_oauth_credentials_get: {
         Args: { _motorista_id: string }
         Returns: {
@@ -1177,6 +1181,35 @@ export type Database = {
       }
       pix_oauth_disconnect_safe: {
         Args: { _motorista_id: string }
+        Returns: string
+      }
+      pix_oauth_pending_authorization_cancel: {
+        Args: { _motorista_id: string }
+        Returns: boolean
+      }
+      pix_oauth_pending_authorization_confirm: {
+        Args: { _motorista_id: string; _platform_mercadopago_user_id: string }
+        Returns: string
+      }
+      pix_oauth_pending_authorization_status: {
+        Args: { _motorista_id: string }
+        Returns: string
+      }
+      pix_oauth_pending_authorization_summary: {
+        Args: { _motorista_id: string }
+        Returns: Json
+      }
+      pix_oauth_pending_authorization_upsert: {
+        Args: {
+          _access_token_encrypted: string
+          _encryption_version: number
+          _mercadopago_user_id: string
+          _motorista_id: string
+          _refresh_token_encrypted: string
+          _scope?: string
+          _token_expires_at: string
+          _token_type?: string
+        }
         Returns: string
       }
       pix_oauth_state_consume: {
