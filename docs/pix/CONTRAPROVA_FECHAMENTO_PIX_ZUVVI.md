@@ -699,7 +699,8 @@ Data da execução: 2026-08-28 (UTC).
 Alterações de aplicação limitadas a:
 
 - `src/lib/user.functions.ts`;
-- `src/routes/index.tsx`.
+- `src/routes/index.tsx`;
+- `src/routes/procurando-motorista.tsx`.
 
 Alterações de banco limitadas às funções Pix já existentes:
 
@@ -734,7 +735,8 @@ Banco:
 
 Aplicação:
 
-- SHA homologado: `49f50c9107536e759fb037d5b6dfdf47303a6198`;
+- SHA intermediário: `49f50c9107536e759fb037d5b6dfdf47303a6198`;
+- SHA final homologado: `ff756a8f538bfab4732ac66448adcd31019f6f85`;
 - `aguardando_pagamento` passou a integrar a trava de corrida ativa;
 - ao reabrir a home, o passageiro retoma a corrida existente na tela já existente correta: busca, Pix ou acompanhamento;
 - o motorista usa o sino persistente e realtime já existente;
@@ -762,9 +764,26 @@ Resultado atômico:
 - tentativas antigas em `criando`: **0**;
 - repetição da compensação: `false` (nenhuma segunda transição);
 - total dos avisos personalizados da corrida: **2** (sem duplicação);
-- diff do SHA: exatamente os dois arquivos permitidos;
+- diff acumulado dos SHAs: exatamente os três arquivos permitidos;
 - painel administrativo e home do motorista: **fora do diff**.
 
 Conclusão técnica desta prioridade: **APROVADA**.
 
 Pendente somente o teste manual orientado do passageiro e do motorista. Depois desse aceite, o plano retorna ao ponto anterior da Etapa 2, que continua dependente da correção externa da configuração da conta Mercado Pago.
+
+
+### 14.6 Fechamento da lacuna ao vivo
+
+A contraprova de navegação detectou que `/procurando-motorista` ainda não encaminhava os estados Pix `aguardando_pagamento` e `cancelada`. Sem essa correção, o banco encerraria a corrida corretamente, mas o passageiro poderia permanecer visualmente na busca até reabrir o app.
+
+Correção mínima aplicada no SHA final `ff756a8f538bfab4732ac66448adcd31019f6f85`:
+
+- `aguardando_pagamento` usa a rota `/pagamento-pix` já existente;
+- `cancelada` com forma `pix` usa a mesma rota para mostrar o estado `falhou`;
+- foram cobertos carregamento inicial, Realtime, reconciliação pós-inscrição e verificação server-side;
+- outros meios de pagamento e estados `sem_motorista` foram preservados;
+- sincronização Lovable: `completed`;
+- projeto: `ready`;
+- erro de compilação: `null`.
+
+Conclusão final da prioridade, antes do teste humano: **APROVADA TECNICAMENTE NO SHA `ff756a8f`**.
