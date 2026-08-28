@@ -8,6 +8,7 @@ import {
 import {
   buscarPagamentoPixCanonico,
   falhaCriacaoMercadoPagoPermiteCompensacao,
+  obterStatusHttpErroMercadoPago,
 } from "../../src/lib/pix-mercadopago-reconcile.server";
 
 const motoristaId = "11111111-1111-4111-8111-111111111111";
@@ -306,16 +307,29 @@ function canonicalPayment(overrides: Record<string, unknown> = {}) {
 }
 
 {
+  const erroContaTesteObservado = {
+    error: "internal_server_error",
+    message: "fill and validate error list: user_allowed_only_in_test\n: 400",
+  };
+
+  assert.equal(obterStatusHttpErroMercadoPago(erroContaTesteObservado), 400);
+  assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao(erroContaTesteObservado), true);
+  assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ response: { status: 400 } }), true);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 400 }), true);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 401 }), true);
+  assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 402 }), true);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 403 }), true);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 404 }), true);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 422 }), true);
+  assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 408 }), false);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 409 }), false);
+  assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 423 }), false);
+  assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 424 }), false);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 429 }), false);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao({ status: 500 }), false);
   assert.equal(falhaCriacaoMercadoPagoPermiteCompensacao(new Error("network")), false);
   console.log("FALHA_DETERMINISTICA_VS_ESTADO_INCERTO_OK");
+  console.log("ERRO_CONTA_TESTE_HTTP_400_COMPENSAVEL_OK");
 }
 
 const pagamentoSource = readFileSync("src/lib/pagamento.server.ts", "utf8");
@@ -364,6 +378,8 @@ assert.match(reconciliacaoSource, /\/v1\/payments\//);
 assert.match(reconciliacaoSource, /collectorId !== input\.expectedMercadoPagoUserId/);
 assert.match(reconciliacaoSource, /paymentMethodId !== "pix"/);
 assert.match(reconciliacaoSource, /currencyId !== "BRL"/);
+assert.match(reconciliacaoSource, /obterStatusHttpErroMercadoPago/);
+assert.match(reconciliacaoSource, /REJEICOES_HTTP_INCERTAS/);
 
 assert.match(webhookSource, /sincronizarPagamentoPixComMercadoPago/);
 assert.match(webhookSource, /id_transacao_mercadopago/);

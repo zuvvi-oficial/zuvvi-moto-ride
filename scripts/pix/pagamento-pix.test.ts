@@ -173,6 +173,15 @@ assert.doesNotMatch(routeSource, /MERCADOPAGO_CLIENT_SECRET/);
 assert.doesNotMatch(routeSource, /PIX_OAUTH_ENCRYPTION_KEY/);
 assert.doesNotMatch(routeSource, /pagamentos_pix_tentativas/);
 
+const failedStateStart = routeSource.indexOf('snapshot.status === "falhou"');
+const failedStateEnd = routeSource.indexOf('snapshot.status === "estornado"', failedStateStart);
+assert.ok(failedStateStart >= 0 && failedStateEnd > failedStateStart);
+const failedStateSource = routeSource.slice(failedStateStart, failedStateEnd);
+assert.match(failedStateSource, /Não foi possível concluir o pagamento Pix/);
+assert.match(failedStateSource, /solicitar uma nova corrida e tentar novamente/);
+assert.match(failedStateSource, /actionLabel="Tentar novamente"/);
+assert.match(failedStateSource, /navigate\(\{ to: "\/" \}\)/);
+
 assert.match(statusSource, /corrida\.passageiro_id !== passageiro\.id/);
 assert.match(statusSource, /corrida\.forma_pagamento !== "pix"/);
 assert.match(statusSource, /pagamento\.status === "pago"/);
@@ -184,3 +193,4 @@ assert.match(searchingSource, /to: '\/pagamento-pix'/);
 assert.match(searchingSource, /to: '\/acompanhamento'/);
 
 console.log("PIX Etapa 5: estados, ownership e isolamento da tela aprovados.");
+console.log("PIX falhou: mensagem clara e opção de nova tentativa aprovadas.");
