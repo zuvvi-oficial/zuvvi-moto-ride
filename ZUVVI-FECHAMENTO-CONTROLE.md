@@ -1263,3 +1263,47 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 6. aceitar ou recusar a oferta deve continuar funcionando exatamente como antes.
 
 **STATUS:** código e compilação aprovados; aguarda prova manual do motorista.
+
+### MICROCORREÇÃO — Central de notificações premium do passageiro — ✅ IMPLEMENTADA — PROVA MANUAL PENDENTE
+
+**Objetivo restrito:** elevar somente a apresentação e a acessibilidade do sino de notificações, preservando integralmente a consulta, o Realtime, a leitura, a limpeza e a separação dos avisos operacionais Pix.
+
+**Correção aplicada:**
+- notificações agrupadas por `Hoje`, `Ontem` e data completa;
+- emojis do início dos títulos substituídos visualmente por ícones Lucide definidos pelo campo `tipo` já existente;
+- notificações não lidas destacadas por faixa lateral, fundo sutil e indicador no ícone;
+- estado vazio premium com ícone, título “Tudo em dia” e texto orientativo;
+- contador textual de novas atualizações no cabeçalho;
+- áreas de toque elevadas para 44 px nos controles principais;
+- modal com `role="dialog"`, `aria-modal`, título associado, foco inicial, armadilha de foco, fechamento por Escape, retorno do foco ao sino e bloqueio da rolagem do fundo;
+- itens convertidos em botões navegáveis por teclado;
+- horários preservados e contextualizados pelos grupos de data;
+- confirmação de limpeza, mensagens, limite de 20 itens e ordenação descendente preservados.
+
+**Trava de escopo / contraprova:**
+- único arquivo funcional alterado: `src/components/NotificationBell.tsx`;
+- commit funcional: `bd601efc2d15c4544a76dd3558d363d7a6cff598`;
+- comparação contra `6ea0c0403198c5b35339fa7af9696d9c34a4c006`: 1 commit, 1 arquivo modificado;
+- nenhuma alteração no Supabase ou em dados;
+- nenhuma migration, tabela, coluna, trigger, policy, RPC ou Edge Function;
+- nenhuma alteração na criação de notificações;
+- nenhuma alteração em corridas, pagamentos, Pix ou Mercado Pago;
+- nenhuma alteração em telas do motorista, painel administrativo ou demais telas do passageiro;
+- filtro `isPixOperationalNotice` preservado: falhas operacionais Pix continuam fora do sino;
+- subscription Realtime, som e vibração preservados;
+- ações “Marcar lidas” e “Limpar” preservadas;
+- compilação Lovable: `completed`;
+- projeto: `ready`;
+- erro de compilação: `null`.
+
+**Critério da prova manual:**
+1. abrir o sino com notificações e confirmar grupos “Hoje”, “Ontem” ou data;
+2. confirmar ícones consistentes, sem emojis no começo dos títulos;
+3. tocar em uma não lida e confirmar a remoção do destaque;
+4. usar “Marcar lidas” e confirmar contador zerado;
+5. abrir “Limpar”, cancelar e confirmar que nada foi removido;
+6. abrir novamente, confirmar a limpeza e visualizar “Tudo em dia”;
+7. fechar pelo X, pelo fundo e pela tecla Escape quando houver teclado;
+8. confirmar que corridas, Pix e demais telas permanecem inalterados.
+
+**STATUS:** código, escopo e compilação aprovados; aguarda prova manual visual no aplicativo do passageiro.
