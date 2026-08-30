@@ -1384,6 +1384,29 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
       throw new Error("Não foi possível finalizar. A corrida pode ter sido alterada por outro processo.");
     }
 
+    // 4. Devolver o motorista para disponível (online) para a próxima corrida
+    const { error: disponError } = await supabaseAdmin
+      .from("motoristas")
+      .update({ is_disponivel: true })
+      .eq("id", motoristaId);
+
+    if (disponError) {
+      console.error("Erro ao liberar motorista:", disponError);
+      throw new Error("Falha ao liberar motorista para a próxima corrida.");
+    }
+
+    // 5. Fechar o pagamento correspondente como 'pago'
+    const { error: pagError } = await supabaseAdmin
+      .from("pagamentos")
+      .update({ status: "pago", pago_at: new Date().toISOString() })
+      .eq("corrida_id", data.rideId)
+      .in("status", ["pendente"]);
+
+    if (pagError) {
+      console.error("Erro ao fechar pagamento:", pagError);
+      throw new Error("Falha ao registrar pagamento.");
+    }
+
     // Notificar Passageiro e Motorista
     const { data: rideData } = await supabaseAdmin
       .from("corridas")
