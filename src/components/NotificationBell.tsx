@@ -172,6 +172,10 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
 
+      if (!firstElement || !lastElement) {
+        return;
+      }
+
       if (event.shiftKey && document.activeElement === firstElement) {
         event.preventDefault();
         lastElement.focus();
