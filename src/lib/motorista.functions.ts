@@ -1319,7 +1319,7 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
 
 export const finalizarCorrida = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
+  .validator((data: unknown) => z.object({ rideId: z.string(), recebido: z.boolean().optional() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { criarNotificacao } = await import("./notificacoes.server");
@@ -1339,7 +1339,7 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
     // 2. Buscar a corrida para validar estado e obter valor_estimado
     const { data: rideCheck, error: fetchError } = await supabaseAdmin
       .from("corridas")
-      .select("id, motorista_id, status, data_inicio, valor_estimado")
+      .select("id, motorista_id, status, data_inicio, valor_estimado, forma_pagamento")
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
       .maybeSingle();
@@ -1396,15 +1396,17 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
     }
 
     // 5. Fechar o pagamento correspondente como 'pago'
-    const { error: pagError } = await supabaseAdmin
-      .from("pagamentos")
-      .update({ status: "pago", pago_at: new Date().toISOString() })
-      .eq("corrida_id", data.rideId)
-      .in("status", ["pendente"]);
+    if (rideCheck.forma_pagamento !== "dinheiro" || data.recebido !== false) {
+      const { error: pagError } = await supabaseAdmin
+        .from("pagamentos")
+        .update({ status: "pago", pago_at: new Date().toISOString() })
+        .eq("corrida_id", data.rideId)
+        .in("status", ["pendente"]);
 
-    if (pagError) {
-      console.error("Erro ao fechar pagamento:", pagError);
-      throw new Error("Falha ao registrar pagamento.");
+      if (pagError) {
+        console.error("Erro ao fechar pagamento:", pagError);
+        throw new Error("Falha ao registrar pagamento.");
+      }
     }
 
     // Notificar Passageiro e Motorista
@@ -1429,7 +1431,9 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
         usuario_id: motoristaId,
         tipo: "corrida_concluida",
         titulo: "💰 Ganho confirmado",
-        mensagem: `Ganho da corrida: R$ ${Number(rideData.valor_final).toFixed(2)}`,
+        mensagem: rideCheck.forma_pagamento === "dinheiro" && data.recebido === false
+          ? `Valor da corrida: R$ ${Number(rideData.valor_final).toFixed(2)} ficou em aberto.`
+          : `Ganho da corrida: R$ ${Number(rideData.valor_final).toFixed(2)}`,
         corrida_id: data.rideId
       });
     }
