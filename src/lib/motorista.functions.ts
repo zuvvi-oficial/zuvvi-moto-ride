@@ -1429,7 +1429,7 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
         usuario_id: motoristaId,
         tipo: "corrida_concluida",
         titulo: "💰 Ganho confirmado",
-        mensagem: `Você concluiu a corrida! O valor foi creditado em sua conta.`,
+        mensagem: `Ganho da corrida: R$ ${Number(rideData.valor_final).toFixed(2)}`,
         corrida_id: data.rideId
       });
     }
