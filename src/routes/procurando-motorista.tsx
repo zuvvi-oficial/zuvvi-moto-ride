@@ -86,7 +86,12 @@ function ProcurandoMotorista() {
     try {
       const result = await verificarTimeoutCorridaFn({ data: { rideId } }) as any;
 
-      const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+      const assignedStatuses = ["aguardando_pagamento", "aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+
+      if (result.status === 'cancelada' && corrida?.forma_pagamento === 'pix') {
+        navigateAfterDriverAssigned('pix');
+        return;
+      }
 
       if (result.expired === true || result.status === 'sem_motorista') {
         // Servidor confirmou expiração — limpar retry pendente antes do estado final
@@ -134,7 +139,13 @@ function ProcurandoMotorista() {
         const data = await getCorridaFn({ data: { rideId } });
         setCorrida(data);
 
-        const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+        const assignedStatuses = ["aguardando_pagamento", "aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+
+        if (data.status === 'cancelada' && data.forma_pagamento === 'pix') {
+          navigateAfterDriverAssigned('pix');
+          return;
+        }
+
         // Caso B: já atribuída — Pix paga antes do acompanhamento; demais meios preservados.
         if (data && data.motorista_id && assignedStatuses.includes(data.status)) {
           motoristaEncontradoRef.current = true;
@@ -179,6 +190,11 @@ function ProcurandoMotorista() {
             const updatedRide = payload.new as any;
             setCorrida(updatedRide);
 
+            if (updatedRide.status === 'cancelada' && updatedRide.forma_pagamento === 'pix') {
+              navigateAfterDriverAssigned('pix');
+              return;
+            }
+
             // Tratamento explícito de sem_motorista via Realtime
             if (updatedRide.status === 'sem_motorista') {
               setSemMotorista(true);
@@ -186,7 +202,7 @@ function ProcurandoMotorista() {
             }
 
             // Preservar fluxo de aceite do motorista; Pix recebe handoff exclusivo de pagamento.
-            const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+            const assignedStatuses = ["aguardando_pagamento", "aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
             if (updatedRide.motorista_id && assignedStatuses.includes(updatedRide.status) && !motoristaEncontradoRef.current) {
               motoristaEncontradoRef.current = true;
               setMotoristaEncontrado(true);
@@ -199,7 +215,12 @@ function ProcurandoMotorista() {
           if (status === 'SUBSCRIBED') {
             try {
               const data = await getCorridaFn({ data: { rideId } });
-              const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+              const assignedStatuses = ["aguardando_pagamento", "aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+
+              if (data.status === 'cancelada' && data.forma_pagamento === 'pix') {
+                navigateAfterDriverAssigned('pix');
+                return;
+              }
               
               if (data && data.motorista_id && assignedStatuses.includes(data.status) && !motoristaEncontradoRef.current) {
                 motoristaEncontradoRef.current = true;
@@ -311,7 +332,7 @@ function ProcurandoMotorista() {
   const PgtoIcon = pgto.icon;
   const isPix = corrida.forma_pagamento === 'pix';
 
-  const assignedStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+  const assignedStatuses = ["aguardando_pagamento", "aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-zuvvi-indigo text-foreground overflow-y-auto font-poppins pb-10">

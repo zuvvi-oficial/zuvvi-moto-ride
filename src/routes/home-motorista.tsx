@@ -1,6 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { NotificationBell } from "@/components/NotificationBell";
+import {
+  NotificationBell,
+  type NotificationBellItem,
+} from "@/components/NotificationBell";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import mapboxgl from "mapbox-gl";
@@ -107,6 +110,35 @@ function HomeMotorista() {
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
   const playSound = useSoundStore((state: any) => state.play);
   const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
+  const [pixFailureNotice, setPixFailureNotice] = useState<NotificationBellItem | null>(null);
+
+  const handleImportantNotification = useCallback((notification: NotificationBellItem) => {
+    if (
+      notification.titulo === "Corrida cancelada" &&
+      notification.mensagem.includes("pagamento Pix")
+    ) {
+      setPixFailureNotice(notification);
+    }
+  }, []);
+
+  const acknowledgePixFailure = useCallback(async () => {
+    if (!pixFailureNotice) return;
+
+    const notificationId = pixFailureNotice.id;
+    setPixFailureNotice(null);
+
+    const { error: updateError } = await supabase
+      .from("notificacoes" as any)
+      .update({ lida: true } as any)
+      .eq("id", notificationId);
+
+    if (updateError) {
+      toast.error("Não foi possível confirmar o aviso.");
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
+  }, [pixFailureNotice, queryClient]);
   
   // Estado explícito para corrida finalizada
   const [completedRideNotice, setCompletedRideNotice] = useState<{
@@ -573,64 +605,64 @@ function HomeMotorista() {
   // Lista visual segura: só exibe se ONLINE, GPS ativo e sem corrida ativa
   const ofertas = isOnline && isGpsActive && !activeRide ? rawOfertas : [];
 
-  const dispararSequenciaAlerta = useCallback(async (oferta: any) => {
-    // 1. Vibração forte
-    const vibracaoPadrao = [400, 150, 400, 150, 400];
-    const duracaoVibracao = vibracaoPadrao.reduce((a, b) => a + b, 0);
-    
+  const dispararSequenciaAlerta = useCallback((oferta: any) => {
+    // Alerta Zuvvi: som, vibração e voz começam juntos com a oferta na tela.
     if ("vibrate" in navigator) {
-      navigator.vibrate(vibracaoPadrao);
+      navigator.vibrate([220, 90, 220]);
     }
 
-    // 2. Sino personalizado - disparado quase simultaneamente para manter vínculo com gesto
-    playSound("/sounds/zuvvi_volt_ping.mp3").catch((e: any) => 
+    playSound("/sounds/zuvvi_volt_ping.mp3").catch((e: any) =>
       console.error("[HomeMotorista] Erro ao tocar sino:", e)
     );
 
-    // Aguarda vibração terminar para prosseguir com a voz
-    await new Promise(resolve => setTimeout(resolve, Math.max(duracaoVibracao, 1500)));
+    if (!("speechSynthesis" in window)) return;
 
-    // 3. Voz feminina (Web Speech API)
-    if ("speechSynthesis" in window) {
-      const valor = oferta.valor_estimado;
-      const distKm = (oferta.distancia_aprox_m / 1000).toFixed(1).replace(".", ",");
-      
-      let valorTexto = `${Math.floor(valor)} reais`;
-      if (valor % 1 !== 0) {
-        const centavos = Math.round((valor % 1) * 100);
-        valorTexto += ` e ${centavos} centavos`;
-      }
+    const valor = Number(oferta.valor_estimado) || 0;
+    const valorTexto = valor.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    const destinoCompleto =
+      typeof oferta.destino_nome === "string" ? oferta.destino_nome.trim() : "";
+    const destinoFalado =
+      destinoCompleto
+        .split(",")
+        .slice(0, 3)
+        .join(",")
+        .trim() || "destino informado no aplicativo";
+    const frase = `Zuvvi. Nova corrida. Valor ${valorTexto}. Destino: ${destinoFalado}.`;
 
-      const frase = `Nova corrida disponível. A ${distKm} quilômetros de distância, valor estimado de ${valorTexto}.`;
-      
-      const utterance = new SpeechSynthesisUtterance(frase);
-      utterance.lang = "pt-BR";
-      utterance.rate = 0.9;
-      utterance.pitch = 1.1;
+    const synth = window.speechSynthesis;
+    // Uma oferta nova substitui qualquer locução antiga que ainda esteja na fila.
+    synth.cancel();
 
-      // Tentar carregar vozes e selecionar uma feminina
-      const setVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
-        const ptVoices = voices.filter(v => v.lang.startsWith("pt"));
-        const femaleVoice = ptVoices.find(v => 
-          v.name.toLowerCase().includes("female") || 
-          v.name.toLowerCase().includes("mulher") ||
-          v.name.toLowerCase().includes("maria") ||
-          v.name.toLowerCase().includes("luciana")
-        ) || ptVoices[0];
-        
-        if (femaleVoice) utterance.voice = femaleVoice;
-      };
+    const utterance = new SpeechSynthesisUtterance(frase);
+    utterance.lang = "pt-BR";
+    utterance.rate = 1.15;
+    utterance.pitch = 1.03;
+    utterance.volume = 1;
 
-      if (window.speechSynthesis.getVoices().length > 0) {
-        setVoice();
-      } else {
-        window.speechSynthesis.onvoiceschanged = setVoice;
-      }
+    const vozesPtBr = synth
+      .getVoices()
+      .filter((voice) => voice.lang.toLowerCase().replace("_", "-") === "pt-br");
+    const nomesPreferidos = [
+      "francisca",
+      "luciana",
+      "maria",
+      "google português do brasil",
+      "female",
+      "mulher",
+    ];
+    const vozPremium =
+      nomesPreferidos
+        .map((nome) =>
+          vozesPtBr.find((voice) => voice.name.toLowerCase().includes(nome))
+        )
+        .find(Boolean) || vozesPtBr[0];
 
-      window.speechSynthesis.speak(utterance);
-    }
-  }, []);
+    if (vozPremium) utterance.voice = vozPremium;
+    synth.speak(utterance);
+  }, [playSound]);
 
   useEffect(() => {
     if (ofertas.length > 0) {
@@ -1089,7 +1121,7 @@ function HomeMotorista() {
         </div>
         
         <div className="flex items-center gap-3">
-          <NotificationBell />
+          <NotificationBell onImportantNotification={handleImportantNotification} />
           {activeRide ? (
             <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo">
               <Bike className="w-4 h-4" />
@@ -1546,6 +1578,50 @@ function HomeMotorista() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+
+      {pixFailureNotice && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-zuvvi-indigo/95 p-5 backdrop-blur-md animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pix-failure-driver-title"
+        >
+          <div className="w-full max-w-sm rounded-[2.25rem] border border-white/10 bg-zuvvi-indigo-dark p-7 text-center shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-zuvvi-volt/20 bg-zuvvi-volt/10">
+              <AlertTriangle className="h-10 w-10 text-zuvvi-volt" />
+            </div>
+
+            <p className="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">
+              Corrida cancelada
+            </p>
+            <h2
+              id="pix-failure-driver-title"
+              className="mt-2 text-2xl font-black leading-tight text-white"
+            >
+              Pagamento Pix não concluído
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-white/65">
+              O pagamento do passageiro não foi confirmado. A corrida foi cancelada automaticamente.
+            </p>
+
+            <div className="mt-6 flex items-start gap-3 rounded-2xl border border-zuvvi-volt/20 bg-zuvvi-volt/10 p-4 text-left">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-zuvvi-volt" />
+              <p className="text-xs font-semibold leading-relaxed text-white/80">
+                Você continua online e disponível para receber novas solicitações.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void acknowledgePixFailure()}
+              className="mt-7 min-h-14 w-full rounded-2xl bg-zuvvi-volt px-5 text-sm font-black uppercase tracking-[0.14em] text-zuvvi-indigo"
+            >
+              Entendi
+            </button>
           </div>
         </div>
       )}
