@@ -794,6 +794,43 @@ function HomeMotorista() {
     }
   };
 
+  const handleFinalizarCorrida = async (recebido?: boolean) => {
+    if (!activeRide?.id || processingRideId) return;
+
+    const rideData = {
+      id: activeRide.id,
+      valorEstimado: Number(activeRide.valor_estimado),
+      formaPagamento: activeRide.forma_pagamento,
+      destinoNome: activeRide.destino_nome || "Destino",
+    };
+
+    setProcessingRideId(activeRide.id);
+    try {
+      if (recebido === undefined) {
+        await finalizarCorridaFn({ data: { rideId: activeRide.id } });
+      } else {
+        await finalizarCorridaFn({ data: { rideId: activeRide.id, recebido } });
+      }
+
+      setShowFinalizeConfirmation(false);
+      setNotaAvaliacao(0);
+      setComentarioAvaliacao("");
+      setAvaliacaoSucesso(false);
+      setCompletedRideNotice(rideData);
+      setChatOpen(false);
+      chatOpenRef.current = false;
+      setChatData(null);
+      setChatUnreadCount(0);
+
+      void queryClient.invalidateQueries({ queryKey: ["motorista-status"] })
+        .catch(err => console.error("Erro ao sincronizar status pós-finalização:", err));
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao finalizar corrida.");
+    } finally {
+      setProcessingRideId(null);
+    }
+  };
+
   const updateLocationFn = useServerFn(updateLocalizacaoMotorista);
 
   const stopGps = useCallback(() => {
@@ -1509,74 +1546,70 @@ function HomeMotorista() {
             
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-                FINALIZAR CORRIDA?
+                {activeRide?.forma_pagamento === "dinheiro" ? (
+                  <>
+                    VOCÊ RECEBEU{" "}
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(Number(activeRide.valor_estimado))}{" "}
+                    DO PASSAGEIRO?
+                  </>
+                ) : (
+                  "FINALIZAR CORRIDA?"
+                )}
               </h2>
               <p className="text-sm text-white/60">
-                Confirme somente após chegar ao destino do passageiro.
+                {activeRide?.forma_pagamento === "dinheiro"
+                  ? "Confirme o recebimento antes de finalizar a corrida."
+                  : "Confirme somente após chegar ao destino do passageiro."}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setShowFinalizeConfirmation(false)}
-                disabled={!!processingRideId}
-                className="py-5 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
-              >
-                VOLTAR
-              </button>
-              <button
-                onClick={async () => {
-                  if (!activeRide?.id || processingRideId) return;
-                  
-                  // Capturar dados para o notice antes da finalização
-                  const rideData = {
-                    id: activeRide.id,
-                    valorEstimado: Number(activeRide.valor_estimado),
-                    formaPagamento: activeRide.forma_pagamento,
-                    destinoNome: activeRide.destino_nome || "Destino",
-                  };
-
-                  setProcessingRideId(activeRide.id);
-                  try {
-                    // 1. Backend
-                    await finalizarCorridaFn({ data: { rideId: activeRide.id } });
-                    
-                    // 2. Fechar modal
-                    setShowFinalizeConfirmation(false);
-                    
-                    // 3. Resetar estado de avaliação
-                    setNotaAvaliacao(0);
-                    setComentarioAvaliacao("");
-                    setAvaliacaoSucesso(false);
-
-                    // 4. Sucesso visual desacoplado
-                    setCompletedRideNotice(rideData);
-                    
-                    // 5. Limpar estados locais de chat para a corrida encerrada
-                    setChatOpen(false);
-                    chatOpenRef.current = false;
-                    setChatData(null);
-                    setChatUnreadCount(0);
-                    
-                    // 5. Invalidação best-effort (não derruba a página)
-                    void queryClient.invalidateQueries({ queryKey: ["motorista-status"] })
-                      .catch(err => console.error("Erro ao sincronizar status pós-finalização:", err));
-                    
-                  } catch (err: any) {
-                    toast.error(err.message || "Erro ao finalizar corrida.");
-                  } finally {
-                    setProcessingRideId(null);
-                  }
-                }}
-                disabled={!!processingRideId}
-                className="py-5 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {processingRideId === activeRide?.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "SIM, FINALIZAR"
-                )}
-              </button>
+              {activeRide?.forma_pagamento === "dinheiro" ? (
+                <>
+                  <button
+                    onClick={() => void handleFinalizarCorrida(false)}
+                    disabled={!!processingRideId}
+                    className="py-5 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    NÃO
+                  </button>
+                  <button
+                    onClick={() => void handleFinalizarCorrida(true)}
+                    disabled={!!processingRideId}
+                    className="py-5 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {processingRideId === activeRide?.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "SIM"
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowFinalizeConfirmation(false)}
+                    disabled={!!processingRideId}
+                    className="py-5 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    VOLTAR
+                  </button>
+                  <button
+                    onClick={() => void handleFinalizarCorrida()}
+                    disabled={!!processingRideId}
+                    className="py-5 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {processingRideId === activeRide?.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "SIM, FINALIZAR"
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
