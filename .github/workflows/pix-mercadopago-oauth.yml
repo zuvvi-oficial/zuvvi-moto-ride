@@ -120,4 +120,8 @@ jobs:
             git diff origin/main -- package.json bun.lock
             exit 1
           fi
-          test -z "$(git status --porcelain)"
+          if ! git diff --quiet -- package.json bun.lock; then
+            echo "package.json ou bun.lock foram alterados pelo runner"
+            git diff -- package.json bun.lock
+            exit 1
+          fi
