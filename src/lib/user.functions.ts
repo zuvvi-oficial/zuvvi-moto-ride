@@ -139,8 +139,15 @@ export const cotarCorrida = createServerFn({ method: "POST" })
     valor = Math.round(valor * 100) / 100;
 
     // 4. Gerar Assinatura da Cotação (Anti-Tampering)
-    // Validade implícita: a cotação deve bater com os dados da corrida
-    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${valor}`;
+    // Validade implícita: a cotação deve bater com os dados da corrida.
+    // Distância/duração/tarifa entram na assinatura para que a corrida possa
+    // gravar exatamente o que foi cotado (G3), sem confiar em valores soltos
+    // que o cliente poderia reenviar adulterados.
+    const bandeirada = Number(cidade.bandeirada);
+    const valorKm = Number(cidade.valor_km);
+    const valorMin = Number(cidade.valor_min);
+    const tarifaMinima = Number(cidade.tarifa_minima);
+    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${valor}:${distanceKm}:${durationMin}:${bandeirada}:${valorKm}:${valorMin}:${tarifaMinima}`;
     const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
     const signature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
@@ -148,6 +155,7 @@ export const cotarCorrida = createServerFn({ method: "POST" })
       distance: distanceKm,
       duration: durationMin,
       valor,
+      tarifas: { bandeirada, valorKm, valorMin, tarifaMinima },
       signature,
       geometry: route.geometry
     };
@@ -162,6 +170,12 @@ const createRideSchema = z.object({
   destinoNome: z.string().optional(),
   formaPagamento: z.enum(["pix", "cartao", "dinheiro"]),
   valorCotado: z.number(),
+  distanciaKm: z.number(),
+  duracaoMin: z.number(),
+  tarifaBandeirada: z.number(),
+  tarifaValorKm: z.number(),
+  tarifaValorMin: z.number(),
+  tarifaMinima: z.number(),
   assinaturaCotacao: z.string()
 });
 
@@ -173,8 +187,9 @@ export const criarCorrida = createServerFn({ method: "POST" })
     const crypto = await import("crypto");
     const userId = context.userId;
 
-    // 1. Validar Assinatura da Cotação
-    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${data.valorCotado}`;
+    // 1. Validar Assinatura da Cotação (mesmo payload assinado em cotarCorrida,
+    // incluindo distância/duração/tarifa para gravar exatamente o que foi cotado — G3).
+    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${data.valorCotado}:${data.distanciaKm}:${data.duracaoMin}:${data.tarifaBandeirada}:${data.tarifaValorKm}:${data.tarifaValorMin}:${data.tarifaMinima}`;
     const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
     const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
@@ -245,7 +260,13 @@ export const criarCorrida = createServerFn({ method: "POST" })
         p_destino_nome: data.destinoNome || 'Destino',
         p_valor_total: data.valorCotado,
         p_valor_motorista: valorMotorista,
-        p_valor_comissao: valorComissao
+        p_valor_comissao: valorComissao,
+        p_distancia_km: data.distanciaKm,
+        p_duracao_min: data.duracaoMin,
+        p_tarifa_bandeirada: data.tarifaBandeirada,
+        p_tarifa_valor_km: data.tarifaValorKm,
+        p_tarifa_valor_min: data.tarifaValorMin,
+        p_tarifa_minima: data.tarifaMinima
       }
     );
 
