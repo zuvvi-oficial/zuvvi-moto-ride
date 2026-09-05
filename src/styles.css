@@ -2,6 +2,44 @@
 @source "../src";
 @import "tw-animate-css";
 
+/*
+ * Poppins hospedada localmente (subset "latin", que cobre os acentos do
+ * português) em vez de carregada via <link> do Google Fonts. Um <link
+ * rel="stylesheet"> de terceiro trava a primeira pintura da página inteira
+ * até ele responder — numa conexão mais lenta isso é a tela "crua" (sem
+ * nenhum estilo do Tailwind aplicado) ficando visível por vários segundos
+ * antes de "estalar" pro layout correto. Servir o arquivo do próprio
+ * domínio remove essa dependência de rede externa por completo.
+ */
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/poppins-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/poppins-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/poppins-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/poppins-700.woff2") format("woff2");
+}
+
 @utility custom-scrollbar {
   &::-webkit-scrollbar {
     width: 6px;
