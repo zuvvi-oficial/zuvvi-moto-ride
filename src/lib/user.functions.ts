@@ -463,6 +463,28 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       throw new Error("Perfil de usuário não encontrado.");
     }
 
+    // Corridas Pix só chegam a 'aceita' (e além) depois que o pagamento já foi
+    // confirmado como 'pago' — o trigger pix_hold_corrida_until_payment_trigger
+    // mantém a corrida em 'aguardando_pagamento' até a confirmação. Por isso,
+    // nesses estados o cancelamento envolve dinheiro já movimentado (split via
+    // application_fee direto para o motorista) e é bloqueado até existir um
+    // fluxo de estorno dedicado. Antes do aceite (solicitada/buscando_motorista)
+    // nenhuma cobrança Pix existe ainda, então o cancelamento continua livre.
+    const { data: corridaPixPaga } = await supabaseAdmin
+      .from("corridas")
+      .select("id")
+      .eq("id", data.rideId)
+      .eq("passageiro_id", usuario.id)
+      .eq("forma_pagamento", "pix")
+      .in("status", ['aceita', 'motorista_a_caminho'])
+      .maybeSingle();
+
+    if (corridaPixPaga) {
+      throw new Error(
+        "Esta corrida já tem o pagamento Pix confirmado e não pode ser cancelada por aqui. Entre em contato com o suporte Zuvvi.",
+      );
+    }
+
     // 2. Tentar atualizar a corrida se pertencer ao passageiro e status for válido
     const { data: corrida, error } = await supabaseAdmin
       .from("corridas")
@@ -473,7 +495,9 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       } as any)
       .eq("id", data.rideId)
       .eq("passageiro_id", usuario.id)
-      .in("status", ['solicitada', 'buscando_motorista', 'aceita', 'motorista_a_caminho'])
+      .or(
+        "status.in.(solicitada,buscando_motorista),and(status.in.(aceita,motorista_a_caminho),forma_pagamento.neq.pix)",
+      )
       .select()
       .maybeSingle();
 
