@@ -57,6 +57,9 @@ export const criarContatoConfianca = createServerFn({ method: "POST" })
 
     const telefoneNormalizado = normalizarTelefone(data.telefone);
 
+    // Checagem rápida só para dar feedback sem round-trip de erro no caso comum;
+    // a garantia real contra corrida (duas inserções concorrentes) é o trigger
+    // enforce_contatos_confianca_limit_trigger no banco (código 23514 abaixo).
     const { count, error: countError } = await supabaseAdmin
       .from("contatos_confianca")
       .select("id", { count: "exact", head: true })
@@ -75,7 +78,14 @@ export const criarContatoConfianca = createServerFn({ method: "POST" })
       telefone: telefoneNormalizado,
     });
 
-    if (error) throw new Error("Não foi possível salvar o contato.");
+    if (error) {
+      if ((error as { code?: string }).code === "23514") {
+        throw new Error(
+          `Você atingiu o limite de ${LIMITE_CONTATOS} contatos de confiança. Exclua um para adicionar outro.`,
+        );
+      }
+      throw new Error("Não foi possível salvar o contato.");
+    }
     return { success: true };
   });
 
