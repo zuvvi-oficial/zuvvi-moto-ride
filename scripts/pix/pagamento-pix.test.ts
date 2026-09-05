@@ -14,6 +14,9 @@ assert.equal(getPixPaymentTimeoutSeconds("300"), 300);
 assert.equal(getPixPaymentTimeoutSeconds("59"), 300);
 assert.equal(getPixPaymentTimeoutSeconds("901"), 300);
 assert.equal(getPixPaymentTimeoutSeconds("abc"), 300);
+// Limites inclusivos do clamp: 60 e 900 devem passar, não cair no default.
+assert.equal(getPixPaymentTimeoutSeconds("60"), 60);
+assert.equal(getPixPaymentTimeoutSeconds("900"), 900);
 
 assert.equal(calcularDeadlinePix(createdAt, null, 300), "2026-08-25T12:05:00.000Z");
 assert.equal(
@@ -130,6 +133,95 @@ assert.equal(
   "estornado",
 );
 
+// Estorno também é detectado só pela tentativa, mesmo com pagamentoStatus ainda "pendente"
+// (ex.: webhook do provedor chegou antes da própria tabela pagamentos ser atualizada).
+assert.equal(
+  derivarEstadoPagamentoPix(
+    {
+      pagamentoStatus: "pendente",
+      corridaStatus: "aceita",
+      tentativaEstado: "estornado",
+      tentativaCreatedAt: createdAt,
+    },
+    now,
+  ).status,
+  "estornado",
+);
+
+// Provedor recusou ou cancelou a cobrança: cai em "falhou" mesmo sem o app ter marcado assim.
+assert.equal(
+  derivarEstadoPagamentoPix(
+    {
+      pagamentoStatus: "pendente",
+      corridaStatus: "aceita",
+      tentativaEstado: "pendente",
+      providerStatus: "rejected",
+      pixCopiaCola: "000201PIX",
+      tentativaCreatedAt: createdAt,
+    },
+    now,
+  ).status,
+  "falhou",
+);
+assert.equal(
+  derivarEstadoPagamentoPix(
+    {
+      pagamentoStatus: "pendente",
+      corridaStatus: "aceita",
+      tentativaEstado: "pendente",
+      providerStatus: "cancelled",
+      pixCopiaCola: "000201PIX",
+      tentativaCreatedAt: createdAt,
+    },
+    now,
+  ).status,
+  "falhou",
+);
+
+// Tentativa registrada mas ainda sem copia-e-cola: continua "gerando", não "aguardando".
+assert.equal(
+  derivarEstadoPagamentoPix(
+    {
+      pagamentoStatus: "pendente",
+      corridaStatus: "aceita",
+      tentativaEstado: "pendente",
+      providerStatus: "pending",
+      tentativaCreatedAt: createdAt,
+    },
+    now,
+  ).status,
+  "gerando",
+);
+
+// tentativaEstado "pago" isolado (antes do provider confirmar) já é o suficiente para "analisando".
+assert.equal(
+  derivarEstadoPagamentoPix(
+    {
+      pagamentoStatus: "pendente",
+      corridaStatus: "aceita",
+      tentativaEstado: "pago",
+      pixCopiaCola: "000201PIX",
+      tentativaCreatedAt: createdAt,
+    },
+    now,
+  ).status,
+  "analisando",
+);
+assert.equal(
+  derivarEstadoPagamentoPix(
+    {
+      pagamentoStatus: "pendente",
+      corridaStatus: "aceita",
+      tentativaEstado: "pendente",
+      providerStatus: "in_mediation",
+      pixCopiaCola: "000201PIX",
+      tentativaCreatedAt: createdAt,
+    },
+    now,
+  ).status,
+  "analisando",
+);
+
 assert.equal(
   derivarEstadoPagamentoPix(
     {
@@ -177,9 +269,9 @@ const failedStateStart = routeSource.indexOf('snapshot.status === "falhou"');
 const failedStateEnd = routeSource.indexOf('snapshot.status === "estornado"', failedStateStart);
 assert.ok(failedStateStart >= 0 && failedStateEnd > failedStateStart);
 const failedStateSource = routeSource.slice(failedStateStart, failedStateEnd);
-assert.match(failedStateSource, /Não foi possível concluir o pagamento Pix/);
-assert.match(failedStateSource, /solicitar uma nova corrida e tentar novamente/);
-assert.match(failedStateSource, /actionLabel="Tentar novamente"/);
+assert.match(failedStateSource, /Pagamento Pix não concluído/);
+assert.match(failedStateSource, /Solicite uma nova corrida e escolha outro meio de pagamento/);
+assert.match(failedStateSource, /actionLabel="Escolher outro pagamento"/);
 assert.match(failedStateSource, /navigate\(\{ to: "\/" \}\)/);
 
 assert.match(statusSource, /corrida\.passageiro_id !== passageiro\.id/);
@@ -194,3 +286,6 @@ assert.match(searchingSource, /to: '\/acompanhamento'/);
 
 console.log("PIX Etapa 5: estados, ownership e isolamento da tela aprovados.");
 console.log("PIX falhou: mensagem clara e opção de nova tentativa aprovadas.");
+console.log(
+  "PIX derivarEstadoPagamentoPix: cascata completa (estorno isolado, rejected/cancelled, sem copia-e-cola, tentativa 'pago' isolada, in_mediation, limites 60/900s) aprovada.",
+);
