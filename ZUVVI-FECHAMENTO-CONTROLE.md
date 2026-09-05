@@ -1237,3 +1237,21 @@ Realizada auditoria completa do estado real do código (não apenas deste docume
 - Validação: `npx tsc --noEmit` e `npx eslint` rodados nos dois arquivos tocados — nenhum erro novo introduzido (apenas os erros pré-existentes de módulos ausentes/formatação já registrados em "LINT GLOBAL — PENDENTE").
 - Próxima etapa: bloco Pix (B2) — validação de webhook, expiração autoritativa e reembolso.
 
+### Microetapa 5.2 — Webhook Mercado Pago: deduplicação + validação de assinatura — ✅ IMPLEMENTADA — HOMOLOGAÇÃO PENDENTE
+- **Deduplicação:** `private.mercadopago_webhook_eventos` (existia ociosa desde a migration `pix_attempts_webhook`) passou a ser usada de fato. Duas novas funções `SECURITY DEFINER` em `public` (schema `private` não é exposto via PostgREST, mesmo padrão das funções `pix_oauth_*`):
+  - `pix_mercadopago_webhook_register_event`: insere o evento com `event_key` único; se já existir, retorna `is_new=false` e o `processing_status` atual em vez de duplicar.
+  - `pix_mercadopago_webhook_finalizar_evento`: marca o evento como `processed` ou `failed`, incrementando `processing_attempts`.
+  - Migration: `20260905090000_pix_webhook_dedup_functions.sql`. Ambas as funções revogadas de `public`/`anon`/`authenticated`, `EXECUTE` concedido só a `service_role`.
+  - `event_key` usa o `id` de notificação de topo do Mercado Pago (`mp-notification:<id>`), distinto do `data.id` (id do pagamento) — garante que reentregas do mesmo evento sejam deduplicadas sem colapsar eventos genuinamente diferentes sobre o mesmo pagamento (ex.: aprovação seguida de estorno). Fallback documentado para o formato legado sem id de notificação.
+  - Reentrega antes da finalização não é tratada como duplicada (ainda `received`) e é reprocessada; reentrega após `processed` é ignorada sem nova chamada à API do Mercado Pago.
+- **Validação de assinatura `x-signature`:** novo módulo `src/lib/pix-mercadopago-webhook-signature.server.ts`, seguindo o manifesto oficial `id:{data.id};request-id:{x-request-id};ts:{ts};`, HMAC-SHA256 com `MERCADOPAGO_WEBHOOK_SECRET`, comparação em tempo constante (`timingSafeEqual`) e janela de tolerância de 15 minutos contra replay do `ts`.
+  - Comportamento fail-closed: sem `MERCADOPAGO_WEBHOOK_SECRET` configurado, o webhook responde 503 (retry) sem processar nada; assinatura ausente/inválida responde 401.
+  - **AÇÃO NECESSÁRIA FORA DO CÓDIGO:** a variável de ambiente `MERCADOPAGO_WEBHOOK_SECRET` (valor gerado no dashboard do Mercado Pago em Suas integrações → Webhooks) precisa ser configurada no ambiente de produção antes do deploy desta etapa, senão nenhuma notificação real será processada.
+- **Validação realizada nesta sessão:**
+  - `npx tsc --noEmit` e `npx eslint` sem erros novos (só os `@typescript-eslint/no-explicit-any` já comentados no código, mesmo padrão de `criar_corrida_financeira_atomica`, por RPC nova ainda sem tipos regenerados).
+  - Lógica de assinatura testada isoladamente com HMAC real (assinatura válida aceita; segredo errado, dataId/request-id adulterados, header ausente, hex inválido e timestamp fora da janela — todos rejeitados; manifesto sem `request-id` ainda válido).
+  - Migration aplicada de ponta a ponta em Postgres 16 local (schema `private` + tabela reconstruída a partir da migration original): novo evento, reentrega antes de finalizar, finalização como `processed`, reentrega pós-processado corretamente ignorada, evento distinto sobre o mesmo pagamento tratado como novo, finalização como `failed` incrementa tentativas, status inválido rejeitado, permissões `anon`/`authenticated` negadas e `service_role` permitida.
+  - **NÃO testado nesta sessão:** notificação real do Mercado Pago em produção/sandbox (sem acesso a credenciais reais neste ambiente). Homologação final depende de configurar `MERCADOPAGO_WEBHOOK_SECRET` e observar uma notificação real chegar com assinatura válida.
+- Nenhuma alteração em `src/routes` ou fluxo de reconciliação (`sincronizarPagamentoPixComMercadoPago` intacto); apenas o gatilho HTTP do webhook foi enrijecido.
+- Próxima etapa: expiração autoritativa de tentativa Pix no servidor (hoje é só cálculo sob demanda) e módulo de reembolso.
+
