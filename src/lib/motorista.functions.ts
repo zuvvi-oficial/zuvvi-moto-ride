@@ -719,21 +719,50 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
     const motoristaId = user.id;
 
     // 2. Buscar a corrida e validar o código
-    const { data: corrida, error: corridaError } = await supabaseAdmin
+    const LIMITE_TENTATIVAS_CODIGO = 5;
+    type CorridaCodigoEmbarque = {
+      id: string;
+      codigo_embarque: string;
+      status: string;
+      tentativas_codigo_embarque: number;
+    };
+    const { data: corridaRaw, error: corridaError } = await supabaseAdmin
       .from("corridas")
-      .select("id, codigo_embarque, status")
+      .select("id, codigo_embarque, status, tentativas_codigo_embarque")
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
       .single();
+    const corrida = corridaRaw as CorridaCodigoEmbarque | null;
 
     if (corridaError || !corrida) throw new Error("Corrida não encontrada.");
-    
+
     if (corrida.status !== 'motorista_chegou') {
       throw new Error("A corrida deve estar no estado 'motorista_chegou' para ser iniciada.");
     }
 
+    // Trava contra força bruta do código de 4 dígitos (10 mil combinações):
+    // bloqueia tentativas antes mesmo de checar o código enviado desta vez.
+    if (corrida.tentativas_codigo_embarque >= LIMITE_TENTATIVAS_CODIGO) {
+      throw new Error("Muitas tentativas incorretas. Peça ao passageiro para reabrir o código ou contate o suporte.");
+    }
+
     if (corrida.codigo_embarque !== data.codigo) {
-      throw new Error("Código incorreto. Confira com o passageiro.");
+      const { data: afterIncrementRaw } = await supabaseAdmin
+        .from("corridas")
+        .update({
+          tentativas_codigo_embarque: corrida.tentativas_codigo_embarque + 1,
+        } as Partial<CorridaCodigoEmbarque>)
+        .eq("id", data.rideId)
+        .eq("motorista_id", motoristaId)
+        .select("tentativas_codigo_embarque")
+        .maybeSingle();
+      const afterIncrement = afterIncrementRaw as Pick<CorridaCodigoEmbarque, "tentativas_codigo_embarque"> | null;
+
+      const restantes = LIMITE_TENTATIVAS_CODIGO - (afterIncrement?.tentativas_codigo_embarque ?? LIMITE_TENTATIVAS_CODIGO);
+      if (restantes <= 0) {
+        throw new Error("Código incorreto. Você atingiu o limite de tentativas — contate o suporte.");
+      }
+      throw new Error(`Código incorreto. Confira com o passageiro. Tentativas restantes: ${restantes}.`);
     }
 
     // 3. Update condicionado
