@@ -190,7 +190,9 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
 
     try {
       // 2. Obter URL assinada
-      const { uploadUrl, storagePath } = await getUploadUrlFn({ data: { tipo } });
+      const { uploadUrl, storagePath } = await getUploadUrlFn({
+        data: { tipo, mimeType: file.type as any, fileSize: file.size },
+      });
       
       // 3. Upload real para o bucket
       const resp = await fetch(uploadUrl, {

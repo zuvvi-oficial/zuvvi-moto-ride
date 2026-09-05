@@ -783,10 +783,10 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
 
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ 
+  .inputValidator((data: unknown) => z.object({
     tipo: z.string(),
-    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']).optional(),
-    fileSize: z.number().int().positive().max(10 * 1024 * 1024).optional() // 10MB
+    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+    fileSize: z.number().int().positive().max(10 * 1024 * 1024) // 10MB
   }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
