@@ -934,6 +934,119 @@ export const updateDadosVeiculo = createServerFn({ method: "POST" })
     return atualizado;
   });
 
+/**
+ * Visibilidade financeira do admin — SOMENTE LEITURA.
+ * Não move dinheiro, não chama o Mercado Pago: só lê o que já está gravado
+ * no banco para dar ao admin um lugar de olhar em vez de precisar consultar
+ * o banco direto quando algo trava silenciosamente.
+ */
+const MINUTOS_TENTATIVA_TRAVADA = 15;
+
+export const getAdminPagamentosStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [
+      { count: pendente },
+      { count: pago },
+      { count: falhou },
+      { count: estornado },
+    ] = await Promise.all([
+      supabaseAdmin.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "pendente"),
+      supabaseAdmin.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "pago"),
+      supabaseAdmin.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "falhou"),
+      supabaseAdmin.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "estornado"),
+    ]);
+
+    return {
+      pendente: pendente || 0,
+      pago: pago || 0,
+      falhou: falhou || 0,
+      estornado: estornado || 0,
+      lastUpdate: new Date().toISOString(),
+    };
+  });
+
+export const getAdminPagamentosPixProblemas = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const cutoff = new Date(Date.now() - MINUTOS_TENTATIVA_TRAVADA * 60 * 1000).toISOString();
+
+    // A tabela pagamentos_pix_tentativas já existe no banco real, mas os tipos
+    // gerados do projeto ainda não a incluem — mesmo cast já usado em
+    // pagamento-pix-status.functions.ts para essa mesma tabela.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: tentativas, error: tentativasError } = await (supabaseAdmin as any)
+      .from("pagamentos_pix_tentativas")
+      .select(
+        "id, pagamento_id, motorista_id, estado_interno, provider_status, provider_status_detail, valor_total, created_at",
+      )
+      .or(`estado_interno.eq.falhou,and(estado_interno.in.(criando,pendente),created_at.lt.${cutoff})`)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (tentativasError) throw new Error("Não foi possível carregar as tentativas de pagamento.");
+    if (!tentativas || tentativas.length === 0) return [];
+
+    const pagamentoIds: string[] = Array.from(new Set(tentativas.map((t: any) => t.pagamento_id)));
+    const motoristaIds: string[] = Array.from(new Set(tentativas.map((t: any) => t.motorista_id)));
+
+    const { data: pagamentos } = (await supabaseAdmin
+      .from("pagamentos")
+      .select("id, corrida_id, status")
+      .in("id", pagamentoIds)) as { data: Array<{ id: string; corrida_id: string; status: string }> | null };
+
+    const corridaIds: string[] = Array.from(new Set((pagamentos || []).map((p) => p.corrida_id)));
+
+    const { data: corridas } = (await supabaseAdmin
+      .from("corridas")
+      .select("id, passageiro_id, origem_nome, destino_nome")
+      .in("id", corridaIds)) as {
+      data: Array<{
+        id: string;
+        passageiro_id: string;
+        origem_nome: string | null;
+        destino_nome: string | null;
+      }> | null;
+    };
+
+    const passageiroIds: string[] = Array.from(new Set((corridas || []).map((c) => c.passageiro_id)));
+    const usuarioIds: string[] = Array.from(new Set([...passageiroIds, ...motoristaIds]));
+
+    const { data: usuarios } = (await supabaseAdmin
+      .from("usuarios")
+      .select("id, nome")
+      .in("id", usuarioIds)) as { data: Array<{ id: string; nome: string }> | null };
+
+    const nomePorId = new Map((usuarios || []).map((u) => [u.id, u.nome]));
+    const pagamentoPorId = new Map((pagamentos || []).map((p) => [p.id, p]));
+    const corridaPorId = new Map((corridas || []).map((c) => [c.id, c]));
+
+    return tentativas.map((t: any) => {
+      const pagamento = pagamentoPorId.get(t.pagamento_id);
+      const corrida = pagamento ? corridaPorId.get(pagamento.corrida_id) : undefined;
+
+      return {
+        tentativaId: t.id as string,
+        corridaId: pagamento?.corrida_id ?? null,
+        estadoInterno: t.estado_interno as string,
+        providerStatus: (t.provider_status as string | null) ?? null,
+        providerStatusDetail: (t.provider_status_detail as string | null) ?? null,
+        valorTotal: Number(t.valor_total),
+        createdAt: t.created_at as string,
+        origemNome: corrida?.origem_nome ?? null,
+        destinoNome: corrida?.destino_nome ?? null,
+        motoristaNome: nomePorId.get(t.motorista_id) ?? null,
+        passageiroNome: corrida ? (nomePorId.get(corrida.passageiro_id) ?? null) : null,
+      };
+    });
+  });
+
 
 
 

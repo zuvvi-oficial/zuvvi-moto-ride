@@ -1415,4 +1415,27 @@ Nova frente a pedido do usuário: em vez de auditoria de features faltando, uma 
 - **Validação:** testado num Postgres 16 local com uma tabela `contatos_confianca` isolada — 5 inserções do mesmo passageiro têm sucesso, a 6ª é bloqueada com `23514`, e um passageiro diferente insere normalmente ao mesmo tempo (confirma que o lock é por usuário, não global). `npx tsc --noEmit` e `npx eslint` no arquivo tocado: zero erros antes e depois (arquivo já estava limpo).
 - **Não verificado:** o mesmo padrão (checagem só em app, sem trigger) pode existir em outras tabelas com limite — não fiz uma varredura exaustiva de todas as tabelas do schema nesta etapa, só corrigi a que encontrei ao revisar essa feature específica.
 
+## Auditoria do núcleo de pagamento (Pix/Mercado Pago) — 05/09/2026
+
+A pedido do usuário, revisão dedicada de `pagamento.server.ts`, webhook, sincronização, reconciliação e OAuth do motorista, para responder "o pagamento está funcional ou falta algo pra ficar 100% redondo".
+
+**Achado geral:** é a parte mais madura do sistema — 16 workflows de CI dedicados só para Pix/OAuth (nenhuma outra área do app tem esse nível de teste automatizado). Cobertura confirmada: criação de cobrança atômica via RPC (`pix_charge_attempt_claim`, valor/comissão nunca vêm do cliente), split via `application_fee`, dupla checagem de status (o webhook e a tela de status do passageiro chamam a mesma função `sincronizarPagamentoPixComMercadoPago` — um webhook perdido se autocorrige assim que a tela é reaberta), reconciliação em criações ambíguas (evita cobrança duplicada), assinatura do webhook validada + deduplicada, conta Mercado Pago única por motorista, cancelamento pós-pagamento bloqueado (5.4).
+
+**Gaps identificados (nenhum é "bug" — são decisões de infraestrutura, features que nunca existiram, ou só prováveis em produção real):**
+1. Sem backstop por tempo: se o webhook falhar E o passageiro nunca reabrir a tela, nada corrige sozinho — decisão de infra (`pg_cron`/Edge Function), não código.
+2. Sem fluxo de estorno/reembolso — hoje só existe "contate o suporte". Decidido NÃO implementar agora: mexe em movimentação real de dinheiro via API do Mercado Pago, não testável de ponta a ponta neste sandbox — risco alto demais pra fazer às cegas.
+3. Nunca homologado com dinheiro de verdade — depende de `MERCADOPAGO_WEBHOOK_SECRET`/OAuth reais, que só o responsável do projeto pode configurar.
+4. **Sem visibilidade financeira pro admin** — este item foi escolhido para correção nesta sessão (abaixo), por ser o único de baixo risco (somente leitura) que eu conseguia fechar sozinho.
+
+### Melhoria 1 — Painel de pagamentos do admin (somente leitura) — ✅ IMPLEMENTADA
+- **Escopo deliberadamente limitado a leitura:** nenhuma função nova aqui escreve no banco ou chama o Mercado Pago — só torna visível o que já está gravado, para o admin não precisar consultar o banco direto quando uma cobrança trava silenciosamente.
+- `src/lib/admin.functions.ts` (2 funções novas, ambas atrás de `checkAdmin` como todo o resto do arquivo):
+  - `getAdminPagamentosStats`: contagem de `pagamentos` por status (pendente/pago/falhou/estornado), todos os meios de pagamento.
+  - `getAdminPagamentosPixProblemas`: lista as tentativas Pix (`pagamentos_pix_tentativas`) com `estado_interno = 'falhou'` OU travadas (`criando`/`pendente` há mais de 15 minutos), enriquecidas com nome do passageiro/motorista e origem/destino da corrida via lookups manuais (evitei embeds encadeados do PostgREST — mais simples de raciocinar e testar).
+- `src/routes/admin/pagamentos.tsx` (novo): cards de contagem + lista das cobranças problemáticas, com aviso explícito na própria tela de que é somente leitura.
+- `src/routes/admin/index.tsx`: novo botão "Pagamentos" ao lado dos já existentes (Motoristas/Veículos/Cidades) — não mexi no `AdminBottomNav` (Suporte também não está lá, mesmo padrão).
+- `src/routeTree.gen.ts`: regenerado.
+- **Validação:** o filtro `.or()` da consulta de tentativas problemáticas (mistura `estado_interno = 'falhou'` com uma comparação de timestamp dentro de um `and()`) foi reconstruído como SQL puro e testado contra 6 cenários num Postgres 16 local — confirma que só as 3 linhas esperadas (falha recente + 2 travadas há >15min) aparecem, e pagas/estornadas/recentes-ainda-na-janela ficam de fora corretamente. `npx tsc --noEmit`: zero erros novos (depois de trocar tipos implícitos por tipos explícitos nos resultados de `pagamentos`/`corridas`/`usuarios`, que originalmente colapsavam para `{}` — mesma classe de armadilha de tipagem do Supabase já documentada na Limpeza 2, desta vez pega pelo `tsc` local mesmo). `npx eslint`: sem categorias novas de erro, só a mesma dívida de formatação pré-existente se estendendo às linhas novas, e os `any` esperados para a tabela `pagamentos_pix_tentativas` (ainda fora dos tipos gerados do projeto — mesmo padrão já usado em `pagamento-pix-status.functions.ts`).
+- **Não testado neste sandbox:** a tela renderizada num navegador real (sem acesso a browser aqui) — só a lógica de dados foi validada.
+
 

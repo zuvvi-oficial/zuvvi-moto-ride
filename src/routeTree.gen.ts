@@ -28,6 +28,7 @@ import { Route as ViagemCompartilhadaRouteImport } from './routes/viagem-compart
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
 import { Route as AdminMotoristasRouteImport } from './routes/admin/motoristas'
+import { Route as AdminPagamentosRouteImport } from './routes/admin/pagamentos'
 import { Route as AdminSuporteRouteImport } from './routes/admin/suporte'
 import { Route as AdminVeiculosRouteImport } from './routes/admin/veiculos'
 import { Route as AuthCadastroRouteImport } from './routes/auth.cadastro'
@@ -134,6 +135,11 @@ const AdminMotoristasRoute = AdminMotoristasRouteImport.update({
   path: '/admin/motoristas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPagamentosRoute = AdminPagamentosRouteImport.update({
+  id: '/admin/pagamentos',
+  path: '/admin/pagamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminSuporteRoute = AdminSuporteRouteImport.update({
   id: '/admin/suporte',
   path: '/admin/suporte',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
+  '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
+  '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
+  '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
   '/auth/cadastro': typeof AuthCadastroRoute
@@ -301,6 +310,7 @@ export interface FileRouteTypes {
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
+    | '/admin/pagamentos'
     | '/admin/suporte'
     | '/admin/veiculos'
     | '/auth/cadastro'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
+    | '/admin/pagamentos'
     | '/admin/suporte'
     | '/admin/veiculos'
     | '/auth/cadastro'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
+    | '/admin/pagamentos'
     | '/admin/suporte'
     | '/admin/veiculos'
     | '/auth/cadastro'
@@ -395,6 +407,7 @@ export interface RootRouteChildren {
   ViagemCompartilhadaRoute: typeof ViagemCompartilhadaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
   AdminMotoristasRoute: typeof AdminMotoristasRoute
+  AdminPagamentosRoute: typeof AdminPagamentosRoute
   AdminSuporteRoute: typeof AdminSuporteRoute
   AdminVeiculosRoute: typeof AdminVeiculosRoute
   MotoristaMercadopagoCallbackRoute: typeof MotoristaMercadopagoCallbackRoute
@@ -536,6 +549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMotoristasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/pagamentos': {
+      id: '/admin/pagamentos'
+      path: '/admin/pagamentos'
+      fullPath: '/admin/pagamentos'
+      preLoaderRoute: typeof AdminPagamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/suporte': {
       id: '/admin/suporte'
       path: '/admin/suporte'
@@ -650,6 +670,7 @@ const rootRouteChildren: RootRouteChildren = {
   ViagemCompartilhadaRoute: ViagemCompartilhadaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
   AdminMotoristasRoute: AdminMotoristasRoute,
+  AdminPagamentosRoute: AdminPagamentosRoute,
   AdminSuporteRoute: AdminSuporteRoute,
   AdminVeiculosRoute: AdminVeiculosRoute,
   MotoristaMercadopagoCallbackRoute: MotoristaMercadopagoCallbackRoute,

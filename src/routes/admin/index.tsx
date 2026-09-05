@@ -131,6 +131,9 @@ function AdminDashboard() {
           <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
             <Link to="/admin/cidades">Gerenciar Cidades</Link>
           </Button>
+          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+            <Link to="/admin/pagamentos">Pagamentos</Link>
+          </Button>
           <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide border-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-red-500/10">
             <Link to="/admin/suporte" className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
