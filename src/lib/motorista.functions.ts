@@ -720,19 +720,12 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
 
     // 2. Buscar a corrida e validar o código
     const LIMITE_TENTATIVAS_CODIGO = 5;
-    type CorridaCodigoEmbarque = {
-      id: string;
-      codigo_embarque: string;
-      status: string;
-      tentativas_codigo_embarque: number;
-    };
-    const { data: corridaRaw, error: corridaError } = await supabaseAdmin
+    const { data: corrida, error: corridaError } = await supabaseAdmin
       .from("corridas")
       .select("id, codigo_embarque, status, tentativas_codigo_embarque")
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
-      .single();
-    const corrida = corridaRaw as CorridaCodigoEmbarque | null;
+      .single() as any;
 
     if (corridaError || !corrida) throw new Error("Corrida não encontrada.");
 
@@ -747,16 +740,15 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
     }
 
     if (corrida.codigo_embarque !== data.codigo) {
-      const { data: afterIncrementRaw } = await supabaseAdmin
+      const { data: afterIncrement } = await supabaseAdmin
         .from("corridas")
         .update({
           tentativas_codigo_embarque: corrida.tentativas_codigo_embarque + 1,
-        } as Partial<CorridaCodigoEmbarque>)
+        } as any)
         .eq("id", data.rideId)
         .eq("motorista_id", motoristaId)
         .select("tentativas_codigo_embarque")
-        .maybeSingle();
-      const afterIncrement = afterIncrementRaw as Pick<CorridaCodigoEmbarque, "tentativas_codigo_embarque"> | null;
+        .maybeSingle() as any;
 
       const restantes = LIMITE_TENTATIVAS_CODIGO - (afterIncrement?.tentativas_codigo_embarque ?? LIMITE_TENTATIVAS_CODIGO);
       if (restantes <= 0) {
