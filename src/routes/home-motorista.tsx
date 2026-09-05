@@ -13,7 +13,6 @@ import {
   Power,
   Navigation,
   Bike,
-  Clock,
   CheckCircle2,
   Loader2,
   AlertCircle,
@@ -1781,10 +1780,14 @@ function HomeMotorista() {
             <Bike className="w-6 h-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Corrida</span>
           </button>
-          <button className="flex flex-col items-center gap-1 text-muted-foreground opacity-50">
-            <Clock className="w-6 h-6" />
+          <a
+            href="/carteira-motorista"
+            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"
+            aria-label="Abrir carteira do motorista"
+          >
+            <Wallet className="w-6 h-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Ganhos</span>
-          </button>
+          </a>
           <a
             href="/perfil-motorista"
             className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"

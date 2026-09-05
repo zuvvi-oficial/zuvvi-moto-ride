@@ -1340,3 +1340,18 @@ Durante a investigação da Microetapa 5.3, identificado que **nem `cancelarCorr
 - **NÃO verificado nesta sessão:** fluxo completo num navegador real (gerar link → abrir em outra aba/dispositivo → ver posição atualizando) — mesma limitação de sempre neste ambiente sandbox (sem browser).
 - Nenhuma alteração em fluxo de corrida, pagamento ou core existente — feature inteiramente aditiva.
 
+## Auditoria pós-PR #6 e nova frente de trabalho — 05/09/2026
+
+Com o PR #6 verde (microetapas 5.1 a 5.8), nova auditoria ponta a ponta identificou que o restante do trabalho para "fechar o app" deixou de ser bugs pontuais e passou a ser: features inteiras nunca construídas (carteira do motorista, parte financeira do Admin), maturidade operacional (testes automatizados, observabilidade/monitoramento de erro, rate limiting em endpoints públicos) e decisões de produto/jurídicas (SMS, LGPD/política de privacidade). Nenhum bug crítico novo encontrado nos itens já fechados.
+
+### Microetapa 5.9 — Carteira do motorista — ✅ IMPLEMENTADA — HOMOLOGAÇÃO PENDENTE
+- **Escopo:** o botão "Ganhos" na bottom nav de `home-motorista.tsx` e `perfil-motorista.tsx` era puramente decorativo (`disabled`, sem link, `opacity-50`) — motorista que recebe dinheiro via Pix (com split/`application_fee`) não tinha nenhuma tela para conferir o que ganhou.
+- **`src/lib/carteira-motorista.functions.ts`** (novo): `getCarteiraMotorista` lê `corridas` do motorista autenticado (`status = 'concluida'`) com `pagamentos` embutido, e só considera ganho o que está com `pagamentos.status = 'pago'` — dinheiro que o motorista marcou como não recebido (`finalizarCorrida` com `recebido:false`) fica `pendente` e corretamente não entra na carteira. `valor_motorista` já é o valor líquido após comissão (`valor_comissao`), então a carteira mostra exatamente o que cai pro motorista.
+  - Resumo: hoje / últimos 7 dias / mês civil (fusos calculados em `America/Sao_Paulo`, mesmo padrão já usado em `motorista-eligibility.server.ts` para a regra de CNH) / total acumulado / total de corridas pagas.
+  - Histórico: últimas 50 corridas pagas (origem, destino, forma de pagamento, valor bruto e líquido).
+  - Sem migration nova — só leitura de dados já existentes (`corridas`/`pagamentos`).
+- **UI:** nova rota `/carteira-motorista` (mesmo padrão de guarda de `home-motorista.tsx`: `resolveDestinationForLoader` + `redirectTo !== "/home-motorista"`). Botões "Ganhos" em `home-motorista.tsx` e `perfil-motorista.tsx` deixaram de ser decorativos e agora levam pra lá.
+- **Validação:** lógica de corte de dia/semana/mês (incluindo o caso de fuso-horário onde um pagamento às 23h UTC e outro à 1h UTC do dia seguinte caem no mesmo dia civil em `America/Sao_Paulo`) testada isoladamente com dados simulados antes de integrar — todos os casos bateram. `npx tsc --noEmit` e `npx eslint` sem erros novos (comparado arquivo a arquivo contra o estado antes da mudança).
+- **NÃO verificado nesta sessão:** tela real num navegador com dados de produção — mesma limitação de sempre (sandbox sem browser).
+- Nenhuma alteração em `finalizarCorrida`, fluxo de pagamento ou qualquer lógica de negócio existente — feature somente de leitura, aditiva.
+
