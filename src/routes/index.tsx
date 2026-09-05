@@ -433,10 +433,10 @@ function HomePassageiro({ nome }: { nome: string }) {
               <Clock className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Corridas</span>
             </Link>
-            <button className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
+            <Link to="/carteira-passageiro" className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
               <CreditCard className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Carteira</span>
-            </button>
+            </Link>
             <Link to="/perfil" className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
               <User className="w-6 h-6" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>

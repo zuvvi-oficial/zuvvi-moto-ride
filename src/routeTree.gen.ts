@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcompanhamentoRouteImport } from './routes/acompanhamento'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarteiraMotoristaRouteImport } from './routes/carteira-motorista'
+import { Route as CarteiraPassageiroRouteImport } from './routes/carteira-passageiro'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
 import { Route as CorridasRouteImport } from './routes/corridas'
 import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
@@ -58,6 +59,11 @@ const AuthRoute = AuthRouteImport.update({
 const CarteiraMotoristaRoute = CarteiraMotoristaRouteImport.update({
   id: '/carteira-motorista',
   path: '/carteira-motorista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CarteiraPassageiroRoute = CarteiraPassageiroRouteImport.update({
+  id: '/carteira-passageiro',
+  path: '/carteira-passageiro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfirmarCorridaRoute = ConfirmarCorridaRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/carteira-motorista': typeof CarteiraMotoristaRoute
+  '/carteira-passageiro': typeof CarteiraPassageiroRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/carteira-motorista': typeof CarteiraMotoristaRoute
+  '/carteira-passageiro': typeof CarteiraPassageiroRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
   '/carteira-motorista': typeof CarteiraMotoristaRoute
+  '/carteira-passageiro': typeof CarteiraPassageiroRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
@@ -296,6 +305,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/carteira-motorista'
+    | '/carteira-passageiro'
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/carteira-motorista'
+    | '/carteira-passageiro'
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/acompanhamento'
     | '/auth'
     | '/carteira-motorista'
+    | '/carteira-passageiro'
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
@@ -393,6 +405,7 @@ export interface RootRouteChildren {
   AcompanhamentoRoute: typeof AcompanhamentoRoute
   AuthRoute: typeof AuthRouteWithChildren
   CarteiraMotoristaRoute: typeof CarteiraMotoristaRoute
+  CarteiraPassageiroRoute: typeof CarteiraPassageiroRoute
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
   CorridasRoute: typeof CorridasRoute
   HomeMotoristaRoute: typeof HomeMotoristaRoute
@@ -442,6 +455,13 @@ declare module '@tanstack/react-router' {
       path: '/carteira-motorista'
       fullPath: '/carteira-motorista'
       preLoaderRoute: typeof CarteiraMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/carteira-passageiro': {
+      id: '/carteira-passageiro'
+      path: '/carteira-passageiro'
+      fullPath: '/carteira-passageiro'
+      preLoaderRoute: typeof CarteiraPassageiroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/confirmar-corrida': {
@@ -656,6 +676,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcompanhamentoRoute: AcompanhamentoRoute,
   AuthRoute: AuthRouteWithChildren,
   CarteiraMotoristaRoute: CarteiraMotoristaRoute,
+  CarteiraPassageiroRoute: CarteiraPassageiroRoute,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
   CorridasRoute: CorridasRoute,
   HomeMotoristaRoute: HomeMotoristaRoute,
