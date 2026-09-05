@@ -21,6 +21,7 @@ import { Route as PagamentoPixRouteImport } from './routes/pagamento-pix'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PerfilMotoristaRouteImport } from './routes/perfil-motorista'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
+import { Route as ViagemCompartilhadaRouteImport } from './routes/viagem-compartilhada'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
 import { Route as AdminMotoristasRouteImport } from './routes/admin/motoristas'
@@ -93,6 +94,11 @@ const ProcurandoMotoristaRoute = ProcurandoMotoristaRouteImport.update({
   path: '/procurando-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ViagemCompartilhadaRoute = ViagemCompartilhadaRouteImport.update({
+  id: '/viagem-compartilhada',
+  path: '/viagem-compartilhada',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/perfil-motorista'
     | '/procurando-motorista'
+    | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/suporte'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/perfil-motorista'
     | '/procurando-motorista'
+    | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/suporte'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/perfil-motorista'
     | '/procurando-motorista'
+    | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/suporte'
@@ -317,6 +329,7 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   PerfilMotoristaRoute: typeof PerfilMotoristaRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
+  ViagemCompartilhadaRoute: typeof ViagemCompartilhadaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
   AdminMotoristasRoute: typeof AdminMotoristasRoute
   AdminSuporteRoute: typeof AdminSuporteRoute
@@ -409,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/procurando-motorista'
       fullPath: '/procurando-motorista'
       preLoaderRoute: typeof ProcurandoMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/viagem-compartilhada': {
+      id: '/viagem-compartilhada'
+      path: '/viagem-compartilhada'
+      fullPath: '/viagem-compartilhada'
+      preLoaderRoute: typeof ViagemCompartilhadaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -522,6 +542,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   PerfilMotoristaRoute: PerfilMotoristaRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
+  ViagemCompartilhadaRoute: ViagemCompartilhadaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
   AdminMotoristasRoute: AdminMotoristasRoute,
   AdminSuporteRoute: AdminSuporteRoute,
@@ -532,13 +553,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
