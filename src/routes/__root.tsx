@@ -12,6 +12,7 @@ import { useSoundStore } from "@/hooks/use-sound";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { installGlobalErrorReporting, reportClientError } from "../lib/client-error-reporter";
 import { supabase } from "@/integrations/supabase/client";
 import { syncAuthSessionToCookies } from "@/integrations/supabase/auth-attacher";
 import { PwaShell } from "@/components/pwa/PwaShell";
@@ -43,6 +44,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportClientError(error, "react_error_boundary");
   }, [error]);
 
   return (
@@ -179,6 +181,10 @@ function RootComponent() {
       window.removeEventListener("touchstart", handleInteraction);
     };
   }, [unlock]);
+
+  useEffect(() => {
+    installGlobalErrorReporting();
+  }, []);
 
   useEffect(() => {
     // Sincronização global de sessão com cookies para SSR

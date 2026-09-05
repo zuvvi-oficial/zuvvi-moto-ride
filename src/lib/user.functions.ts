@@ -87,64 +87,6 @@ export const checkCityAvailability = createServerFn({ method: "POST" })
     };
   });
 
-const calculateFareSchema = z.object({
-  distanciaKm: z.number(),
-  tempoMin: z.number()
-});
-
-export const calcularValorCorrida = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => calculateFareSchema.parse(data ?? {}))
-  .handler(async ({ context, data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { distanciaKm, tempoMin } = data;
-
-    // Busca a cidade do usuário
-    const { data: usuario } = await supabaseAdmin
-      .from("usuarios")
-      .select("cidade_id")
-      .eq("auth_user_id", context.userId)
-      .maybeSingle();
-
-    if (!usuario?.cidade_id) {
-      throw new Error("Cidade do usuário não identificada");
-    }
-
-    // Busca as tarifas da cidade
-    const { data: cidade, error } = await supabaseAdmin
-      .from("cidades")
-      .select("bandeirada, valor_km, valor_min, tarifa_minima")
-      .eq("id", usuario.cidade_id)
-      .single();
-
-    if (error || !cidade) {
-      throw new Error("Tarifas da cidade não encontradas");
-    }
-
-    const { bandeirada, valor_km, valor_min, tarifa_minima } = cidade;
-
-    // Fórmula: bandeirada + (distância_km × valor_km) + (tempo_min × valor_min)
-    let valorFinal = Number(bandeirada) + (distanciaKm * Number(valor_km)) + (tempoMin * Number(valor_min));
-
-    // Respeita a tarifa mínima
-    if (valorFinal < Number(tarifa_minima)) {
-      valorFinal = Number(tarifa_minima);
-    }
-
-    // Arredonda para 2 casas decimais para evitar problemas de precisão flutuante
-    valorFinal = Math.round(valorFinal * 100) / 100;
-
-    return {
-      valor: valorFinal,
-      tarifas: {
-        bandeirada: Number(bandeirada),
-        valor_km: Number(valor_km),
-        valor_min: Number(valor_min),
-        tarifa_minima: Number(tarifa_minima)
-      }
-    };
-  });
-
 const cotarCorridaSchema = z.object({
   origemLat: z.number(),
   origemLng: z.number(),
@@ -197,8 +139,15 @@ export const cotarCorrida = createServerFn({ method: "POST" })
     valor = Math.round(valor * 100) / 100;
 
     // 4. Gerar Assinatura da Cotação (Anti-Tampering)
-    // Validade implícita: a cotação deve bater com os dados da corrida
-    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${valor}`;
+    // Validade implícita: a cotação deve bater com os dados da corrida.
+    // Distância/duração/tarifa entram na assinatura para que a corrida possa
+    // gravar exatamente o que foi cotado (G3), sem confiar em valores soltos
+    // que o cliente poderia reenviar adulterados.
+    const bandeirada = Number(cidade.bandeirada);
+    const valorKm = Number(cidade.valor_km);
+    const valorMin = Number(cidade.valor_min);
+    const tarifaMinima = Number(cidade.tarifa_minima);
+    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${valor}:${distanceKm}:${durationMin}:${bandeirada}:${valorKm}:${valorMin}:${tarifaMinima}`;
     const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
     const signature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
@@ -206,6 +155,7 @@ export const cotarCorrida = createServerFn({ method: "POST" })
       distance: distanceKm,
       duration: durationMin,
       valor,
+      tarifas: { bandeirada, valorKm, valorMin, tarifaMinima },
       signature,
       geometry: route.geometry
     };
@@ -220,6 +170,12 @@ const createRideSchema = z.object({
   destinoNome: z.string().optional(),
   formaPagamento: z.enum(["pix", "cartao", "dinheiro"]),
   valorCotado: z.number(),
+  distanciaKm: z.number(),
+  duracaoMin: z.number(),
+  tarifaBandeirada: z.number(),
+  tarifaValorKm: z.number(),
+  tarifaValorMin: z.number(),
+  tarifaMinima: z.number(),
   assinaturaCotacao: z.string()
 });
 
@@ -231,8 +187,9 @@ export const criarCorrida = createServerFn({ method: "POST" })
     const crypto = await import("crypto");
     const userId = context.userId;
 
-    // 1. Validar Assinatura da Cotação
-    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${data.valorCotado}`;
+    // 1. Validar Assinatura da Cotação (mesmo payload assinado em cotarCorrida,
+    // incluindo distância/duração/tarifa para gravar exatamente o que foi cotado — G3).
+    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${data.valorCotado}:${data.distanciaKm}:${data.duracaoMin}:${data.tarifaBandeirada}:${data.tarifaValorKm}:${data.tarifaValorMin}:${data.tarifaMinima}`;
     const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
     const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
@@ -280,7 +237,7 @@ export const criarCorrida = createServerFn({ method: "POST" })
       throw new Error("O Zuvvi ainda não opera nesta cidade.");
     }
 
-    const codigoEmbarque = Math.floor(1000 + Math.random() * 9000).toString();
+    const codigoEmbarque = crypto.randomInt(1000, 10000).toString();
     const comissaoPct = Number(cidade.comissao_pct || 0);
     const valorComissao = Math.round((data.valorCotado * (comissaoPct / 100)) * 100) / 100;
     const valorMotorista = Math.round((data.valorCotado - valorComissao) * 100) / 100;
@@ -303,7 +260,13 @@ export const criarCorrida = createServerFn({ method: "POST" })
         p_destino_nome: data.destinoNome || 'Destino',
         p_valor_total: data.valorCotado,
         p_valor_motorista: valorMotorista,
-        p_valor_comissao: valorComissao
+        p_valor_comissao: valorComissao,
+        p_distancia_km: data.distanciaKm,
+        p_duracao_min: data.duracaoMin,
+        p_tarifa_bandeirada: data.tarifaBandeirada,
+        p_tarifa_valor_km: data.tarifaValorKm,
+        p_tarifa_valor_min: data.tarifaValorMin,
+        p_tarifa_minima: data.tarifaMinima
       }
     );
 
@@ -521,6 +484,28 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       throw new Error("Perfil de usuário não encontrado.");
     }
 
+    // Corridas Pix só chegam a 'aceita' (e além) depois que o pagamento já foi
+    // confirmado como 'pago' — o trigger pix_hold_corrida_until_payment_trigger
+    // mantém a corrida em 'aguardando_pagamento' até a confirmação. Por isso,
+    // nesses estados o cancelamento envolve dinheiro já movimentado (split via
+    // application_fee direto para o motorista) e é bloqueado até existir um
+    // fluxo de estorno dedicado. Antes do aceite (solicitada/buscando_motorista)
+    // nenhuma cobrança Pix existe ainda, então o cancelamento continua livre.
+    const { data: corridaPixPaga } = await supabaseAdmin
+      .from("corridas")
+      .select("id")
+      .eq("id", data.rideId)
+      .eq("passageiro_id", usuario.id)
+      .eq("forma_pagamento", "pix")
+      .in("status", ['aceita', 'motorista_a_caminho'])
+      .maybeSingle();
+
+    if (corridaPixPaga) {
+      throw new Error(
+        "Esta corrida já tem o pagamento Pix confirmado e não pode ser cancelada por aqui. Entre em contato com o suporte Zuvvi.",
+      );
+    }
+
     // 2. Tentar atualizar a corrida se pertencer ao passageiro e status for válido
     const { data: corrida, error } = await supabaseAdmin
       .from("corridas")
@@ -531,7 +516,12 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       } as any)
       .eq("id", data.rideId)
       .eq("passageiro_id", usuario.id)
-      .in("status", ['solicitada', 'buscando_motorista', 'aceita', 'motorista_a_caminho'])
+      .or(
+        // sem_motorista = busca expirou sem nenhum motorista atribuído: nunca há
+        // cobrança Pix pendente nesse estado (a cobrança só existe depois do aceite),
+        // então cancelar dali é sempre seguro, sem depender da forma de pagamento.
+        "status.in.(solicitada,buscando_motorista,sem_motorista),and(status.in.(aceita,motorista_a_caminho),forma_pagamento.neq.pix)",
+      )
       .select()
       .maybeSingle();
 

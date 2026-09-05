@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcompanhamentoRouteImport } from './routes/acompanhamento'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CarteiraMotoristaRouteImport } from './routes/carteira-motorista'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
 import { Route as CorridasRouteImport } from './routes/corridas'
 import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
@@ -20,7 +21,10 @@ import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-mot
 import { Route as PagamentoPixRouteImport } from './routes/pagamento-pix'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PerfilMotoristaRouteImport } from './routes/perfil-motorista'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
+import { Route as TermosRouteImport } from './routes/termos'
+import { Route as ViagemCompartilhadaRouteImport } from './routes/viagem-compartilhada'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
 import { Route as AdminMotoristasRouteImport } from './routes/admin/motoristas'
@@ -29,8 +33,10 @@ import { Route as AdminVeiculosRouteImport } from './routes/admin/veiculos'
 import { Route as AuthCadastroRouteImport } from './routes/auth.cadastro'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthCompletarCadastroRouteImport } from './routes/auth.completar-cadastro'
+import { Route as AuthEsqueciSenhaRouteImport } from './routes/auth.esqueci-senha'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthPerfilRouteImport } from './routes/auth.perfil'
+import { Route as AuthRedefinirSenhaRouteImport } from './routes/auth.redefinir-senha'
 import { Route as MotoristaMercadopagoCallbackRouteImport } from './routes/motorista.mercadopago-callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -46,6 +52,11 @@ const AcompanhamentoRoute = AcompanhamentoRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CarteiraMotoristaRoute = CarteiraMotoristaRouteImport.update({
+  id: '/carteira-motorista',
+  path: '/carteira-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfirmarCorridaRoute = ConfirmarCorridaRouteImport.update({
@@ -88,9 +99,24 @@ const PerfilMotoristaRoute = PerfilMotoristaRouteImport.update({
   path: '/perfil-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProcurandoMotoristaRoute = ProcurandoMotoristaRouteImport.update({
   id: '/procurando-motorista',
   path: '/procurando-motorista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ViagemCompartilhadaRoute = ViagemCompartilhadaRouteImport.update({
+  id: '/viagem-compartilhada',
+  path: '/viagem-compartilhada',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -133,6 +159,11 @@ const AuthCompletarCadastroRoute = AuthCompletarCadastroRouteImport.update({
   path: '/completar-cadastro',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthEsqueciSenhaRoute = AuthEsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -141,6 +172,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
 const AuthPerfilRoute = AuthPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthRedefinirSenhaRoute = AuthRedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
   getParentRoute: () => AuthRoute,
 } as any)
 const MotoristaMercadopagoCallbackRoute =
@@ -154,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
+  '/carteira-motorista': typeof CarteiraMotoristaRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
@@ -162,7 +199,10 @@ export interface FileRoutesByFullPath {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
+  '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
@@ -170,8 +210,10 @@ export interface FileRoutesByFullPath {
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
+  '/auth/esqueci-senha': typeof AuthEsqueciSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/auth/redefinir-senha': typeof AuthRedefinirSenhaRoute
   '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -179,6 +221,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
+  '/carteira-motorista': typeof CarteiraMotoristaRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
@@ -187,7 +230,10 @@ export interface FileRoutesByTo {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
+  '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
@@ -195,8 +241,10 @@ export interface FileRoutesByTo {
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
+  '/auth/esqueci-senha': typeof AuthEsqueciSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/auth/redefinir-senha': typeof AuthRedefinirSenhaRoute
   '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -205,6 +253,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/acompanhamento': typeof AcompanhamentoRoute
   '/auth': typeof AuthRouteWithChildren
+  '/carteira-motorista': typeof CarteiraMotoristaRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
   '/home-motorista': typeof HomeMotoristaRoute
@@ -213,7 +262,10 @@ export interface FileRoutesById {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
+  '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
@@ -221,8 +273,10 @@ export interface FileRoutesById {
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
+  '/auth/esqueci-senha': typeof AuthEsqueciSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/auth/redefinir-senha': typeof AuthRedefinirSenhaRoute
   '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -232,6 +286,7 @@ export interface FileRouteTypes {
     | '/'
     | '/acompanhamento'
     | '/auth'
+    | '/carteira-motorista'
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
@@ -240,7 +295,10 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
+    | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/suporte'
@@ -248,8 +306,10 @@ export interface FileRouteTypes {
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
+    | '/auth/esqueci-senha'
     | '/auth/login'
     | '/auth/perfil'
+    | '/auth/redefinir-senha'
     | '/motorista/mercadopago-callback'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -257,6 +317,7 @@ export interface FileRouteTypes {
     | '/'
     | '/acompanhamento'
     | '/auth'
+    | '/carteira-motorista'
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
@@ -265,7 +326,10 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
+    | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/suporte'
@@ -273,8 +337,10 @@ export interface FileRouteTypes {
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
+    | '/auth/esqueci-senha'
     | '/auth/login'
     | '/auth/perfil'
+    | '/auth/redefinir-senha'
     | '/motorista/mercadopago-callback'
     | '/admin'
   id:
@@ -282,6 +348,7 @@ export interface FileRouteTypes {
     | '/'
     | '/acompanhamento'
     | '/auth'
+    | '/carteira-motorista'
     | '/confirmar-corrida'
     | '/corridas'
     | '/home-motorista'
@@ -290,7 +357,10 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
+    | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
     | '/admin/suporte'
@@ -298,8 +368,10 @@ export interface FileRouteTypes {
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
+    | '/auth/esqueci-senha'
     | '/auth/login'
     | '/auth/perfil'
+    | '/auth/redefinir-senha'
     | '/motorista/mercadopago-callback'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -308,6 +380,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcompanhamentoRoute: typeof AcompanhamentoRoute
   AuthRoute: typeof AuthRouteWithChildren
+  CarteiraMotoristaRoute: typeof CarteiraMotoristaRoute
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
   CorridasRoute: typeof CorridasRoute
   HomeMotoristaRoute: typeof HomeMotoristaRoute
@@ -316,7 +389,10 @@ export interface RootRouteChildren {
   PagamentoPixRoute: typeof PagamentoPixRoute
   PerfilRoute: typeof PerfilRoute
   PerfilMotoristaRoute: typeof PerfilMotoristaRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
+  TermosRoute: typeof TermosRoute
+  ViagemCompartilhadaRoute: typeof ViagemCompartilhadaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
   AdminMotoristasRoute: typeof AdminMotoristasRoute
   AdminSuporteRoute: typeof AdminSuporteRoute
@@ -346,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/carteira-motorista': {
+      id: '/carteira-motorista'
+      path: '/carteira-motorista'
+      fullPath: '/carteira-motorista'
+      preLoaderRoute: typeof CarteiraMotoristaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/confirmar-corrida': {
@@ -404,11 +487,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PerfilMotoristaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/procurando-motorista': {
       id: '/procurando-motorista'
       path: '/procurando-motorista'
       fullPath: '/procurando-motorista'
       preLoaderRoute: typeof ProcurandoMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/viagem-compartilhada': {
+      id: '/viagem-compartilhada'
+      path: '/viagem-compartilhada'
+      fullPath: '/viagem-compartilhada'
+      preLoaderRoute: typeof ViagemCompartilhadaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -467,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCompletarCadastroRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/auth/esqueci-senha': {
+      id: '/auth/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/auth/esqueci-senha'
+      preLoaderRoute: typeof AuthEsqueciSenhaRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/login'
@@ -479,6 +590,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/auth/perfil'
       preLoaderRoute: typeof AuthPerfilRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/redefinir-senha': {
+      id: '/auth/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/auth/redefinir-senha'
+      preLoaderRoute: typeof AuthRedefinirSenhaRouteImport
       parentRoute: typeof AuthRoute
     }
     '/motorista/mercadopago-callback': {
@@ -495,16 +613,20 @@ interface AuthRouteChildren {
   AuthCadastroRoute: typeof AuthCadastroRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthCompletarCadastroRoute: typeof AuthCompletarCadastroRoute
+  AuthEsqueciSenhaRoute: typeof AuthEsqueciSenhaRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthPerfilRoute: typeof AuthPerfilRoute
+  AuthRedefinirSenhaRoute: typeof AuthRedefinirSenhaRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCadastroRoute: AuthCadastroRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthCompletarCadastroRoute: AuthCompletarCadastroRoute,
+  AuthEsqueciSenhaRoute: AuthEsqueciSenhaRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthPerfilRoute: AuthPerfilRoute,
+  AuthRedefinirSenhaRoute: AuthRedefinirSenhaRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
@@ -513,6 +635,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcompanhamentoRoute: AcompanhamentoRoute,
   AuthRoute: AuthRouteWithChildren,
+  CarteiraMotoristaRoute: CarteiraMotoristaRoute,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
   CorridasRoute: CorridasRoute,
   HomeMotoristaRoute: HomeMotoristaRoute,
@@ -521,7 +644,10 @@ const rootRouteChildren: RootRouteChildren = {
   PagamentoPixRoute: PagamentoPixRoute,
   PerfilRoute: PerfilRoute,
   PerfilMotoristaRoute: PerfilMotoristaRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
+  TermosRoute: TermosRoute,
+  ViagemCompartilhadaRoute: ViagemCompartilhadaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
   AdminMotoristasRoute: AdminMotoristasRoute,
   AdminSuporteRoute: AdminSuporteRoute,
@@ -532,13 +658,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

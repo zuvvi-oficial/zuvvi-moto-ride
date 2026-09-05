@@ -503,6 +503,26 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
     if (userError || !user) throw new Error("Motorista não encontrado.");
     const motoristaId = user.id;
 
+    // Corridas Pix só chegam a 'aceita' (e além) depois que o pagamento já foi
+    // confirmado como 'pago' — o trigger pix_hold_corrida_until_payment_trigger
+    // mantém a corrida em 'aguardando_pagamento' até a confirmação. Por isso,
+    // uma corrida Pix atribuída a um motorista sempre já está paga, e o
+    // cancelamento é bloqueado até existir um fluxo de estorno dedicado.
+    const { data: corridaPixPaga } = await supabaseAdmin
+      .from("corridas")
+      .select("id")
+      .eq("id", data.rideId)
+      .eq("motorista_id", motoristaId)
+      .eq("forma_pagamento", "pix")
+      .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou'])
+      .maybeSingle();
+
+    if (corridaPixPaga) {
+      throw new Error(
+        "Esta corrida já tem o pagamento Pix confirmado e não pode ser cancelada por aqui. Entre em contato com o suporte Zuvvi.",
+      );
+    }
+
     // 2. Tentar cancelar a corrida (deve pertencer a este motorista e estar em status cancelável)
     const { data: corrida, error: updateError } = await supabaseAdmin
       .from("corridas")
@@ -516,6 +536,7 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
       // Regra: motorista só pode cancelar ANTES de iniciar a viagem (em_andamento).
       // A permissão temporária 3.6-C para cancelar em_andamento foi revogada na 3.7.
       .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou'])
+      .neq("forma_pagamento", "pix")
       .select()
       .maybeSingle();
 
@@ -698,21 +719,42 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
     const motoristaId = user.id;
 
     // 2. Buscar a corrida e validar o código
+    const LIMITE_TENTATIVAS_CODIGO = 5;
     const { data: corrida, error: corridaError } = await supabaseAdmin
       .from("corridas")
-      .select("id, codigo_embarque, status")
+      .select("id, codigo_embarque, status, tentativas_codigo_embarque")
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
-      .single();
+      .single() as any;
 
     if (corridaError || !corrida) throw new Error("Corrida não encontrada.");
-    
+
     if (corrida.status !== 'motorista_chegou') {
       throw new Error("A corrida deve estar no estado 'motorista_chegou' para ser iniciada.");
     }
 
+    // Trava contra força bruta do código de 4 dígitos (10 mil combinações):
+    // bloqueia tentativas antes mesmo de checar o código enviado desta vez.
+    if (corrida.tentativas_codigo_embarque >= LIMITE_TENTATIVAS_CODIGO) {
+      throw new Error("Muitas tentativas incorretas. Peça ao passageiro para reabrir o código ou contate o suporte.");
+    }
+
     if (corrida.codigo_embarque !== data.codigo) {
-      throw new Error("Código incorreto. Confira com o passageiro.");
+      const { data: afterIncrement } = await supabaseAdmin
+        .from("corridas")
+        .update({
+          tentativas_codigo_embarque: corrida.tentativas_codigo_embarque + 1,
+        } as any)
+        .eq("id", data.rideId)
+        .eq("motorista_id", motoristaId)
+        .select("tentativas_codigo_embarque")
+        .maybeSingle() as any;
+
+      const restantes = LIMITE_TENTATIVAS_CODIGO - (afterIncrement?.tentativas_codigo_embarque ?? LIMITE_TENTATIVAS_CODIGO);
+      if (restantes <= 0) {
+        throw new Error("Código incorreto. Você atingiu o limite de tentativas — contate o suporte.");
+      }
+      throw new Error(`Código incorreto. Confira com o passageiro. Tentativas restantes: ${restantes}.`);
     }
 
     // 3. Update condicionado
@@ -762,10 +804,10 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
 
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ 
+  .inputValidator((data: unknown) => z.object({
     tipo: z.string(),
-    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']).optional(),
-    fileSize: z.number().int().positive().max(10 * 1024 * 1024).optional() // 10MB
+    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+    fileSize: z.number().int().positive().max(10 * 1024 * 1024) // 10MB
   }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -939,13 +981,30 @@ export const criarVeiculo = createServerFn({ method: "POST" })
 
     if (!user) throw new Error("Usuário não encontrado.");
 
+    const { data: veiculoExistente } = await supabaseAdmin
+      .from("veiculos")
+      .select("status_aprovacao, ativo, placa, marca, modelo, ano, cor")
+      .eq("motorista_id", user.id)
+      .maybeSingle();
+
+    // Reenvio idêntico ao veículo já cadastrado não deve derrubar uma aprovação existente.
+    const dadosInalterados = !!veiculoExistente &&
+      veiculoExistente.placa === data.placa &&
+      veiculoExistente.marca === data.marca &&
+      veiculoExistente.modelo === data.modelo &&
+      veiculoExistente.ano === data.ano &&
+      veiculoExistente.cor === data.cor;
+
+    const statusAprovacao = dadosInalterados ? veiculoExistente.status_aprovacao : 'em_preenchimento';
+    const ativo = dadosInalterados ? veiculoExistente.ativo : true;
+
     const { error } = await supabaseAdmin
       .from("veiculos")
       .upsert({
         motorista_id: user.id,
         ...data,
-        status_aprovacao: 'em_preenchimento',
-        ativo: true
+        status_aprovacao: statusAprovacao,
+        ativo
       }, { onConflict: 'motorista_id' } as any);
 
     if (error) throw new Error("Erro ao salvar veículo: " + error.message);

@@ -103,37 +103,25 @@ jobs:
             exit 1
           fi
 
-      - name: Provar dependência QR isolada da Etapa 5
+      - name: Provar ausência de dependências não autorizadas
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin main --depth=1
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          import { execFileSync } from 'node:child_process';
-
-          const atual = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const base = JSON.parse(execFileSync('git', ['show', 'origin/main:package.json'], { encoding: 'utf8' }));
-
-          if (atual.dependencies?.['qrcode.react'] !== '4.2.0') {
-            throw new Error('qrcode.react deve permanecer fixado em 4.2.0');
-          }
-          delete atual.dependencies['qrcode.react'];
-          if (JSON.stringify(atual) !== JSON.stringify(base)) {
-            throw new Error('package.json mudou além da dependência QR autorizada');
-          }
-          NODE
-
-          lock_patch="$(git diff --unified=0 origin/main -- bun.lock)"
-          deleted_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^-' | grep -v '^---' || true)"
-          added_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^+' | grep -v '^+++' || true)"
-          added_count="$(printf '%s\n' "$added_lock_lines" | sed '/^$/d' | wc -l | tr -d ' ')"
-
-          if [ -n "$deleted_lock_lines" ] || [ "$added_count" -ne 3 ]; then
-            echo "bun.lock mudou além da entrada QR autorizada"
-            git diff origin/main -- bun.lock
-            exit 1
-          fi
+          # qrcode.react@4.2.0 foi a única dependência autorizada a entrar em
+          # package.json/bun.lock (Etapa 5) e já está permanentemente em main
+          # desde então — segue conferido aqui, mas como piso, não como algo
+          # isolado a esta etapa.
+          grep -q '"qrcode.react": "4.2.0"' package.json
           grep -q '"qrcode.react": "4.2.0"' bun.lock
           grep -q '"qrcode.react": \["qrcode.react@4.2.0"' bun.lock
-          test -z "$(git status --porcelain)"
+          if ! git diff --quiet origin/main -- package.json bun.lock; then
+            echo "package.json/bun.lock divergiu de origin/main sem autorização explícita nesta etapa"
+            git diff origin/main -- package.json bun.lock
+            exit 1
+          fi
+          if ! git diff --quiet -- package.json bun.lock; then
+            echo "package.json ou bun.lock foram alterados pelo runner"
+            git diff -- package.json bun.lock
+            exit 1
+          fi

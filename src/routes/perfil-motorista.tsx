@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bike, CheckCircle2, ChevronLeft, Clock, Loader2, LogOut, User } from "lucide-react";
+import { Bike, CheckCircle2, ChevronLeft, Loader2, LogOut, User, Wallet } from "lucide-react";
 import { useState } from "react";
 import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,14 +154,13 @@ function PerfilMotorista() {
             <Bike className="h-6 w-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Corrida</span>
           </Link>
-          <button
-            type="button"
-            disabled
-            className="flex flex-col items-center gap-1 text-muted-foreground opacity-50"
+          <Link
+            to="/carteira-motorista"
+            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-white"
           >
-            <Clock className="h-6 w-6" />
+            <Wallet className="h-6 w-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Ganhos</span>
-          </button>
+          </Link>
           <div className="flex flex-col items-center gap-1 text-zuvvi-volt" aria-current="page">
             <User className="h-6 w-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>
