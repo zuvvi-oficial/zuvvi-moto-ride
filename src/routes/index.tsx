@@ -1000,9 +1000,9 @@ function LandingPage() {
              <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Zuvvi Mobilidade · Brasil</p>
           </div>
           <div className="flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            <a href="#" className="hover:text-zuvvi-volt transition-colors">Privacidade</a>
-            <a href="#" className="hover:text-zuvvi-volt transition-colors">Termos</a>
-            <a href="#" className="hover:text-zuvvi-volt transition-colors">Contato</a>
+            <Link to="/privacidade" className="hover:text-zuvvi-volt transition-colors">Privacidade</Link>
+            <Link to="/termos" className="hover:text-zuvvi-volt transition-colors">Termos</Link>
+            <a href="mailto:suporte@zuvvi.app" className="hover:text-zuvvi-volt transition-colors">Contato</a>
           </div>
           <div className="px-4 py-2 rounded-full border border-zuvvi-volt/30 bg-zuvvi-volt/5 text-[10px] font-black uppercase tracking-widest volt-text">
             Em breve em todo o Brasil

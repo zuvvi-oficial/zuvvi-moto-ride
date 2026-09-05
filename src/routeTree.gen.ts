@@ -21,7 +21,9 @@ import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-mot
 import { Route as PagamentoPixRouteImport } from './routes/pagamento-pix'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PerfilMotoristaRouteImport } from './routes/perfil-motorista'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as ViagemCompartilhadaRouteImport } from './routes/viagem-compartilhada'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
@@ -95,9 +97,19 @@ const PerfilMotoristaRoute = PerfilMotoristaRouteImport.update({
   path: '/perfil-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProcurandoMotoristaRoute = ProcurandoMotoristaRouteImport.update({
   id: '/procurando-motorista',
   path: '/procurando-motorista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ViagemCompartilhadaRoute = ViagemCompartilhadaRouteImport.update({
@@ -175,7 +187,9 @@ export interface FileRoutesByFullPath {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
@@ -202,7 +216,9 @@ export interface FileRoutesByTo {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
@@ -230,7 +246,9 @@ export interface FileRoutesById {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
@@ -259,7 +277,9 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
@@ -286,7 +306,9 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
@@ -313,7 +335,9 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/motoristas'
@@ -341,7 +365,9 @@ export interface RootRouteChildren {
   PagamentoPixRoute: typeof PagamentoPixRoute
   PerfilRoute: typeof PerfilRoute
   PerfilMotoristaRoute: typeof PerfilMotoristaRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
+  TermosRoute: typeof TermosRoute
   ViagemCompartilhadaRoute: typeof ViagemCompartilhadaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
   AdminMotoristasRoute: typeof AdminMotoristasRoute
@@ -437,11 +463,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PerfilMotoristaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/procurando-motorista': {
       id: '/procurando-motorista'
       path: '/procurando-motorista'
       fullPath: '/procurando-motorista'
       preLoaderRoute: typeof ProcurandoMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/viagem-compartilhada': {
@@ -562,7 +602,9 @@ const rootRouteChildren: RootRouteChildren = {
   PagamentoPixRoute: PagamentoPixRoute,
   PerfilRoute: PerfilRoute,
   PerfilMotoristaRoute: PerfilMotoristaRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
+  TermosRoute: TermosRoute,
   ViagemCompartilhadaRoute: ViagemCompartilhadaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
   AdminMotoristasRoute: AdminMotoristasRoute,
