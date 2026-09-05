@@ -30,6 +30,10 @@ export default defineConfig({
       outDir: "dist/client",
       workbox: {
         globPatterns: ["**/*.{js,css,woff,woff2,png,svg,ico,webmanifest,html}"],
+        // Manipuladores de push/notificationclick (public/sw-push.js), importados
+        // para dentro do service worker gerado — generateSW não expõe um hook
+        // direto para eventos arbitrários, então importScripts é o caminho oficial.
+        importScripts: ["sw-push.js"],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         // Updates are applied only when the app decides it is safe to reload.

@@ -1297,3 +1297,30 @@ Durante a investigação da Microetapa 5.3, identificado que **nem `cancelarCorr
 - **Validação:** migration testada em Postgres 16 local com uma tabela `storage.buckets` reconstruída no formato real do Supabase — cenário com o bucket existente (limite aplicado corretamente, outros buckets não afetados) e cenário sem o bucket (`NOTICE` amigável, migration não falha, sem quebrar ambientes onde o bucket ainda não existe). `npx tsc --noEmit` e `npx eslint` sem erros novos.
 - Documentos já enviados anteriormente não são afetados — a restrição do bucket vale só para novos uploads.
 
+### Microetapa 5.7 — Web Push real (B5, parcial) — ✅ IMPLEMENTADA — HOMOLOGAÇÃO PENDENTE
+- **Escopo:** notificações eram só in-app (sino + Realtime). Esta etapa fecha a parte de **push web** (motorista aceitou/chegou, cancelamentos, documentos, etc. chegam mesmo com o app fechado, em navegadores/PWA que suportam Web Push). **SMS continua fora de escopo** — decisão de produto/fornecedor separada, não tratada aqui.
+- **Restrição real do ambiente:** este sandbox de desenvolvimento não tem acesso ao registry privado do projeto para instalar pacotes novos (`bun add` falha com 403 mesmo para pacotes públicos, pois o registry é forçado globalmente). Por isso a implementação **não usa a biblioteca `web-push`** — reimplementa VAPID (RFC 8292) e a criptografia de mensagem aes128gcm (RFC 8291/8188) direto com `node:crypto`, sem dependência nova.
+- **Arquivos novos:**
+  - `src/lib/web-push-crypto.server.ts`: geração do header `Authorization: vapid ...` (JWT ES256) e criptografia do payload (ECDH P-256 + HKDF duplo + AES-128-GCM), conforme as RFCs.
+  - `src/lib/web-push.server.ts`: envia a notificação via `fetch` ao endpoint da inscrição; trata 404/410 como "inscrição expirada" para o chamador remover.
+  - `public/sw-push.js`: `self.addEventListener('push', ...)` e `('notificationclick', ...)` do service worker — arquivo plano, importado pelo SW gerado.
+  - `src/lib/push-subscriptions.functions.ts`: `registrarPushSubscription` / `removerPushSubscription` (server functions, ownership resolvido server-side).
+  - `src/lib/pwa/push-subscribe.ts`: pede permissão do navegador, inscreve via `PushManager`, envia ao servidor.
+  - Migration `20260905120000_push_subscriptions.sql`: tabela `push_subscriptions` (endpoint único, RLS por `usuario_id`).
+- **Arquivos alterados:**
+  - `vite.config.ts`: `workbox.importScripts: ["sw-push.js"]` — `generateSW` não expõe um hook direto pra eventos arbitrários, então importScripts é o caminho oficial documentado pelo workbox para isso.
+  - `src/lib/notificacoes.server.ts`: `criarNotificacao` (o único ponto de entrada de toda notificação in-app do app) agora também dispara push best-effort para as inscrições do usuário — nenhum outro call site precisou ser tocado. Falha de push nunca derruba a notificação in-app nem o fluxo que a originou.
+  - `src/components/NotificationBell.tsx`: banner opcional "Ativar notificações no aparelho" (some após decisão do usuário; não aparece se o navegador já decidiu permitir/negar).
+- **Validação feita nesta sessão (sem instalar nada, sem acesso a navegador real):**
+  - Round-trip completo de RFC 8291 verificado com o módulo real compilado: um destinatário simulado localmente decifra corretamente o payload criptografado pelo servidor; segredo de autenticação errado é rejeitado pela tag do AES-GCM (integridade comprovada).
+  - JWT VAPID gerado pelo módulo real tem assinatura ES256 verificada com sucesso contra a chave pública correspondente; JWT adulterado é corretamente rejeitado.
+  - Migration `push_subscriptions` testada em Postgres 16 local: usuário autenticado só grava/vê a própria inscrição, tentativa de gravar para outro usuário é bloqueada por RLS, `service_role` enxerga tudo, `anon` não tem acesso nenhum.
+  - `npx tsc --noEmit` e `npx eslint` sem erros novos nos arquivos tocados.
+  - **NÃO verificado nesta sessão (só é possível no ambiente real de vocês):** entrega de uma notificação de verdade num navegador/PWA instalado, e se `workbox.importScripts` funciona exatamente como esperado na versão de `vite-plugin-pwa`/`workbox-build` instalada — não consegui instalar essas dependências aqui pra conferir o build gerado.
+- **AÇÃO NECESSÁRIA FORA DO CÓDIGO (obrigatória para funcionar):**
+  1. Gerar um par de chaves VAPID de produção (posso gerar e entregar diretamente na conversa — são só 2 valores curtos, geração local com `node:crypto`, sem custo/conta externa nenhuma).
+  2. Configurar `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (segredo do servidor) e `VITE_VAPID_PUBLIC_KEY` (mesmo valor da pública, exposto ao cliente) nas variáveis de ambiente de produção.
+  3. Opcional: `VAPID_SUBJECT` (um `mailto:` ou URL de contato real da Zuvvi) — sem isso usa um valor de fallback genérico.
+  4. Testar em um build de produção real (o service worker não registra em dev/preview) num navegador com suporte a Push (Chrome/Edge/Firefox desktop e Android; iOS Safari só a partir do PWA instalado na tela de início, com limitações da Apple).
+- Próxima etapa possível: SMS (decisão de fornecedor) e/ou uma tela de configuração de notificações para o usuário desativar por tipo — nenhum dos dois foi tratado aqui.
+
