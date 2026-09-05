@@ -33,8 +33,10 @@ import { Route as AdminVeiculosRouteImport } from './routes/admin/veiculos'
 import { Route as AuthCadastroRouteImport } from './routes/auth.cadastro'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthCompletarCadastroRouteImport } from './routes/auth.completar-cadastro'
+import { Route as AuthEsqueciSenhaRouteImport } from './routes/auth.esqueci-senha'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthPerfilRouteImport } from './routes/auth.perfil'
+import { Route as AuthRedefinirSenhaRouteImport } from './routes/auth.redefinir-senha'
 import { Route as MotoristaMercadopagoCallbackRouteImport } from './routes/motorista.mercadopago-callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -157,6 +159,11 @@ const AuthCompletarCadastroRoute = AuthCompletarCadastroRouteImport.update({
   path: '/completar-cadastro',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthEsqueciSenhaRoute = AuthEsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -165,6 +172,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
 const AuthPerfilRoute = AuthPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthRedefinirSenhaRoute = AuthRedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
   getParentRoute: () => AuthRoute,
 } as any)
 const MotoristaMercadopagoCallbackRoute =
@@ -198,8 +210,10 @@ export interface FileRoutesByFullPath {
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
+  '/auth/esqueci-senha': typeof AuthEsqueciSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/auth/redefinir-senha': typeof AuthRedefinirSenhaRoute
   '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -227,8 +241,10 @@ export interface FileRoutesByTo {
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
+  '/auth/esqueci-senha': typeof AuthEsqueciSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/auth/redefinir-senha': typeof AuthRedefinirSenhaRoute
   '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -257,8 +273,10 @@ export interface FileRoutesById {
   '/auth/cadastro': typeof AuthCadastroRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/completar-cadastro': typeof AuthCompletarCadastroRoute
+  '/auth/esqueci-senha': typeof AuthEsqueciSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/perfil': typeof AuthPerfilRoute
+  '/auth/redefinir-senha': typeof AuthRedefinirSenhaRoute
   '/motorista/mercadopago-callback': typeof MotoristaMercadopagoCallbackRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -288,8 +306,10 @@ export interface FileRouteTypes {
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
+    | '/auth/esqueci-senha'
     | '/auth/login'
     | '/auth/perfil'
+    | '/auth/redefinir-senha'
     | '/motorista/mercadopago-callback'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -317,8 +337,10 @@ export interface FileRouteTypes {
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
+    | '/auth/esqueci-senha'
     | '/auth/login'
     | '/auth/perfil'
+    | '/auth/redefinir-senha'
     | '/motorista/mercadopago-callback'
     | '/admin'
   id:
@@ -346,8 +368,10 @@ export interface FileRouteTypes {
     | '/auth/cadastro'
     | '/auth/callback'
     | '/auth/completar-cadastro'
+    | '/auth/esqueci-senha'
     | '/auth/login'
     | '/auth/perfil'
+    | '/auth/redefinir-senha'
     | '/motorista/mercadopago-callback'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -547,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCompletarCadastroRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/auth/esqueci-senha': {
+      id: '/auth/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/auth/esqueci-senha'
+      preLoaderRoute: typeof AuthEsqueciSenhaRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/login'
@@ -559,6 +590,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/auth/perfil'
       preLoaderRoute: typeof AuthPerfilRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/redefinir-senha': {
+      id: '/auth/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/auth/redefinir-senha'
+      preLoaderRoute: typeof AuthRedefinirSenhaRouteImport
       parentRoute: typeof AuthRoute
     }
     '/motorista/mercadopago-callback': {
@@ -575,16 +613,20 @@ interface AuthRouteChildren {
   AuthCadastroRoute: typeof AuthCadastroRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthCompletarCadastroRoute: typeof AuthCompletarCadastroRoute
+  AuthEsqueciSenhaRoute: typeof AuthEsqueciSenhaRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthPerfilRoute: typeof AuthPerfilRoute
+  AuthRedefinirSenhaRoute: typeof AuthRedefinirSenhaRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCadastroRoute: AuthCadastroRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthCompletarCadastroRoute: AuthCompletarCadastroRoute,
+  AuthEsqueciSenhaRoute: AuthEsqueciSenhaRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthPerfilRoute: AuthPerfilRoute,
+  AuthRedefinirSenhaRoute: AuthRedefinirSenhaRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
