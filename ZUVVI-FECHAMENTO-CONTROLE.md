@@ -1219,3 +1219,21 @@ G7. codigo_embarque gerado com Math.random(), 4 dígitos.
 - Arquivos tocados: src/routes/procurando-motorista.tsx, ZUVVI-FECHAMENTO-CONTROLE.md.
 - Bloqueador B3 (Race Condition na Busca) marcado como resolvido.
 
+## Auditoria de reconciliação ponta a ponta — 05/09/2026
+
+Realizada auditoria completa do estado real do código (não apenas deste documento, que estava desatualizado desde a 4.8) contra as pendências G1-G7 e B1-B6 registradas na seção "BLOQUEADORES ABERTOS PARA O PILOTO — auditoria 21/08/2026". Confirmado tecnicamente:
+- G1 (cancelarCorrida sem filtro de status) e o Checklist Pré-Produção (reverter 3.6-C): já FECHADOS anteriormente (3.7), confirmados no código atual.
+- B1 (conclusão de corrida), B3 (posição do motorista), B4 (avaliações), B6 (timeout de corrida órfã): confirmados FECHADOS no código atual.
+- Bloco Pix/Mercado Pago (B2): arquitetura implementada, mas SEM prova de pagamento real aprovado (33 tentativas históricas, 0 pagas); webhook sem validação de `x-signature` nem deduplicação; expiração de tentativa não é autoritativa no servidor; reembolso (`estornado`) nunca é escrito por nenhum código. Mantido como bloqueador crítico aberto, tratado à parte por ser sensível a dinheiro real.
+- B5 (notificações): confirmado aberto — segue apenas in-app, sem push/SMS.
+- Recursos `contatos_confianca` / `viagens_compartilhadas`: confirmado que existem apenas no schema, sem função de servidor ou tela.
+- G3 (corrida não grava distância/tempo/tarifa aplicada) e itens de hardening (G4 upload, drift de migrations não reverificável nesta sessão) permanecem em aberto, registrados para microetapas futuras.
+
+### Microetapa 5.1 — Correções isoladas de baixo risco (G5, G7, limpeza de G2) — ✅ FECHADA
+- **G5 corrigido:** `criarVeiculo` (`src/lib/motorista.functions.ts`) agora lê o veículo existente antes do upsert e só reseta `status_aprovacao` para `em_preenchimento` (e `ativo` para `true`) quando placa/marca/modelo/ano/cor realmente mudaram. Reenvio idêntico de um veículo já aprovado não derruba mais a aprovação.
+- **G7 corrigido:** `codigoEmbarque` em `criarCorrida` (`src/lib/user.functions.ts`) trocado de `Math.floor(1000 + Math.random() * 9000)` para `crypto.randomInt(1000, 10000)` (módulo `crypto` já importado na função), eliminando o gerador pseudoaleatório fraco.
+- **G2 (limpeza):** removida a server function `calcularValorCorrida` de `src/lib/user.functions.ts` — estava morta (nenhuma chamada em `src/`) e duplicava exatamente a fórmula de tarifa já usada em `cotarCorrida`, que é a versão realmente ligada à UI e com assinatura HMAC anti-adulteração.
+- Nenhuma migration necessária; nenhuma alteração de schema.
+- Validação: `npx tsc --noEmit` e `npx eslint` rodados nos dois arquivos tocados — nenhum erro novo introduzido (apenas os erros pré-existentes de módulos ausentes/formatação já registrados em "LINT GLOBAL — PENDENTE").
+- Próxima etapa: bloco Pix (B2) — validação de webhook, expiração autoritativa e reembolso.
+
