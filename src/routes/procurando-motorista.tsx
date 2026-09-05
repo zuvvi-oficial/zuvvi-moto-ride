@@ -467,9 +467,19 @@ function ProcurandoMotorista() {
         {/* Ações */}
         <div className="space-y-4 pt-4">
           {semMotorista ? (
-            // Estado final: TENTAR NOVAMENTE
-            <button 
-              onClick={() => navigate({ to: '/' })}
+            // Estado final: TENTAR NOVAMENTE. Antes de sair, encerra formalmente
+            // a corrida sem motorista (cancelado_por/data_cancelamento) em vez de
+            // só navegar embora e deixar a linha órfã em 'sem_motorista' para sempre.
+            <button
+              onClick={async () => {
+                try {
+                  await cancelarCorridaFn({ data: { rideId } });
+                } catch (err) {
+                  console.error('Falha ao encerrar corrida sem motorista:', err);
+                } finally {
+                  navigate({ to: '/' });
+                }
+              }}
               className="w-full bg-zuvvi-volt text-zuvvi-indigo py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-xs transition-all hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-3"
             >
               <Search className="w-4 h-4" />

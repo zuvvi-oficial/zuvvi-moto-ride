@@ -517,7 +517,10 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       .eq("id", data.rideId)
       .eq("passageiro_id", usuario.id)
       .or(
-        "status.in.(solicitada,buscando_motorista),and(status.in.(aceita,motorista_a_caminho),forma_pagamento.neq.pix)",
+        // sem_motorista = busca expirou sem nenhum motorista atribuído: nunca há
+        // cobrança Pix pendente nesse estado (a cobrança só existe depois do aceite),
+        // então cancelar dali é sempre seguro, sem depender da forma de pagamento.
+        "status.in.(solicitada,buscando_motorista,sem_motorista),and(status.in.(aceita,motorista_a_caminho),forma_pagamento.neq.pix)",
       )
       .select()
       .maybeSingle();
