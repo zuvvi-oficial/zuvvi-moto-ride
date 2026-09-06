@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
-import { ChevronLeft, Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut, IdCard } from "lucide-react";
+import { Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut, IdCard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -145,12 +145,6 @@ function PerfilPassageiro() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
         <div className="max-w-md mx-auto flex items-center gap-4">
-          <Link 
-            to="/" 
-            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-colors hover:bg-white/10"
-          >
-            <ChevronLeft className="w-6 h-6 text-zuvvi-volt" />
-          </Link>
           <h1 className="text-xl font-bold tracking-tight">Perfil</h1>
         </div>
       </header>
