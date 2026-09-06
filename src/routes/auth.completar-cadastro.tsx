@@ -18,7 +18,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { updateUserInfo } from '@/lib/auth-google.functions';
 import { checkUserProfileStatus, resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { redirect } from '@tanstack/react-router';
-import { getUFs, getCitiesByUF } from '@/lib/locations.functions';
+import { getUFsDisponiveis, getCitiesDisponiveisByUF } from '@/lib/locations.functions';
 import { validarCpfBrasileiro } from '@/lib/pix-cpf';
 
 const formatCPF = (value: string) => {
@@ -86,8 +86,8 @@ function CompletarCadastroPage() {
   const navigate = useNavigate();
   const executeUpdate = useServerFn(updateUserInfo);
   const checkStatus = useServerFn(checkUserProfileStatus);
-  const fetchUFs = useServerFn(getUFs);
-  const fetchCities = useServerFn(getCitiesByUF);
+  const fetchUFs = useServerFn(getUFsDisponiveis);
+  const fetchCities = useServerFn(getCitiesDisponiveisByUF);
   
   const [isLoading, setIsLoading] = useState(false);
   const [ufs, setUfs] = useState<string[]>([]);

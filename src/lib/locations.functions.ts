@@ -40,3 +40,46 @@ export const getCitiesByUF = createServerFn({ method: "GET" })
 
     return data || [];
   });
+
+export const getUFsDisponiveis = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Busca direto na tabela (sem RPC): só UFs com pelo menos uma cidade liberada
+    const { data, error } = await supabaseAdmin
+      .from("cidades")
+      .select("estado_uf")
+      .in("status", ["ativa", "piloto"]);
+
+    if (error) {
+      console.error("[getUFsDisponiveis] Error fetching available UFs:", error);
+      throw new Error("Erro ao carregar estados.");
+    }
+
+    const ufs = Array.from(new Set((data || []).map((c) => c.estado_uf)));
+    return ufs.sort();
+  });
+
+export const getCitiesDisponiveisByUF = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => typeof data === 'string' ? data : '')
+  .handler(async ({ data: uf }) => {
+    if (!uf) return [];
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data, error } = await supabaseAdmin
+      .from("cidades")
+      .select("id, nome")
+      .eq("estado_uf", uf)
+      .in("status", ["ativa", "piloto"])
+      .order("nome");
+
+    if (error) {
+      console.error("[getCitiesDisponiveisByUF] Error fetching available cities:", error);
+      throw new Error("Erro ao carregar cidades.");
+    }
+
+    return data || [];
+  });
