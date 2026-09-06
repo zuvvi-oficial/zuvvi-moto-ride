@@ -46,6 +46,20 @@ const atualizarCpf = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Nunca aceitar um id vindo do cliente: sempre resolver pelo auth_user_id da sessão autenticada
+    const { data: usuarioAtual, error: fetchError } = await supabaseAdmin
+      .from("usuarios")
+      .select("cpf")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new Error("Erro ao verificar CPF atual. Tente novamente.");
+    }
+
+    if (validarCpfBrasileiro(usuarioAtual?.cpf)) {
+      throw new Error("CPF já confirmado. Para alterar, entre em contato com o suporte.");
+    }
+
     const { error } = await supabaseAdmin
       .from("usuarios")
       .update({ cpf: data.cpf })
@@ -84,10 +98,14 @@ function PerfilPassageiro() {
   const [isLoadingCpf, setIsLoadingCpf] = useState(true);
   const [isSavingCpf, setIsSavingCpf] = useState(false);
   const [cpfError, setCpfError] = useState<string | null>(null);
+  const [cpfConfirmado, setCpfConfirmado] = useState(false);
 
   useEffect(() => {
     getMeuCpfFn()
-      .then((res) => setCpf(formatCPF(res.cpf || "")))
+      .then((res) => {
+        setCpf(formatCPF(res.cpf || ""));
+        setCpfConfirmado(validarCpfBrasileiro(res.cpf));
+      })
       .catch(() => {})
       .finally(() => setIsLoadingCpf(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -111,6 +129,7 @@ function PerfilPassageiro() {
     try {
       await atualizarCpfFn({ data: { cpf: digits } });
       toast.success("CPF atualizado!");
+      setCpfConfirmado(true);
     } catch (error: any) {
       const message = error?.message || "Erro ao atualizar CPF.";
       setCpfError(message);
@@ -161,17 +180,20 @@ function PerfilPassageiro() {
                 setCpfError(null);
               }}
               placeholder="000.000.000-00"
-              disabled={isLoadingCpf || isSavingCpf}
+              disabled={isLoadingCpf || isSavingCpf || cpfConfirmado}
               className="bg-zuvvi-indigo border-white/10 text-white focus-visible:border-zuvvi-volt h-12"
             />
-            <Button
-              onClick={handleSalvarCpf}
-              disabled={isLoadingCpf || isSavingCpf}
-              className="h-12 bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold shrink-0"
-            >
-              {isSavingCpf ? "Salvando..." : "Salvar"}
-            </Button>
+            {!cpfConfirmado && (
+              <Button
+                onClick={handleSalvarCpf}
+                disabled={isLoadingCpf || isSavingCpf}
+                className="h-12 bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold shrink-0"
+              >
+                {isSavingCpf ? "Salvando..." : "Salvar"}
+              </Button>
+            )}
           </div>
+          {cpfConfirmado && <p className="text-xs text-muted-foreground">CPF confirmado</p>}
           {cpfError && <p className="text-red-500 text-xs">{cpfError}</p>}
         </div>
 
