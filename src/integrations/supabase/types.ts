@@ -937,6 +937,7 @@ export type Database = {
           created_at: string
           data_nascimento: string | null
           email: string | null
+          foto_perfil_path: string | null
           id: string
           is_motorista: boolean | null
           is_passageiro: boolean | null
@@ -952,6 +953,7 @@ export type Database = {
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
+          foto_perfil_path?: string | null
           id?: string
           is_motorista?: boolean | null
           is_passageiro?: boolean | null
@@ -967,6 +969,7 @@ export type Database = {
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
+          foto_perfil_path?: string | null
           id?: string
           is_motorista?: boolean | null
           is_passageiro?: boolean | null
