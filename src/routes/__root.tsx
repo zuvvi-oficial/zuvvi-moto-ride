@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { syncAuthSessionToCookies } from "@/integrations/supabase/auth-attacher";
 import { PwaShell } from "@/components/pwa/PwaShell";
+import { PassengerDriverAvailabilityGate } from "@/components/passageiro/PassengerDriverAvailabilityGate";
 
 function NotFoundComponent() {
   return (
@@ -198,6 +199,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <audio ref={audioRef} preload="auto" />
       <Outlet />
+      <PassengerDriverAvailabilityGate />
       <PwaShell />
     </QueryClientProvider>
   );
