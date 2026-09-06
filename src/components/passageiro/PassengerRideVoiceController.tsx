@@ -101,7 +101,7 @@ export function PassengerRideVoiceController() {
 
     const synthesis = window.speechSynthesis;
     const refreshPreferredVoice = () => {
-      preferredVoiceRef.current = choosePortugueseVoice();
+      preferredVoiceRef.current = choosePortugueseVoice() ?? null;
     };
 
     refreshPreferredVoice();

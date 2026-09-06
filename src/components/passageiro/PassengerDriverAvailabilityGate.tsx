@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useRouterState } from "@tanstack/react-router";
 import { Bike, Loader2, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { checkCityAvailability } from "@/lib/user.functions";
 import {
   checkPassageiroDriverAvailability,
@@ -34,6 +35,13 @@ export function PassengerDriverAvailabilityGate() {
     setIsRefreshing(true);
 
     try {
+      // Sem sessão ativa (landing page pública) não há passageiro para checar.
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        setGateState(INITIAL_STATE);
+        return;
+      }
+
       // Primeiro confirma que existe uma sessão de passageiro em cidade operacional.
       // Isso evita pedir GPS na landing page e no fluxo do motorista.
       const driverAvailability = await checkDriverAvailabilityFn();
