@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getResumoCarteira } from "@/lib/carteira.functions";
 import { ChevronLeft, Wallet, Banknote, QrCode, Receipt, Loader2 } from "lucide-react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
+import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
 
 export const Route = createFileRoute("/carteira")({
   loader: async () => {
@@ -30,7 +31,7 @@ function Carteira() {
   });
 
   return (
-    <div className="min-h-screen bg-zuvvi-indigo-dark text-foreground flex flex-col pb-10">
+    <div className="min-h-screen bg-zuvvi-indigo-dark text-foreground flex flex-col pb-28">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
         <div className="max-w-md mx-auto flex items-center gap-4">
@@ -96,6 +97,8 @@ function Carteira() {
           </>
         )}
       </main>
+
+      <PassengerBottomNav active="carteira" />
     </div>
   );
 }
