@@ -8,6 +8,7 @@ import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { validarCpfBrasileiro } from "@/lib/pix-cpf";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
+import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,7 +141,7 @@ function PerfilPassageiro() {
   };
 
   return (
-    <div className="min-h-screen bg-zuvvi-indigo-dark text-foreground flex flex-col pb-10">
+    <div className="min-h-screen bg-zuvvi-indigo-dark text-foreground flex flex-col pb-28">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
         <div className="max-w-md mx-auto flex items-center gap-4">
@@ -232,7 +233,6 @@ function PerfilPassageiro() {
           </Link>
 
           <button 
-
             onClick={() => setSupportOpen(true)}
             className="w-full bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-zuvvi-indigo/60 group"
           >
@@ -268,6 +268,8 @@ function PerfilPassageiro() {
           <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em]">Zuvvi Mobilidade v1.0.0</p>
         </div>
       </main>
+
+      <PassengerBottomNav active="perfil" />
 
       <SupportDialog 
         open={supportOpen} 
