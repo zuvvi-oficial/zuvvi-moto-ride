@@ -23,10 +23,31 @@ function choosePortugueseVoice() {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
 
   const voices = window.speechSynthesis.getVoices();
+  const ptBrVoices = voices.filter(
+    (voice) => voice.lang.toLowerCase().replace("_", "-") === "pt-br",
+  );
+  const portugueseVoices = voices.filter((voice) =>
+    voice.lang.toLowerCase().startsWith("pt"),
+  );
+  const candidates = ptBrVoices.length > 0 ? ptBrVoices : portugueseVoices;
+
+  if (candidates.length === 0) return null;
+
+  const preferredNames = [
+    "natural",
+    "google português do brasil",
+    "francisca",
+    "luciana",
+    "fernanda",
+    "maria",
+  ];
+
   return (
-    voices.find((voice) => voice.lang.toLowerCase() === "pt-br") ||
-    voices.find((voice) => voice.lang.toLowerCase().startsWith("pt")) ||
-    null
+    preferredNames
+      .map((name) =>
+        candidates.find((voice) => voice.name.toLowerCase().includes(name)),
+      )
+      .find(Boolean) || candidates[0]
   );
 }
 
@@ -155,8 +176,8 @@ export function PassengerRideVoiceController() {
     const preferredVoice = choosePortugueseVoice();
 
     utterance.lang = "pt-BR";
-    utterance.rate = 0.96;
-    utterance.pitch = 1;
+    utterance.rate = 0.92;
+    utterance.pitch = 0.98;
     utterance.volume = 1;
     if (preferredVoice) utterance.voice = preferredVoice;
 
@@ -175,7 +196,9 @@ export function PassengerRideVoiceController() {
       const key = "aceita";
       if (!driverName || announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
-      speak(`Boa notícia! ${driverName} aceitou sua corrida. Em instantes, ele estará a caminho do seu local de embarque.`);
+      speak(
+        `Tudo certo. ${driverName} aceitou sua corrida. Você pode acompanhar a chegada pelo mapa.`,
+      );
       return;
     }
 
@@ -183,7 +206,9 @@ export function PassengerRideVoiceController() {
       const key = "motorista_a_caminho";
       if (announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
-      speak("Tudo certo. Seu motorista já está a caminho do local de embarque.");
+      speak(
+        "Seu motorista já está a caminho do ponto de embarque. Acompanhe a aproximação pelo mapa.",
+      );
       return;
     }
 
@@ -199,10 +224,10 @@ export function PassengerRideVoiceController() {
         if (codeKey) announcedRef.current.add(codeKey);
 
         const codeMessage = validCode
-          ? ` Para sua segurança, informe ao motorista o código de embarque: ${formatCodeForSpeech(validCode)}.`
+          ? ` Para embarcar com segurança, informe ao motorista o código: ${formatCodeForSpeech(validCode)}.`
           : " Seu código de embarque está sendo carregado na tela.";
 
-        speak(`Seu motorista chegou ao local de embarque.${codeMessage}`);
+        speak(`Seu motorista chegou ao ponto de embarque.${codeMessage}`);
         return;
       }
 
