@@ -1,0 +1,37 @@
+name: App Build & TypeScript
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-build-typecheck-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-typecheck:
+    name: Build (Vite) e checagem estrita de TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build (vite build)
+        run: npm run build
+
+      - name: Checagem estrita de TypeScript (tsc --noEmit)
+        run: npx tsc --noEmit
