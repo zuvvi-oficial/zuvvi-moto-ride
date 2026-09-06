@@ -26,7 +26,7 @@ export function PassengerDriverAvailabilityGate() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const checkAvailability = useCallback(async () => {
-    if (pathname !== "/" || typeof navigator === "undefined" || !navigator.geolocation) {
+    if (pathname !== "/") {
       setGateState(INITIAL_STATE);
       return;
     }
@@ -34,6 +34,23 @@ export function PassengerDriverAvailabilityGate() {
     setIsRefreshing(true);
 
     try {
+      // Primeiro confirma que existe uma sessão de passageiro em cidade operacional.
+      // Isso evita pedir GPS na landing page e no fluxo do motorista.
+      const driverAvailability = await checkDriverAvailabilityFn();
+
+      if (
+        driverAvailability.reason !== "no_driver_online" ||
+        driverAvailability.hasAvailableDriver
+      ) {
+        setGateState(INITIAL_STATE);
+        return;
+      }
+
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        setGateState(INITIAL_STATE);
+        return;
+      }
+
       const coords = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -52,27 +69,17 @@ export function PassengerDriverAvailabilityGate() {
       });
 
       // A P1 continua sendo a autoridade sobre cidade/origem real.
-      // A P1B só verifica motoristas quando a origem GPS já está autorizada.
+      // Só exibimos o aviso de "sem motorista" se a origem GPS estiver autorizada.
       const cityAvailability = await checkCityAvailabilityFn({ data: { coords } });
       if (!cityAvailability.isAvailable) {
         setGateState(INITIAL_STATE);
         return;
       }
 
-      const driverAvailability = await checkDriverAvailabilityFn();
-
-      if (
-        driverAvailability.reason === "no_driver_online" &&
-        !driverAvailability.hasAvailableDriver
-      ) {
-        setGateState({
-          blocked: true,
-          info: driverAvailability,
-        });
-        return;
-      }
-
-      setGateState(INITIAL_STATE);
+      setGateState({
+        blocked: true,
+        info: driverAvailability,
+      });
     } catch {
       // Fail neutral na camada visual: GPS/cidade continuam sendo tratados pela Home.
       // A indisponibilidade não é inventada quando a verificação complementar falha.
