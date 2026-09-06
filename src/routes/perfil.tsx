@@ -9,6 +9,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { validarCpfBrasileiro } from "@/lib/pix-cpf";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
+import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,8 +145,12 @@ function PerfilPassageiro() {
     <div className="min-h-screen bg-zuvvi-indigo-dark text-foreground flex flex-col pb-28">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
-        <div className="max-w-md mx-auto flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight">Perfil</h1>
+        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">Passageiro Zuvvi</p>
+            <h1 className="text-xl font-bold tracking-tight">Perfil</h1>
+          </div>
+          <ZuvviLogo surface="dark" className="h-auto w-[78px]" />
         </div>
       </header>
 
