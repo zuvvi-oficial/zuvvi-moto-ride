@@ -169,13 +169,13 @@ export function PassengerRideVoiceController() {
 
     const driverName = rideData.driverName;
     const status = rideData.status;
-    if (!driverName || !status) return;
+    if (!status) return;
 
     if (status === "aceita") {
       const key = "aceita";
-      if (announcedRef.current.has(key)) return;
+      if (!driverName || announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
-      speak(`Seu motorista ${driverName} aceitou sua corrida.`);
+      speak(`Boa notícia! ${driverName} aceitou sua corrida. Em instantes, ele estará a caminho do seu local de embarque.`);
       return;
     }
 
@@ -183,7 +183,7 @@ export function PassengerRideVoiceController() {
       const key = "motorista_a_caminho";
       if (announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
-      speak(`Seu motorista ${driverName} está a caminho do local de embarque.`);
+      speak("Tudo certo. Seu motorista já está a caminho do local de embarque.");
       return;
     }
 
@@ -199,12 +199,10 @@ export function PassengerRideVoiceController() {
         if (codeKey) announcedRef.current.add(codeKey);
 
         const codeMessage = validCode
-          ? ` Forneça o código de embarque: ${formatCodeForSpeech(validCode)}.`
-          : " O código de embarque está sendo carregado na tela.";
+          ? ` Para sua segurança, informe ao motorista o código de embarque: ${formatCodeForSpeech(validCode)}.`
+          : " Seu código de embarque está sendo carregado na tela.";
 
-        speak(
-          `Seu motorista ${driverName} chegou ao local de embarque.${codeMessage}`,
-        );
+        speak(`Seu motorista chegou ao local de embarque.${codeMessage}`);
         return;
       }
 
@@ -245,11 +243,7 @@ export function PassengerRideVoiceController() {
 
     if (!next) {
       window.speechSynthesis.cancel();
-      return;
     }
-
-    // Ao reativar, anunciar novamente o estado atual da corrida.
-    announcedRef.current.clear();
   };
 
   if (!mounted || !rideId) return null;
