@@ -19,6 +19,7 @@ import { updateUserInfo } from '@/lib/auth-google.functions';
 import { checkUserProfileStatus, resolveDestinationForLoader } from '@/lib/auth-status.functions';
 import { redirect } from '@tanstack/react-router';
 import { getUFs, getCitiesByUF } from '@/lib/locations.functions';
+import { validarCpfBrasileiro } from '@/lib/pix-cpf';
 
 const formatCPF = (value: string) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -45,7 +46,8 @@ const completionSchema = z.object({
   cpf: z
     .string()
     .transform((val) => val.replace(/\D/g, ''))
-    .refine((val) => val.length === 11, "CPF deve conter 11 números"),
+    .refine((val) => val.length === 11, "CPF deve conter 11 números")
+    .refine(validarCpfBrasileiro, "CPF inválido"),
   celular: z
     .string()
     .transform((val) => val.replace(/\D/g, ''))

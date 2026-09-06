@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { validarCpfBrasileiro } from "./pix-cpf";
 
 const signUpSchema = z.object({
   email: z.string().email("E-mail inválido"),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
   nome: z.string().min(3, "Nome muito curto"),
-  cpf: z.string().length(11, "CPF deve ter 11 dígitos"),
+  cpf: z.string().length(11, "CPF deve ter 11 dígitos").refine(validarCpfBrasileiro, "CPF inválido"),
   celular: z.string().min(10, "Telefone inválido"),
   data_nascimento: z.string().optional(),
 });

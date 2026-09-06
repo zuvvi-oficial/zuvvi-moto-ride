@@ -1,9 +1,65 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut } from "lucide-react";
-import { useState } from "react";
+import { createServerFn, useServerFn } from "@tanstack/react-start";
+import { ChevronLeft, Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut, IdCard } from "lucide-react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import { toast } from "sonner";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { validarCpfBrasileiro } from "@/lib/pix-cpf";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+const formatCPF = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  return digits
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+};
+
+const getMeuCpf = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("usuarios")
+      .select("cpf")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Erro ao buscar CPF do usuário:", error);
+      return { cpf: "" };
+    }
+
+    return { cpf: data?.cpf ?? "" };
+  });
+
+const atualizarCpf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({
+    cpf: z.string().length(11, "CPF deve ter 11 dígitos").refine(validarCpfBrasileiro, "CPF inválido"),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Nunca aceitar um id vindo do cliente: sempre resolver pelo auth_user_id da sessão autenticada
+    const { error } = await supabaseAdmin
+      .from("usuarios")
+      .update({ cpf: data.cpf })
+      .eq("auth_user_id", context.userId);
+
+    if (error) {
+      if (error.code === '23505' && error.message?.includes('usuarios_cpf_key')) {
+        throw new Error("Este CPF já está cadastrado em outra conta.");
+      }
+      throw new Error("Erro ao atualizar CPF. Tente novamente.");
+    }
+
+    return { success: true };
+  });
 
 export const Route = createFileRoute("/perfil")({
   loader: async () => {
@@ -21,9 +77,47 @@ function PerfilPassageiro() {
   const navigate = useNavigate();
   const [supportOpen, setSupportOpen] = useState(false);
 
+  const getMeuCpfFn = useServerFn(getMeuCpf);
+  const atualizarCpfFn = useServerFn(atualizarCpf);
+
+  const [cpf, setCpf] = useState("");
+  const [isLoadingCpf, setIsLoadingCpf] = useState(true);
+  const [isSavingCpf, setIsSavingCpf] = useState(false);
+  const [cpfError, setCpfError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMeuCpfFn()
+      .then((res) => setCpf(formatCPF(res.cpf || "")))
+      .catch(() => {})
+      .finally(() => setIsLoadingCpf(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/" });
+  };
+
+  const handleSalvarCpf = async () => {
+    const digits = cpf.replace(/\D/g, "");
+
+    if (!validarCpfBrasileiro(digits)) {
+      setCpfError("CPF inválido");
+      return;
+    }
+
+    setCpfError(null);
+    setIsSavingCpf(true);
+    try {
+      await atualizarCpfFn({ data: { cpf: digits } });
+      toast.success("CPF atualizado!");
+    } catch (error: any) {
+      const message = error?.message || "Erro ao atualizar CPF.";
+      setCpfError(message);
+      toast.error(message);
+    } finally {
+      setIsSavingCpf(false);
+    }
   };
 
   return (
@@ -53,9 +147,37 @@ function PerfilPassageiro() {
           </div>
         </div>
 
+        {/* CPF */}
+        <div className="bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <IdCard className="w-3.5 h-3.5" />
+            CPF
+          </div>
+          <div className="flex items-center gap-3">
+            <Input
+              value={cpf}
+              onChange={(e) => {
+                setCpf(formatCPF(e.target.value));
+                setCpfError(null);
+              }}
+              placeholder="000.000.000-00"
+              disabled={isLoadingCpf || isSavingCpf}
+              className="bg-zuvvi-indigo border-white/10 text-white focus-visible:border-zuvvi-volt h-12"
+            />
+            <Button
+              onClick={handleSalvarCpf}
+              disabled={isLoadingCpf || isSavingCpf}
+              className="h-12 bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold shrink-0"
+            >
+              {isSavingCpf ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+          {cpfError && <p className="text-red-500 text-xs">{cpfError}</p>}
+        </div>
+
         {/* Menu Actions */}
         <div className="space-y-3">
-          <Link 
+          <Link
             to="/corridas"
             className="w-full bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-zuvvi-indigo/60 group"
           >

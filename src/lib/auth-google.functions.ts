@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { validarCpfBrasileiro } from "./pix-cpf";
 
 export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -19,7 +20,7 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
 export const updateUserInfo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({
-    cpf: z.string().length(11, "CPF deve ter 11 dígitos"),
+    cpf: z.string().length(11, "CPF deve ter 11 dígitos").refine(validarCpfBrasileiro, "CPF inválido"),
     celular: z.string().min(10).max(11, "Celular deve ter 10 ou 11 dígitos"),
     data_nascimento: z.string().min(10, "Data de nascimento inválida"),
     cidade_id: z.string().uuid("Cidade inválida"),
