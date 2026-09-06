@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   Bell,
   BellRing,
+  BellPlus,
   Bike,
   CheckCheck,
   CircleCheck,
@@ -25,6 +26,7 @@ import { format, isThisYear, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useSoundStore } from '@/hooks/use-sound';
+import { isPushSupported, subscribeToPushNotifications } from '@/lib/pwa/push-subscribe';
 
 export interface NotificationBellItem {
   id: string;
@@ -116,6 +118,8 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
   const [isOpen, setIsOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
   const queryClient = useQueryClient();
   const initialImportantDeliveredRef = useRef(false);
   const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -330,6 +334,38 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
     };
   }, [userId, queryClient, onImportantNotification]);
 
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !isPushSupported() ||
+      Notification.permission !== 'default'
+    ) {
+      return;
+    }
+    setShowPushPrompt(true);
+  }, []);
+
+  const handleEnablePush = async () => {
+    const vapidPublicKey = import.meta.env['VITE_VAPID_PUBLIC_KEY'] as string | undefined;
+    if (!vapidPublicKey) {
+      setShowPushPrompt(false);
+      return;
+    }
+
+    setIsEnablingPush(true);
+    try {
+      const outcome = await subscribeToPushNotifications(vapidPublicKey);
+      if (outcome === 'subscribed') {
+        toast.success('Notificações ativadas neste aparelho.');
+      } else if (outcome === 'denied') {
+        toast.error('Permissão de notificações negada.');
+      }
+    } finally {
+      setIsEnablingPush(false);
+      setShowPushPrompt(false);
+    }
+  };
+
   const closeNotifications = () => {
     setShowClearConfirm(false);
     setIsOpen(false);
@@ -429,6 +465,38 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
                 </div>
               )}
             </div>
+
+            {showPushPrompt && !showClearConfirm && (
+              <div
+                className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-zuvvi-volt/20 bg-zuvvi-volt/10 p-4"
+                role="note"
+              >
+                <BellPlus className="mt-0.5 h-5 w-5 shrink-0 text-zuvvi-volt" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white">Ativar notificações no aparelho</p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/65">
+                    Receba avisos mesmo com o app fechado: motorista aceitou, chegou, cancelamentos e mais.
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleEnablePush}
+                      disabled={isEnablingPush}
+                      className="min-h-9 rounded-xl bg-zuvvi-volt px-3 text-xs font-semibold text-zuvvi-indigo transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isEnablingPush ? 'Ativando...' : 'Ativar'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPushPrompt(false)}
+                      className="min-h-9 rounded-xl px-3 text-xs font-semibold text-white/60 transition-colors hover:text-white"
+                    >
+                      Agora não
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {showClearConfirm && notificacoesVisiveis.length > 0 && (
               <div
