@@ -12,10 +12,11 @@ import {
   atualizarPresencaChat,
 } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send, ShieldAlert } from "lucide-react";
+import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send, ShieldAlert, Share2 } from "lucide-react";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { ChatConversation } from "@/components/chat/ChatConversation";
+import { CompartilharViagemDialog } from "@/components/passageiro/CompartilharViagemDialog";
 import { toast } from "sonner";
 import { criarAvaliacao, getAvaliacaoStatus } from "@/lib/avaliacoes.functions";
 
@@ -126,6 +127,8 @@ function AcompanhamentoCorrida() {
     title: string;
     message: string;
   } | null>(null);
+
+  const [shareOpen, setShareOpen] = useState(false);
 
   const [chatOpen, setChatOpen] = useState(false);
   const chatOpenRef = useRef(false);
@@ -664,23 +667,32 @@ function AcompanhamentoCorrida() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => handleChatOpenChange(true)}
-                className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px] relative"
-                aria-label={`Chat com motorista${chatUnreadCount > 0 ? `, ${chatUnreadCount} mensagens não lidas` : ""}`}
-              >
-                <div className="relative">
-                  <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
-                  {chatUnreadCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-zuvvi-volt text-zuvvi-indigo text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-zuvvi-indigo/50 animate-in zoom-in duration-300">
-                      {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">
-                  Chat
-                </p>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShareOpen(true)}
+                  className="bg-white/5 px-3 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-white/10 min-h-[44px]"
+                  aria-label="Compartilhar viagem com um contato de confiança"
+                >
+                  <Share2 className="w-4 h-4 text-white/70" />
+                </button>
+                <button
+                  onClick={() => handleChatOpenChange(true)}
+                  className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px] relative"
+                  aria-label={`Chat com motorista${chatUnreadCount > 0 ? `, ${chatUnreadCount} mensagens não lidas` : ""}`}
+                >
+                  <div className="relative">
+                    <MessageCircle className="w-4 h-4 text-zuvvi-volt" />
+                    {chatUnreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-zuvvi-volt text-zuvvi-indigo text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-zuvvi-indigo/50 animate-in zoom-in duration-300">
+                        {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] font-black text-zuvvi-volt uppercase tracking-tighter">
+                    Chat
+                  </p>
+                </button>
+              </div>
             </div>
             {corrida.status === "motorista_chegou" && (
               <div className="pt-4 border-t border-white/5 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -774,6 +786,7 @@ function AcompanhamentoCorrida() {
         onDigitandoChange={handleDigitandoChange}
         onRetry={refreshChat}
       />
+      <CompartilharViagemDialog open={shareOpen} onOpenChange={setShareOpen} rideId={rideId} />
       {corrida.status === "concluida" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zuvvi-indigo/90 backdrop-blur-xl animate-in fade-in duration-500">
           <div className="w-full max-w-md bg-zuvvi-indigo/50 border border-white/10 rounded-[3rem] p-8 md:p-10 shadow-2xl text-center space-y-6 animate-in zoom-in-95 duration-500 max-h-[90vh] overflow-y-auto custom-scrollbar">
