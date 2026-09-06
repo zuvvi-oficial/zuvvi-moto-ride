@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { syncAuthSessionToCookies } from "@/integrations/supabase/auth-attacher";
 import { PwaShell } from "@/components/pwa/PwaShell";
 import { PassengerDriverAvailabilityGate } from "@/components/passageiro/PassengerDriverAvailabilityGate";
+import { PassengerRideVoiceController } from "@/components/passageiro/PassengerRideVoiceController";
 
 function NotFoundComponent() {
   return (
@@ -200,6 +201,7 @@ function RootComponent() {
       <audio ref={audioRef} preload="auto" />
       <Outlet />
       <PassengerDriverAvailabilityGate />
+      <PassengerRideVoiceController />
       <PwaShell />
     </QueryClientProvider>
   );
