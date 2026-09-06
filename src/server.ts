@@ -6,6 +6,10 @@ import {
   handleMercadoPagoWebhook,
   isMercadoPagoWebhookRequest,
 } from "./lib/pix-mercadopago-webhook.server";
+import {
+  handlePixReconciliacaoPendentesRequest,
+  isPixReconciliacaoPendentesRequest,
+} from "./lib/pix-reconciliacao-pendentes-endpoint.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -53,6 +57,10 @@ export default {
     try {
       if (isMercadoPagoWebhookRequest(request)) {
         return await handleMercadoPagoWebhook(request);
+      }
+
+      if (isPixReconciliacaoPendentesRequest(request)) {
+        return await handlePixReconciliacaoPendentesRequest(request);
       }
 
       const handler = await getServerEntry();

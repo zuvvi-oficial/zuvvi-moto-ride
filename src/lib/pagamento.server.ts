@@ -426,7 +426,7 @@ async function persistirErroCriacaoPix(
   if (error) console.error("[PixPaymentDiag] provider_error_persist_failed");
 }
 
-async function reconciliarEPersistirPagamentoPix(
+export async function reconciliarEPersistirPagamentoPix(
   supabaseAdmin: any,
   input: Readonly<{
     accessToken: string;
