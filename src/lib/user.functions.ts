@@ -47,44 +47,169 @@ export const getMapboxToken = createServerFn({ method: "GET" })
 
 const cityAvailabilitySchema = z.object({
   coords: z.object({
-    lat: z.number(),
-    lng: z.number()
+    lat: z.number().finite().min(-90).max(90),
+    lng: z.number().finite().min(-180).max(180)
   }).optional()
 });
+
+type OriginAvailabilityReason =
+  | "location_required"
+  | "city_not_configured"
+  | "city_unavailable"
+  | "location_not_identified"
+  | "outside_registered_city";
+
+type OriginAvailabilityResult = {
+  isAvailable: boolean;
+  cityName: string | null;
+  status: Database["public"]["Enums"]["cidade_status"] | null;
+  reason: OriginAvailabilityReason | null;
+};
+
+const normalizeCityName = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+
+async function resolveOriginAvailability(
+  supabaseAdmin: any,
+  authUserId: string,
+  coords?: { lat: number; lng: number },
+): Promise<OriginAvailabilityResult> {
+  if (!coords) {
+    return {
+      isAvailable: false,
+      cityName: null,
+      status: null,
+      reason: "location_required",
+    };
+  }
+
+  const { data: usuario, error: usuarioError } = await supabaseAdmin
+    .from("usuarios")
+    .select("cidade_id")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+
+  if (usuarioError || !usuario?.cidade_id) {
+    return {
+      isAvailable: false,
+      cityName: null,
+      status: null,
+      reason: "city_not_configured",
+    };
+  }
+
+  const { data: cidade, error: cidadeError } = await supabaseAdmin
+    .from("cidades")
+    .select("status, nome, estado_uf")
+    .eq("id", usuario.cidade_id)
+    .maybeSingle();
+
+  if (cidadeError || !cidade) {
+    return {
+      isAvailable: false,
+      cityName: null,
+      status: null,
+      reason: "city_not_configured",
+    };
+  }
+
+  const cityEnabled = cidade.status === "piloto" || cidade.status === "ativa";
+  if (!cityEnabled) {
+    return {
+      isAvailable: false,
+      cityName: cidade.nome,
+      status: cidade.status,
+      reason: "city_unavailable",
+    };
+  }
+
+  const token = process.env['MAPBOX_TOKEN'];
+  if (!token) {
+    return {
+      isAvailable: false,
+      cityName: null,
+      status: null,
+      reason: "location_not_identified",
+    };
+  }
+
+  try {
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${encodeURIComponent(token)}&language=pt&types=place&limit=1`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      return {
+        isAvailable: false,
+        cityName: null,
+        status: null,
+        reason: "location_not_identified",
+      };
+    }
+
+    const json = await response.json() as {
+      features?: Array<{
+        text?: string;
+        text_pt?: string;
+        context?: Array<{
+          id?: string;
+          short_code?: string;
+        }>;
+      }>;
+    };
+
+    const feature = json.features?.[0];
+    const detectedCity = feature?.text_pt || feature?.text || null;
+    const region = feature?.context?.find((item) => item.id?.startsWith("region."));
+    const detectedUf = region?.short_code?.split("-").pop()?.toUpperCase() || null;
+
+    if (!detectedCity || !detectedUf) {
+      return {
+        isAvailable: false,
+        cityName: null,
+        status: null,
+        reason: "location_not_identified",
+      };
+    }
+
+    const sameCity =
+      normalizeCityName(detectedCity) === normalizeCityName(cidade.nome) &&
+      detectedUf === cidade.estado_uf.toUpperCase();
+
+    if (!sameCity) {
+      return {
+        isAvailable: false,
+        cityName: null,
+        status: null,
+        reason: "outside_registered_city",
+      };
+    }
+
+    return {
+      isAvailable: true,
+      cityName: cidade.nome,
+      status: cidade.status,
+      reason: null,
+    };
+  } catch {
+    return {
+      isAvailable: false,
+      cityName: null,
+      status: null,
+      reason: "location_not_identified",
+    };
+  }
+}
 
 export const checkCityAvailability = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => cityAvailabilitySchema.parse(data ?? {}))
-  .handler(async ({ context }) => {
+  .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: usuario } = await supabaseAdmin
-      .from("usuarios")
-      .select("cidade_id")
-      .eq("auth_user_id", context.userId)
-      .maybeSingle();
-
-    if (usuario?.cidade_id) {
-      const { data: cidade } = await supabaseAdmin
-        .from("cidades")
-        .select("status, nome")
-        .eq("id", usuario.cidade_id)
-        .maybeSingle();
-
-      if (cidade) {
-        return {
-          isAvailable: cidade.status === 'piloto' || cidade.status === 'ativa',
-          cityName: cidade.nome,
-          status: cidade.status
-        };
-      }
-    }
-
-    return { 
-      isAvailable: false,
-      cityName: null,
-      status: null
-    };
+    return resolveOriginAvailability(supabaseAdmin, context.userId, data.coords);
   });
 
 const calculateFareSchema = z.object({
@@ -158,6 +283,22 @@ export const cotarCorrida = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const crypto = await import("crypto");
+
+    const originAvailability = await resolveOriginAvailability(
+      supabaseAdmin,
+      context.userId,
+      { lat: data.origemLat, lng: data.origemLng },
+    );
+
+    if (!originAvailability.isAvailable) {
+      if (originAvailability.reason === "outside_registered_city") {
+        throw new Error("A origem selecionada está fora da sua cidade de operação.");
+      }
+      if (originAvailability.reason === "city_unavailable") {
+        throw new Error("O Zuvvi ainda não opera na sua cidade.");
+      }
+      throw new Error("Não foi possível confirmar a cidade da origem. Tente novamente.");
+    }
 
     // 1. Obter tarifas da cidade do usuário
     const { data: usuario } = await supabaseAdmin
