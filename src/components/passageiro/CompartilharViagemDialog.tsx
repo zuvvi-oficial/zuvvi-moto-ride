@@ -27,6 +27,20 @@ function buildShareUrl(linkPublico: string): string {
   return `${origin}/viagem-compartilhada?token=${encodeURIComponent(linkPublico)}`;
 }
 
+function copyWithFallback(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.top = "-9999px";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(textarea);
+  if (!ok) throw new Error("execCommand copy failed");
+}
+
 export function CompartilharViagemDialog({ open, onOpenChange, rideId }: CompartilharViagemDialogProps) {
   const compartilharFn = useServerFn(compartilharCorrida);
   const encerrarFn = useServerFn(encerrarCompartilhamentoCorrida);
@@ -64,10 +78,19 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
   const handleCopy = async () => {
     if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        copyWithFallback(shareUrl);
+      }
       toast.success("Link copiado.");
     } catch {
-      toast.error("Não foi possível copiar o link.");
+      try {
+        copyWithFallback(shareUrl);
+        toast.success("Link copiado.");
+      } catch {
+        toast.error("Não foi possível copiar o link.");
+      }
     }
   };
 
@@ -79,13 +102,13 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md rounded-[2rem] border-white/10 bg-zuvvi-indigo text-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-white">
             <Share2 className="h-5 w-5 text-zuvvi-volt" />
             Compartilhar viagem
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-white/60">
             Quem receber o link acompanha sua corrida em tempo real, sem precisar de conta na Zuvvi.
           </DialogDescription>
         </DialogHeader>
@@ -100,7 +123,12 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
               {shareUrl}
             </div>
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" className="flex-1" onClick={handleCopy}>
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1 border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                onClick={handleCopy}
+              >
                 <Copy className="mr-2 h-4 w-4" />
                 Copiar link
               </Button>
@@ -120,7 +148,7 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
             </Button>
           </div>
         ) : (
-          <p className="py-4 text-center text-sm text-muted-foreground">
+          <p className="py-4 text-center text-sm text-white/60">
             Não foi possível gerar o link agora.
           </p>
         )}
