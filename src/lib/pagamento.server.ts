@@ -8,6 +8,7 @@ import {
 } from "./pix-mercadopago-reconcile.server";
 import { obterPixDeviceIdValido } from "./pix-device-session.server";
 import { exigirCpfValidoParaPix } from "./pix-cpf";
+import { getPixPaymentTimeoutSeconds } from "./pagamento-pix-status.functions";
 
 export type PixChargeResult = {
   paymentId: string;
@@ -262,6 +263,14 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
     ...(phone ? { phone } : {}),
   };
 
+  // Alinha a validade real da cobrança no Mercado Pago com o timeout local
+  // exibido ao passageiro. Sem isso, o Pix ficava válido por até 24h no
+  // provedor (padrão do Mercado Pago quando date_of_expiration não é
+  // enviado) mesmo com a tela já mostrando "expirado", deixando a corrida
+  // e o motorista presos até o provedor expirar sozinho horas depois.
+  const timeoutSeconds = getPixPaymentTimeoutSeconds(process.env["PIX_PAYMENT_TIMEOUT_SECONDS"]);
+  const dateOfExpiration = new Date(Date.now() + timeoutSeconds * 1_000).toISOString();
+
   return {
     transaction_amount: valorTotal,
     application_fee: valorComissao,
@@ -269,6 +278,7 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
     description: "Corrida Zuvvi",
     payment_method_id: "pix",
     notification_url: getPixNotificationUrl(),
+    date_of_expiration: dateOfExpiration,
     payer,
     additional_info: {
       items: [
