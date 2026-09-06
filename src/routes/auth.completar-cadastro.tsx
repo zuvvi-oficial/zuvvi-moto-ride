@@ -269,135 +269,144 @@ function CompletarCadastroPage() {
         <p className="text-muted-foreground text-sm mt-1 font-poppins">Precisamos de mais alguns dados para sua segurança</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5">
         {errorMsg && (
           <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-md mb-4">
             <p className="text-red-500 text-sm font-poppins text-center">{errorMsg}</p>
           </div>
         )}
-        <div className="space-y-2">
-          <Label htmlFor="cpf" className="text-white/80 font-poppins text-sm">CPF</Label>
-          <Controller
-            name="cpf"
-            control={control}
-            render={({ field }) => (
-              <Input 
-                {...field}
-                id="cpf" 
-                placeholder="000.000.000-00" 
-                className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12"
-                onChange={(e) => field.onChange(formatCPF(e.target.value))}
-              />
-            )}
-          />
-          {errors.cpf && <p className="text-red-500 text-xs font-poppins">{errors.cpf.message}</p>}
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="celular" className="text-white/80 font-poppins text-sm">Celular</Label>
-          <Controller
-            name="celular"
-            control={control}
-            render={({ field }) => (
-              <Input 
-                {...field}
-                id="celular" 
-                placeholder="(00) 00000-0000" 
-                className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12"
-                onChange={(e) => field.onChange(formatPhone(e.target.value))}
-              />
-            )}
-          />
-          {errors.celular && <p className="text-red-500 text-xs font-poppins">{errors.celular.message}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-white/80 font-poppins text-sm">Data de Nascimento</Label>
-          <div className="grid grid-cols-3 gap-2">
-            <Select onValueChange={setDay} value={day}>
-              <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                <SelectValue placeholder="Dia" />
-              </SelectTrigger>
-              <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                {dias.map(d => (
-                  <SelectItem key={d} value={d}>{d}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select onValueChange={setMonth} value={month}>
-              <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                <SelectValue placeholder="Mês" />
-              </SelectTrigger>
-              <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                {meses.map(m => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select onValueChange={setYear} value={year}>
-              <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                <SelectValue placeholder="Ano" />
-              </SelectTrigger>
-              <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                {anos.map(y => (
-                  <SelectItem key={y} value={y}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="uf" className="text-white/80 font-poppins text-sm">Estado</Label>
-            <Select 
-              onValueChange={setSelectedUF} 
-              value={selectedUF}
-              disabled={isLoadingUfs}
-            >
-              <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                <SelectValue placeholder={isLoadingUfs ? "..." : "UF"} />
-              </SelectTrigger>
-              <SelectContent className="bg-zuvvi-indigo border-white/10 text-white pointer-events-auto touch-pan-y">
-                {ufs.map(uf => (
-                  <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 space-y-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Documento e Contato</p>
 
           <div className="space-y-2">
-            <Label htmlFor="cidade_id" className="text-white/80 font-poppins text-sm">Cidade</Label>
+            <Label htmlFor="cpf" className="text-white/80 font-poppins text-sm">CPF</Label>
             <Controller
-              name="cidade_id"
+              name="cpf"
               control={control}
               render={({ field }) => (
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={field.value}
-                  disabled={!selectedUF || isLoadingCities}
-                >
-                  <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
-                    <SelectValue placeholder={isLoadingCities ? "Carregando..." : "Cidade"} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                    {cities.map(cidade => (
-                      <SelectItem key={cidade.id} value={cidade.id}>{cidade.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  {...field}
+                  id="cpf"
+                  placeholder="000.000.000-00"
+                  className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12"
+                  onChange={(e) => field.onChange(formatCPF(e.target.value))}
+                />
               )}
             />
-            {errors.cidade_id && <p className="text-red-500 text-xs font-poppins">{errors.cidade_id.message}</p>}
+            {errors.cpf && <p className="text-red-500 text-xs font-poppins">{errors.cpf.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="celular" className="text-white/80 font-poppins text-sm">Celular</Label>
+            <Controller
+              name="celular"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="celular"
+                  placeholder="(00) 00000-0000"
+                  className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12"
+                  onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                />
+              )}
+            />
+            {errors.celular && <p className="text-red-500 text-xs font-poppins">{errors.celular.message}</p>}
           </div>
         </div>
 
-        <Button 
-          type="submit" 
+        <div className="bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 space-y-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Nascimento e Localização</p>
+
+          <div className="space-y-2">
+            <Label className="text-white/80 font-poppins text-sm">Data de Nascimento</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Select onValueChange={setDay} value={day}>
+                <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                  <SelectValue placeholder="Dia" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {dias.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select onValueChange={setMonth} value={month}>
+                <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {meses.map(m => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select onValueChange={setYear} value={year}>
+                <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                  {anos.map(y => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="uf" className="text-white/80 font-poppins text-sm">Estado</Label>
+              <Select
+                onValueChange={setSelectedUF}
+                value={selectedUF}
+                disabled={isLoadingUfs}
+              >
+                <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                  <SelectValue placeholder={isLoadingUfs ? "..." : "UF"} />
+                </SelectTrigger>
+                <SelectContent className="bg-zuvvi-indigo border-white/10 text-white pointer-events-auto touch-pan-y">
+                  {ufs.map(uf => (
+                    <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cidade_id" className="text-white/80 font-poppins text-sm">Cidade</Label>
+              <Controller
+                name="cidade_id"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={!selectedUF || isLoadingCities}
+                  >
+                    <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
+                      <SelectValue placeholder={isLoadingCities ? "Carregando..." : "Cidade"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
+                      {cities.map(cidade => (
+                        <SelectItem key={cidade.id} value={cidade.id}>{cidade.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.cidade_id && <p className="text-red-500 text-xs font-poppins">{errors.cidade_id.message}</p>}
+            </div>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
           disabled={isLoading}
-          className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-14 text-lg mt-6 transition-all active:scale-[0.98] font-poppins"
+          className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-14 text-lg mt-2 transition-all active:scale-[0.98] font-poppins"
         >
           {isLoading ? "Salvando..." : "CONCLUIR CADASTRO"}
         </Button>
