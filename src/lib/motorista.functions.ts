@@ -939,13 +939,30 @@ export const criarVeiculo = createServerFn({ method: "POST" })
 
     if (!user) throw new Error("Usuário não encontrado.");
 
+    const { data: veiculoExistente } = await supabaseAdmin
+      .from("veiculos")
+      .select("status_aprovacao, ativo, placa, marca, modelo, ano, cor")
+      .eq("motorista_id", user.id)
+      .maybeSingle();
+
+    // Reenvio idêntico ao veículo já cadastrado não deve derrubar uma aprovação existente.
+    const dadosInalterados = !!veiculoExistente &&
+      veiculoExistente.placa === data.placa &&
+      veiculoExistente.marca === data.marca &&
+      veiculoExistente.modelo === data.modelo &&
+      veiculoExistente.ano === data.ano &&
+      veiculoExistente.cor === data.cor;
+
+    const statusAprovacao = dadosInalterados ? veiculoExistente.status_aprovacao : 'em_preenchimento';
+    const ativo = dadosInalterados ? veiculoExistente.ativo : true;
+
     const { error } = await supabaseAdmin
       .from("veiculos")
       .upsert({
         motorista_id: user.id,
         ...data,
-        status_aprovacao: 'em_preenchimento',
-        ativo: true
+        status_aprovacao: statusAprovacao,
+        ativo
       }, { onConflict: 'motorista_id' } as any);
 
     if (error) throw new Error("Erro ao salvar veículo: " + error.message);
