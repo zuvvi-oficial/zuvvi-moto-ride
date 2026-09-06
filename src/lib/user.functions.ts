@@ -182,7 +182,7 @@ async function resolveOriginAvailability(
     if (!sameCity) {
       return {
         isAvailable: false,
-        cityName: null,
+        cityName: `${detectedCity}, ${detectedUf}`,
         status: null,
         reason: "outside_registered_city",
       };
