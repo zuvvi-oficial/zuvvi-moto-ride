@@ -244,7 +244,7 @@ export const checkPassageiroDriverAvailability = createServerFn({ method: "GET" 
       .from("corridas")
       .select("motorista_id")
       .in("motorista_id", documentEligibleDrivers)
-      .in("status", DRIVER_BUSY_STATUSES as unknown as string[]);
+      .in("status", [...DRIVER_BUSY_STATUSES]);
 
     if (corridasError) {
       throw new Error("Não foi possível verificar a disponibilidade de mototaxistas.");
