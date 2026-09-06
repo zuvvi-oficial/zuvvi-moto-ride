@@ -20,6 +20,7 @@ import { checkUserProfileStatus, resolveDestinationForLoader } from '@/lib/auth-
 import { redirect } from '@tanstack/react-router';
 import { getUFsDisponiveis, getCitiesDisponiveisByUF } from '@/lib/locations.functions';
 import { validarCpfBrasileiro } from '@/lib/pix-cpf';
+import { supabase } from '@/integrations/supabase/client';
 
 const formatCPF = (value: string) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -250,6 +251,11 @@ function CompletarCadastroPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth/login" });
+  };
+
   const onInvalid = (errors: any) => {
     console.log("Validation errors:", errors);
     toast.error("Por favor, preencha todos os campos obrigatórios corretamente.");
@@ -267,6 +273,16 @@ function CompletarCadastroPage() {
       <div className="text-center">
         <h2 className="text-2xl font-semibold text-white font-poppins">Quase lá!</h2>
         <p className="text-muted-foreground text-sm mt-1 font-poppins">Precisamos de mais alguns dados para sua segurança</p>
+      </div>
+
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-white font-poppins transition-colors"
+        >
+          Não é você? Sair
+        </button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5">
