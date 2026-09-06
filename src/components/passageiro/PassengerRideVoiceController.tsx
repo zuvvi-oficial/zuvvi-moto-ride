@@ -19,40 +19,44 @@ const EMPTY_DATA: RideVoiceData = {
   boardingCode: null,
 };
 
+function scorePortugueseVoice(voice: SpeechSynthesisVoice) {
+  const lang = voice.lang.toLowerCase().replace("_", "-");
+  const name = voice.name.toLowerCase();
+  let score = lang === "pt-br" ? 100 : lang.startsWith("pt") ? 60 : 0;
+
+  if (voice.localService) score += 25;
+  if (name.includes("natural")) score += 80;
+  if (name.includes("neural")) score += 75;
+  if (name.includes("premium")) score += 70;
+  if (name.includes("enhanced")) score += 60;
+  if (name.includes("google português do brasil")) score += 55;
+
+  const preferredNames = ["francisca", "luciana", "fernanda", "maria"];
+  if (preferredNames.some((preferred) => name.includes(preferred))) score += 35;
+
+  return score;
+}
+
 function choosePortugueseVoice() {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
 
-  const voices = window.speechSynthesis.getVoices();
-  const ptBrVoices = voices.filter(
-    (voice) => voice.lang.toLowerCase().replace("_", "-") === "pt-br",
-  );
-  const portugueseVoices = voices.filter((voice) =>
-    voice.lang.toLowerCase().startsWith("pt"),
-  );
-  const candidates = ptBrVoices.length > 0 ? ptBrVoices : portugueseVoices;
+  const voices = window.speechSynthesis
+    .getVoices()
+    .filter((voice) => voice.lang.toLowerCase().startsWith("pt"));
 
-  if (candidates.length === 0) return null;
+  if (voices.length === 0) return null;
 
-  const preferredNames = [
-    "natural",
-    "google português do brasil",
-    "francisca",
-    "luciana",
-    "fernanda",
-    "maria",
-  ];
-
-  return (
-    preferredNames
-      .map((name) =>
-        candidates.find((voice) => voice.name.toLowerCase().includes(name)),
-      )
-      .find(Boolean) || candidates[0]
-  );
+  return [...voices].sort(
+    (first, second) => scorePortugueseVoice(second) - scorePortugueseVoice(first),
+  )[0];
 }
 
 function formatCodeForSpeech(code: string) {
   return code.split("").join(", ");
+}
+
+function firstNameForSpeech(name: string | null) {
+  return name?.trim().split(/\s+/)[0] || null;
 }
 
 export function PassengerRideVoiceController() {
@@ -63,6 +67,7 @@ export function PassengerRideVoiceController() {
   const [rideData, setRideData] = useState<RideVoiceData>(EMPTY_DATA);
   const syncGenerationRef = useRef(0);
   const announcedRef = useRef<Set<string>>(new Set());
+  const preferredVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
 
   const rideId = useMemo(() => {
     try {
@@ -89,6 +94,22 @@ export function PassengerRideVoiceController() {
     } catch {
       // Preferência local é opcional; falha não interfere na corrida.
     }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return undefined;
+
+    const synthesis = window.speechSynthesis;
+    const refreshPreferredVoice = () => {
+      preferredVoiceRef.current = choosePortugueseVoice();
+    };
+
+    refreshPreferredVoice();
+    synthesis.addEventListener("voiceschanged", refreshPreferredVoice);
+
+    return () => {
+      synthesis.removeEventListener("voiceschanged", refreshPreferredVoice);
+    };
   }, []);
 
   useEffect(() => {
@@ -147,7 +168,29 @@ export function PassengerRideVoiceController() {
             table: "corridas",
             filter: `id=eq.${rideId}`,
           },
-          () => {
+          (payload) => {
+            const updatedRide = payload.new as {
+              status?: unknown;
+              codigo_embarque?: unknown;
+            };
+
+            const nextStatus =
+              typeof updatedRide.status === "string" ? updatedRide.status : null;
+            const nextBoardingCode =
+              typeof updatedRide.codigo_embarque === "string"
+                ? updatedRide.codigo_embarque
+                : null;
+
+            // Atualiza status/código direto do evento Realtime para a voz reagir
+            // imediatamente, sem esperar uma segunda ida ao servidor.
+            setRideData((current) => ({
+              ...current,
+              status: nextStatus ?? current.status,
+              boardingCode: nextBoardingCode ?? current.boardingCode,
+            }));
+
+            // Mantém os dados complementares, como nome do motorista, sincronizados
+            // em paralelo. Essa consulta não bloqueia mais a locução do novo status.
             void syncRideVoiceData();
           },
         )
@@ -173,31 +216,39 @@ export function PassengerRideVoiceController() {
 
     const synthesis = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
-    const preferredVoice = choosePortugueseVoice();
+    const preferredVoice = preferredVoiceRef.current || choosePortugueseVoice();
+
+    if (preferredVoice && preferredVoiceRef.current !== preferredVoice) {
+      preferredVoiceRef.current = preferredVoice;
+    }
 
     utterance.lang = "pt-BR";
-    utterance.rate = 0.92;
-    utterance.pitch = 0.98;
+    utterance.rate = 0.98;
+    utterance.pitch = 1.01;
     utterance.volume = 1;
     if (preferredVoice) utterance.voice = preferredVoice;
 
-    synthesis.cancel();
+    if (synthesis.speaking || synthesis.pending) {
+      synthesis.cancel();
+    }
     synthesis.speak(utterance);
   }, []);
 
   useEffect(() => {
     if (!enabled || !speechSupported || !rideId) return;
 
-    const driverName = rideData.driverName;
+    const driverFirstName = firstNameForSpeech(rideData.driverName);
     const status = rideData.status;
     if (!status) return;
 
     if (status === "aceita") {
       const key = "aceita";
-      if (!driverName || announcedRef.current.has(key)) return;
+      if (announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
       speak(
-        `Tudo certo. ${driverName} aceitou sua corrida. Você pode acompanhar a chegada pelo mapa.`,
+        driverFirstName
+          ? `Corrida confirmada. ${driverFirstName} aceitou seu pedido. Acompanhe a chegada pelo mapa.`
+          : "Corrida confirmada. Seu motorista aceitou o pedido. Acompanhe a chegada pelo mapa.",
       );
       return;
     }
@@ -207,7 +258,7 @@ export function PassengerRideVoiceController() {
       if (announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
       speak(
-        "Seu motorista já está a caminho do ponto de embarque. Acompanhe a aproximação pelo mapa.",
+        "Tudo certo. Seu motorista está a caminho. Acompanhe a aproximação pelo mapa.",
       );
       return;
     }
@@ -224,8 +275,8 @@ export function PassengerRideVoiceController() {
         if (codeKey) announcedRef.current.add(codeKey);
 
         const codeMessage = validCode
-          ? ` Para embarcar com segurança, informe ao motorista o código: ${formatCodeForSpeech(validCode)}.`
-          : " Seu código de embarque está sendo carregado na tela.";
+          ? ` Para sua segurança, informe o código de embarque: ${formatCodeForSpeech(validCode)}.`
+          : " Seu código de embarque está sendo preparado na tela.";
 
         speak(`Seu motorista chegou ao ponto de embarque.${codeMessage}`);
         return;
@@ -235,6 +286,14 @@ export function PassengerRideVoiceController() {
         announcedRef.current.add(codeKey);
         speak(`Seu código de embarque é: ${formatCodeForSpeech(validCode)}.`);
       }
+      return;
+    }
+
+    if (status === "em_andamento") {
+      const key = "em_andamento";
+      if (announcedRef.current.has(key)) return;
+      announcedRef.current.add(key);
+      speak("Código confirmado. Sua corrida começou. Boa viagem com a Zuvvi.");
     }
   }, [
     enabled,
