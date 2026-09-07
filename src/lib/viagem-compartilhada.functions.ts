@@ -133,6 +133,8 @@ export const getViagemCompartilhadaPublica = createServerFn({ method: "GET" })
       motoristaLat: linha.motorista_lat as number | null,
       motoristaLng: linha.motorista_lng as number | null,
       expiraEm: linha.expira_em as string,
+      motoristaNota: linha.motorista_nota as number | null,
+      veiculoCor: linha.veiculo_cor as string | null,
     };
   });
 

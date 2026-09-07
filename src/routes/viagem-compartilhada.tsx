@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { Bike, Loader2, MapPin, ShieldCheck } from "lucide-react";
+import { Bike, Loader2, MapPin, ShieldCheck, Star } from "lucide-react";
 import { MapView } from "@/components/MapView";
 import {
   getViagemCompartilhadaPublica,
@@ -128,10 +128,21 @@ function ViagemCompartilhadaPublica() {
               <Bike className="h-5 w-5 text-zuvvi-volt" />
             </div>
             <div>
-              <p className="text-sm font-bold">{snapshot.motoristaNome}</p>
-              {(snapshot.veiculoModelo || snapshot.veiculoPlaca) && (
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold">{snapshot.motoristaNome}</p>
+                {snapshot.motoristaNota !== null && (
+                  <span className="flex items-center gap-0.5">
+                    <Star className="h-3 w-3 fill-zuvvi-volt text-zuvvi-volt" />
+                    <span className="text-xs font-bold text-zuvvi-volt">
+                      {snapshot.motoristaNota.toFixed(1)}
+                    </span>
+                  </span>
+                )}
+              </div>
+              {(snapshot.veiculoModelo || snapshot.veiculoPlaca || snapshot.veiculoCor) && (
                 <p className="text-xs text-white/60">
-                  {snapshot.veiculoModelo} {snapshot.veiculoPlaca ? `· ${snapshot.veiculoPlaca}` : ""}
+                  {[snapshot.veiculoModelo, snapshot.veiculoCor].filter(Boolean).join(" ")}
+                  {snapshot.veiculoPlaca ? ` · ${snapshot.veiculoPlaca}` : ""}
                 </p>
               )}
             </div>
