@@ -36,21 +36,42 @@ const avaliacoesFunctionsSource = readFileSync("src/lib/avaliacoes.functions.ts"
 
 // criarAvaliacao: só corrida concluída pode ser avaliada, só quem participou
 // da corrida pode avaliar, e a nota fica limitada a 1-5 pelo validador Zod.
+// Isolado ao corpo da própria função (e não ao arquivo inteiro) para que o
+// teste só passe se ESSA função continuar com a checagem — não bastaria a
+// mensagem de erro sobreviver em outro lugar do arquivo.
 {
+  const start = avaliacoesFunctionsSource.indexOf("export const criarAvaliacao =");
+  assert.ok(start >= 0, "criarAvaliacao não encontrada em avaliacoes.functions.ts");
+  const end = avaliacoesFunctionsSource.indexOf("\nexport const", start + 1);
+  const criarAvaliacaoSource = avaliacoesFunctionsSource.slice(
+    start,
+    end > start ? end : undefined,
+  );
+
   assert.match(
-    avaliacoesFunctionsSource,
+    criarAvaliacaoSource,
     /nota:\s*z\.number\(\)\.int\(\)\.min\(1\)\.max\(5\)/,
     "nota da avaliação deve continuar limitada a um inteiro entre 1 e 5",
   );
   assert.match(
-    avaliacoesFunctionsSource,
+    criarAvaliacaoSource,
     /if \(ride\.status !== 'concluida'\) \{/,
     "só corrida concluída pode ser avaliada",
   );
   assert.match(
-    avaliacoesFunctionsSource,
-    /throw new Error\("Você não participou desta corrida\."\);/,
-    "só quem participou da corrida (passageiro ou motorista) pode avaliá-la",
+    criarAvaliacaoSource,
+    /if \(usuarioId === ride\.passageiro_id\) \{/,
+    "criarAvaliacao deve continuar comparando o usuário logado com o passageiro da corrida",
+  );
+  assert.match(
+    criarAvaliacaoSource,
+    /\} else if \(usuarioId === ride\.motorista_id\) \{/,
+    "criarAvaliacao deve continuar comparando o usuário logado com o motorista da corrida",
+  );
+  assert.match(
+    criarAvaliacaoSource,
+    /\} else \{\s*throw new Error\("Você não participou desta corrida\."\);\s*\}/,
+    "quem não for nem o passageiro nem o motorista da corrida deve continuar bloqueado de avaliá-la",
   );
 }
 
