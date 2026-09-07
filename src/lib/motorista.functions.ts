@@ -503,24 +503,35 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
     if (userError || !user) throw new Error("Motorista não encontrado.");
     const motoristaId = user.id;
 
-    // Corridas Pix só chegam a 'aceita' (e além) depois que o pagamento já foi
-    // confirmado como 'pago' — o trigger pix_hold_corrida_until_payment_trigger
-    // mantém a corrida em 'aguardando_pagamento' até a confirmação. Por isso,
-    // uma corrida Pix atribuída a um motorista sempre já está paga, e o
-    // cancelamento é bloqueado até existir um fluxo de estorno dedicado.
-    const { data: corridaPixPaga } = await supabaseAdmin
+    // O status da corrida sozinho NÃO é mais um proxy confiável de "pagamento
+    // Pix confirmado": accept_corrida_atomic grava 'aceita' antes da cobrança
+    // Pix ser criada (migration 20260825092700_pix_cobranca_apos_aceite.sql),
+    // e o trigger atual (pix_guard_operational_before_payment_trigger, migration
+    // 20260826164927_pix_operational_gate_keep_accept.sql) só bloqueia a
+    // transição de 'aceita'/'aguardando_pagamento' para os estados seguintes
+    // até o pagamento ser confirmado — ele não impede a corrida de estar em
+    // 'aceita' com pagamento ainda pendente. Por isso o bloqueio de
+    // cancelamento consulta pagamentos.status diretamente.
+    const { data: corridaAlvo } = await supabaseAdmin
       .from("corridas")
-      .select("id")
+      .select("forma_pagamento")
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
-      .eq("forma_pagamento", "pix")
-      .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou'])
       .maybeSingle();
 
-    if (corridaPixPaga) {
-      throw new Error(
-        "Esta corrida já tem o pagamento Pix confirmado e não pode ser cancelada por aqui. Entre em contato com o suporte Zuvvi.",
-      );
+    if (corridaAlvo?.forma_pagamento === "pix") {
+      const { data: pagamentoPix } = await supabaseAdmin
+        .from("pagamentos")
+        .select("status")
+        .eq("corrida_id", data.rideId)
+        .eq("meio", "pix")
+        .maybeSingle();
+
+      if (pagamentoPix?.status === "pago") {
+        throw new Error(
+          "Esta corrida já tem o pagamento Pix confirmado e não pode ser cancelada por aqui. Entre em contato com o suporte Zuvvi.",
+        );
+      }
     }
 
     // 2. Tentar cancelar a corrida (deve pertencer a este motorista e estar em status cancelável)
@@ -536,7 +547,6 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
       // Regra: motorista só pode cancelar ANTES de iniciar a viagem (em_andamento).
       // A permissão temporária 3.6-C para cancelar em_andamento foi revogada na 3.7.
       .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou'])
-      .neq("forma_pagamento", "pix")
       .select()
       .maybeSingle();
 
