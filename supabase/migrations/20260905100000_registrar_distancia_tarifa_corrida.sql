@@ -23,11 +23,15 @@ comment on column public.corridas.tarifa_valor_min is
 comment on column public.corridas.tarifa_minima is
   'Tarifa mínima da cidade efetivamente usada para calcular valor_estimado.';
 
-drop function if exists public.criar_corrida_financeira_atomica(
-  uuid, uuid, numeric, numeric, numeric, numeric, numeric,
-  public.forma_pagamento, text, text, text, numeric, numeric, numeric
-);
-
+-- Não dropamos a versão de 14 parâmetros: código e migration não são
+-- implantados atomicamente neste projeto, então removê-la aqui quebraria
+-- criarCorrida em produção enquanto o código antigo ainda estiver rodando
+-- (ou o inverso, se o código for implantado antes desta migration). O
+-- Postgres já trata listas de parâmetros diferentes como sobrecargas
+-- (overloads) independentes do mesmo nome — a versão antiga continua
+-- servindo qualquer chamador que ainda não migrou, e pode ser removida
+-- numa migration de limpeza futura, depois que o novo código estiver
+-- confirmado em produção.
 create or replace function public.criar_corrida_financeira_atomica(
   p_passageiro_id uuid,
   p_cidade_id uuid,
