@@ -18,17 +18,13 @@ permissions:
 
 jobs:
   pagamento-passageiro:
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.head_ref == 'feature/pix-100-seguro'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
-      - name: Checkout da branch Pix
+      - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: feature/pix-100-seguro
           fetch-depth: 1
 
       - name: Instalar Bun fixado
