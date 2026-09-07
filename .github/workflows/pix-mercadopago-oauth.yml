@@ -130,18 +130,17 @@ jobs:
           }
           NODE
 
+          # A Etapa 5 introduziu qrcode.react no bun.lock comparando contra um
+          # main que ainda não tinha a entrada, aceitando um diff de exatamente
+          # +3 linhas. Agora que o main já carrega essa entrada permanentemente,
+          # nenhuma PR legítima precisa mais tocar em bun.lock por causa dela —
+          # e aceitar "+3 linhas quaisquer" (sem checar o conteúdo) deixaria
+          # passar 3 linhas arbitrárias não relacionadas à entrada QR original.
+          # Exige diff vazio: qualquer alteração de dependência a partir de
+          # agora precisa de uma decisão consciente nesta checagem, não de um
+          # heurístico de contagem de linhas.
           lock_patch="$(git diff --unified=0 origin/main -- bun.lock)"
-          deleted_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^-' | grep -v '^---' || true)"
-          added_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^+' | grep -v '^+++' || true)"
-          added_count="$(printf '%s\n' "$added_lock_lines" | sed '/^$/d' | wc -l | tr -d ' ')"
-
-          # Mesmo raciocínio do package.json: uma vez que o main já carrega a
-          # entrada da Etapa 5, uma PR que não toca no lockfile produz diff
-          # vazio (0 linhas), não mais as 3 linhas da introdução original.
-          # Aceita as duas formas legítimas: diff vazio (já convergiu com o
-          # main) ou exatamente as 3 linhas da introdução original; qualquer
-          # remoção ou variação continua proibida.
-          if [ -n "$deleted_lock_lines" ] || { [ "$added_count" -ne 0 ] && [ "$added_count" -ne 3 ]; }; then
+          if [ -n "$lock_patch" ]; then
             echo "bun.lock mudou além da entrada QR autorizada"
             git diff origin/main -- bun.lock
             exit 1
