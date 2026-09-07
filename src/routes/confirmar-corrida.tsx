@@ -33,6 +33,12 @@ function ConfirmarCorrida() {
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
   const [quotationSignature, setQuotationSignature] = useState<string | null>(null);
+  const [quotationTarifas, setQuotationTarifas] = useState<{
+    bandeirada: number;
+    valorKm: number;
+    valorMin: number;
+    tarifaMinima: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -49,7 +55,7 @@ function ConfirmarCorrida() {
     // 1. TRAVA SÍNCRONA CONTRA DUPLO ENVIO (3.8-A1)
     if (createInFlightRef.current) return;
 
-    if (!metodoPagamento || !estimatedFare || !quotationSignature) {
+    if (!metodoPagamento || !estimatedFare || !quotationSignature || !routeInfo || !quotationTarifas) {
       toast.error("Selecione uma forma de pagamento para continuar.");
       return;
     }
@@ -74,6 +80,12 @@ function ConfirmarCorrida() {
           destinoNome: destName,
           formaPagamento: metodoPagamento,
           valorCotado: estimatedFare,
+          distanciaKm: routeInfo.distance,
+          duracaoMin: routeInfo.duration,
+          tarifaBandeirada: quotationTarifas.bandeirada,
+          tarifaValorKm: quotationTarifas.valorKm,
+          tarifaValorMin: quotationTarifas.valorMin,
+          tarifaMinima: quotationTarifas.tarifaMinima,
           assinaturaCotacao: quotationSignature,
         }
       });
@@ -117,6 +129,7 @@ function ConfirmarCorrida() {
         setRouteInfo({ distance: quotation.distance, duration: quotation.duration });
         setEstimatedFare(quotation.valor);
         setQuotationSignature(quotation.signature);
+        setQuotationTarifas(quotation.tarifas);
 
         // Inicializar Mapa
         if (mapContainer.current) {
