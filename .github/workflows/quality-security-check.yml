@@ -1,0 +1,31 @@
+name: Quality and Security Check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rejeitar arquivos de ambiente rastreados
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Reject tracked environment files
+        shell: bash
+        run: |
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "::error::.env must never be tracked."
+            exit 1
+          fi
+
+          tracked_env_files="$(git ls-files | grep -E '(^|/)\.env\.' | grep -v -E '(^|/)\.env\.example$' || true)"
+          if [ -n "$tracked_env_files" ]; then
+            echo "::error::Environment files must not be tracked:"
+            echo "$tracked_env_files"
+            exit 1
+          fi
