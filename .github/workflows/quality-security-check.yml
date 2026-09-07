@@ -18,8 +18,10 @@ jobs:
       - name: Reject tracked environment files
         shell: bash
         run: |
-          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
-            echo "::error::.env must never be tracked."
+          tracked_env_exact="$(git ls-files | grep -E '(^|/)\.env$' || true)"
+          if [ -n "$tracked_env_exact" ]; then
+            echo "::error::.env must never be tracked:"
+            echo "$tracked_env_exact"
             exit 1
           fi
 
