@@ -119,6 +119,12 @@ jobs:
             throw new Error('qrcode.react deve permanecer fixado em 4.2.0');
           }
           delete atual.dependencies['qrcode.react'];
+          // A Etapa 5 introduziu qrcode.react comparando contra um main que
+          // ainda não tinha a dependência. Agora que o main já a carrega
+          // permanentemente, o lado "base" também precisa remover a mesma
+          // chave antes de comparar — senão a prova nunca mais bate, mesmo
+          // quando a PR atual não toca em package.json.
+          if (base.dependencies) delete base.dependencies['qrcode.react'];
           if (JSON.stringify(atual) !== JSON.stringify(base)) {
             throw new Error('package.json mudou além da dependência QR autorizada');
           }
@@ -129,7 +135,13 @@ jobs:
           added_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^+' | grep -v '^+++' || true)"
           added_count="$(printf '%s\n' "$added_lock_lines" | sed '/^$/d' | wc -l | tr -d ' ')"
 
-          if [ -n "$deleted_lock_lines" ] || [ "$added_count" -ne 3 ]; then
+          # Mesmo raciocínio do package.json: uma vez que o main já carrega a
+          # entrada da Etapa 5, uma PR que não toca no lockfile produz diff
+          # vazio (0 linhas), não mais as 3 linhas da introdução original.
+          # Aceita as duas formas legítimas: diff vazio (já convergiu com o
+          # main) ou exatamente as 3 linhas da introdução original; qualquer
+          # remoção ou variação continua proibida.
+          if [ -n "$deleted_lock_lines" ] || { [ "$added_count" -ne 0 ] && [ "$added_count" -ne 3 ]; }; then
             echo "bun.lock mudou além da entrada QR autorizada"
             git diff origin/main -- bun.lock
             exit 1
