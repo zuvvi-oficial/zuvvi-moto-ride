@@ -7,7 +7,9 @@ on:
     paths:
       - "src/lib/user.functions.ts"
       - "src/lib/motorista.functions.ts"
+      - "src/lib/avaliacoes.functions.ts"
       - "scripts/corridas/regressao-bugs-corrigidos.test.ts"
+      - "scripts/corridas/cancelamento-motorista-e-avaliacao.test.ts"
       - ".github/workflows/corridas-regressao-bugs-corrigidos.yml"
       - "package.json"
       - "bun.lock"
@@ -38,3 +40,22 @@ jobs:
 
       - name: Executar teste de regressão
         run: bun scripts/corridas/regressao-bugs-corrigidos.test.ts
+
+  cancelamento-motorista-e-avaliacao:
+    name: Travar cancelamento pelo motorista (Pix pago) e invariantes de avaliação
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Instalar Bun fixado
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Executar teste de regressão
+        run: bun scripts/corridas/cancelamento-motorista-e-avaliacao.test.ts
