@@ -119,17 +119,28 @@ jobs:
             throw new Error('qrcode.react deve permanecer fixado em 4.2.0');
           }
           delete atual.dependencies['qrcode.react'];
+          // A Etapa 5 introduziu qrcode.react comparando contra um main que
+          // ainda não tinha a dependência. Agora que o main já a carrega
+          // permanentemente, o lado "base" também precisa remover a mesma
+          // chave antes de comparar — senão a prova nunca mais bate, mesmo
+          // quando a PR atual não toca em package.json.
+          if (base.dependencies) delete base.dependencies['qrcode.react'];
           if (JSON.stringify(atual) !== JSON.stringify(base)) {
             throw new Error('package.json mudou além da dependência QR autorizada');
           }
           NODE
 
+          # A Etapa 5 introduziu qrcode.react no bun.lock comparando contra um
+          # main que ainda não tinha a entrada, aceitando um diff de exatamente
+          # +3 linhas. Agora que o main já carrega essa entrada permanentemente,
+          # nenhuma PR legítima precisa mais tocar em bun.lock por causa dela —
+          # e aceitar "+3 linhas quaisquer" (sem checar o conteúdo) deixaria
+          # passar 3 linhas arbitrárias não relacionadas à entrada QR original.
+          # Exige diff vazio: qualquer alteração de dependência a partir de
+          # agora precisa de uma decisão consciente nesta checagem, não de um
+          # heurístico de contagem de linhas.
           lock_patch="$(git diff --unified=0 origin/main -- bun.lock)"
-          deleted_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^-' | grep -v '^---' || true)"
-          added_lock_lines="$(printf '%s\n' "$lock_patch" | grep '^+' | grep -v '^+++' || true)"
-          added_count="$(printf '%s\n' "$added_lock_lines" | sed '/^$/d' | wc -l | tr -d ' ')"
-
-          if [ -n "$deleted_lock_lines" ] || [ "$added_count" -ne 3 ]; then
+          if [ -n "$lock_patch" ]; then
             echo "bun.lock mudou além da entrada QR autorizada"
             git diff origin/main -- bun.lock
             exit 1
