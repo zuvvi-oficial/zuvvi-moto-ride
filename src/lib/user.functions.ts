@@ -604,6 +604,39 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       throw new Error("Perfil de usuário não encontrado.");
     }
 
+    // O status da corrida sozinho NÃO é um proxy confiável de "pagamento Pix
+    // confirmado": accept_corrida_atomic grava 'aceita' antes da cobrança Pix
+    // ser criada (migration 20260825092700_pix_cobranca_apos_aceite.sql), e o
+    // trigger atual (pix_guard_operational_before_payment_trigger, migration
+    // 20260826164927_pix_operational_gate_keep_accept.sql) só bloqueia a
+    // transição de 'aceita'/'aguardando_pagamento' para os estados seguintes
+    // até o pagamento ser confirmado — ele não impede a corrida de estar em
+    // 'aceita' com pagamento ainda pendente. Por isso o bloqueio de
+    // cancelamento consulta pagamentos.status diretamente. Antes do aceite
+    // (solicitada/buscando_motorista) nenhuma cobrança Pix existe ainda, então
+    // o cancelamento continua livre nesses estados sem precisar consultar nada.
+    const { data: corridaAlvo } = await supabaseAdmin
+      .from("corridas")
+      .select("forma_pagamento")
+      .eq("id", data.rideId)
+      .eq("passageiro_id", usuario.id)
+      .maybeSingle();
+
+    if (corridaAlvo?.forma_pagamento === "pix") {
+      const { data: pagamentoPix } = await supabaseAdmin
+        .from("pagamentos")
+        .select("status")
+        .eq("corrida_id", data.rideId)
+        .eq("meio", "pix")
+        .maybeSingle();
+
+      if (pagamentoPix?.status === "pago") {
+        throw new Error(
+          "Esta corrida já tem o pagamento Pix confirmado e não pode ser cancelada por aqui. Entre em contato com o suporte Zuvvi.",
+        );
+      }
+    }
+
     // 2. Tentar atualizar a corrida se pertencer ao passageiro e status for válido
     const { data: corrida, error } = await supabaseAdmin
       .from("corridas")
