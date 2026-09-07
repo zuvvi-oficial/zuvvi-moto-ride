@@ -27,17 +27,23 @@ function buildShareUrl(linkPublico: string): string {
   return `${origin}/viagem-compartilhada?token=${encodeURIComponent(linkPublico)}`;
 }
 
-function copyWithFallback(text: string) {
+function copyWithFallback(text: string, container?: HTMLElement | null) {
+  // O Radix Dialog prende o foco dentro do próprio conteúdo do modal
+  // (FocusScope): um textarea anexado a document.body nunca fica de fato
+  // focado, porque o Radix redireciona o foco de volta pro dialog assim que
+  // ele sai do escopo. O fallback só funciona se o elemento temporário viver
+  // dentro do próprio DialogContent.
+  const parent = container ?? document.body;
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.style.position = "fixed";
   textarea.style.top = "-9999px";
   textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
+  parent.appendChild(textarea);
   textarea.focus();
   textarea.select();
   const ok = document.execCommand("copy");
-  document.body.removeChild(textarea);
+  parent.removeChild(textarea);
   if (!ok) throw new Error("execCommand copy failed");
 }
 
@@ -45,6 +51,7 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
   const compartilharFn = useServerFn(compartilharCorrida);
   const encerrarFn = useServerFn(encerrarCompartilhamentoCorrida);
   const [shareUrl, setShareUrl] = React.useState<string | null>(null);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   const compartilharMutation = useMutation({
     mutationFn: () => compartilharFn({ data: { rideId } }),
@@ -81,12 +88,12 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(shareUrl);
       } else {
-        copyWithFallback(shareUrl);
+        copyWithFallback(shareUrl, contentRef.current);
       }
       toast.success("Link copiado.");
     } catch {
       try {
-        copyWithFallback(shareUrl);
+        copyWithFallback(shareUrl, contentRef.current);
         toast.success("Link copiado.");
       } catch {
         toast.error("Não foi possível copiar o link.");
@@ -102,7 +109,7 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[2rem] border-white/10 bg-zuvvi-indigo text-white">
+      <DialogContent ref={contentRef} className="max-w-md rounded-[2rem] border-white/10 bg-zuvvi-indigo text-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <Share2 className="h-5 w-5 text-zuvvi-volt" />
