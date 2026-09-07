@@ -177,9 +177,9 @@ const failedStateStart = routeSource.indexOf('snapshot.status === "falhou"');
 const failedStateEnd = routeSource.indexOf('snapshot.status === "estornado"', failedStateStart);
 assert.ok(failedStateStart >= 0 && failedStateEnd > failedStateStart);
 const failedStateSource = routeSource.slice(failedStateStart, failedStateEnd);
-assert.match(failedStateSource, /Não foi possível concluir o pagamento Pix/);
-assert.match(failedStateSource, /solicitar uma nova corrida e tentar novamente/);
-assert.match(failedStateSource, /actionLabel="Tentar novamente"/);
+assert.match(failedStateSource, /Pagamento Pix não concluído/);
+assert.match(failedStateSource, /corrida foi cancelada por segurança/);
+assert.match(failedStateSource, /actionLabel="Escolher outro pagamento"/);
 assert.match(failedStateSource, /navigate\(\{ to: "\/" \}\)/);
 
 assert.match(statusSource, /corrida\.passageiro_id !== passageiro\.id/);
