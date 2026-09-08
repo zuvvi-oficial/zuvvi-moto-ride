@@ -419,6 +419,48 @@ export const criarCorrida = createServerFn({ method: "POST" })
       throw new Error("Falha ao registrar a corrida.");
     }
 
+    // Avisar motoristas elegíveis da cidade sobre a nova oferta (push + sino).
+    // Best-effort e isolado em try/catch: a corrida já foi criada com sucesso
+    // acima, então uma falha aqui nunca deve derrubar a resposta ao passageiro.
+    // A elegibilidade completa (CNH, veículo, documentos) já é reforçada de
+    // novo no aceite (evaluateMotoristaOperationalEligibility em aceitarCorrida),
+    // então aqui basta o filtro operacional básico (online, aprovado, GPS
+    // recente) — o mesmo já usado em getOfertasDisponiveis.
+    try {
+      const { criarNotificacao } = await import("./notificacoes.server");
+      const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
+
+      const { data: candidatos } = await supabaseAdmin
+        .from("usuarios")
+        .select("id, motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at)")
+        .eq("cidade_id", usuario.cidade_id)
+        .eq("is_motorista", true);
+
+      const motoristasElegiveis = (candidatos || []).filter((candidato: any) => {
+        const motorista = candidato.motoristas;
+        return (
+          motorista?.is_disponivel === true &&
+          motorista?.status_aprovacao === "aprovado" &&
+          !!motorista?.ultima_localizacao_at &&
+          new Date(motorista.ultima_localizacao_at) >= cincoMinutosAtras
+        );
+      });
+
+      await Promise.allSettled(
+        motoristasElegiveis.map((candidato: any) =>
+          criarNotificacao(supabaseAdmin, {
+            usuario_id: candidato.id,
+            tipo: "nova_oferta_corrida",
+            titulo: "🔔 Nova corrida disponível!",
+            mensagem: `Passageiro esperando em ${data.origemNome || "sua região"}.`,
+            corrida_id: corridaId as string,
+          }),
+        ),
+      );
+    } catch (err) {
+      console.error("Erro ao notificar motoristas sobre nova oferta:", err);
+    }
+
     return { success: true, rideId: corridaId as string };
   });
 
