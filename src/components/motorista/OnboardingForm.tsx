@@ -141,7 +141,11 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
             ano: data.veiculo.ano.toString(),
             cor: data.veiculo.cor
           });
-          if (data.veiculo.status_aprovacao === 'aprovado') {
+          if (data.veiculo.status_aprovacao === 'aprovado' || data.veiculo.status_aprovacao === 'em_analise') {
+             // 'em_analise' acontece quando o motorista já foi enviado para análise antes
+             // (enviarParaAnalise força o veículo para esse status) e depois é recusado no
+             // geral sem que o veículo em si tenha sido reprovado — reenviar não exige
+             // reaprovação do veículo, só que ele exista (submit_motorista_for_analysis).
              setVeiculoStatus('success');
           } else if (data.veiculo.status_aprovacao === 'em_preenchimento' && data.veiculo.placa) {
              // Considerar sucesso visual se já existe no banco
