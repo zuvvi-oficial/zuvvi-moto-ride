@@ -34,23 +34,36 @@ function SuporteAdmin() {
 
   const filteredChamados = useMemo(() => {
     if (!chamados) return [];
-    
-    return chamados.filter(chamado => {
+
+    const filtrados = chamados.filter(chamado => {
       // Filtro por Status
       if (status !== 'todos' && chamado.status !== status) return false;
-      
+
       // Filtro por Busca
       if (busca) {
         const termo = busca.toLowerCase();
         const naDescricao = chamado.descricao?.toLowerCase().includes(termo);
-        const noUsuario = chamado.usuarios?.nome?.toLowerCase().includes(termo) || 
+        const noUsuario = chamado.usuarios?.nome?.toLowerCase().includes(termo) ||
                           chamado.usuarios?.email?.toLowerCase().includes(termo);
         const noProtocolo = chamado.id.toLowerCase().includes(termo);
-        
+
         if (!naDescricao && !noUsuario && !noProtocolo) return false;
       }
-      
+
       return true;
+    });
+
+    // SOS ainda não resolvidos/fechados sempre no topo, independente da
+    // data — não existe nenhum aviso automático de SOS hoje, então a
+    // única forma de não passar despercebido é já aparecer em primeiro
+    // lugar quando o admin abre esta tela. Array.prototype.sort é estável
+    // (ES2019+), então a ordem por data mais recente é preservada dentro
+    // de cada grupo.
+    return [...filtrados].sort((a, b) => {
+      const aUrgente = a.tipo === 'sos' && a.status !== 'resolvido' && a.status !== 'fechado';
+      const bUrgente = b.tipo === 'sos' && b.status !== 'resolvido' && b.status !== 'fechado';
+      if (aUrgente === bUrgente) return 0;
+      return aUrgente ? -1 : 1;
     });
   }, [chamados, status, busca]);
 
@@ -181,17 +194,30 @@ function SuporteAdmin() {
                 <p className="text-white/30 text-xs italic">Não existem registros para o filtro selecionado no momento.</p>
               </div>
             ) : (
-              filteredChamados.map(chamado => (
-                <Card 
-                  key={chamado.id} 
+              filteredChamados.map(chamado => {
+                const urgente = chamado.tipo === 'sos' && chamado.status !== 'resolvido' && chamado.status !== 'fechado';
+                return (
+                <Card
+                  key={chamado.id}
                   onClick={() => setChamadoSelecionado(chamado)}
-                  className="bg-white/[0.025] border-white/10 p-4 rounded-xl flex items-center gap-4 transition-all hover:bg-white/[0.05] cursor-pointer active:scale-[0.98]"
+                  className={`p-4 rounded-xl flex items-center gap-4 transition-all cursor-pointer active:scale-[0.98] ${
+                    urgente
+                      ? 'bg-red-500/10 border-red-500/50 hover:bg-red-500/15'
+                      : 'bg-white/[0.025] border-white/10 hover:bg-white/[0.05]'
+                  }`}
                 >
                   <div className={`p-2 rounded-lg ${chamado.tipo === 'sos' ? 'bg-red-500 text-white' : 'bg-white/5 text-white/50'}`}>
                     {chamado.tipo === 'sos' ? <AlertCircle size={20} /> : <MessageSquare size={20} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm truncate">{chamado.usuarios?.nome || 'Usuário'}</div>
+                    <div className="font-bold text-sm truncate">
+                      {chamado.usuarios?.nome || 'Usuário'}
+                      {urgente && (
+                        <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-red-400">
+                          SOS não atendido
+                        </span>
+                      )}
+                    </div>
                     <div className="flex gap-2 text-[10px] text-white/50 uppercase font-bold">
                       <span className={chamado.tipo === 'sos' ? 'text-red-400' : ''}>
                         {chamado.tipo === 'duvida' ? 'Dúvida' : chamado.tipo === 'reclamacao' ? 'Reclamação' : chamado.tipo}
@@ -204,7 +230,8 @@ function SuporteAdmin() {
                   </div>
                   <ChevronRight size={16} className="text-white/30" />
                 </Card>
-              ))
+                );
+              })
             )}
           </div>
         </div>
