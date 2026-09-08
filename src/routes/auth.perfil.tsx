@@ -110,10 +110,6 @@ function PerfilPage() {
           </p>
         </button>
       </div>
-
-      <div className="text-center text-xs text-muted-foreground">
-        Você poderá adicionar o outro perfil mais tarde nas configurações.
-      </div>
     </div>
   );
 }
