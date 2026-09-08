@@ -58,6 +58,7 @@ import {
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
+import { isPushSupported, subscribeToPushNotifications } from "@/lib/pwa/push-subscribe";
 
 export const Route = createFileRoute("/home-motorista")({
   loader: async () => {
@@ -941,8 +942,29 @@ function HomeMotorista() {
 
   const handleToggleOnline = () => {
     if (isToggling || activeRide) return;
+    const indoOnline = !status?.is_disponivel;
+
+    // Pede a permissão de notificações no momento em que o motorista fica
+    // online — é a ação com mais contexto para o pedido (ele está
+    // justamente se colocando disponível para receber corridas). Chamado de
+    // forma síncrona aqui (não dentro do onSuccess da mutation, que é
+    // assíncrono) para preservar o gesto do usuário exigido por navegadores
+    // mais restritivos (ex: Safari/iOS) ao pedir permissão.
+    // Roda tanto com "default" (primeira vez, mostra o diálogo nativo)
+    // quanto com "granted" (já concedida antes): subscribeToPushNotifications
+    // não re-pergunta nesse caso, só reforça/recria a inscrição no servidor —
+    // necessário para não deixar o aparelho travado sem push para sempre se a
+    // primeira tentativa conseguiu a permissão mas falhou ao registrar a
+    // inscrição (ex: service worker ainda não pronto, rede instável).
+    if (indoOnline) {
+      const vapidPublicKey = import.meta.env["VITE_VAPID_PUBLIC_KEY"] as string | undefined;
+      if (vapidPublicKey && isPushSupported() && Notification.permission !== "denied") {
+        subscribeToPushNotifications(vapidPublicKey).catch(() => {});
+      }
+    }
+
     setIsToggling(true);
-    mutation.mutate(!status?.is_disponivel);
+    mutation.mutate(indoOnline);
   };
 
   // Implementação 3, 4, 5, 6 - Posição do Motorista e Rota
