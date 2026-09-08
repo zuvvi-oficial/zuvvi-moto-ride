@@ -53,15 +53,18 @@ function SuporteAdmin() {
       return true;
     });
 
-    // SOS ainda não resolvidos/fechados sempre no topo, independente da
-    // data — não existe nenhum aviso automático de SOS hoje, então a
-    // única forma de não passar despercebido é já aparecer em primeiro
-    // lugar quando o admin abre esta tela. Array.prototype.sort é estável
-    // (ES2019+), então a ordem por data mais recente é preservada dentro
-    // de cada grupo.
+    // SOS ainda 'aberto' (ninguém começou a atender) sempre no topo,
+    // independente da data — não existe nenhum aviso automático de SOS
+    // hoje, então a única forma de não passar despercebido é já aparecer
+    // em primeiro lugar quando o admin abre esta tela. Restrito a
+    // 'aberto' (não inclui 'em_atendimento') para não contradizer o
+    // status já mostrado no card nem misturar SOS já sendo atendido com
+    // emergências genuinamente sem resposta. Array.prototype.sort é
+    // estável (ES2019+), então a ordem por data mais recente é preservada
+    // dentro de cada grupo.
     return [...filtrados].sort((a, b) => {
-      const aUrgente = a.tipo === 'sos' && a.status !== 'resolvido' && a.status !== 'fechado';
-      const bUrgente = b.tipo === 'sos' && b.status !== 'resolvido' && b.status !== 'fechado';
+      const aUrgente = a.tipo === 'sos' && a.status === 'aberto';
+      const bUrgente = b.tipo === 'sos' && b.status === 'aberto';
       if (aUrgente === bUrgente) return 0;
       return aUrgente ? -1 : 1;
     });
@@ -195,7 +198,7 @@ function SuporteAdmin() {
               </div>
             ) : (
               filteredChamados.map(chamado => {
-                const urgente = chamado.tipo === 'sos' && chamado.status !== 'resolvido' && chamado.status !== 'fechado';
+                const urgente = chamado.tipo === 'sos' && chamado.status === 'aberto';
                 return (
                 <Card
                   key={chamado.id}
