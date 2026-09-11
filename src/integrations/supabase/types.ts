@@ -678,6 +678,7 @@ export type Database = {
           pago_at: string | null
           passageiro_id: string
           status: Database["public"]["Enums"]["gorjeta_status"]
+          tentativa_pix_id: string | null
           updated_at: string
           valor: number
         }
@@ -691,6 +692,7 @@ export type Database = {
           pago_at?: string | null
           passageiro_id: string
           status?: Database["public"]["Enums"]["gorjeta_status"]
+          tentativa_pix_id?: string | null
           updated_at?: string
           valor: number
         }
@@ -704,6 +706,7 @@ export type Database = {
           pago_at?: string | null
           passageiro_id?: string
           status?: Database["public"]["Enums"]["gorjeta_status"]
+          tentativa_pix_id?: string | null
           updated_at?: string
           valor?: number
         }

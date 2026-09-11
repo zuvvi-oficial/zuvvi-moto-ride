@@ -67,6 +67,11 @@ export type PixPaymentBodyInput = Readonly<{
   passageiroCpf?: string | null;
   passageiroCreatedAt?: string | null;
   externalReference: string;
+  // Sobrescritas opcionais pra cobranças que não são de uma corrida em si
+  // (ex.: gorjeta digital) — sem elas, mantém o texto padrão de sempre.
+  descricao?: string;
+  itemTitulo?: string;
+  itemDescricao?: string;
 }>;
 
 const GENERIC_ERROR = "Não foi possível gerar o pagamento Pix. Tente novamente.";
@@ -102,7 +107,7 @@ function getPixNotificationUrl(): string {
   }
 }
 
-function normalizeMercadoPagoTicketUrl(value: unknown): string | null {
+export function normalizeMercadoPagoTicketUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   try {
     const url = new URL(value.trim());
@@ -275,7 +280,7 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
     transaction_amount: valorTotal,
     application_fee: valorComissao,
     external_reference: input.externalReference,
-    description: "Corrida Zuvvi",
+    description: input.descricao ?? "Corrida Zuvvi",
     payment_method_id: "pix",
     notification_url: getPixNotificationUrl(),
     date_of_expiration: dateOfExpiration,
@@ -284,8 +289,8 @@ export function montarCorpoCobrancaPix(input: PixPaymentBodyInput) {
       items: [
         {
           id: input.corridaId,
-          title: "Corrida Zuvvi Moto",
-          description: "Transporte urbano por motocicleta",
+          title: input.itemTitulo ?? "Corrida Zuvvi Moto",
+          description: input.itemDescricao ?? "Transporte urbano por motocicleta",
           category_id: "transport",
           quantity: 1,
           unit_price: valorTotal,
