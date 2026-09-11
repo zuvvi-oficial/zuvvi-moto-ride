@@ -22,13 +22,18 @@ assert.match(
   "criarCorrida deve delegar a atomicidade para a RPC transacional",
 );
 assert.doesNotMatch(
+  // Ancorado ao .insert( encadeado direto no mesmo .from("corridas") — não
+  // ao primeiro .insert( de qualquer tabela que apareça depois no arquivo
+  // (ex.: cupom_usos, adicionado na Etapa 2 de cupons de desconto), que o
+  // [\s\S]*? antigo (não ganancioso, mas ainda cruzando linhas/tabelas)
+  // capturava incorretamente como falso positivo.
   criarCorridaSource,
-  /\.from\(["']corridas["']\)[\s\S]*?\.insert\(/,
+  /\.from\(["']corridas["']\)\s*\.insert\(/,
   "criarCorrida não pode inserir corrida separadamente",
 );
 assert.doesNotMatch(
   criarCorridaSource,
-  /\.from\(["']pagamentos["']\)[\s\S]*?\.insert\(/,
+  /\.from\(["']pagamentos["']\)\s*\.insert\(/,
   "criarCorrida não pode inserir pagamento separadamente",
 );
 assert.match(
@@ -43,8 +48,12 @@ assert.match(
 );
 assert.match(
   criarCorridaSource,
-  /Math\.round\(\(data\.valorCotado - valorComissao\) \* 100\) \/ 100/,
-  "cálculo existente do líquido do motorista deve ser preservado",
+  // Renomeado para comissaoOriginal na Etapa 2 de cupons de desconto: o
+  // líquido do motorista continua saindo da comissão cheia (sem desconto),
+  // nunca do valor já reduzido por um cupom — é exatamente essa proteção
+  // que este guard verifica, só com o novo nome da variável.
+  /Math\.round\(\(data\.valorCotado - comissaoOriginal\) \* 100\) \/ 100/,
+  "cálculo existente do líquido do motorista deve ser preservado (protegido de descontos de cupom)",
 );
 assert.match(
   source,

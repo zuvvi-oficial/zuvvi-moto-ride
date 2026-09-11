@@ -356,7 +356,8 @@ const createRideSchema = z.object({
   tarifaValorKm: z.number(),
   tarifaValorMin: z.number(),
   tarifaMinima: z.number(),
-  assinaturaCotacao: z.string()
+  assinaturaCotacao: z.string(),
+  cupomCodigo: z.string().trim().min(1).max(40).optional(),
 });
 
 // Núcleo de criarCorrida, sem a validação de assinatura HMAC (que só faz
@@ -411,8 +412,37 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
 
     const codigoEmbarque = crypto.randomInt(1000, 10000).toString();
     const comissaoPct = Number(cidade.comissao_pct || 0);
-    const valorComissao = Math.round((data.valorCotado * (comissaoPct / 100)) * 100) / 100;
-    const valorMotorista = Math.round((data.valorCotado - valorComissao) * 100) / 100;
+    const comissaoOriginal = Math.round((data.valorCotado * (comissaoPct / 100)) * 100) / 100;
+    const valorMotorista = Math.round((data.valorCotado - comissaoOriginal) * 100) / 100;
+
+    // Cupom de desconto (Etapa 2): nunca confia num valor de desconto vindo
+    // do cliente — revalida tudo de novo aqui, contra o valorCotado real
+    // desta corrida. O desconto sai inteiro da comissão da Zuvvi, nunca do
+    // repasse do motorista (mesma filosofia da gorjeta: o motorista nunca
+    // paga o preço de uma promoção) — por isso é limitado ao tamanho da
+    // própria comissão dessa corrida. Numa cidade com comissão baixa ou
+    // zero, um cupom pode não render desconto nenhum; nesse caso a corrida
+    // segue sem aplicar o cupom.
+    let cupomId: string | null = null;
+    let valorDescontoAplicado = 0;
+    if (data.cupomCodigo) {
+      const { avaliarCupomParaCorrida } = await import("./cupons.functions");
+      const avaliacao = await avaliarCupomParaCorrida(supabaseAdmin, {
+        codigo: data.cupomCodigo,
+        usuarioId: usuario.id,
+        cidadeId: usuario.cidade_id,
+        valorCorrida: data.valorCotado,
+      });
+      const descontoLimitadoPelaComissao = Math.min(avaliacao.valorDesconto, comissaoOriginal);
+      if (descontoLimitadoPelaComissao <= 0) {
+        throw new Error("Este cupom não pôde ser aplicado a esta corrida.");
+      }
+      cupomId = avaliacao.cupomId;
+      valorDescontoAplicado = descontoLimitadoPelaComissao;
+    }
+
+    const valorComissao = Math.round((comissaoOriginal - valorDescontoAplicado) * 100) / 100;
+    const valorTotal = Math.round((valorMotorista + valorComissao) * 100) / 100;
 
     // A RPC é versionada nesta microetapa. O cast fica restrito a esta chamada
     // enquanto os tipos gerados refletem apenas o schema atualmente em produção.
@@ -425,12 +455,12 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
         p_origem_lng: data.origemLng,
         p_destino_lat: data.destinoLat,
         p_destino_lng: data.destinoLng,
-        p_valor_estimado: data.valorCotado,
+        p_valor_estimado: valorTotal,
         p_forma_pagamento: data.formaPagamento,
         p_codigo_embarque: codigoEmbarque,
         p_origem_nome: data.origemNome || 'Sua localização',
         p_destino_nome: data.destinoNome || 'Destino',
-        p_valor_total: data.valorCotado,
+        p_valor_total: valorTotal,
         p_valor_motorista: valorMotorista,
         p_valor_comissao: valorComissao,
         p_distancia_km: data.distanciaKm,
@@ -448,6 +478,27 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
       }
       console.error("Erro criação financeira atômica:", atomicError);
       throw new Error("Falha ao registrar a corrida.");
+    }
+
+    // A corrida já foi criada com sucesso nesse ponto (com o desconto já
+    // aplicado no valor cobrado) — o que importa pro passageiro já
+    // aconteceu. Registrar o uso do cupom é só bookkeeping: uma falha aqui
+    // (ex.: corrida de uma race rara batendo no limite do cupom bem nesse
+    // instante) nunca deve reverter ou cancelar a corrida já criada, só
+    // ficar visível pra reconciliação manual.
+    if (cupomId) {
+      const { error: cupomUsoError } = await supabaseAdmin.from("cupom_usos").insert({
+        cupom_id: cupomId,
+        usuario_id: usuario.id,
+        corrida_id: corridaId,
+        valor_desconto: valorDescontoAplicado,
+      } as any);
+      if (cupomUsoError) {
+        console.error(
+          "[Cupons] Corrida criada com desconto aplicado, mas falha ao registrar o uso do cupom — requer reconciliação manual.",
+          { corridaId, cupomId, motivo: cupomUsoError.message },
+        );
+      }
     }
 
     // Avisar motoristas elegíveis da cidade sobre a nova oferta (push + sino).
