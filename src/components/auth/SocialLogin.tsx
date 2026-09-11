@@ -38,12 +38,25 @@ export function GoogleLoginButton() {
 }
 
 export function AppleLoginButton() {
+  const handleAppleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      console.error('Error logging in with Apple:', error.message);
+    }
+  };
+
   return (
     <Button
       type="button"
-      disabled
+      onClick={handleAppleLogin}
       variant="outline"
-      className="w-full bg-black text-white border-zinc-800 hover:bg-black font-medium h-12 flex items-center justify-center gap-3 transition-all opacity-90 cursor-not-allowed"
+      className="w-full bg-black text-white border-zinc-800 hover:bg-zinc-900 font-medium h-12 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
     >
       <img src="/brand/apple-signin-logo.svg" alt="Apple" className="w-5 h-5 invert" />
       Continuar com Apple

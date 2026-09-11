@@ -148,7 +148,7 @@ function AuthCallbackPage() {
       </div>
       <div className="space-y-1">
         <p className="text-white font-bold text-lg">Processando...</p>
-        <p className="text-muted-foreground text-sm">Validando sua conta Google</p>
+        <p className="text-muted-foreground text-sm">Validando sua conta</p>
       </div>
     </div>
   );
