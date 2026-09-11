@@ -63,51 +63,62 @@ export const getResumoFinanceiroAdmin = createServerFn({ method: "GET" })
     const inicio = data.dataInicio || new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
     const fim = data.dataFim || agora.toISOString();
 
-    // 1. Pagamentos já pagos no período, com o vínculo mínimo à corrida
-    // (cidade e motorista). Segue o mesmo padrão de embed + filtro em coluna
-    // embutida já usado em getMotoristasAdmin (admin.functions.ts).
-    let query = supabaseAdmin
-      .from("pagamentos")
-      .select("valor_total, valor_comissao, valor_motorista, corridas!inner(cidade_id, motorista_id)")
-      .eq("status", "pago")
-      .gte("pago_at", inicio)
-      .lte("pago_at", fim);
-
-    if (data.cidadeId) {
-      query = query.eq("corridas.cidade_id", data.cidadeId);
-    }
-
-    const { data: pagamentos, error } = await query;
-    if (error) {
-      console.error("Erro ao carregar resumo financeiro:", error);
-      throw new Error("Não foi possível carregar o resumo financeiro.");
-    }
-
-    // 2. Agregação em memória por cidade e por motorista (mesmo volume de
-    // dados de um app em fase piloto — sem necessidade de agregação no banco).
+    // 1 e 2. Pagamentos já pagos no período, com o vínculo mínimo à corrida
+    // (cidade e motorista), paginados explicitamente. Achado do Codex no
+    // PR #54: sem paginação, um período com mais linhas que o limite padrão
+    // do PostgREST (1000) faria a consulta devolver só um subconjunto sem
+    // erro nenhum — subestimando todo total silenciosamente, o pior tipo de
+    // bug possível justamente num relatório financeiro. Busca em páginas até
+    // uma página vir mais curta que o tamanho pedido (fim dos resultados), e
+    // agrega cada página imediatamente por cidade e por motorista.
     const porCidadeMap = new Map<string, Totais>();
     const porMotoristaMap = new Map<string, Totais>();
 
-    for (const linha of (pagamentos || []) as any[]) {
-      const cidadeId = linha.corridas?.cidade_id as string | undefined;
-      const motoristaId = linha.corridas?.motorista_id as string | undefined;
-      const valorTotal = Number(linha.valor_total ?? 0);
-      const valorComissao = Number(linha.valor_comissao ?? 0);
-      const valorMotorista = Number(linha.valor_motorista ?? 0);
+    const TAMANHO_PAGINA = 1000;
+    let inicioPagina = 0;
+    for (;;) {
+      let query = supabaseAdmin
+        .from("pagamentos")
+        .select("valor_total, valor_comissao, valor_motorista, corridas!inner(cidade_id, motorista_id)")
+        .eq("status", "pago")
+        .gte("pago_at", inicio)
+        .lte("pago_at", fim)
+        .range(inicioPagina, inicioPagina + TAMANHO_PAGINA - 1);
 
-      if (cidadeId) {
-        porCidadeMap.set(
-          cidadeId,
-          somarTotais(porCidadeMap.get(cidadeId) ?? totaisVazios(), valorTotal, valorComissao, valorMotorista),
-        );
+      if (data.cidadeId) {
+        query = query.eq("corridas.cidade_id", data.cidadeId);
       }
 
-      if (motoristaId) {
-        porMotoristaMap.set(
-          motoristaId,
-          somarTotais(porMotoristaMap.get(motoristaId) ?? totaisVazios(), valorTotal, valorComissao, valorMotorista),
-        );
+      const { data: pagina, error } = await query;
+      if (error) {
+        console.error("Erro ao carregar resumo financeiro:", error);
+        throw new Error("Não foi possível carregar o resumo financeiro.");
       }
+
+      for (const linha of (pagina || []) as any[]) {
+        const cidadeId = linha.corridas?.cidade_id as string | undefined;
+        const motoristaId = linha.corridas?.motorista_id as string | undefined;
+        const valorTotal = Number(linha.valor_total ?? 0);
+        const valorComissao = Number(linha.valor_comissao ?? 0);
+        const valorMotorista = Number(linha.valor_motorista ?? 0);
+
+        if (cidadeId) {
+          porCidadeMap.set(
+            cidadeId,
+            somarTotais(porCidadeMap.get(cidadeId) ?? totaisVazios(), valorTotal, valorComissao, valorMotorista),
+          );
+        }
+
+        if (motoristaId) {
+          porMotoristaMap.set(
+            motoristaId,
+            somarTotais(porMotoristaMap.get(motoristaId) ?? totaisVazios(), valorTotal, valorComissao, valorMotorista),
+          );
+        }
+      }
+
+      if (!pagina || pagina.length < TAMANHO_PAGINA) break;
+      inicioPagina += TAMANHO_PAGINA;
     }
 
     // 3. Nomes das cidades e motoristas envolvidos (só os que aparecem no
