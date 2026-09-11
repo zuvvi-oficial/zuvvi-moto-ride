@@ -35,6 +35,42 @@ const codigoSchema = z
   .max(40, "O código pode ter no máximo 40 caracteres.")
   .regex(/^[A-Za-z0-9_-]+$/u, "Use apenas letras, números, hífen ou underline.");
 
+// Cupom gerado automaticamente pelo próprio sistema (não por um admin) —
+// hoje usado pelo programa de indicação (auth.functions.ts), e desenhado
+// pra também servir fidelidade/cashback no futuro: a recompensa é só "criar
+// um cupom" reaproveitando toda a validação/limite/teto de comissão que já
+// existe, sem nenhuma lógica financeira nova. Sempre único por gerador
+// (codigo já vem pronto do chamador) e sem log de auditoria de admin, já
+// que não foi um admin que decidiu criar este cupom.
+export async function criarCupomAutomatico(
+  supabaseAdmin: any,
+  params: {
+    codigo: string;
+    tipoDesconto: "percentual" | "fixo";
+    valor: number;
+    limiteUsoTotal?: number;
+    descricao?: string;
+    validoAte?: string;
+  },
+): Promise<{ id: string }> {
+  const { data: cupom, error } = await supabaseAdmin
+    .from("cupons")
+    .insert({
+      codigo: normalizarCodigo(params.codigo),
+      tipo_desconto: params.tipoDesconto,
+      valor: params.valor,
+      limite_uso_total: params.limiteUsoTotal ?? 1,
+      limite_uso_por_usuario: 1,
+      descricao: params.descricao ?? null,
+      valido_ate: params.validoAte ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error("Não foi possível gerar o cupom automático.");
+  return { id: cupom.id as string };
+}
+
 const criarCupomSchema = z
   .object({
     codigo: codigoSchema,

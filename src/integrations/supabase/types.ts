@@ -845,6 +845,71 @@ export type Database = {
           },
         ]
       }
+      indicacoes: {
+        Row: {
+          codigo_usado: string
+          concluida_at: string | null
+          created_at: string
+          cupom_indicado_id: string | null
+          cupom_indicador_id: string | null
+          id: string
+          indicado_id: string
+          indicador_id: string
+          status: Database["public"]["Enums"]["indicacao_status"]
+        }
+        Insert: {
+          codigo_usado: string
+          concluida_at?: string | null
+          created_at?: string
+          cupom_indicado_id?: string | null
+          cupom_indicador_id?: string | null
+          id?: string
+          indicado_id: string
+          indicador_id: string
+          status?: Database["public"]["Enums"]["indicacao_status"]
+        }
+        Update: {
+          codigo_usado?: string
+          concluida_at?: string | null
+          created_at?: string
+          cupom_indicado_id?: string | null
+          cupom_indicador_id?: string | null
+          id?: string
+          indicado_id?: string
+          indicador_id?: string
+          status?: Database["public"]["Enums"]["indicacao_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicacoes_cupom_indicado_id_fkey"
+            columns: ["cupom_indicado_id"]
+            isOneToOne: false
+            referencedRelation: "cupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicacoes_cupom_indicador_id_fkey"
+            columns: ["cupom_indicador_id"]
+            isOneToOne: false
+            referencedRelation: "cupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicacoes_indicado_id_fkey"
+            columns: ["indicado_id"]
+            isOneToOne: true
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicacoes_indicador_id_fkey"
+            columns: ["indicador_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mensagens_suporte: {
         Row: {
           autor_admin_id: string | null
@@ -1291,6 +1356,7 @@ export type Database = {
           auth_user_id: string | null
           celular: string | null
           cidade_id: string | null
+          codigo_indicacao: string | null
           cpf: string | null
           created_at: string
           data_nascimento: string | null
@@ -1307,6 +1373,7 @@ export type Database = {
           auth_user_id?: string | null
           celular?: string | null
           cidade_id?: string | null
+          codigo_indicacao?: string | null
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -1323,6 +1390,7 @@ export type Database = {
           auth_user_id?: string | null
           celular?: string | null
           cidade_id?: string | null
+          codigo_indicacao?: string | null
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -1727,6 +1795,7 @@ export type Database = {
         | "correcao_solicitada"
       forma_pagamento: "pix" | "cartao" | "dinheiro"
       gorjeta_status: "pendente" | "paga" | "falhou"
+      indicacao_status: "pendente" | "concluida"
       motorista_status:
         | "draft"
         | "under_review"
@@ -1918,6 +1987,7 @@ export const Constants = {
       ],
       forma_pagamento: ["pix", "cartao", "dinheiro"],
       gorjeta_status: ["pendente", "paga", "falhou"],
+      indicacao_status: ["pendente", "concluida"],
       motorista_status: [
         "draft",
         "under_review",
