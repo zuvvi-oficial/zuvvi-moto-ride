@@ -377,6 +377,8 @@ export type Database = {
           destino_lat: number
           destino_lng: number
           destino_nome: string | null
+          distancia_km: number | null
+          duracao_min: number | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           id: string
           motivo_cancelamento: string | null
@@ -386,6 +388,10 @@ export type Database = {
           origem_nome: string | null
           passageiro_id: string
           status: Database["public"]["Enums"]["corrida_status"]
+          tarifa_bandeirada: number | null
+          tarifa_minima: number | null
+          tarifa_valor_km: number | null
+          tarifa_valor_min: number | null
           updated_at: string
           valor_estimado: number
           valor_final: number | null
@@ -403,6 +409,8 @@ export type Database = {
           destino_lat: number
           destino_lng: number
           destino_nome?: string | null
+          distancia_km?: number | null
+          duracao_min?: number | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
           motivo_cancelamento?: string | null
@@ -412,6 +420,10 @@ export type Database = {
           origem_nome?: string | null
           passageiro_id: string
           status?: Database["public"]["Enums"]["corrida_status"]
+          tarifa_bandeirada?: number | null
+          tarifa_minima?: number | null
+          tarifa_valor_km?: number | null
+          tarifa_valor_min?: number | null
           updated_at?: string
           valor_estimado: number
           valor_final?: number | null
@@ -429,6 +441,8 @@ export type Database = {
           destino_lat?: number
           destino_lng?: number
           destino_nome?: string | null
+          distancia_km?: number | null
+          duracao_min?: number | null
           forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
           motivo_cancelamento?: string | null
@@ -438,6 +452,10 @@ export type Database = {
           origem_nome?: string | null
           passageiro_id?: string
           status?: Database["public"]["Enums"]["corrida_status"]
+          tarifa_bandeirada?: number | null
+          tarifa_minima?: number | null
+          tarifa_valor_km?: number | null
+          tarifa_valor_min?: number | null
           updated_at?: string
           valor_estimado?: number
           valor_final?: number | null
@@ -711,6 +729,42 @@ export type Database = {
           },
         ]
       }
+      motoristas_favoritos: {
+        Row: {
+          created_at: string
+          id: string
+          motorista_id: string
+          passageiro_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          motorista_id: string
+          passageiro_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          motorista_id?: string
+          passageiro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motoristas_favoritos_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "motoristas_favoritos_passageiro_id_fkey"
+            columns: ["passageiro_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacoes: {
         Row: {
           corrida_id: string | null
@@ -928,6 +982,47 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          usuario_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          usuario_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           auth_user_id: string | null
@@ -1078,30 +1173,72 @@ export type Database = {
         Args: { p_corrida_id: string; p_motorista_id: string }
         Returns: undefined
       }
-      criar_corrida_financeira_atomica: {
-        Args: {
-          p_cidade_id: string
-          p_codigo_embarque: string
-          p_destino_lat: number
-          p_destino_lng: number
-          p_destino_nome: string
-          p_forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
-          p_origem_lat: number
-          p_origem_lng: number
-          p_origem_nome: string
-          p_passageiro_id: string
-          p_valor_comissao: number
-          p_valor_estimado: number
-          p_valor_motorista: number
-          p_valor_total: number
-        }
-        Returns: string
-      }
+      criar_corrida_financeira_atomica:
+        | {
+            Args: {
+              p_cidade_id: string
+              p_codigo_embarque: string
+              p_destino_lat: number
+              p_destino_lng: number
+              p_destino_nome: string
+              p_forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+              p_origem_lat: number
+              p_origem_lng: number
+              p_origem_nome: string
+              p_passageiro_id: string
+              p_valor_comissao: number
+              p_valor_estimado: number
+              p_valor_motorista: number
+              p_valor_total: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_cidade_id: string
+              p_codigo_embarque: string
+              p_destino_lat: number
+              p_destino_lng: number
+              p_destino_nome: string
+              p_distancia_km: number
+              p_duracao_min: number
+              p_forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+              p_origem_lat: number
+              p_origem_lng: number
+              p_origem_nome: string
+              p_passageiro_id: string
+              p_tarifa_bandeirada: number
+              p_tarifa_minima: number
+              p_tarifa_valor_km: number
+              p_tarifa_valor_min: number
+              p_valor_comissao: number
+              p_valor_estimado: number
+              p_valor_motorista: number
+              p_valor_total: number
+            }
+            Returns: string
+          }
       get_admin_id_by_auth: { Args: { auth_id: string }; Returns: string }
       get_distinct_ufs: {
         Args: never
         Returns: {
           estado_uf: string
+        }[]
+      }
+      get_viagem_compartilhada_publica: {
+        Args: { p_link_publico: string }
+        Returns: {
+          destino_nome: string
+          expira_em: string
+          motorista_lat: number
+          motorista_lng: number
+          motorista_nome: string
+          motorista_nota: number
+          origem_nome: string
+          status: Database["public"]["Enums"]["corrida_status"]
+          veiculo_cor: string
+          veiculo_modelo: string
+          veiculo_placa: string
         }[]
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
@@ -1143,6 +1280,24 @@ export type Database = {
           _tentativa_id: string
         }
         Returns: boolean
+      }
+      pix_mercadopago_webhook_finalizar_evento: {
+        Args: { p_error_code?: string; p_event_key: string; p_status: string }
+        Returns: undefined
+      }
+      pix_mercadopago_webhook_register_event: {
+        Args: {
+          p_action: string
+          p_event_key: string
+          p_payload_hash: string
+          p_request_id: string
+          p_resource_id: string
+          p_topic: string
+        }
+        Returns: {
+          is_new: boolean
+          processing_status: string
+        }[]
       }
       pix_oauth_account_owner_claim: {
         Args: { _mercadopago_user_id: string; _motorista_id: string }
