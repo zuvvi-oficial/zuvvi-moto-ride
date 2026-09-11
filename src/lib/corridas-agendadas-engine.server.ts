@@ -31,6 +31,106 @@ export type ResumoConversaoAgendadas = Readonly<{
   falharam: number;
 }>;
 
+export type ResumoLembretesAgendadas = Readonly<{
+  verificados: number;
+  enviados: number;
+}>;
+
+// Etapa 4: lembrete push antes do horário agendado, pra quem for esperar o
+// passageiro não ser pego de surpresa. Dispara só uma vez por agendamento
+// (lembrete_enviado_at), quando falta entre 0 e 15 min pro horário — a
+// borda de baixo evita mandar lembrete pra um agendamento que este mesmo
+// cron já vai converter agora (esse já recebe a notificação de "solicitada"
+// da rotina acima, seria duplicado).
+const LEMBRETE_ANTECEDENCIA_MS = 15 * 60 * 1000;
+
+type AgendamentoLembreteRow = Readonly<{
+  id: string;
+  passageiro_id: string;
+  destino_nome: string | null;
+  horario_agendado: string;
+}>;
+
+export async function enviarLembretesCorridasAgendadas(): Promise<ResumoLembretesAgendadas> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { criarNotificacao } = await import("./notificacoes.server");
+
+  const agora = new Date();
+  const limite = new Date(agora.getTime() + LEMBRETE_ANTECEDENCIA_MS);
+
+  const { data: agendamentos, error } = await supabaseAdmin
+    .from("corridas_agendadas")
+    .select("id, passageiro_id, destino_nome, horario_agendado")
+    .eq("status", "agendada")
+    .is("lembrete_enviado_at", null)
+    .gt("horario_agendado", agora.toISOString())
+    .lte("horario_agendado", limite.toISOString())
+    .order("horario_agendado", { ascending: true })
+    .limit(BATCH_LIMIT);
+
+  if (error) {
+    console.error("[CorridasAgendadasEngine] Falha ao buscar agendamentos para lembrete.");
+    throw new Error("Não foi possível buscar corridas agendadas para lembrete.");
+  }
+
+  const candidatos = (agendamentos ?? []) as unknown as AgendamentoLembreteRow[];
+  let enviados = 0;
+
+  for (const agendamento of candidatos) {
+    // Reserva o envio antes de notificar (compare-and-swap, mesmo padrão da
+    // conversão acima): evita lembrete em dobro se duas execuções do cron
+    // se sobrepuserem.
+    const { data: reservado, error: reservaError } = await supabaseAdmin
+      .from("corridas_agendadas")
+      .update({ lembrete_enviado_at: agora.toISOString() } as any)
+      .eq("id", agendamento.id)
+      .eq("status", "agendada")
+      .is("lembrete_enviado_at", null)
+      .select("id")
+      .maybeSingle();
+
+    if (reservaError || !reservado) continue;
+
+    const horaFormatada = new Date(agendamento.horario_agendado).toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const resultado = await criarNotificacao(supabaseAdmin, {
+      usuario_id: agendamento.passageiro_id,
+      tipo: "corrida_agendada_lembrete",
+      titulo: "🕐 Sua corrida agendada é em breve",
+      mensagem: agendamento.destino_nome
+        ? `Sua corrida para ${agendamento.destino_nome} está marcada para ${horaFormatada}.`
+        : `Sua corrida agendada está marcada para ${horaFormatada}.`,
+      corrida_id: null,
+    });
+
+    if (!resultado.inserted) {
+      // A notificação in-app não foi criada de verdade (falha transitória de
+      // banco) — reverte a reserva pra este agendamento ser tentado de novo
+      // no próximo cron, em vez de ficar marcado como "lembrete enviado" pra
+      // sempre sem nunca ter avisado ninguém (achado do Codex no PR #73).
+      // Seguro reverter incondicionalmente por id: nenhuma outra execução
+      // pode ter voltado a disputar esta linha enquanto lembrete_enviado_at
+      // segue não-nulo.
+      console.error("[CorridasAgendadasEngine] Notificação de lembrete não foi criada; revertendo reserva.", {
+        id: agendamento.id,
+      });
+      await supabaseAdmin
+        .from("corridas_agendadas")
+        .update({ lembrete_enviado_at: null } as any)
+        .eq("id", agendamento.id);
+      continue;
+    }
+
+    enviados += 1;
+  }
+
+  return { verificados: candidatos.length, enviados };
+}
+
 type AgendamentoRow = Readonly<{
   id: string;
   passageiro_id: string;

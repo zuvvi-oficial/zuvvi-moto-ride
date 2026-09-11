@@ -40,6 +40,8 @@ self.addEventListener("notificationclick", function (event) {
     } else {
       targetUrl = "/acompanhamento?rideId=" + encodeURIComponent(data.corridaId);
     }
+  } else if (data.tipo === "corrida_agendada_lembrete" || data.tipo === "corrida_agendada_falhou") {
+    targetUrl = "/corridas-agendadas";
   }
 
   event.waitUntil(
