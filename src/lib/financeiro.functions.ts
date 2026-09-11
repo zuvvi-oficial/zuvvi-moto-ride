@@ -238,7 +238,7 @@ export const getCorridasFinanceiroAdmin = createServerFn({ method: "GET" })
     let query = supabaseAdmin
       .from("pagamentos")
       .select(
-        "id, valor_total, valor_comissao, valor_motorista, meio, pago_at, corridas!inner(id, cidade_id, motorista_id, passageiro_id, origem_nome, destino_nome)",
+        "id, valor_total, valor_comissao, valor_motorista, meio, pago_at, corridas!inner(id, cidade_id, motorista_id, passageiro_id, origem_nome, destino_nome, distancia_km)",
         { count: "exact" },
       )
       .eq("status", "pago")
@@ -294,6 +294,7 @@ export const getCorridasFinanceiroAdmin = createServerFn({ method: "GET" })
       valorMotorista: Number(linha.valor_motorista ?? 0),
       origemNome: (linha.corridas?.origem_nome as string | null) ?? null,
       destinoNome: (linha.corridas?.destino_nome as string | null) ?? null,
+      distanciaKm: linha.corridas?.distancia_km != null ? Number(linha.corridas.distancia_km) : null,
       passageiroNome: nomeMap.get(linha.corridas?.passageiro_id) ?? "Desconhecido",
       motoristaNome: nomeMap.get(linha.corridas?.motorista_id) ?? "Desconhecido",
     }));
