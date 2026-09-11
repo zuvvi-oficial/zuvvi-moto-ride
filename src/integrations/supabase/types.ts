@@ -507,6 +507,7 @@ export type Database = {
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           horario_agendado: string
           id: string
+          lembrete_enviado_at: string | null
           motivo_falha: string | null
           origem_lat: number
           origem_lng: number
@@ -524,6 +525,7 @@ export type Database = {
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           horario_agendado: string
           id?: string
+          lembrete_enviado_at?: string | null
           motivo_falha?: string | null
           origem_lat: number
           origem_lng: number
@@ -541,6 +543,7 @@ export type Database = {
           forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"]
           horario_agendado?: string
           id?: string
+          lembrete_enviado_at?: string | null
           motivo_falha?: string | null
           origem_lat?: number
           origem_lng?: number
@@ -658,6 +661,70 @@ export type Database = {
           {
             foreignKeyName: "enderecos_favoritos_usuario_id_fkey"
             columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gorjetas: {
+        Row: {
+          corrida_id: string
+          created_at: string
+          id: string
+          id_transacao_mercadopago: string | null
+          motivo_falha: string | null
+          motorista_id: string
+          pago_at: string | null
+          passageiro_id: string
+          status: Database["public"]["Enums"]["gorjeta_status"]
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          corrida_id: string
+          created_at?: string
+          id?: string
+          id_transacao_mercadopago?: string | null
+          motivo_falha?: string | null
+          motorista_id: string
+          pago_at?: string | null
+          passageiro_id: string
+          status?: Database["public"]["Enums"]["gorjeta_status"]
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          corrida_id?: string
+          created_at?: string
+          id?: string
+          id_transacao_mercadopago?: string | null
+          motivo_falha?: string | null
+          motorista_id?: string
+          pago_at?: string | null
+          passageiro_id?: string
+          status?: Database["public"]["Enums"]["gorjeta_status"]
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gorjetas_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: true
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gorjetas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gorjetas_passageiro_id_fkey"
+            columns: ["passageiro_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
@@ -1324,6 +1391,10 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      motorista_pix_conectado: {
+        Args: { _motorista_id: string }
+        Returns: boolean
+      }
       passageiro_tem_corrida_ativa_com_motorista: {
         Args: { p_motorista_id: string }
         Returns: boolean
@@ -1540,6 +1611,7 @@ export type Database = {
         | "recusado"
         | "correcao_solicitada"
       forma_pagamento: "pix" | "cartao" | "dinheiro"
+      gorjeta_status: "pendente" | "paga" | "falhou"
       motorista_status:
         | "draft"
         | "under_review"
@@ -1729,6 +1801,7 @@ export const Constants = {
         "correcao_solicitada",
       ],
       forma_pagamento: ["pix", "cartao", "dinheiro"],
+      gorjeta_status: ["pendente", "paga", "falhou"],
       motorista_status: [
         "draft",
         "under_review",
