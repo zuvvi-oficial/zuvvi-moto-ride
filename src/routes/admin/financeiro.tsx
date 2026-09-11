@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
-import { getResumoFinanceiroAdmin, getCidadesOperacionaisAdmin } from '@/lib/financeiro.functions';
+import { getResumoFinanceiroAdmin, getCidadesOperacionaisAdmin, getCorridasFinanceiroAdmin } from '@/lib/financeiro.functions';
 import {
   Table,
   TableBody,
@@ -18,8 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Wallet, Percent, Banknote, Receipt, MapPin, Users, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Wallet, Percent, Banknote, Receipt, MapPin, Users, Loader2, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
 
@@ -73,6 +81,32 @@ const cidadesFiltroOptions = queryOptions({
   queryFn: () => getCidadesOperacionaisAdmin(),
 });
 
+const DRILL_LIMITE = 20;
+
+const corridasFinanceiroQueryOptions = (params: {
+  dataInicio: string;
+  dataFim: string;
+  cidadeId: string | undefined;
+  motoristaId: string | undefined;
+  pagina: number;
+}) =>
+  queryOptions({
+    queryKey: ['admin-financeiro-corridas', params],
+    queryFn: () => {
+      const { dataInicio, dataFim } = paraIntervaloISO(params.dataInicio, params.dataFim);
+      return getCorridasFinanceiroAdmin({
+        data: {
+          dataInicio,
+          dataFim,
+          cidadeId: params.cidadeId,
+          motoristaId: params.motoristaId,
+          pagina: params.pagina,
+          limite: DRILL_LIMITE,
+        },
+      });
+    },
+  });
+
 export const Route = createFileRoute('/admin/financeiro')({
   loader: async ({ context }) => {
     try {
@@ -103,6 +137,30 @@ function FinanceiroAdmin() {
 
   const params = { dataInicio, dataFim, cidadeId: cidadeId === 'all' ? undefined : cidadeId };
   const { data: resumo, isLoading, error } = useQuery(financeiroQueryOptions(params));
+
+  const [drill, setDrill] = useState<{ tipo: 'cidade' | 'motorista'; id: string; label: string } | null>(null);
+  const [drillPagina, setDrillPagina] = useState(0);
+
+  const drillCidadeId = drill?.tipo === 'cidade' ? drill.id : params.cidadeId;
+  const drillMotoristaId = drill?.tipo === 'motorista' ? drill.id : undefined;
+
+  const { data: drillResult, isLoading: drillLoading } = useQuery({
+    ...corridasFinanceiroQueryOptions({
+      dataInicio,
+      dataFim,
+      cidadeId: drillCidadeId,
+      motoristaId: drillMotoristaId,
+      pagina: drillPagina,
+    }),
+    enabled: !!drill,
+  });
+
+  function abrirDrill(novo: { tipo: 'cidade' | 'motorista'; id: string; label: string }) {
+    setDrill(novo);
+    setDrillPagina(0);
+  }
+
+  const drillTotalPaginas = Math.max(1, Math.ceil((drillResult?.total || 0) / DRILL_LIMITE));
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
@@ -217,6 +275,7 @@ function FinanceiroAdmin() {
                       <TableHead className="text-gray-400 text-right">Comissão</TableHead>
                       <TableHead className="text-gray-400 text-right">Repasse</TableHead>
                       <TableHead className="text-gray-400 text-right">Corridas</TableHead>
+                      <TableHead className="text-gray-400 text-right">Detalhe</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -229,11 +288,24 @@ function FinanceiroAdmin() {
                         <TableCell className="text-right">{formatarMoeda(cidade.totalComissao)}</TableCell>
                         <TableCell className="text-right">{formatarMoeda(cidade.totalMotorista)}</TableCell>
                         <TableCell className="text-right">{cidade.qtdCorridas}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2"
+                            aria-label={`Ver corridas de ${cidade.cidadeNome}`}
+                            onClick={() =>
+                              abrirDrill({ tipo: 'cidade', id: cidade.cidadeId, label: `${cidade.cidadeNome} - ${cidade.estadoUf}` })
+                            }
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                     {(resumo?.porCidade || []).length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-10 text-gray-500">
+                        <TableCell colSpan={6} className="text-center py-10 text-gray-500">
                           Nenhum pagamento no período selecionado.
                         </TableCell>
                       </TableRow>
@@ -257,6 +329,7 @@ function FinanceiroAdmin() {
                       <TableHead className="text-gray-400 text-right">Comissão</TableHead>
                       <TableHead className="text-gray-400 text-right">Recebeu</TableHead>
                       <TableHead className="text-gray-400 text-right">Corridas</TableHead>
+                      <TableHead className="text-gray-400 text-right">Detalhe</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -267,11 +340,22 @@ function FinanceiroAdmin() {
                         <TableCell className="text-right">{formatarMoeda(motorista.totalComissao)}</TableCell>
                         <TableCell className="text-right">{formatarMoeda(motorista.totalMotorista)}</TableCell>
                         <TableCell className="text-right">{motorista.qtdCorridas}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2"
+                            aria-label={`Ver corridas de ${motorista.nome}`}
+                            onClick={() => abrirDrill({ tipo: 'motorista', id: motorista.motoristaId, label: motorista.nome })}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                     {(resumo?.porMotorista || []).length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-10 text-gray-500">
+                        <TableCell colSpan={6} className="text-center py-10 text-gray-500">
                           Nenhum motorista com pagamentos no período selecionado.
                         </TableCell>
                       </TableRow>
@@ -283,6 +367,98 @@ function FinanceiroAdmin() {
           </>
         )}
       </div>
+
+      <Dialog open={!!drill} onOpenChange={(open) => !open && setDrill(null)}>
+        <DialogContent className="bg-zuvvi-indigo border-white/10 text-white max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-volt" />
+              Corridas — {drill?.label}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Mesmo período selecionado na tela
+              {drill?.tipo === 'motorista' && params.cidadeId ? ' · cidade filtrada' : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          {drillLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-zuvvi-volt animate-spin" />
+            </div>
+          ) : (
+            <>
+              <div className="max-h-[50vh] overflow-y-auto rounded-md border border-white/10">
+                <Table>
+                  <TableHeader className="bg-white/5 sticky top-0">
+                    <TableRow className="hover:bg-transparent border-white/10">
+                      <TableHead className="text-gray-400">Pago em</TableHead>
+                      <TableHead className="text-gray-400">Passageiro</TableHead>
+                      <TableHead className="text-gray-400">Motorista</TableHead>
+                      <TableHead className="text-gray-400">Trajeto</TableHead>
+                      <TableHead className="text-gray-400">Meio</TableHead>
+                      <TableHead className="text-gray-400 text-right">Total</TableHead>
+                      <TableHead className="text-gray-400 text-right">Comissão</TableHead>
+                      <TableHead className="text-gray-400 text-right">Motorista</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(drillResult?.corridas || []).map((corrida) => (
+                      <TableRow key={corrida.pagamentoId} className="border-white/10 hover:bg-white/5 transition-colors">
+                        <TableCell className="text-xs">{new Date(corrida.pagoEm).toLocaleString('pt-BR')}</TableCell>
+                        <TableCell className="text-xs">{corrida.passageiroNome}</TableCell>
+                        <TableCell className="text-xs">{corrida.motoristaNome}</TableCell>
+                        <TableCell className="text-xs max-w-[220px] truncate">
+                          {corrida.origemNome || '—'} → {corrida.destinoNome || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs uppercase">{corrida.meio}</TableCell>
+                        <TableCell className="text-right text-xs">{formatarMoeda(corrida.valorTotal)}</TableCell>
+                        <TableCell className="text-right text-xs">{formatarMoeda(corrida.valorComissao)}</TableCell>
+                        <TableCell className="text-right text-xs">{formatarMoeda(corrida.valorMotorista)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(drillResult?.corridas || []).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-10 text-gray-500">
+                          Nenhuma corrida encontrada.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-gray-400">{drillResult?.total ?? 0} corrida(s) no total</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDrillPagina((p) => Math.max(0, p - 1))}
+                    disabled={drillPagina === 0}
+                    className="border-white/10 bg-transparent text-white hover:bg-white/5"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Anterior
+                  </Button>
+                  <span className="text-xs text-gray-400">
+                    Página {drillPagina + 1} de {drillTotalPaginas}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDrillPagina((p) => Math.min(drillTotalPaginas - 1, p + 1))}
+                    disabled={drillPagina >= drillTotalPaginas - 1}
+                    className="border-white/10 bg-transparent text-white hover:bg-white/5"
+                  >
+                    Próxima
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
