@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarteiraRouteImport } from './routes/carteira'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
 import { Route as CorridasRouteImport } from './routes/corridas'
+import { Route as GanhosMotoristaRouteImport } from './routes/ganhos-motorista'
 import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
 import { Route as MeusChamadosRouteImport } from './routes/meus-chamados'
 import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-motorista'
@@ -65,6 +66,11 @@ const ConfirmarCorridaRoute = ConfirmarCorridaRouteImport.update({
 const CorridasRoute = CorridasRouteImport.update({
   id: '/corridas',
   path: '/corridas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GanhosMotoristaRoute = GanhosMotoristaRouteImport.update({
+  id: '/ganhos-motorista',
+  path: '/ganhos-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeMotoristaRoute = HomeMotoristaRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
+  '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
+  '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
+  '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
   '/onboarding-motorista': typeof OnboardingMotoristaRoute
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/carteira'
     | '/confirmar-corrida'
     | '/corridas'
+    | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
     | '/onboarding-motorista'
@@ -300,6 +310,7 @@ export interface FileRouteTypes {
     | '/carteira'
     | '/confirmar-corrida'
     | '/corridas'
+    | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
     | '/onboarding-motorista'
@@ -329,6 +340,7 @@ export interface FileRouteTypes {
     | '/carteira'
     | '/confirmar-corrida'
     | '/corridas'
+    | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
     | '/onboarding-motorista'
@@ -359,6 +371,7 @@ export interface RootRouteChildren {
   CarteiraRoute: typeof CarteiraRoute
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
   CorridasRoute: typeof CorridasRoute
+  GanhosMotoristaRoute: typeof GanhosMotoristaRoute
   HomeMotoristaRoute: typeof HomeMotoristaRoute
   MeusChamadosRoute: typeof MeusChamadosRoute
   OnboardingMotoristaRoute: typeof OnboardingMotoristaRoute
@@ -417,6 +430,13 @@ declare module '@tanstack/react-router' {
       path: '/corridas'
       fullPath: '/corridas'
       preLoaderRoute: typeof CorridasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ganhos-motorista': {
+      id: '/ganhos-motorista'
+      path: '/ganhos-motorista'
+      fullPath: '/ganhos-motorista'
+      preLoaderRoute: typeof GanhosMotoristaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home-motorista': {
@@ -598,6 +618,7 @@ const rootRouteChildren: RootRouteChildren = {
   CarteiraRoute: CarteiraRoute,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
   CorridasRoute: CorridasRoute,
+  GanhosMotoristaRoute: GanhosMotoristaRoute,
   HomeMotoristaRoute: HomeMotoristaRoute,
   MeusChamadosRoute: MeusChamadosRoute,
   OnboardingMotoristaRoute: OnboardingMotoristaRoute,
