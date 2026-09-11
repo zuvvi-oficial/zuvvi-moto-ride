@@ -46,11 +46,16 @@ const criarCupomSchema = z
     limiteUsoPorUsuario: z.number().int().positive().default(1),
     cidadeId: z.string().uuid().optional(),
     descricao: z.string().max(200).optional(),
+    validoDe: z.string().datetime().optional(),
     validoAte: z.string().datetime().optional(),
   })
   .refine((v) => v.tipoDesconto !== "percentual" || v.valor <= 100, {
     message: "Desconto percentual não pode passar de 100%.",
     path: ["valor"],
+  })
+  .refine((v) => !v.validoDe || !v.validoAte || v.validoAte > v.validoDe, {
+    message: "A validade final precisa ser depois do início.",
+    path: ["validoAte"],
   });
 
 export const criarCupomAdmin = createServerFn({ method: "POST" })
@@ -74,6 +79,7 @@ export const criarCupomAdmin = createServerFn({ method: "POST" })
         limite_uso_por_usuario: data.limiteUsoPorUsuario,
         cidade_id: data.cidadeId ?? null,
         descricao: data.descricao ?? null,
+        ...(data.validoDe ? { valido_de: data.validoDe } : {}),
         valido_ate: data.validoAte ?? null,
       })
       .select("id")
@@ -240,18 +246,22 @@ export const validarCupom = createServerFn({ method: "POST" })
     }
 
     if (c.limite_uso_total != null) {
-      const { count } = await supabaseAdmin
+      const { count, error: countError } = await supabaseAdmin
         .from("cupom_usos")
         .select("id", { count: "exact", head: true })
         .eq("cupom_id", c.id);
+      // Falha ao contar não pode virar "0 usos" — um cupom já esgotado
+      // seria reportado como válido. Falha fechado.
+      if (countError) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
       if ((count ?? 0) >= c.limite_uso_total) throw new Error("Este cupom atingiu o limite de usos.");
     }
 
-    const { count: usosDoUsuario } = await supabaseAdmin
+    const { count: usosDoUsuario, error: usosDoUsuarioError } = await supabaseAdmin
       .from("cupom_usos")
       .select("id", { count: "exact", head: true })
       .eq("cupom_id", c.id)
       .eq("usuario_id", usuario.id);
+    if (usosDoUsuarioError) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
     if ((usosDoUsuario ?? 0) >= c.limite_uso_por_usuario) {
       throw new Error("Você já usou este cupom o máximo de vezes permitido.");
     }
