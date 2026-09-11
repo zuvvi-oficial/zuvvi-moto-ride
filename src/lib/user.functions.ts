@@ -452,11 +452,17 @@ export const criarCorrida = createServerFn({ method: "POST" })
       // janela curta antes de virar oferta geral (getOfertasDisponiveis e
       // accept_corrida_atomic reforçam essa mesma janela).
       let favoritoEscolhidoId: string | null = null;
+      // Corrida já foi resolvida (aceita por outro motorista ou expirou) no
+      // intervalo entre a criação e a escolha do favorito — não há mais nada
+      // a notificar, nem para o favorito, nem em broadcast (achado do Codex
+      // no PR #64, P2: sem isso o UPDATE abaixo, sem filtro de status,
+      // sobrescreveria motorista_favorito_id numa corrida já aceita).
+      let corridaJaResolvida = false;
       try {
         const { data: favoritos } = await supabaseAdmin
           .from("motoristas_favoritos")
           .select(
-            "motorista_id, motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at, ultima_lat, ultima_lng, usuarios!inner(cidade_id))",
+            "motorista_id, motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at, ultima_lat, ultima_lng, usuarios!inner(cidade_id, auth_user_id))",
           )
           .eq("passageiro_id", usuario.id);
 
@@ -471,8 +477,49 @@ export const criarCorrida = createServerFn({ method: "POST" })
               new Date(m.ultima_localizacao_at) >= cincoMinutosAtras,
           );
 
+        // Achado do Codex no PR #64, P2: o filtro acima não bastava para
+        // garantir que o favorito escolhido de fato conseguiria ver/aceitar
+        // a oferta — precisa da mesma elegibilidade operacional completa
+        // (CNH, veículo, documentos) usada em aceitarCorrida, e de conexão
+        // Pix válida quando a corrida é Pix (mesmo filtro de
+        // getOfertasDisponiveis). Sem isso, um favorito inelegível travaria
+        // a janela toda sem ninguém poder aceitar.
+        const favoritosElegiveis: typeof favoritosDisponiveis = [];
         if (favoritosDisponiveis.length > 0) {
-          const comCoordenadas = favoritosDisponiveis.filter(
+          const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
+          let getPixStatus: typeof import("./pix-mercadopago-account.server").getPixMercadoPagoSecureConnectionStatus | null = null;
+          if (data.formaPagamento === "pix") {
+            ({ getPixMercadoPagoSecureConnectionStatus: getPixStatus } = await import(
+              "./pix-mercadopago-account.server"
+            ));
+          }
+
+          for (const candidato of favoritosDisponiveis) {
+            const authUserId = candidato.m?.usuarios?.auth_user_id as string | undefined;
+            if (!authUserId) continue;
+
+            try {
+              const elegibilidade = await evaluateMotoristaOperationalEligibility(supabaseAdmin, authUserId);
+              if (!elegibilidade.eligible) continue;
+            } catch {
+              continue;
+            }
+
+            if (getPixStatus) {
+              try {
+                const statusPix = await getPixStatus(supabaseAdmin as any, candidato.id);
+                if (!statusPix.conectado) continue;
+              } catch {
+                continue;
+              }
+            }
+
+            favoritosElegiveis.push(candidato);
+          }
+        }
+
+        if (favoritosElegiveis.length > 0) {
+          const comCoordenadas = favoritosElegiveis.filter(
             ({ m }: any) => Number.isFinite(m.ultima_lat) && Number.isFinite(m.ultima_lng),
           );
           const ordenados =
@@ -482,18 +529,31 @@ export const criarCorrida = createServerFn({ method: "POST" })
                     haversineMetros(data.origemLat, data.origemLng, a.m.ultima_lat, a.m.ultima_lng) -
                     haversineMetros(data.origemLat, data.origemLng, b.m.ultima_lat, b.m.ultima_lng),
                 )
-              : favoritosDisponiveis;
+              : favoritosElegiveis;
           const escolhido = ordenados[0] as { id: string };
 
-          const { error: prioridadeError } = await supabaseAdmin
+          // Achado do Codex no PR #64, P2: este UPDATE precisa dos mesmos
+          // filtros de status/motorista_id usados no resto do sistema — sem
+          // eles, se a corrida já tiver sido aceita por outro motorista
+          // (poll de 5s dele pode ter batido bem nesta janela), este UPDATE
+          // sobrescreveria a corrida já aceita com um motorista_favorito_id
+          // e notificaria o favorito sobre uma corrida que não existe mais.
+          const { data: prioridadeRows, error: prioridadeError } = await supabaseAdmin
             .from("corridas")
             .update({
               motorista_favorito_id: escolhido.id,
               prioridade_favorito_expira_em: new Date(Date.now() + FAVORITO_PRIORIDADE_JANELA_MS).toISOString(),
             } as any)
-            .eq("id", corridaId as string);
+            .eq("id", corridaId as string)
+            .eq("status", "solicitada")
+            .is("motorista_id", null)
+            .select("id");
 
-          if (!prioridadeError) {
+          if (prioridadeError) {
+            console.error("Erro ao gravar prioridade do motorista favorito:", prioridadeError);
+          } else if (!prioridadeRows || prioridadeRows.length === 0) {
+            corridaJaResolvida = true;
+          } else {
             favoritoEscolhidoId = escolhido.id;
             await criarNotificacao(supabaseAdmin, {
               usuario_id: escolhido.id,
@@ -511,8 +571,9 @@ export const criarCorrida = createServerFn({ method: "POST" })
       // Sem favorito disponível: broadcast normal para todos os elegíveis da
       // cidade, como sempre funcionou. Com favorito: só ele é avisado agora;
       // os demais passam a ver a corrida (via getOfertasDisponiveis) quando a
-      // janela de prioridade expirar.
-      if (!favoritoEscolhidoId) {
+      // janela de prioridade expirar. Se a corrida já foi resolvida enquanto
+      // escolhíamos o favorito, não há mais nada a notificar.
+      if (!favoritoEscolhidoId && !corridaJaResolvida) {
         const { data: candidatos } = await supabaseAdmin
           .from("usuarios")
           .select("id, motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at)")
