@@ -1,0 +1,42 @@
+name: Corridas agendadas — converter vencidas
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: corridas-agendadas-converter
+  cancel-in-progress: false
+
+jobs:
+  converter-vencidas:
+    name: Chamar endpoint de conversão de corridas agendadas vencidas
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Chamar endpoint interno protegido por segredo
+        env:
+          CORRIDAS_AGENDADAS_CRON_SECRET: ${{ secrets.CORRIDAS_AGENDADAS_CRON_SECRET }}
+          APP_BASE_URL: ${{ vars.PIX_APP_BASE_URL || 'https://zuvvi-moto-ride.lovable.app' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CORRIDAS_AGENDADAS_CRON_SECRET:-}" ]; then
+            echo "CORRIDAS_AGENDADAS_CRON_SECRET não configurado nos secrets do repositório. Pulando execução."
+            exit 1
+          fi
+
+          http_status=$(curl -sS -o /tmp/corridas-agendadas-converter-response.json -w "%{http_code}" \
+            -X POST "${APP_BASE_URL}/api/internal/corridas-agendadas-converter" \
+            -H "x-cron-secret: ${CORRIDAS_AGENDADAS_CRON_SECRET}" \
+            -H "content-type: application/json")
+
+          echo "HTTP status: ${http_status}"
+          cat /tmp/corridas-agendadas-converter-response.json || true
+
+          if [ "${http_status}" -ge 300 ]; then
+            exit 1
+          fi

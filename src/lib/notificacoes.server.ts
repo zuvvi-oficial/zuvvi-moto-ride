@@ -10,7 +10,9 @@ type TipoNotificacao =
   | "nova_oferta_corrida"
   | "documento_aprovado"
   | "documento_recusado"
-  | "motorista_aprovado";
+  | "motorista_aprovado"
+  | "corrida_agendada_convertida"
+  | "corrida_agendada_falhou";
 
 export async function criarNotificacao(
   supabase: SupabaseClient<any>,
