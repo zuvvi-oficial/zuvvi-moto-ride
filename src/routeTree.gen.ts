@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarteiraRouteImport } from './routes/carteira'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
 import { Route as CorridasRouteImport } from './routes/corridas'
+import { Route as CorridasAgendadasRouteImport } from './routes/corridas-agendadas'
 import { Route as GanhosMotoristaRouteImport } from './routes/ganhos-motorista'
 import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
 import { Route as MeusChamadosRouteImport } from './routes/meus-chamados'
@@ -67,6 +68,11 @@ const ConfirmarCorridaRoute = ConfirmarCorridaRouteImport.update({
 const CorridasRoute = CorridasRouteImport.update({
   id: '/corridas',
   path: '/corridas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CorridasAgendadasRoute = CorridasAgendadasRouteImport.update({
+  id: '/corridas-agendadas',
+  path: '/corridas-agendadas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GanhosMotoristaRoute = GanhosMotoristaRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
+  '/corridas-agendadas': typeof CorridasAgendadasRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
+  '/corridas-agendadas': typeof CorridasAgendadasRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
   '/corridas': typeof CorridasRoute
+  '/corridas-agendadas': typeof CorridasAgendadasRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
@@ -289,6 +298,7 @@ export interface FileRouteTypes {
     | '/carteira'
     | '/confirmar-corrida'
     | '/corridas'
+    | '/corridas-agendadas'
     | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/carteira'
     | '/confirmar-corrida'
     | '/corridas'
+    | '/corridas-agendadas'
     | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/carteira'
     | '/confirmar-corrida'
     | '/corridas'
+    | '/corridas-agendadas'
     | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
@@ -383,6 +395,7 @@ export interface RootRouteChildren {
   CarteiraRoute: typeof CarteiraRoute
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
   CorridasRoute: typeof CorridasRoute
+  CorridasAgendadasRoute: typeof CorridasAgendadasRoute
   GanhosMotoristaRoute: typeof GanhosMotoristaRoute
   HomeMotoristaRoute: typeof HomeMotoristaRoute
   MeusChamadosRoute: typeof MeusChamadosRoute
@@ -443,6 +456,13 @@ declare module '@tanstack/react-router' {
       path: '/corridas'
       fullPath: '/corridas'
       preLoaderRoute: typeof CorridasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/corridas-agendadas': {
+      id: '/corridas-agendadas'
+      path: '/corridas-agendadas'
+      fullPath: '/corridas-agendadas'
+      preLoaderRoute: typeof CorridasAgendadasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ganhos-motorista': {
@@ -638,6 +658,7 @@ const rootRouteChildren: RootRouteChildren = {
   CarteiraRoute: CarteiraRoute,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
   CorridasRoute: CorridasRoute,
+  CorridasAgendadasRoute: CorridasAgendadasRoute,
   GanhosMotoristaRoute: GanhosMotoristaRoute,
   HomeMotoristaRoute: HomeMotoristaRoute,
   MeusChamadosRoute: MeusChamadosRoute,

@@ -1,8 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getHistoricoCorridas } from "@/lib/historico.functions";
-import { Clock, MapPin, User, Calendar, CreditCard, Loader2 } from "lucide-react";
+import { Clock, MapPin, User, Calendar, CreditCard, Loader2, CalendarClock } from "lucide-react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,8 +58,15 @@ function HistoricoCorridas() {
     <div className="min-h-screen bg-zuvvi-indigo-dark text-foreground flex flex-col pb-28">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
-        <div className="max-w-md mx-auto flex items-center gap-4">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           <h1 className="text-xl font-bold tracking-tight">Minhas Corridas</h1>
+          <Link
+            to="/corridas-agendadas"
+            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zuvvi-volt"
+          >
+            <CalendarClock className="w-3.5 h-3.5" />
+            Agendadas
+          </Link>
         </div>
       </header>
 
