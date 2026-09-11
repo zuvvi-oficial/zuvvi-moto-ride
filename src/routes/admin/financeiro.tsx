@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
 import { getResumoFinanceiroAdmin, getCidadesOperacionaisAdmin, getCorridasFinanceiroAdmin } from '@/lib/financeiro.functions';
@@ -132,32 +132,25 @@ function formatarDataHoraNegocio(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 }
 
-// Etapa 4: exportação CSV, gerada no navegador a partir dos dados já
-// carregados na tela — sem endpoint novo, sem lógica de agregação nova.
-function exportarCSV(nomeArquivo: string, cabecalho: string[], linhas: (string | number)[][]) {
-  const escapar = (valor: string | number) => {
-    let texto = String(valor);
-    // Achado do Codex no PR #57: nome de passageiro/motorista é texto livre
-    // no cadastro, e um valor começando com =, +, - ou @ é interpretado
-    // como fórmula por planilhas (Excel/Sheets) ao abrir o CSV. Prefixar
-    // com aspas simples neutraliza sem alterar o valor exibido na célula.
-    if (/^[=+\-@]/.test(texto)) {
-      texto = `'${texto}`;
-    }
-    return /[",\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
-  };
-  // BOM (﻿) para o Excel reconhecer UTF-8 e não corromper acentos.
-  const conteudo = [cabecalho, ...linhas].map((linha) => linha.map(escapar).join(',')).join('\n');
-  const blob = new Blob(['﻿' + conteudo], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = nomeArquivo;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+function formatarDataBR(dataISO: string) {
+  const [ano, mes, dia] = dataISO.split('-');
+  return `${dia}/${mes}/${ano}`;
 }
+
+type DadosImpressao = {
+  titulo: string;
+  subtitulo: string;
+  colunas: string[];
+  linhas: (string | number)[][];
+  orientacao?: 'retrato' | 'paisagem';
+};
+
+// Etapa 4 (revisada a pedido do usuário: PDF em vez de CSV, mais legível
+// no celular e com cada valor identificado). Sem biblioteca nova: monta
+// uma folha de impressão só com o relatório (título, período e tabela
+// com colunas totalmente identificadas) e usa o diálogo nativo de
+// impressão do navegador — no celular, "Salvar como PDF" já é uma opção
+// padrão desse diálogo, sem precisar de nenhum backend novo.
 
 function FinanceiroAdmin() {
   const padrao = periodoPadrao();
@@ -168,6 +161,19 @@ function FinanceiroAdmin() {
   const getCidadesFn = useServerFn(getCidadesOperacionaisAdmin);
   const getCorridasFn = useServerFn(getCorridasFinanceiroAdmin);
   const [exportandoCorridas, setExportandoCorridas] = useState(false);
+  const [impressao, setImpressao] = useState<DadosImpressao | null>(null);
+
+  useEffect(() => {
+    if (!impressao) return;
+    const timer = setTimeout(() => window.print(), 80);
+    return () => clearTimeout(timer);
+  }, [impressao]);
+
+  useEffect(() => {
+    const limparAposImprimir = () => setImpressao(null);
+    window.addEventListener('afterprint', limparAposImprimir);
+    return () => window.removeEventListener('afterprint', limparAposImprimir);
+  }, []);
 
   const { data: cidades = [] } = useQuery({
     ...cidadesFiltroOptions,
@@ -201,33 +207,43 @@ function FinanceiroAdmin() {
 
   const drillTotalPaginas = Math.max(1, Math.ceil((drillResult?.total || 0) / DRILL_LIMITE));
 
-  function exportarPorCidadeCSV() {
-    exportarCSV(
-      `zuvvi-financeiro-por-cidade_${dataInicio}_${dataFim}.csv`,
-      ['Cidade', 'UF', 'Faturado', 'Comissao Zuvvi', 'Repasse Motoristas', 'Corridas'],
-      (resumo?.porCidade || []).map((c) => [
-        c.cidadeNome,
-        c.estadoUf,
-        c.totalFaturado.toFixed(2),
-        c.totalComissao.toFixed(2),
-        c.totalMotorista.toFixed(2),
-        c.qtdCorridas,
-      ]),
-    );
+  function periodoLabel() {
+    const cidadeLabel =
+      params.cidadeId && cidades.find((c: any) => c.id === params.cidadeId)
+        ? ` · Cidade: ${cidades.find((c: any) => c.id === params.cidadeId)?.nome}`
+        : ' · Todas as cidades';
+    return `Período: ${formatarDataBR(dataInicio)} a ${formatarDataBR(dataFim)}${cidadeLabel}`;
   }
 
-  function exportarPorMotoristaCSV() {
-    exportarCSV(
-      `zuvvi-financeiro-por-motorista_${dataInicio}_${dataFim}.csv`,
-      ['Motorista', 'Faturado', 'Comissao Zuvvi', 'Recebeu', 'Corridas'],
-      (resumo?.porMotorista || []).map((m) => [
+  function exportarPorCidadePDF() {
+    setImpressao({
+      titulo: 'Zuvvi — Resumo Financeiro por Cidade',
+      subtitulo: periodoLabel(),
+      colunas: ['Cidade', 'UF', 'Total Faturado', 'Comissão Zuvvi', 'Repasse aos Motoristas', 'Corridas Pagas'],
+      linhas: (resumo?.porCidade || []).map((c) => [
+        c.cidadeNome,
+        c.estadoUf,
+        formatarMoeda(c.totalFaturado),
+        formatarMoeda(c.totalComissao),
+        formatarMoeda(c.totalMotorista),
+        c.qtdCorridas,
+      ]),
+    });
+  }
+
+  function exportarPorMotoristaPDF() {
+    setImpressao({
+      titulo: 'Zuvvi — Resumo Financeiro por Motorista',
+      subtitulo: periodoLabel(),
+      colunas: ['Motorista', 'Total Faturado', 'Comissão Zuvvi', 'Valor Recebido pelo Motorista', 'Corridas Pagas'],
+      linhas: (resumo?.porMotorista || []).map((m) => [
         m.nome,
-        m.totalFaturado.toFixed(2),
-        m.totalComissao.toFixed(2),
-        m.totalMotorista.toFixed(2),
+        formatarMoeda(m.totalFaturado),
+        formatarMoeda(m.totalComissao),
+        formatarMoeda(m.totalMotorista),
         m.qtdCorridas,
       ]),
-    );
+    });
   }
 
   // Exporta TODAS as corridas do período/filtro atuais, não só a página
@@ -240,7 +256,7 @@ function FinanceiroAdmin() {
   // que a última já vista (dataFim vira um cursor decrescente), então
   // uma corrida nova entra sempre acima do cursor e não afeta o que já
   // foi capturado.
-  async function exportarCorridasCSV() {
+  async function exportarCorridasPDF() {
     setExportandoCorridas(true);
     try {
       const { dataInicio: inicioISO, dataFim: fimISO } = paraIntervaloISO(dataInicio, dataFim);
@@ -273,21 +289,33 @@ function FinanceiroAdmin() {
         return;
       }
 
-      exportarCSV(
-        `zuvvi-financeiro-corridas_${dataInicio}_${dataFim}.csv`,
-        ['Pago em', 'Passageiro', 'Motorista', 'Origem', 'Destino', 'Meio', 'Valor Total', 'Comissao', 'Valor Motorista'],
-        todas.map((c) => [
+      setImpressao({
+        titulo: 'Zuvvi — Detalhe de Corridas Pagas',
+        subtitulo: `${periodoLabel()} · ${todas.length} corrida(s)`,
+        orientacao: 'paisagem',
+        colunas: [
+          'Data e Hora do Pagamento',
+          'Passageiro',
+          'Motorista',
+          'Origem',
+          'Destino',
+          'Forma de Pagamento',
+          'Valor Total',
+          'Comissão Zuvvi',
+          'Valor do Motorista',
+        ],
+        linhas: todas.map((c) => [
           formatarDataHoraNegocio(c.pagoEm),
           c.passageiroNome,
           c.motoristaNome,
-          c.origemNome ?? '',
-          c.destinoNome ?? '',
+          c.origemNome ?? '—',
+          c.destinoNome ?? '—',
           c.meio,
-          c.valorTotal.toFixed(2),
-          c.valorComissao.toFixed(2),
-          c.valorMotorista.toFixed(2),
+          formatarMoeda(c.valorTotal),
+          formatarMoeda(c.valorComissao),
+          formatarMoeda(c.valorMotorista),
         ]),
-      );
+      });
     } catch (e) {
       console.error('Erro ao exportar corridas:', e);
       toast.error('Erro ao exportar corridas.');
@@ -311,7 +339,7 @@ function FinanceiroAdmin() {
             size="sm"
             variant="outline"
             className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10"
-            onClick={exportarCorridasCSV}
+            onClick={exportarCorridasPDF}
             disabled={exportandoCorridas}
           >
             {exportandoCorridas ? (
@@ -319,7 +347,7 @@ function FinanceiroAdmin() {
             ) : (
               <Download className="w-4 h-4 mr-2" />
             )}
-            Exportar corridas (CSV)
+            Exportar corridas (PDF)
           </Button>
         </div>
 
@@ -419,11 +447,11 @@ function FinanceiroAdmin() {
                   size="sm"
                   variant="outline"
                   className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8"
-                  onClick={exportarPorCidadeCSV}
+                  onClick={exportarPorCidadePDF}
                   disabled={(resumo?.porCidade || []).length === 0}
                 >
                   <Download className="w-3.5 h-3.5 mr-2" />
-                  Exportar CSV
+                  Exportar PDF
                 </Button>
               </div>
               <div className="hidden md:block rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-x-auto">
@@ -529,11 +557,11 @@ function FinanceiroAdmin() {
                   size="sm"
                   variant="outline"
                   className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8"
-                  onClick={exportarPorMotoristaCSV}
+                  onClick={exportarPorMotoristaPDF}
                   disabled={(resumo?.porMotorista || []).length === 0}
                 >
                   <Download className="w-3.5 h-3.5 mr-2" />
-                  Exportar CSV
+                  Exportar PDF
                 </Button>
               </div>
               <div className="hidden md:block rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-x-auto">
@@ -717,6 +745,52 @@ function FinanceiroAdmin() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Só existe enquanto uma exportação está pendente; some sozinha
+          quando o diálogo de impressão fecha (evento afterprint). */}
+      {impressao && (
+        <div
+          id="zuvvi-impressao"
+          className="hidden print:block fixed inset-0 bg-white text-black p-8"
+        >
+          <h1 className="text-xl font-bold mb-1">{impressao.titulo}</h1>
+          <p className="text-sm mb-1">{impressao.subtitulo}</p>
+          <p className="text-xs text-gray-500 mb-4">
+            Gerado em {new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (horário de Brasília)
+          </p>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr>
+                {impressao.colunas.map((coluna) => (
+                  <th key={coluna} className="border border-gray-300 bg-gray-100 text-left p-2 font-bold">
+                    {coluna}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {impressao.linhas.map((linha, i) => (
+                <tr key={i}>
+                  {linha.map((valor, j) => (
+                    <td key={j} className="border border-gray-300 p-2">
+                      {valor}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          @page { size: ${impressao?.orientacao === 'paisagem' ? 'landscape' : 'portrait'}; margin: 16mm; }
+          body * { visibility: hidden; }
+          #zuvvi-impressao, #zuvvi-impressao * { visibility: visible; }
+          #zuvvi-impressao { position: absolute; top: 0; left: 0; width: 100%; }
+        }
+      `}</style>
     </div>
   );
 }
