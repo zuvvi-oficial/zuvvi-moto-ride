@@ -27,9 +27,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Wallet, Percent, Banknote, Receipt, MapPin, Users, Loader2, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wallet, Percent, Banknote, Receipt, MapPin, Users, Loader2, Eye, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
+import { toast } from 'sonner';
 
 function toLocalDateInputValue(date: Date) {
   const ano = date.getFullYear();
@@ -122,6 +123,26 @@ function formatarMoeda(valor: number) {
   return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 }
 
+// Etapa 4: exportação CSV, gerada no navegador a partir dos dados já
+// carregados na tela — sem endpoint novo, sem lógica de agregação nova.
+function exportarCSV(nomeArquivo: string, cabecalho: string[], linhas: (string | number)[][]) {
+  const escapar = (valor: string | number) => {
+    const texto = String(valor);
+    return /[",\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
+  };
+  // BOM (﻿) para o Excel reconhecer UTF-8 e não corromper acentos.
+  const conteudo = [cabecalho, ...linhas].map((linha) => linha.map(escapar).join(',')).join('\n');
+  const blob = new Blob(['﻿' + conteudo], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 function FinanceiroAdmin() {
   const padrao = periodoPadrao();
   const [dataInicio, setDataInicio] = useState(padrao.dataInicio);
@@ -129,6 +150,8 @@ function FinanceiroAdmin() {
   const [cidadeId, setCidadeId] = useState<string | undefined>(undefined);
 
   const getCidadesFn = useServerFn(getCidadesOperacionaisAdmin);
+  const getCorridasFn = useServerFn(getCorridasFinanceiroAdmin);
+  const [exportandoCorridas, setExportandoCorridas] = useState(false);
 
   const { data: cidades = [] } = useQuery({
     ...cidadesFiltroOptions,
@@ -162,17 +185,115 @@ function FinanceiroAdmin() {
 
   const drillTotalPaginas = Math.max(1, Math.ceil((drillResult?.total || 0) / DRILL_LIMITE));
 
+  function exportarPorCidadeCSV() {
+    exportarCSV(
+      `zuvvi-financeiro-por-cidade_${dataInicio}_${dataFim}.csv`,
+      ['Cidade', 'UF', 'Faturado', 'Comissao Zuvvi', 'Repasse Motoristas', 'Corridas'],
+      (resumo?.porCidade || []).map((c) => [
+        c.cidadeNome,
+        c.estadoUf,
+        c.totalFaturado.toFixed(2),
+        c.totalComissao.toFixed(2),
+        c.totalMotorista.toFixed(2),
+        c.qtdCorridas,
+      ]),
+    );
+  }
+
+  function exportarPorMotoristaCSV() {
+    exportarCSV(
+      `zuvvi-financeiro-por-motorista_${dataInicio}_${dataFim}.csv`,
+      ['Motorista', 'Faturado', 'Comissao Zuvvi', 'Recebeu', 'Corridas'],
+      (resumo?.porMotorista || []).map((m) => [
+        m.nome,
+        m.totalFaturado.toFixed(2),
+        m.totalComissao.toFixed(2),
+        m.totalMotorista.toFixed(2),
+        m.qtdCorridas,
+      ]),
+    );
+  }
+
+  // Exporta TODAS as corridas do período/filtro atuais, não só a página
+  // aberta no modal de drill-down — busca em páginas até a última vir
+  // mais curta que o tamanho pedido (mesmo padrão de fim-de-resultados
+  // já usado no resumo da Etapa 1).
+  async function exportarCorridasCSV() {
+    setExportandoCorridas(true);
+    try {
+      const { dataInicio: inicioISO, dataFim: fimISO } = paraIntervaloISO(dataInicio, dataFim);
+      const TAMANHO_PAGINA = 200;
+      const todas: NonNullable<typeof drillResult>['corridas'] = [];
+      let pagina = 0;
+      for (;;) {
+        const resultado = await getCorridasFn({
+          data: {
+            dataInicio: inicioISO,
+            dataFim: fimISO,
+            cidadeId: params.cidadeId,
+            motoristaId: undefined,
+            pagina,
+            limite: TAMANHO_PAGINA,
+          },
+        });
+        todas.push(...resultado.corridas);
+        if (resultado.corridas.length < TAMANHO_PAGINA) break;
+        pagina += 1;
+      }
+
+      if (todas.length === 0) {
+        toast.info('Nenhuma corrida encontrada no período selecionado.');
+        return;
+      }
+
+      exportarCSV(
+        `zuvvi-financeiro-corridas_${dataInicio}_${dataFim}.csv`,
+        ['Pago em', 'Passageiro', 'Motorista', 'Origem', 'Destino', 'Meio', 'Valor Total', 'Comissao', 'Valor Motorista'],
+        todas.map((c) => [
+          new Date(c.pagoEm).toLocaleString('pt-BR'),
+          c.passageiroNome,
+          c.motoristaNome,
+          c.origemNome ?? '',
+          c.destinoNome ?? '',
+          c.meio,
+          c.valorTotal.toFixed(2),
+          c.valorComissao.toFixed(2),
+          c.valorMotorista.toFixed(2),
+        ]),
+      );
+    } catch (e) {
+      console.error('Erro ao exportar corridas:', e);
+      toast.error('Erro ao exportar corridas.');
+    } finally {
+      setExportandoCorridas(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
       <AdminHeader />
       <AdminBottomNav />
 
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24 md:pb-6">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center gap-3 flex-wrap">
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Wallet className="w-8 h-8 text-volt" />
             Controle Financeiro
           </h1>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10"
+            onClick={exportarCorridasCSV}
+            disabled={exportandoCorridas}
+          >
+            {exportandoCorridas ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            Exportar corridas (CSV)
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
@@ -262,10 +383,22 @@ function FinanceiroAdmin() {
             </div>
 
             <div className="space-y-3">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-volt" />
-                Por Cidade
-              </h2>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-volt" />
+                  Por Cidade
+                </h2>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8"
+                  onClick={exportarPorCidadeCSV}
+                  disabled={(resumo?.porCidade || []).length === 0}
+                >
+                  <Download className="w-3.5 h-3.5 mr-2" />
+                  Exportar CSV
+                </Button>
+              </div>
               <div className="rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-white/5">
@@ -316,10 +449,22 @@ function FinanceiroAdmin() {
             </div>
 
             <div className="space-y-3">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <Users className="w-5 h-5 text-volt" />
-                Por Motorista
-              </h2>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Users className="w-5 h-5 text-volt" />
+                  Por Motorista
+                </h2>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8"
+                  onClick={exportarPorMotoristaCSV}
+                  disabled={(resumo?.porMotorista || []).length === 0}
+                >
+                  <Download className="w-3.5 h-3.5 mr-2" />
+                  Exportar CSV
+                </Button>
+              </div>
               <div className="rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-white/5">
