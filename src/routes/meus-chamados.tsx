@@ -16,12 +16,18 @@ import {
 export const Route = createFileRoute("/meus-chamados")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
-    const canAccess =
-      dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
+    // A Central de Ajuda é a mesma para os dois papéis (criarChamadoSuporte e
+    // as funções de "meus chamados" só filtram pelo usuário autenticado, sem
+    // distinguir passageiro/motorista) — só o link de "voltar" muda.
+    const ehPassageiro = dest.isPassageiro === true && dest.redirectTo === "/";
+    const ehMotorista = dest.isMotorista === true && dest.redirectTo === "/home-motorista";
+    const canAccess = !dest.isAdmin && (ehPassageiro || ehMotorista);
 
     if (!canAccess) {
       throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
     }
+
+    return { voltarPara: (ehMotorista ? "/perfil-motorista" : "/perfil") as "/perfil" | "/perfil-motorista" };
   },
   head: () => ({
     meta: [
@@ -67,6 +73,7 @@ function formatarData(value: string) {
 }
 
 function MeusChamados() {
+  const { voltarPara } = Route.useLoaderData();
   const [chamadoAberto, setChamadoAberto] = useState<string | null>(null);
   const listarFn = useServerFn(getMeusChamados);
 
@@ -76,7 +83,9 @@ function MeusChamados() {
   });
 
   if (chamadoAberto) {
-    return <DetalheChamadoPassageiro chamadoId={chamadoAberto} onVoltar={() => setChamadoAberto(null)} />;
+    return (
+      <DetalheChamadoPassageiro chamadoId={chamadoAberto} onVoltar={() => setChamadoAberto(null)} />
+    );
   }
 
   return (
@@ -84,7 +93,7 @@ function MeusChamados() {
       <header className="sticky top-0 z-50 bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
         <div className="max-w-md mx-auto flex items-center gap-4">
           <Link
-            to="/perfil"
+            to={voltarPara}
             className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-colors hover:bg-white/10"
           >
             <ChevronLeft className="w-6 h-6 text-zuvvi-volt" />
@@ -110,7 +119,7 @@ function MeusChamados() {
               </p>
             </div>
             <Link
-              to="/perfil"
+              to={voltarPara}
               className="inline-flex items-center gap-2 text-sm font-bold text-zuvvi-volt hover:underline"
             >
               Abrir um chamado
