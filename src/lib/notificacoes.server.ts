@@ -14,7 +14,8 @@ type TipoNotificacao =
   | "corrida_agendada_convertida"
   | "corrida_agendada_falhou"
   | "corrida_agendada_lembrete"
-  | "gorjeta_recebida";
+  | "gorjeta_recebida"
+  | "cupom_indicacao_recebido";
 
 export async function criarNotificacao(
   supabase: SupabaseClient<any>,

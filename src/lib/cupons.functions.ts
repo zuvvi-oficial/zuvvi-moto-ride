@@ -35,6 +35,48 @@ const codigoSchema = z
   .max(40, "O código pode ter no máximo 40 caracteres.")
   .regex(/^[A-Za-z0-9_-]+$/u, "Use apenas letras, números, hífen ou underline.");
 
+// Cupom gerado automaticamente pelo próprio sistema (não por um admin) —
+// hoje usado pelo programa de indicação (auth.functions.ts), e desenhado
+// pra também servir fidelidade/cashback no futuro: a recompensa é só "criar
+// um cupom" reaproveitando toda a validação/limite/teto de comissão que já
+// existe, sem nenhuma lógica financeira nova. Sempre único por gerador
+// (codigo já vem pronto do chamador) e sem log de auditoria de admin, já
+// que não foi um admin que decidiu criar este cupom.
+export async function criarCupomAutomatico(
+  supabaseAdmin: any,
+  params: {
+    codigo: string;
+    tipoDesconto: "percentual" | "fixo";
+    valor: number;
+    limiteUsoTotal?: number;
+    descricao?: string;
+    validoAte?: string;
+    // Restringe o resgate a um único usuário — essencial pra cupons de
+    // recompensa individual (boas-vindas, indicação), onde o código pode
+    // vazar (notificação, print, mensagem) antes do dono de verdade usá-lo.
+    // Sem isso, quem visse o código primeiro consumia a única unidade.
+    usuarioRestritoId?: string;
+  },
+): Promise<{ id: string }> {
+  const { data: cupom, error } = await supabaseAdmin
+    .from("cupons")
+    .insert({
+      codigo: normalizarCodigo(params.codigo),
+      tipo_desconto: params.tipoDesconto,
+      valor: params.valor,
+      limite_uso_total: params.limiteUsoTotal ?? 1,
+      limite_uso_por_usuario: 1,
+      descricao: params.descricao ?? null,
+      valido_ate: params.validoAte ?? null,
+      usuario_restrito_id: params.usuarioRestritoId ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error("Não foi possível gerar o cupom automático.");
+  return { id: cupom.id as string };
+}
+
 const criarCupomSchema = z
   .object({
     codigo: codigoSchema,
@@ -189,6 +231,7 @@ type CupomElegibilidade = Readonly<{
   ativo: boolean;
   valido_de: string;
   valido_ate: string | null;
+  usuario_restrito_id: string | null;
 }>;
 
 function calcularValorDesconto(cupom: CupomElegibilidade, valorCorrida: number): number {
@@ -218,7 +261,7 @@ export async function avaliarCupomParaCorrida(
   const { data: cupom, error: cupomError } = await supabaseAdmin
     .from("cupons")
     .select(
-      "id, codigo, tipo_desconto, valor, valor_maximo_desconto, valor_minimo_corrida, limite_uso_total, limite_uso_por_usuario, cidade_id, ativo, valido_de, valido_ate",
+      "id, codigo, tipo_desconto, valor, valor_maximo_desconto, valor_minimo_corrida, limite_uso_total, limite_uso_por_usuario, cidade_id, ativo, valido_de, valido_ate, usuario_restrito_id",
     )
     .eq("codigo", codigo)
     .maybeSingle();
@@ -227,6 +270,10 @@ export async function avaliarCupomParaCorrida(
   const c = cupom as unknown as CupomElegibilidade;
 
   if (!c.ativo) throw new Error("Este cupom não está mais ativo.");
+
+  if (c.usuario_restrito_id && c.usuario_restrito_id !== params.usuarioId) {
+    throw new Error("Este cupom não é válido para você.");
+  }
 
   const agora = Date.now();
   if (Date.parse(c.valido_de) > agora) throw new Error("Este cupom ainda não está disponível.");
