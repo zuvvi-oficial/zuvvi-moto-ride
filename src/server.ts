@@ -10,6 +10,10 @@ import {
   handlePixReconciliacaoPendentesRequest,
   isPixReconciliacaoPendentesRequest,
 } from "./lib/pix-reconciliacao-pendentes-endpoint.server";
+import {
+  handleCorridasAgendadasConverterRequest,
+  isCorridasAgendadasConverterRequest,
+} from "./lib/corridas-agendadas-converter-endpoint.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -61,6 +65,10 @@ export default {
 
       if (isPixReconciliacaoPendentesRequest(request)) {
         return await handlePixReconciliacaoPendentesRequest(request);
+      }
+
+      if (isCorridasAgendadasConverterRequest(request)) {
+        return await handleCorridasAgendadasConverterRequest(request);
       }
 
       const handler = await getServerEntry();

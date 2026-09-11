@@ -235,6 +235,83 @@ const cotarCorridaSchema = z.object({
   destinoLng: z.number()
 });
 
+// Núcleo de cotarCorrida, sem a assinatura HMAC (que só faz sentido pra
+// proteger uma cotação que vai e volta pelo cliente). Reaproveitado pelo
+// motor de corrida agendada (corridas-agendadas-engine.server.ts), que
+// precisa recalcular o preço na hora da conversão — nunca usar um preço
+// "congelado" de quando o agendamento foi criado.
+export async function cotarCorridaCore(
+  supabaseAdmin: any,
+  authUserId: string,
+  params: { origemLat: number; origemLng: number; destinoLat: number; destinoLng: number },
+) {
+  const originAvailability = await resolveOriginAvailability(
+    supabaseAdmin,
+    authUserId,
+    { lat: params.origemLat, lng: params.origemLng },
+  );
+
+  if (!originAvailability.isAvailable) {
+    if (originAvailability.reason === "outside_registered_city") {
+      throw new Error("A origem selecionada está fora da sua cidade de operação.");
+    }
+    if (originAvailability.reason === "city_unavailable") {
+      throw new Error("O Zuvvi ainda não opera na sua cidade.");
+    }
+    throw new Error("Não foi possível confirmar a cidade da origem. Tente novamente.");
+  }
+
+  // 1. Obter tarifas da cidade do usuário
+  const { data: usuario } = await supabaseAdmin
+    .from("usuarios")
+    .select("cidade_id")
+    .eq("auth_user_id", authUserId)
+    .single();
+
+  if (!usuario?.cidade_id) throw new Error("Cidade não identificada.");
+
+  const { data: cidade } = await supabaseAdmin
+    .from("cidades")
+    .select("bandeirada, valor_km, valor_min, tarifa_minima")
+    .eq("id", usuario.cidade_id)
+    .single();
+
+  if (!cidade) throw new Error("Tarifas não encontradas.");
+
+  // 2. Calcular rota oficial via Mapbox
+  const token = process.env['MAPBOX_TOKEN'];
+  if (!token) throw new Error("Serviço de rotas indisponível.");
+
+  const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${params.origemLng},${params.origemLat};${params.destinoLng},${params.destinoLat}?geometries=geojson&access_token=${token}`;
+
+  const resp = await fetch(directionsUrl);
+  const routeData = await resp.json();
+  if (routeData.code !== 'Ok' || !routeData.routes?.[0]) {
+    throw new Error("Não foi possível calcular o trajeto.");
+  }
+  const route = routeData.routes[0];
+
+  // 3. Calcular valor oficial
+  const distanceKm = route.distance / 1000;
+  const durationMin = route.duration / 60;
+  let valor = Number(cidade.bandeirada) + (distanceKm * Number(cidade.valor_km)) + (durationMin * Number(cidade.valor_min));
+  if (valor < Number(cidade.tarifa_minima)) valor = Number(cidade.tarifa_minima);
+  valor = Math.round(valor * 100) / 100;
+
+  return {
+    distanceKm,
+    durationMin,
+    valor,
+    tarifas: {
+      bandeirada: Number(cidade.bandeirada),
+      valorKm: Number(cidade.valor_km),
+      valorMin: Number(cidade.valor_min),
+      tarifaMinima: Number(cidade.tarifa_minima),
+    },
+    geometry: route.geometry,
+  };
+}
+
 export const cotarCorrida = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => cotarCorridaSchema.parse(data))
@@ -242,79 +319,25 @@ export const cotarCorrida = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const crypto = await import("crypto");
 
-    const originAvailability = await resolveOriginAvailability(
-      supabaseAdmin,
-      context.userId,
-      { lat: data.origemLat, lng: data.origemLng },
-    );
+    const cotacao = await cotarCorridaCore(supabaseAdmin, context.userId, data);
 
-    if (!originAvailability.isAvailable) {
-      if (originAvailability.reason === "outside_registered_city") {
-        throw new Error("A origem selecionada está fora da sua cidade de operação.");
-      }
-      if (originAvailability.reason === "city_unavailable") {
-        throw new Error("O Zuvvi ainda não opera na sua cidade.");
-      }
-      throw new Error("Não foi possível confirmar a cidade da origem. Tente novamente.");
-    }
-
-    // 1. Obter tarifas da cidade do usuário
-    const { data: usuario } = await supabaseAdmin
-      .from("usuarios")
-      .select("cidade_id")
-      .eq("auth_user_id", context.userId)
-      .single();
-
-    if (!usuario?.cidade_id) throw new Error("Cidade não identificada.");
-
-    const { data: cidade } = await supabaseAdmin
-      .from("cidades")
-      .select("bandeirada, valor_km, valor_min, tarifa_minima")
-      .eq("id", usuario.cidade_id)
-      .single();
-
-    if (!cidade) throw new Error("Tarifas não encontradas.");
-
-    // 2. Calcular rota oficial via Mapbox
-    const token = process.env['MAPBOX_TOKEN'];
-    if (!token) throw new Error("Serviço de rotas indisponível.");
-
-    const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${data.origemLng},${data.origemLat};${data.destinoLng},${data.destinoLat}?geometries=geojson&access_token=${token}`;
-    
-    const resp = await fetch(directionsUrl);
-    const routeData = await resp.json();
-    if (routeData.code !== 'Ok' || !routeData.routes?.[0]) {
-      throw new Error("Não foi possível calcular o trajeto.");
-    }
-    const route = routeData.routes[0];
-
-    // 3. Calcular valor oficial
-    const distanceKm = route.distance / 1000;
-    const durationMin = route.duration / 60;
-    let valor = Number(cidade.bandeirada) + (distanceKm * Number(cidade.valor_km)) + (durationMin * Number(cidade.valor_min));
-    if (valor < Number(cidade.tarifa_minima)) valor = Number(cidade.tarifa_minima);
-    valor = Math.round(valor * 100) / 100;
-
-    // 4. Gerar Assinatura da Cotação (Anti-Tampering)
+    // Gerar Assinatura da Cotação (Anti-Tampering)
     // Validade implícita: a cotação deve bater com os dados da corrida.
     // Distância/duração/tarifa entram na assinatura para que a corrida possa
     // gravar exatamente o que foi cotado (G3), sem confiar em valores soltos
     // que o cliente poderia reenviar adulterados.
-    const bandeirada = Number(cidade.bandeirada);
-    const valorKm = Number(cidade.valor_km);
-    const valorMin = Number(cidade.valor_min);
-    const tarifaMinima = Number(cidade.tarifa_minima);
-    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${valor}:${distanceKm}:${durationMin}:${bandeirada}:${valorKm}:${valorMin}:${tarifaMinima}`;
+    const { bandeirada, valorKm, valorMin, tarifaMinima } = cotacao.tarifas;
+    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${cotacao.valor}:${cotacao.distanceKm}:${cotacao.durationMin}:${bandeirada}:${valorKm}:${valorMin}:${tarifaMinima}`;
     const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
     const signature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
     return {
-      distance: distanceKm,
-      duration: durationMin,
-      valor,
-      tarifas: { bandeirada, valorKm, valorMin, tarifaMinima },
+      distance: cotacao.distanceKm,
+      duration: cotacao.durationMin,
+      valor: cotacao.valor,
+      tarifas: cotacao.tarifas,
       signature,
-      geometry: route.geometry
+      geometry: cotacao.geometry
     };
   });
 
@@ -336,28 +359,20 @@ const createRideSchema = z.object({
   assinaturaCotacao: z.string()
 });
 
-export const criarCorrida = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => createRideSchema.parse(data))
-  .handler(async ({ context, data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+// Núcleo de criarCorrida, sem a validação de assinatura HMAC (que só faz
+// sentido pra proteger uma cotação que passou pelo cliente). Reaproveitado
+// pelo motor de corrida agendada, que cota e cria a corrida na mesma
+// chamada server-side — não há cliente nem round-trip a proteger contra
+// adulteração ali.
+export type CriarCorridaCoreParams = Omit<z.infer<typeof createRideSchema>, "assinaturaCotacao">;
+
+export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, data: CriarCorridaCoreParams) {
     const crypto = await import("crypto");
-    const userId = context.userId;
-
-    // 1. Validar Assinatura da Cotação (mesmo payload assinado em cotarCorrida,
-    // incluindo distância/duração/tarifa para gravar exatamente o que foi cotado — G3).
-    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${data.valorCotado}:${data.distanciaKm}:${data.duracaoMin}:${data.tarifaBandeirada}:${data.tarifaValorKm}:${data.tarifaValorMin}:${data.tarifaMinima}`;
-    const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
-    const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-
-    if (data.assinaturaCotacao !== expectedSignature) {
-      throw new Error("Cotação inválida ou expirada. Recalcule o valor da corrida.");
-    }
 
     const { data: usuario } = await supabaseAdmin
       .from("usuarios")
       .select("id, cidade_id")
-      .eq("auth_user_id", userId)
+      .eq("auth_user_id", authUserId)
       .single();
 
     if (!usuario) throw new Error("Usuário não encontrado.");
@@ -607,6 +622,26 @@ export const criarCorrida = createServerFn({ method: "POST" })
     }
 
     return { success: true, rideId: corridaId as string };
+}
+
+export const criarCorrida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => createRideSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const crypto = await import("crypto");
+
+    // Validar Assinatura da Cotação (mesmo payload assinado em cotarCorrida,
+    // incluindo distância/duração/tarifa para gravar exatamente o que foi cotado — G3).
+    const payload = `${data.origemLat}:${data.origemLng}:${data.destinoLat}:${data.destinoLng}:${data.valorCotado}:${data.distanciaKm}:${data.duracaoMin}:${data.tarifaBandeirada}:${data.tarifaValorKm}:${data.tarifaValorMin}:${data.tarifaMinima}`;
+    const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'] || 'zuvvi-internal';
+    const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+
+    if (data.assinaturaCotacao !== expectedSignature) {
+      throw new Error("Cotação inválida ou expirada. Recalcule o valor da corrida.");
+    }
+
+    return criarCorridaCore(supabaseAdmin, context.userId, data);
   });
 
 export const getCorrida = createServerFn({ method: "GET" })
