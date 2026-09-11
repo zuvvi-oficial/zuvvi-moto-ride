@@ -747,20 +747,3 @@ export async function criarCobrancaPixAposAceiteServer(
 
   return { paymentId: mpPaymentId, qrCode, qrCodeBase64, ticketUrl };
 }
-
-// Mantém a Server Function existente disponível, agora sempre validando que o chamador
-// é o motorista atribuído à corrida. Nenhum token geral da plataforma é utilizado.
-export async function criarCobrancaPixServer(
-  rideId: string,
-  authUserId: string,
-): Promise<PixChargeResult> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: usuario, error } = await supabaseAdmin
-    .from("usuarios")
-    .select("id, is_motorista")
-    .eq("auth_user_id", authUserId)
-    .maybeSingle();
-
-  if (error || !usuario || !usuario.is_motorista) throw new Error(INVALID_ACCOUNT_ERROR);
-  return criarCobrancaPixAposAceiteServer(rideId, usuario.id);
-}
