@@ -51,6 +51,11 @@ export async function criarCupomAutomatico(
     limiteUsoTotal?: number;
     descricao?: string;
     validoAte?: string;
+    // Restringe o resgate a um único usuário — essencial pra cupons de
+    // recompensa individual (boas-vindas, indicação), onde o código pode
+    // vazar (notificação, print, mensagem) antes do dono de verdade usá-lo.
+    // Sem isso, quem visse o código primeiro consumia a única unidade.
+    usuarioRestritoId?: string;
   },
 ): Promise<{ id: string }> {
   const { data: cupom, error } = await supabaseAdmin
@@ -63,6 +68,7 @@ export async function criarCupomAutomatico(
       limite_uso_por_usuario: 1,
       descricao: params.descricao ?? null,
       valido_ate: params.validoAte ?? null,
+      usuario_restrito_id: params.usuarioRestritoId ?? null,
     })
     .select("id")
     .single();
@@ -225,6 +231,7 @@ type CupomElegibilidade = Readonly<{
   ativo: boolean;
   valido_de: string;
   valido_ate: string | null;
+  usuario_restrito_id: string | null;
 }>;
 
 function calcularValorDesconto(cupom: CupomElegibilidade, valorCorrida: number): number {
@@ -254,7 +261,7 @@ export async function avaliarCupomParaCorrida(
   const { data: cupom, error: cupomError } = await supabaseAdmin
     .from("cupons")
     .select(
-      "id, codigo, tipo_desconto, valor, valor_maximo_desconto, valor_minimo_corrida, limite_uso_total, limite_uso_por_usuario, cidade_id, ativo, valido_de, valido_ate",
+      "id, codigo, tipo_desconto, valor, valor_maximo_desconto, valor_minimo_corrida, limite_uso_total, limite_uso_por_usuario, cidade_id, ativo, valido_de, valido_ate, usuario_restrito_id",
     )
     .eq("codigo", codigo)
     .maybeSingle();
@@ -263,6 +270,10 @@ export async function avaliarCupomParaCorrida(
   const c = cupom as unknown as CupomElegibilidade;
 
   if (!c.ativo) throw new Error("Este cupom não está mais ativo.");
+
+  if (c.usuario_restrito_id && c.usuario_restrito_id !== params.usuarioId) {
+    throw new Error("Este cupom não é válido para você.");
+  }
 
   const agora = Date.now();
   if (Date.parse(c.valido_de) > agora) throw new Error("Este cupom ainda não está disponível.");

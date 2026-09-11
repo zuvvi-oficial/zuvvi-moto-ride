@@ -63,8 +63,16 @@ export async function resolveDestinationInternal(userId: string) {
       console.error("[AuthInternal] Erro ao criar registro inicial:", insertError);
       return { redirectTo: "/auth/login", error: "Erro na sincronização de perfil. Tente novamente." };
     }
-    
+
     userRecord = newUser;
+
+    // Best-effort: este é o segundo (e último) caminho que cria uma linha
+    // em usuarios — o cadastro via Google não passa por auth.functions.ts.
+    // Sem isso, quem se cadastra pelo Google nunca ganha um código pra
+    // indicar amigos (achado do Codex no PR #81).
+    const { atribuirCodigoIndicacao } = await import("./auth.functions");
+    const crypto = await import("crypto");
+    await atribuirCodigoIndicacao(supabaseAdmin, crypto, newUser.id);
   }
 
   const isRegistrationComplete = !!(

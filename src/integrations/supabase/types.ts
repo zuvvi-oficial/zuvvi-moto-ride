@@ -630,6 +630,7 @@ export type Database = {
           limite_uso_total: number | null
           tipo_desconto: Database["public"]["Enums"]["cupom_tipo_desconto"]
           updated_at: string
+          usuario_restrito_id: string | null
           valido_ate: string | null
           valido_de: string
           valor: number
@@ -647,6 +648,7 @@ export type Database = {
           limite_uso_total?: number | null
           tipo_desconto: Database["public"]["Enums"]["cupom_tipo_desconto"]
           updated_at?: string
+          usuario_restrito_id?: string | null
           valido_ate?: string | null
           valido_de?: string
           valor: number
@@ -664,6 +666,7 @@ export type Database = {
           limite_uso_total?: number | null
           tipo_desconto?: Database["public"]["Enums"]["cupom_tipo_desconto"]
           updated_at?: string
+          usuario_restrito_id?: string | null
           valido_ate?: string | null
           valido_de?: string
           valor?: number
@@ -676,6 +679,13 @@ export type Database = {
             columns: ["cidade_id"]
             isOneToOne: false
             referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cupons_usuario_restrito_id_fkey"
+            columns: ["usuario_restrito_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]

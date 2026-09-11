@@ -34,7 +34,7 @@ function gerarCodigoIndicacao(crypto: typeof import("crypto")): string {
   return codigo;
 }
 
-async function atribuirCodigoIndicacao(
+export async function atribuirCodigoIndicacao(
   supabaseAdmin: any,
   crypto: typeof import("crypto"),
   usuarioId: string,
@@ -81,6 +81,7 @@ async function processarCodigoIndicacaoUsado(
       valor: BOAS_VINDAS_INDICACAO_VALOR,
       descricao: "Boas-vindas — programa de indicação",
       validoAte,
+      usuarioRestritoId: novoUsuarioId,
     });
 
     const { data: indicacao, error: indicacaoError } = await supabaseAdmin
