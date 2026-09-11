@@ -2,13 +2,19 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 const source = readFileSync("src/lib/user.functions.ts", "utf8");
-const start = source.indexOf("export const criarCorrida");
-const end = source.indexOf("export const getCorrida", start);
+// criarCorrida delega sua lógica de negócio para criarCorridaCore (extraído
+// para ser reaproveitado pelo motor de corrida agendada) — por isso a
+// fatia analisada começa no núcleo, não no wrapper público, mas ainda
+// cobre exatamente o mesmo comportamento que este teste sempre verificou.
+const coreStart = source.indexOf("export async function criarCorridaCore");
+const wrapperStart = source.indexOf("export const criarCorrida");
+const end = source.indexOf("export const getCorrida", wrapperStart);
 
-assert.notEqual(start, -1, "criarCorrida deve existir");
+assert.notEqual(coreStart, -1, "criarCorridaCore deve existir");
+assert.notEqual(wrapperStart, -1, "criarCorrida deve existir");
 assert.notEqual(end, -1, "getCorrida deve existir após criarCorrida");
 
-const criarCorridaSource = source.slice(start, end);
+const criarCorridaSource = source.slice(coreStart, end);
 
 assert.match(
   criarCorridaSource,
