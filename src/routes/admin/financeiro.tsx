@@ -123,11 +123,27 @@ function formatarMoeda(valor: number) {
   return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 }
 
+// Achado do Codex no PR #57: toLocaleString sem timeZone usa o fuso do
+// navegador de quem está vendo a tela, não o fuso de negócio — um admin
+// fora do -03:00 veria (e exportaria) datas/horas diferentes para o
+// mesmo pagamento. Fixamos o fuso de negócio explicitamente na exibição,
+// igual já fizemos no cálculo do intervalo (paraIntervaloISO).
+function formatarDataHoraNegocio(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
 // Etapa 4: exportação CSV, gerada no navegador a partir dos dados já
 // carregados na tela — sem endpoint novo, sem lógica de agregação nova.
 function exportarCSV(nomeArquivo: string, cabecalho: string[], linhas: (string | number)[][]) {
   const escapar = (valor: string | number) => {
-    const texto = String(valor);
+    let texto = String(valor);
+    // Achado do Codex no PR #57: nome de passageiro/motorista é texto livre
+    // no cadastro, e um valor começando com =, +, - ou @ é interpretado
+    // como fórmula por planilhas (Excel/Sheets) ao abrir o CSV. Prefixar
+    // com aspas simples neutraliza sem alterar o valor exibido na célula.
+    if (/^[=+\-@]/.test(texto)) {
+      texto = `'${texto}`;
+    }
     return /[",\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
   };
   // BOM (﻿) para o Excel reconhecer UTF-8 e não corromper acentos.
@@ -215,30 +231,41 @@ function FinanceiroAdmin() {
   }
 
   // Exporta TODAS as corridas do período/filtro atuais, não só a página
-  // aberta no modal de drill-down — busca em páginas até a última vir
-  // mais curta que o tamanho pedido (mesmo padrão de fim-de-resultados
-  // já usado no resumo da Etapa 1).
+  // aberta no modal de drill-down. Achado do Codex no PR #57: paginação
+  // por offset (pagina 0, 1, 2...) não é estável se um pagamento novo
+  // entrar como 'pago' no meio da exportação (possível quando o período
+  // inclui o dia de hoje) — como a consulta ordena por pago_at desc, a
+  // linha nova empurra tudo e uma corrida pode sair duplicada e outra
+  // pulada. Em vez de offset, cada página busca corridas mais antigas
+  // que a última já vista (dataFim vira um cursor decrescente), então
+  // uma corrida nova entra sempre acima do cursor e não afeta o que já
+  // foi capturado.
   async function exportarCorridasCSV() {
     setExportandoCorridas(true);
     try {
       const { dataInicio: inicioISO, dataFim: fimISO } = paraIntervaloISO(dataInicio, dataFim);
       const TAMANHO_PAGINA = 200;
       const todas: NonNullable<typeof drillResult>['corridas'] = [];
-      let pagina = 0;
+      let cursorFim = fimISO;
       for (;;) {
         const resultado = await getCorridasFn({
           data: {
             dataInicio: inicioISO,
-            dataFim: fimISO,
+            dataFim: cursorFim,
             cidadeId: params.cidadeId,
             motoristaId: undefined,
-            pagina,
+            pagina: 0,
             limite: TAMANHO_PAGINA,
           },
         });
         todas.push(...resultado.corridas);
         if (resultado.corridas.length < TAMANHO_PAGINA) break;
-        pagina += 1;
+
+        const ultimaLinha = resultado.corridas[resultado.corridas.length - 1];
+        if (!ultimaLinha) break;
+        const novoCursor = new Date(new Date(ultimaLinha.pagoEm).getTime() - 1).toISOString();
+        if (novoCursor >= cursorFim) break;
+        cursorFim = novoCursor;
       }
 
       if (todas.length === 0) {
@@ -250,7 +277,7 @@ function FinanceiroAdmin() {
         `zuvvi-financeiro-corridas_${dataInicio}_${dataFim}.csv`,
         ['Pago em', 'Passageiro', 'Motorista', 'Origem', 'Destino', 'Meio', 'Valor Total', 'Comissao', 'Valor Motorista'],
         todas.map((c) => [
-          new Date(c.pagoEm).toLocaleString('pt-BR'),
+          formatarDataHoraNegocio(c.pagoEm),
           c.passageiroNome,
           c.motoristaNome,
           c.origemNome ?? '',
@@ -549,7 +576,7 @@ function FinanceiroAdmin() {
                   <TableBody>
                     {(drillResult?.corridas || []).map((corrida) => (
                       <TableRow key={corrida.pagamentoId} className="border-white/10 hover:bg-white/5 transition-colors">
-                        <TableCell className="text-xs">{new Date(corrida.pagoEm).toLocaleString('pt-BR')}</TableCell>
+                        <TableCell className="text-xs">{formatarDataHoraNegocio(corrida.pagoEm)}</TableCell>
                         <TableCell className="text-xs">{corrida.passageiroNome}</TableCell>
                         <TableCell className="text-xs">{corrida.motoristaNome}</TableCell>
                         <TableCell className="text-xs max-w-[220px] truncate">
