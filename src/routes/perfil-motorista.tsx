@@ -154,14 +154,13 @@ function PerfilMotorista() {
             <Bike className="h-6 w-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Corrida</span>
           </Link>
-          <button
-            type="button"
-            disabled
-            className="flex flex-col items-center gap-1 text-muted-foreground opacity-50"
+          <Link
+            to="/ganhos-motorista"
+            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-white"
           >
             <Clock className="h-6 w-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Ganhos</span>
-          </button>
+          </Link>
           <div className="flex flex-col items-center gap-1 text-zuvvi-volt" aria-current="page">
             <User className="h-6 w-6" />
             <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>
