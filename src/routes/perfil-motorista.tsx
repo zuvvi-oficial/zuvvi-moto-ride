@@ -1,8 +1,20 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bike, CheckCircle2, ChevronLeft, Clock, Loader2, LogOut, User } from "lucide-react";
+import {
+  Bike,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  HelpCircle,
+  LifeBuoy,
+  Loader2,
+  LogOut,
+  User,
+} from "lucide-react";
 import { useState } from "react";
 import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";
+import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { getMotoristaStatusHome } from "@/lib/motorista-status.functions";
@@ -20,6 +32,7 @@ export const Route = createFileRoute("/perfil-motorista")({
 
 function PerfilMotorista() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const {
     data: status,
     isLoading,
@@ -117,6 +130,48 @@ function PerfilMotorista() {
 
         <section className="space-y-3">
           <div className="px-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">
+              Ajuda e suporte
+            </p>
+            <h2 className="mt-1 text-lg font-black">Precisa de ajuda?</h2>
+          </div>
+          <div className="space-y-3">
+            <Link
+              to="/meus-chamados"
+              className="flex min-h-16 w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.045] px-5 text-left transition-colors hover:bg-white/10"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zuvvi-volt/20 bg-zuvvi-volt/10">
+                  <LifeBuoy className="h-5 w-5 text-zuvvi-volt" />
+                </div>
+                <div>
+                  <p className="font-black">Meus chamados</p>
+                  <p className="text-[11px] text-white/45">Acompanhe suas conversas com o suporte</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-white/20" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSupportOpen(true)}
+              className="flex min-h-16 w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.045] px-5 text-left transition-colors hover:bg-white/10"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zuvvi-volt/20 bg-zuvvi-volt/10">
+                  <HelpCircle className="h-5 w-5 text-zuvvi-volt" />
+                </div>
+                <div>
+                  <p className="font-black">Preciso de ajuda</p>
+                  <p className="text-[11px] text-white/45">Dúvida, reclamação ou SOS de emergência</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-white/20" />
+            </button>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <div className="px-1">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
               Conta e segurança
             </p>
@@ -167,6 +222,8 @@ function PerfilMotorista() {
           </div>
         </div>
       </nav>
+
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 }
