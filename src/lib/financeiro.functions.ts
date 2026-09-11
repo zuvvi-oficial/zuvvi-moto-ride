@@ -208,3 +208,100 @@ export const getResumoFinanceiroAdmin = createServerFn({ method: "GET" })
       porMotorista,
     };
   });
+
+/**
+ * Controle Financeiro (Admin) — Etapa 3
+ * Drill-down: lista as corridas pagas individuais dentro de um período,
+ * opcionalmente restritas a uma cidade e/ou motorista — o mesmo recorte
+ * já somado por getResumoFinanceiroAdmin, agora linha a linha.
+ */
+export const getCorridasFinanceiroAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        dataInicio: z.string(),
+        dataFim: z.string(),
+        cidadeId: z.string().optional(),
+        motoristaId: z.string().optional(),
+        pagina: z.number().default(0),
+        limite: z.number().default(20),
+      })
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const offset = data.pagina * data.limite;
+
+    let query = supabaseAdmin
+      .from("pagamentos")
+      .select(
+        "id, valor_total, valor_comissao, valor_motorista, meio, pago_at, corridas!inner(id, cidade_id, motorista_id, passageiro_id, origem_nome, destino_nome)",
+        { count: "exact" },
+      )
+      .eq("status", "pago")
+      .gte("pago_at", data.dataInicio)
+      .lte("pago_at", data.dataFim);
+
+    if (data.cidadeId) {
+      query = query.eq("corridas.cidade_id", data.cidadeId);
+    }
+    if (data.motoristaId) {
+      query = query.eq("corridas.motorista_id", data.motoristaId);
+    }
+
+    const { data: pagamentos, count, error } = await query
+      .order("pago_at", { ascending: false })
+      .range(offset, offset + data.limite - 1);
+
+    if (error) {
+      console.error("Erro ao carregar corridas do financeiro:", error);
+      throw new Error("Não foi possível carregar as corridas do período.");
+    }
+
+    const linhas = (pagamentos || []) as any[];
+
+    // motorista_id de corridas é PK compartilhada com usuarios.id (a tabela
+    // motoristas usa o mesmo id de usuarios), então passageiro e motorista
+    // são resolvidos na mesma tabela — mesmo padrão de nomes do resumo.
+    const usuarioIds = Array.from(
+      new Set(
+        linhas.flatMap((linha) => [linha.corridas?.passageiro_id, linha.corridas?.motorista_id].filter(Boolean)),
+      ),
+    );
+
+    const { data: usuarios, error: usuariosError } =
+      usuarioIds.length > 0
+        ? await supabaseAdmin.from("usuarios").select("id, nome").in("id", usuarioIds)
+        : { data: [] as any[], error: null };
+
+    if (usuariosError) {
+      console.error("Erro ao carregar nomes das corridas do financeiro:", usuariosError);
+      throw new Error("Não foi possível carregar os nomes das corridas.");
+    }
+
+    const nomeMap = new Map((usuarios || []).map((u: any) => [u.id, u.nome]));
+
+    const corridas = linhas.map((linha) => ({
+      pagamentoId: linha.id as string,
+      corridaId: linha.corridas?.id as string,
+      pagoEm: linha.pago_at as string,
+      meio: linha.meio as string,
+      valorTotal: Number(linha.valor_total ?? 0),
+      valorComissao: Number(linha.valor_comissao ?? 0),
+      valorMotorista: Number(linha.valor_motorista ?? 0),
+      origemNome: (linha.corridas?.origem_nome as string | null) ?? null,
+      destinoNome: (linha.corridas?.destino_nome as string | null) ?? null,
+      passageiroNome: nomeMap.get(linha.corridas?.passageiro_id) ?? "Desconhecido",
+      motoristaNome: nomeMap.get(linha.corridas?.motorista_id) ?? "Desconhecido",
+    }));
+
+    return {
+      corridas,
+      total: count || 0,
+      pagina: data.pagina,
+      limite: data.limite,
+    };
+  });
