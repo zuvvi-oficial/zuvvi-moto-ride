@@ -31,6 +31,8 @@ export const getHistoricoCorridas = createServerFn({ method: "GET" })
           valor_final,
           valor_estimado,
           forma_pagamento,
+          distancia_km,
+          duracao_min,
           created_at,
           data_finalizacao,
           motorista:motorista_id (

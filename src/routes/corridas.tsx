@@ -2,7 +2,7 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getHistoricoCorridas } from "@/lib/historico.functions";
-import { Clock, MapPin, User, Calendar, CreditCard, Loader2, CalendarClock } from "lucide-react";
+import { Clock, MapPin, User, Calendar, CreditCard, Loader2, CalendarClock, Navigation } from "lucide-react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -113,6 +113,27 @@ function HistoricoCorridas() {
                     <p className="text-sm font-bold truncate">{corrida.destino_nome || "Destino não informado"}</p>
                   </div>
                 </div>
+
+                {(corrida.distancia_km != null || corrida.duracao_min != null) && (
+                  <div className="flex items-center gap-4 pl-8">
+                    {corrida.distancia_km != null && (
+                      <div className="flex items-center gap-1.5">
+                        <Navigation className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-[11px] font-medium text-muted-foreground">
+                          {Number(corrida.distancia_km).toFixed(1)} km
+                        </span>
+                      </div>
+                    )}
+                    {corrida.duracao_min != null && (
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-[11px] font-medium text-muted-foreground">
+                          {Math.round(Number(corrida.duracao_min))} min
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-2 border-t border-white/5">
                   <div className="flex items-center gap-3">

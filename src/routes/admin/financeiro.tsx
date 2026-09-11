@@ -299,6 +299,7 @@ function FinanceiroAdmin() {
           'Motorista',
           'Origem',
           'Destino',
+          'Distância',
           'Forma de Pagamento',
           'Valor Total',
           'Comissão Zuvvi',
@@ -310,6 +311,7 @@ function FinanceiroAdmin() {
           c.motoristaNome,
           c.origemNome ?? '—',
           c.destinoNome ?? '—',
+          c.distanciaKm != null ? `${c.distanciaKm.toFixed(1)} km` : '—',
           c.meio,
           formatarMoeda(c.valorTotal),
           formatarMoeda(c.valorComissao),
@@ -681,6 +683,7 @@ function FinanceiroAdmin() {
                       <TableHead className="text-gray-400">Passageiro</TableHead>
                       <TableHead className="text-gray-400">Motorista</TableHead>
                       <TableHead className="text-gray-400">Trajeto</TableHead>
+                      <TableHead className="text-gray-400">Distância</TableHead>
                       <TableHead className="text-gray-400">Meio</TableHead>
                       <TableHead className="text-gray-400 text-right">Total</TableHead>
                       <TableHead className="text-gray-400 text-right">Comissão</TableHead>
@@ -696,6 +699,9 @@ function FinanceiroAdmin() {
                         <TableCell className="text-xs max-w-[220px] truncate">
                           {corrida.origemNome || '—'} → {corrida.destinoNome || '—'}
                         </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {corrida.distanciaKm != null ? `${corrida.distanciaKm.toFixed(1)} km` : '—'}
+                        </TableCell>
                         <TableCell className="text-xs uppercase">{corrida.meio}</TableCell>
                         <TableCell className="text-right text-xs">{formatarMoeda(corrida.valorTotal)}</TableCell>
                         <TableCell className="text-right text-xs">{formatarMoeda(corrida.valorComissao)}</TableCell>
@@ -704,7 +710,7 @@ function FinanceiroAdmin() {
                     ))}
                     {(drillResult?.corridas || []).length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-10 text-gray-500">
+                        <TableCell colSpan={9} className="text-center py-10 text-gray-500">
                           Nenhuma corrida encontrada.
                         </TableCell>
                       </TableRow>
