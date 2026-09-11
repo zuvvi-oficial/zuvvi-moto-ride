@@ -356,7 +356,8 @@ const createRideSchema = z.object({
   tarifaValorKm: z.number(),
   tarifaValorMin: z.number(),
   tarifaMinima: z.number(),
-  assinaturaCotacao: z.string()
+  assinaturaCotacao: z.string(),
+  cupomCodigo: z.string().trim().min(1).max(40).optional(),
 });
 
 // Núcleo de criarCorrida, sem a validação de assinatura HMAC (que só faz
@@ -411,8 +412,62 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
 
     const codigoEmbarque = crypto.randomInt(1000, 10000).toString();
     const comissaoPct = Number(cidade.comissao_pct || 0);
-    const valorComissao = Math.round((data.valorCotado * (comissaoPct / 100)) * 100) / 100;
-    const valorMotorista = Math.round((data.valorCotado - valorComissao) * 100) / 100;
+    const comissaoOriginal = Math.round((data.valorCotado * (comissaoPct / 100)) * 100) / 100;
+    const valorMotorista = Math.round((data.valorCotado - comissaoOriginal) * 100) / 100;
+
+    // Cupom de desconto (Etapa 2): nunca confia num valor de desconto vindo
+    // do cliente — revalida tudo de novo aqui, contra o valorCotado real
+    // desta corrida (avaliarCupomParaCorrida já devolve o desconto limitado
+    // ao tamanho da comissão da cidade — o desconto sai inteiro da comissão
+    // da Zuvvi, nunca do repasse do motorista, mesma filosofia da gorjeta).
+    //
+    // A reserva do uso (INSERT em cupom_usos, ainda sem corrida_id) precisa
+    // acontecer ANTES da corrida ser criada, não depois: é o INSERT que o
+    // trigger enforce_cupom_usos_limites protege com lock consultivo, então
+    // é ele quem de fato impõe os limites de uso. Se registrássemos o uso só
+    // depois de criar a corrida, uma corrida entre duas requisições
+    // concorrentes disputando o último uso disponível deixaria uma delas com
+    // uma corrida já criada e descontada mesmo com o registro de uso
+    // rejeitado pelo limite — o limite viraria decorativo (achado do Codex
+    // no PR #79).
+    let cupomUsoId: string | null = null;
+    let valorDescontoAplicado = 0;
+    if (data.cupomCodigo) {
+      const { avaliarCupomParaCorrida } = await import("./cupons.functions");
+      const avaliacao = await avaliarCupomParaCorrida(supabaseAdmin, {
+        codigo: data.cupomCodigo,
+        usuarioId: usuario.id,
+        cidadeId: usuario.cidade_id,
+        valorCorrida: data.valorCotado,
+      });
+
+      const { data: reserva, error: reservaError } = await supabaseAdmin
+        .from("cupom_usos")
+        .insert({
+          cupom_id: avaliacao.cupomId,
+          usuario_id: usuario.id,
+          corrida_id: null,
+          valor_desconto: avaliacao.valorDesconto,
+        } as any)
+        .select("id")
+        .single();
+
+      if (reservaError) {
+        // 23514 = violação de CHECK/RAISE do trigger de limites — mensagem
+        // já pronta pro passageiro ("atingiu o limite", "já usou o máximo").
+        if ((reservaError as { code?: string }).code === "23514") {
+          throw new Error(reservaError.message);
+        }
+        console.error("Erro ao reservar uso do cupom:", reservaError);
+        throw new Error("Não foi possível aplicar o cupom. Tente novamente.");
+      }
+
+      cupomUsoId = reserva.id as string;
+      valorDescontoAplicado = avaliacao.valorDesconto;
+    }
+
+    const valorComissao = Math.round((comissaoOriginal - valorDescontoAplicado) * 100) / 100;
+    const valorTotal = Math.round((valorMotorista + valorComissao) * 100) / 100;
 
     // A RPC é versionada nesta microetapa. O cast fica restrito a esta chamada
     // enquanto os tipos gerados refletem apenas o schema atualmente em produção.
@@ -425,12 +480,12 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
         p_origem_lng: data.origemLng,
         p_destino_lat: data.destinoLat,
         p_destino_lng: data.destinoLng,
-        p_valor_estimado: data.valorCotado,
+        p_valor_estimado: valorTotal,
         p_forma_pagamento: data.formaPagamento,
         p_codigo_embarque: codigoEmbarque,
         p_origem_nome: data.origemNome || 'Sua localização',
         p_destino_nome: data.destinoNome || 'Destino',
-        p_valor_total: data.valorCotado,
+        p_valor_total: valorTotal,
         p_valor_motorista: valorMotorista,
         p_valor_comissao: valorComissao,
         p_distancia_km: data.distanciaKm,
@@ -443,11 +498,37 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
     );
 
     if (atomicError || !corridaId) {
+      // A corrida não foi criada — libera a reserva do cupom (se houver)
+      // pra não desperdiçar um uso do limite com uma corrida que nunca
+      // chegou a existir.
+      if (cupomUsoId) {
+        await supabaseAdmin.from("cupom_usos").delete().eq("id", cupomUsoId).is("corrida_id", null);
+      }
       if (atomicError?.code === "23505") {
         throw new Error("Você já possui uma corrida ativa.");
       }
       console.error("Erro criação financeira atômica:", atomicError);
       throw new Error("Falha ao registrar a corrida.");
+    }
+
+    // A corrida já foi criada com sucesso nesse ponto (com o desconto já
+    // aplicado no valor cobrado, e o uso do cupom já reservado e contado
+    // contra o limite antes disso). Vincular o corrida_id à reserva é só
+    // bookkeeping a partir daqui: uma falha nesse UPDATE nunca deve reverter
+    // ou cancelar a corrida já criada, só ficar visível pra reconciliação
+    // manual — o desconto já foi legitimamente concedido e contado.
+    if (cupomUsoId) {
+      const { error: cupomUsoError } = await supabaseAdmin
+        .from("cupom_usos")
+        .update({ corrida_id: corridaId } as any)
+        .eq("id", cupomUsoId)
+        .is("corrida_id", null);
+      if (cupomUsoError) {
+        console.error(
+          "[Cupons] Corrida criada com desconto aplicado, mas falha ao vincular corrida_id ao uso do cupom — requer reconciliação manual.",
+          { corridaId, cupomUsoId, motivo: cupomUsoError.message },
+        );
+      }
     }
 
     // Avisar motoristas elegíveis da cidade sobre a nova oferta (push + sino).

@@ -571,7 +571,7 @@ export type Database = {
       }
       cupom_usos: {
         Row: {
-          corrida_id: string
+          corrida_id: string | null
           created_at: string
           cupom_id: string
           id: string
@@ -579,7 +579,7 @@ export type Database = {
           valor_desconto: number
         }
         Insert: {
-          corrida_id: string
+          corrida_id?: string | null
           created_at?: string
           cupom_id: string
           id?: string
@@ -587,7 +587,7 @@ export type Database = {
           valor_desconto: number
         }
         Update: {
-          corrida_id?: string
+          corrida_id?: string | null
           created_at?: string
           cupom_id?: string
           id?: string

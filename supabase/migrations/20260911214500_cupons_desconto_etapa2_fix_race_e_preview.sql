@@ -1,0 +1,12 @@
+-- Corrige achado P1 do Codex no PR #79: cupom_usos.corrida_id era NOT NULL,
+-- então só dava pra registrar o uso DEPOIS da corrida já criada (com o
+-- desconto já aplicado e comprometido). Numa corrida entre duas requisições
+-- concorrentes disputando o último uso disponível de um cupom, a que
+-- perdesse já tinha uma corrida descontada criada mesmo assim — o
+-- INSERT rejeitado pelo trigger de limite virava só um log, não impedia
+-- nada. Agora corrida_id aceita NULL (UNIQUE continua funcionando — Postgres
+-- nunca considera dois NULLs duplicados), permitindo reservar o uso do
+-- cupom ANTES de criar a corrida: é aí, protegido pelo trigger com lock
+-- consultivo, que o limite é de fato imposto, antes de qualquer desconto
+-- ser aplicado.
+ALTER TABLE public.cupom_usos ALTER COLUMN corrida_id DROP NOT NULL;

@@ -198,6 +198,99 @@ function calcularValorDesconto(cupom: CupomElegibilidade, valorCorrida: number):
   return Math.round(semUltrapassarCorrida * 100) / 100;
 }
 
+export type AvaliacaoCupom = Readonly<{
+  cupomId: string;
+  codigo: string;
+  valorDesconto: number;
+}>;
+
+// Núcleo de elegibilidade de cupom, sem o server function em volta —
+// reaproveitado por validarCupom (Etapa 1, só prévia) e por
+// criarCorridaCore (Etapa 2, aplicação de verdade). Nunca confia num
+// desconto calculado antes: revalida tudo contra o valor real da corrida
+// no momento em que é chamado.
+export async function avaliarCupomParaCorrida(
+  supabaseAdmin: any,
+  params: { codigo: string; usuarioId: string; cidadeId: string | null; valorCorrida: number },
+): Promise<AvaliacaoCupom> {
+  const codigo = normalizarCodigo(params.codigo);
+
+  const { data: cupom, error: cupomError } = await supabaseAdmin
+    .from("cupons")
+    .select(
+      "id, codigo, tipo_desconto, valor, valor_maximo_desconto, valor_minimo_corrida, limite_uso_total, limite_uso_por_usuario, cidade_id, ativo, valido_de, valido_ate",
+    )
+    .eq("codigo", codigo)
+    .maybeSingle();
+
+  if (cupomError || !cupom) throw new Error("Cupom inválido.");
+  const c = cupom as unknown as CupomElegibilidade;
+
+  if (!c.ativo) throw new Error("Este cupom não está mais ativo.");
+
+  const agora = Date.now();
+  if (Date.parse(c.valido_de) > agora) throw new Error("Este cupom ainda não está disponível.");
+  if (c.valido_ate && Date.parse(c.valido_ate) < agora) throw new Error("Este cupom expirou.");
+
+  if (c.cidade_id && c.cidade_id !== params.cidadeId) {
+    throw new Error("Este cupom não é válido na sua cidade.");
+  }
+
+  if (c.valor_minimo_corrida != null && params.valorCorrida < c.valor_minimo_corrida) {
+    throw new Error(
+      `Este cupom exige uma corrida de pelo menos R$ ${c.valor_minimo_corrida.toFixed(2)}.`,
+    );
+  }
+
+  if (c.limite_uso_total != null) {
+    const { count, error: countError } = await supabaseAdmin
+      .from("cupom_usos")
+      .select("id", { count: "exact", head: true })
+      .eq("cupom_id", c.id);
+    // Falha ao contar não pode virar "0 usos" — um cupom já esgotado
+    // seria reportado como válido. Falha fechado.
+    if (countError) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
+    if ((count ?? 0) >= c.limite_uso_total) throw new Error("Este cupom atingiu o limite de usos.");
+  }
+
+  const { count: usosDoUsuario, error: usosDoUsuarioError } = await supabaseAdmin
+    .from("cupom_usos")
+    .select("id", { count: "exact", head: true })
+    .eq("cupom_id", c.id)
+    .eq("usuario_id", params.usuarioId);
+  if (usosDoUsuarioError) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
+  if ((usosDoUsuario ?? 0) >= c.limite_uso_por_usuario) {
+    throw new Error("Você já usou este cupom o máximo de vezes permitido.");
+  }
+
+  // O desconto sai inteiro da comissão da Zuvvi, nunca do repasse do
+  // motorista (mesma filosofia da gorjeta digital) — por isso é limitado ao
+  // tamanho da comissão desta cidade sobre esta corrida. Calculado aqui, no
+  // mesmo lugar pra validarCupom (prévia) e criarCorridaCore (aplicação
+  // real) sempre concordarem no valor — antes a prévia anunciava um
+  // desconto que a aplicação de verdade cortava por trás (achado do Codex
+  // no PR #79).
+  if (!params.cidadeId) throw new Error("Cidade não configurada.");
+
+  const { data: cidade, error: cidadeError } = await supabaseAdmin
+    .from("cidades")
+    .select("comissao_pct")
+    .eq("id", params.cidadeId)
+    .maybeSingle();
+  if (cidadeError || !cidade) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
+
+  const comissaoPct = Number(cidade.comissao_pct || 0);
+  const comissaoDaCorrida = Math.round(params.valorCorrida * (comissaoPct / 100) * 100) / 100;
+  const valorDescontoBruto = calcularValorDesconto(c, params.valorCorrida);
+  const valorDesconto = Math.min(valorDescontoBruto, comissaoDaCorrida);
+
+  if (valorDesconto <= 0) {
+    throw new Error("Este cupom não pôde ser aplicado a esta corrida.");
+  }
+
+  return { cupomId: c.id, codigo: c.codigo, valorDesconto };
+}
+
 const validarCupomSchema = z.object({
   codigo: z.string().trim().min(1).max(40),
   valorCorrida: z.number().positive(),
@@ -216,61 +309,16 @@ export const validarCupom = createServerFn({ method: "POST" })
       .maybeSingle();
     if (usuarioError || !usuario) throw new Error("Usuário não encontrado.");
 
-    const codigo = normalizarCodigo(data.codigo);
-
-    const { data: cupom, error: cupomError } = await supabaseAdmin
-      .from("cupons")
-      .select(
-        "id, codigo, tipo_desconto, valor, valor_maximo_desconto, valor_minimo_corrida, limite_uso_total, limite_uso_por_usuario, cidade_id, ativo, valido_de, valido_ate",
-      )
-      .eq("codigo", codigo)
-      .maybeSingle();
-
-    if (cupomError || !cupom) throw new Error("Cupom inválido.");
-    const c = cupom as unknown as CupomElegibilidade;
-
-    if (!c.ativo) throw new Error("Este cupom não está mais ativo.");
-
-    const agora = Date.now();
-    if (Date.parse(c.valido_de) > agora) throw new Error("Este cupom ainda não está disponível.");
-    if (c.valido_ate && Date.parse(c.valido_ate) < agora) throw new Error("Este cupom expirou.");
-
-    if (c.cidade_id && c.cidade_id !== usuario.cidade_id) {
-      throw new Error("Este cupom não é válido na sua cidade.");
-    }
-
-    if (c.valor_minimo_corrida != null && data.valorCorrida < c.valor_minimo_corrida) {
-      throw new Error(
-        `Este cupom exige uma corrida de pelo menos R$ ${c.valor_minimo_corrida.toFixed(2)}.`,
-      );
-    }
-
-    if (c.limite_uso_total != null) {
-      const { count, error: countError } = await supabaseAdmin
-        .from("cupom_usos")
-        .select("id", { count: "exact", head: true })
-        .eq("cupom_id", c.id);
-      // Falha ao contar não pode virar "0 usos" — um cupom já esgotado
-      // seria reportado como válido. Falha fechado.
-      if (countError) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
-      if ((count ?? 0) >= c.limite_uso_total) throw new Error("Este cupom atingiu o limite de usos.");
-    }
-
-    const { count: usosDoUsuario, error: usosDoUsuarioError } = await supabaseAdmin
-      .from("cupom_usos")
-      .select("id", { count: "exact", head: true })
-      .eq("cupom_id", c.id)
-      .eq("usuario_id", usuario.id);
-    if (usosDoUsuarioError) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
-    if ((usosDoUsuario ?? 0) >= c.limite_uso_por_usuario) {
-      throw new Error("Você já usou este cupom o máximo de vezes permitido.");
-    }
-
-    const valorDesconto = calcularValorDesconto(c, data.valorCorrida);
+    const avaliacao = await avaliarCupomParaCorrida(supabaseAdmin, {
+      codigo: data.codigo,
+      usuarioId: usuario.id,
+      cidadeId: usuario.cidade_id,
+      valorCorrida: data.valorCorrida,
+    });
 
     return {
       valido: true as const,
-      codigo: c.codigo,
-      valorDesconto,
+      codigo: avaliacao.codigo,
+      valorDesconto: avaliacao.valorDesconto,
     };
   });
