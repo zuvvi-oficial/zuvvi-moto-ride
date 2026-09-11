@@ -17,6 +17,7 @@ import { syncAuthSessionToCookies } from "@/integrations/supabase/auth-attacher"
 import { PwaShell } from "@/components/pwa/PwaShell";
 import { PassengerDriverAvailabilityGate } from "@/components/passageiro/PassengerDriverAvailabilityGate";
 import { PassengerRideVoiceController } from "@/components/passageiro/PassengerRideVoiceController";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -203,6 +204,7 @@ function RootComponent() {
       <PassengerDriverAvailabilityGate />
       <PassengerRideVoiceController />
       <PwaShell />
+      <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
 }
