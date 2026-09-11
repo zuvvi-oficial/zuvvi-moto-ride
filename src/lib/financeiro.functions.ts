@@ -22,6 +22,33 @@ async function checkAdmin(userId: string) {
   return admin;
 }
 
+// Achado do Codex no PR #55: a base tem 5500+ cidades semeadas em
+// 'em_breve' (ainda não liberadas) e só um punhado em 'piloto'/'ativa'.
+// Um dropdown paginado por getCidadesAdmin (ordenado por UF/nome) nunca
+// alcançaria essas poucas cidades operacionais entre milhares de
+// 'em_breve'. Como só cidades liberadas têm motoristas online e corridas,
+// o filtro financeiro só precisa dessas — busca direta, sem paginação.
+export const getCidadesOperacionaisAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await checkAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data, error } = await supabaseAdmin
+      .from("cidades")
+      .select("id, nome, estado_uf")
+      .in("status", ["piloto", "ativa"])
+      .order("estado_uf", { ascending: true })
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Erro ao carregar cidades operacionais:", error);
+      throw new Error("Não foi possível carregar as cidades.");
+    }
+
+    return data || [];
+  });
+
 type Totais = {
   totalFaturado: number;
   totalComissao: number;

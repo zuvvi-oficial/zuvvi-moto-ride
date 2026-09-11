@@ -3,7 +3,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { getAdminStats } from '@/lib/admin.functions';
-import { Users, Bike, MapPin, CheckCircle, Clock, AlertCircle, LogOut } from 'lucide-react';
+import { Users, Bike, MapPin, CheckCircle, Clock, AlertCircle, LogOut, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { queryOptions } from '@tanstack/react-query';
@@ -130,6 +130,12 @@ function AdminDashboard() {
           </Button>
           <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
             <Link to="/admin/cidades">Gerenciar Cidades</Link>
+          </Button>
+          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+            <Link to="/admin/financeiro" className="flex items-center gap-2">
+              <Wallet className="w-4 h-4" />
+              Controle Financeiro
+            </Link>
           </Button>
           <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide border-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-red-500/10">
             <Link to="/admin/suporte" className="flex items-center gap-2">

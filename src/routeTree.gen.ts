@@ -26,6 +26,7 @@ import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-mot
 import { Route as ViagemCompartilhadaRouteImport } from './routes/viagem-compartilhada'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
+import { Route as AdminFinanceiroRouteImport } from './routes/admin/financeiro'
 import { Route as AdminMotoristasRouteImport } from './routes/admin/motoristas'
 import { Route as AdminSuporteRouteImport } from './routes/admin/suporte'
 import { Route as AdminVeiculosRouteImport } from './routes/admin/veiculos'
@@ -123,6 +124,11 @@ const AdminCidadesRoute = AdminCidadesRouteImport.update({
   path: '/admin/cidades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminFinanceiroRoute = AdminFinanceiroRouteImport.update({
+  id: '/admin/financeiro',
+  path: '/admin/financeiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminMotoristasRoute = AdminMotoristasRouteImport.update({
   id: '/admin/motoristas',
   path: '/admin/motoristas',
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
+  '/admin/financeiro': typeof AdminFinanceiroRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
+  '/admin/financeiro': typeof AdminFinanceiroRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
+  '/admin/financeiro': typeof AdminFinanceiroRoute
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin/suporte': typeof AdminSuporteRoute
   '/admin/veiculos': typeof AdminVeiculosRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/procurando-motorista'
     | '/viagem-compartilhada'
     | '/admin/cidades'
+    | '/admin/financeiro'
     | '/admin/motoristas'
     | '/admin/suporte'
     | '/admin/veiculos'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/procurando-motorista'
     | '/viagem-compartilhada'
     | '/admin/cidades'
+    | '/admin/financeiro'
     | '/admin/motoristas'
     | '/admin/suporte'
     | '/admin/veiculos'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/procurando-motorista'
     | '/viagem-compartilhada'
     | '/admin/cidades'
+    | '/admin/financeiro'
     | '/admin/motoristas'
     | '/admin/suporte'
     | '/admin/veiculos'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
   ViagemCompartilhadaRoute: typeof ViagemCompartilhadaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
+  AdminFinanceiroRoute: typeof AdminFinanceiroRoute
   AdminMotoristasRoute: typeof AdminMotoristasRoute
   AdminSuporteRoute: typeof AdminSuporteRoute
   AdminVeiculosRoute: typeof AdminVeiculosRoute
@@ -509,6 +522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCidadesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/financeiro': {
+      id: '/admin/financeiro'
+      path: '/admin/financeiro'
+      fullPath: '/admin/financeiro'
+      preLoaderRoute: typeof AdminFinanceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/motoristas': {
       id: '/admin/motoristas'
       path: '/admin/motoristas'
@@ -628,6 +648,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
   ViagemCompartilhadaRoute: ViagemCompartilhadaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
+  AdminFinanceiroRoute: AdminFinanceiroRoute,
   AdminMotoristasRoute: AdminMotoristasRoute,
   AdminSuporteRoute: AdminSuporteRoute,
   AdminVeiculosRoute: AdminVeiculosRoute,
