@@ -497,6 +497,75 @@ export type Database = {
           },
         ]
       }
+      corridas_agendadas: {
+        Row: {
+          corrida_id: string | null
+          created_at: string
+          destino_lat: number
+          destino_lng: number
+          destino_nome: string | null
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+          horario_agendado: string
+          id: string
+          motivo_falha: string | null
+          origem_lat: number
+          origem_lng: number
+          origem_nome: string | null
+          passageiro_id: string
+          status: Database["public"]["Enums"]["corrida_agendada_status"]
+          updated_at: string
+        }
+        Insert: {
+          corrida_id?: string | null
+          created_at?: string
+          destino_lat: number
+          destino_lng: number
+          destino_nome?: string | null
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+          horario_agendado: string
+          id?: string
+          motivo_falha?: string | null
+          origem_lat: number
+          origem_lng: number
+          origem_nome?: string | null
+          passageiro_id: string
+          status?: Database["public"]["Enums"]["corrida_agendada_status"]
+          updated_at?: string
+        }
+        Update: {
+          corrida_id?: string | null
+          created_at?: string
+          destino_lat?: number
+          destino_lng?: number
+          destino_nome?: string | null
+          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"]
+          horario_agendado?: string
+          id?: string
+          motivo_falha?: string | null
+          origem_lat?: number
+          origem_lng?: number
+          origem_nome?: string | null
+          passageiro_id?: string
+          status?: Database["public"]["Enums"]["corrida_agendada_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corridas_agendadas_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: false
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corridas_agendadas_passageiro_id_fkey"
+            columns: ["passageiro_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_motorista: {
         Row: {
           created_at: string
@@ -1449,6 +1518,11 @@ export type Database = {
     Enums: {
       cancelado_por: "passageiro" | "motorista" | "operacao"
       cidade_status: "em_breve" | "piloto" | "ativa"
+      corrida_agendada_status:
+        | "agendada"
+        | "convertida"
+        | "cancelada"
+        | "falhou"
       corrida_status:
         | "solicitada"
         | "buscando_motorista"
@@ -1630,6 +1704,12 @@ export const Constants = {
     Enums: {
       cancelado_por: ["passageiro", "motorista", "operacao"],
       cidade_status: ["em_breve", "piloto", "ativa"],
+      corrida_agendada_status: [
+        "agendada",
+        "convertida",
+        "cancelada",
+        "falhou",
+      ],
       corrida_status: [
         "solicitada",
         "buscando_motorista",
