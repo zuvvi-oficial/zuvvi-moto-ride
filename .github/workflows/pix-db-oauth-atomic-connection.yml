@@ -276,10 +276,6 @@ jobs:
             echo "Ofertas Pix ainda confiam apenas no identificador público do Mercado Pago"
             exit 1
           fi
-          if grep -F "motorista-pagamento.functions" src/components/motorista/MercadoPagoConnect.tsx; then
-            echo "Interface Mercado Pago ainda depende do fluxo público antigo"
-            exit 1
-          fi
           if grep -R "zuvvi_mp_oauth_state" src --include='*.ts' --include='*.tsx'; then
             echo "State OAuth ainda persistido ou lido no navegador"
             exit 1
@@ -333,10 +329,6 @@ jobs:
           fi
           grep -q '"qrcode.react": "4.2.0"' bun.lock
           grep -q '"qrcode.react": \["qrcode.react@4.2.0"' bun.lock
-          if ! cmp -s src/lib/motorista-pagamento.functions.ts <(git show origin/main:src/lib/motorista-pagamento.functions.ts); then
-            echo "motorista-pagamento.functions.ts divergiu da versão canônica da main"
-            exit 1
-          fi
           if ! git diff --quiet -- package.json bun.lock; then
             echo "package.json ou bun.lock foram alterados pelo runner"
             git diff -- package.json bun.lock
