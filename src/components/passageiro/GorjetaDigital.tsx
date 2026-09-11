@@ -91,22 +91,37 @@ export function GorjetaDigital({ rideId }: { rideId: string }) {
 
   useEffect(() => {
     if (fase !== "aguardando_pagamento" || !gorjetaId) return undefined;
+    let cancelado = false;
 
-    pollRef.current = setTimeout(async () => {
+    // setTimeout que se reagenda sozinho, em vez de setInterval/efeito
+    // único: uma checagem que ainda volta "pendente" não muda nenhuma
+    // dependência do efeito, então um setTimeout comum nunca dispararia de
+    // novo — o widget ficaria travado em "Aguardando confirmação" até a
+    // página ser recarregada (achado do Codex no PR #77).
+    const poll = async () => {
+      if (cancelado) return;
       try {
         const res = await getGorjetaFn({ data: { corridaId: rideId } });
+        if (cancelado) return;
         if (res.existe && res.status === "paga") {
           setFase("paga");
           toast.success("Gorjeta enviada!");
-        } else if (res.existe && res.status === "falhou") {
+          return;
+        }
+        if (res.existe && res.status === "falhou") {
           setFase("falhou");
+          return;
         }
       } catch {
         // Mantém aguardando — próxima rodada de poll tenta de novo.
       }
-    }, POLL_MS);
+      if (!cancelado) pollRef.current = setTimeout(poll, POLL_MS);
+    };
+
+    pollRef.current = setTimeout(poll, POLL_MS);
 
     return () => {
+      cancelado = true;
       if (pollRef.current) clearTimeout(pollRef.current);
     };
   }, [fase, gorjetaId, getGorjetaFn, rideId]);
