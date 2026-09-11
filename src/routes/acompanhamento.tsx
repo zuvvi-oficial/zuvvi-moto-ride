@@ -12,13 +12,18 @@ import {
   atualizarPresencaChat,
 } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send, ShieldAlert, Share2 } from "lucide-react";
+import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send, ShieldAlert, Share2, Heart } from "lucide-react";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { CompartilharViagemDialog } from "@/components/passageiro/CompartilharViagemDialog";
 import { toast } from "sonner";
 import { criarAvaliacao, getAvaliacaoStatus } from "@/lib/avaliacoes.functions";
+import {
+  listarMotoristasFavoritos,
+  adicionarMotoristaFavorito,
+  removerMotoristaFavorito,
+} from "@/lib/motoristas-favoritos.functions";
 
 const searchSchema = z.object({
   rideId: z.string(),
@@ -152,6 +157,9 @@ function AcompanhamentoCorrida() {
   const atualizarPresencaFn = useServerFn(atualizarPresencaChat);
   const getAvaliacaoStatusFn = useServerFn(getAvaliacaoStatus);
   const criarAvaliacaoFn = useServerFn(criarAvaliacao);
+  const listarMotoristasFavoritosFn = useServerFn(listarMotoristasFavoritos);
+  const adicionarMotoristaFavoritoFn = useServerFn(adicionarMotoristaFavorito);
+  const removerMotoristaFavoritoFn = useServerFn(removerMotoristaFavorito);
 
   const [jaAvaliado, setJaAvaliado] = useState<boolean | null>(null);
   const [checkingAvaliacao, setCheckingAvaliacao] = useState(false);
@@ -159,7 +167,9 @@ function AcompanhamentoCorrida() {
   const [comentarioAvaliacao, setComentarioAvaliacao] = useState("");
   const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false);
   const [avaliacaoSucesso, setAvaliacaoSucesso] = useState(false);
-  
+  const [ehFavorito, setEhFavorito] = useState<boolean | null>(null);
+  const [alternandoFavorito, setAlternandoFavorito] = useState(false);
+
 
 
   const handleChatOpenChange = (open: boolean) => {
@@ -532,6 +542,43 @@ function AcompanhamentoCorrida() {
     }
   };
 
+  const checkFavoritoStatus = React.useCallback(async () => {
+    if (!motorista?.id || ehFavorito !== null) return;
+    try {
+      const favoritos = await listarMotoristasFavoritosFn();
+      setEhFavorito(favoritos.some((f) => f.motoristaId === motorista.id));
+    } catch (err) {
+      console.error("Erro ao verificar status de favorito:", err);
+      setEhFavorito(false);
+    }
+  }, [motorista?.id, ehFavorito, listarMotoristasFavoritosFn]);
+
+  useEffect(() => {
+    if (corrida?.status === "concluida" && motorista?.id && ehFavorito === null) {
+      void checkFavoritoStatus();
+    }
+  }, [corrida?.status, motorista?.id, ehFavorito, checkFavoritoStatus]);
+
+  const handleToggleFavorito = async () => {
+    if (!motorista?.id || alternandoFavorito) return;
+    setAlternandoFavorito(true);
+    try {
+      if (ehFavorito) {
+        await removerMotoristaFavoritoFn({ data: { motoristaId: motorista.id } });
+        setEhFavorito(false);
+        toast.success("Motorista removido dos favoritos.");
+      } else {
+        await adicionarMotoristaFavoritoFn({ data: { motoristaId: motorista.id } });
+        setEhFavorito(true);
+        toast.success("Motorista favoritado!");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível atualizar seus favoritos.");
+    } finally {
+      setAlternandoFavorito(false);
+    }
+  };
+
   const handleEnviarMensagem = async (conteudo: string) => {
     setChatSending(true);
     try {
@@ -866,6 +913,21 @@ function AcompanhamentoCorrida() {
                       : "Você chegou ao seu destino."}
                   </p>
                 </div>
+
+                {motorista?.id && (
+                  <button
+                    onClick={handleToggleFavorito}
+                    disabled={alternandoFavorito || ehFavorito === null}
+                    className="w-full py-4 rounded-2xl border border-white/10 bg-white/5 text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {alternandoFavorito ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Heart className={`w-4 h-4 ${ehFavorito ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/60"}`} />
+                    )}
+                    {ehFavorito ? "Motorista favoritado" : `Favoritar ${motorista.nome}`}
+                  </button>
+                )}
 
                 <button
                   onClick={() => void navigate({ to: "/" })}

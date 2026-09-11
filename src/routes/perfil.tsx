@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
-import { Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut, IdCard, ShieldCheck } from "lucide-react";
+import { Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut, IdCard, ShieldCheck, Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { validarCpfBrasileiro } from "@/lib/pix-cpf";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { ContatosConfiancaDialog } from "@/components/passageiro/ContatosConfiancaDialog";
+import { MotoristasFavoritosDialog } from "@/components/passageiro/MotoristasFavoritosDialog";
 import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
 import { PassengerProfilePhoto } from "@/components/passageiro/PassengerProfilePhoto";
 import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
@@ -95,6 +96,7 @@ function PerfilPassageiro() {
   const navigate = useNavigate();
   const [supportOpen, setSupportOpen] = useState(false);
   const [contatosOpen, setContatosOpen] = useState(false);
+  const [favoritosOpen, setFavoritosOpen] = useState(false);
 
   const getMeuCpfFn = useServerFn(getMeuCpf);
   const atualizarCpfFn = useServerFn(atualizarCpf);
@@ -249,6 +251,22 @@ function PerfilPassageiro() {
           </button>
 
           <button
+            onClick={() => setFavoritosOpen(true)}
+            className="w-full bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-zuvvi-indigo/60 group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20 group-hover:border-zuvvi-volt/40">
+                <Heart className="w-5 h-5 text-zuvvi-volt" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold">Meus motoristas favoritos</p>
+                <p className="text-[11px] text-muted-foreground">Motoristas com quem você já andou</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
+          </button>
+
+          <button
             onClick={() => setSupportOpen(true)}
             className="w-full bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-zuvvi-indigo/60 group"
           >
@@ -294,6 +312,10 @@ function PerfilPassageiro() {
       <ContatosConfiancaDialog
         open={contatosOpen}
         onOpenChange={setContatosOpen}
+      />
+      <MotoristasFavoritosDialog
+        open={favoritosOpen}
+        onOpenChange={setFavoritosOpen}
       />
     </div>
   );
