@@ -263,7 +263,30 @@ export async function avaliarCupomParaCorrida(
     throw new Error("Você já usou este cupom o máximo de vezes permitido.");
   }
 
-  const valorDesconto = calcularValorDesconto(c, params.valorCorrida);
+  // O desconto sai inteiro da comissão da Zuvvi, nunca do repasse do
+  // motorista (mesma filosofia da gorjeta digital) — por isso é limitado ao
+  // tamanho da comissão desta cidade sobre esta corrida. Calculado aqui, no
+  // mesmo lugar pra validarCupom (prévia) e criarCorridaCore (aplicação
+  // real) sempre concordarem no valor — antes a prévia anunciava um
+  // desconto que a aplicação de verdade cortava por trás (achado do Codex
+  // no PR #79).
+  if (!params.cidadeId) throw new Error("Cidade não configurada.");
+
+  const { data: cidade, error: cidadeError } = await supabaseAdmin
+    .from("cidades")
+    .select("comissao_pct")
+    .eq("id", params.cidadeId)
+    .maybeSingle();
+  if (cidadeError || !cidade) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
+
+  const comissaoPct = Number(cidade.comissao_pct || 0);
+  const comissaoDaCorrida = Math.round(params.valorCorrida * (comissaoPct / 100) * 100) / 100;
+  const valorDescontoBruto = calcularValorDesconto(c, params.valorCorrida);
+  const valorDesconto = Math.min(valorDescontoBruto, comissaoDaCorrida);
+
+  if (valorDesconto <= 0) {
+    throw new Error("Este cupom não pôde ser aplicado a esta corrida.");
+  }
 
   return { cupomId: c.id, codigo: c.codigo, valorDesconto };
 }

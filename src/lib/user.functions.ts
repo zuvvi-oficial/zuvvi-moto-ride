@@ -417,13 +417,20 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
 
     // Cupom de desconto (Etapa 2): nunca confia num valor de desconto vindo
     // do cliente — revalida tudo de novo aqui, contra o valorCotado real
-    // desta corrida. O desconto sai inteiro da comissão da Zuvvi, nunca do
-    // repasse do motorista (mesma filosofia da gorjeta: o motorista nunca
-    // paga o preço de uma promoção) — por isso é limitado ao tamanho da
-    // própria comissão dessa corrida. Numa cidade com comissão baixa ou
-    // zero, um cupom pode não render desconto nenhum; nesse caso a corrida
-    // segue sem aplicar o cupom.
-    let cupomId: string | null = null;
+    // desta corrida (avaliarCupomParaCorrida já devolve o desconto limitado
+    // ao tamanho da comissão da cidade — o desconto sai inteiro da comissão
+    // da Zuvvi, nunca do repasse do motorista, mesma filosofia da gorjeta).
+    //
+    // A reserva do uso (INSERT em cupom_usos, ainda sem corrida_id) precisa
+    // acontecer ANTES da corrida ser criada, não depois: é o INSERT que o
+    // trigger enforce_cupom_usos_limites protege com lock consultivo, então
+    // é ele quem de fato impõe os limites de uso. Se registrássemos o uso só
+    // depois de criar a corrida, uma corrida entre duas requisições
+    // concorrentes disputando o último uso disponível deixaria uma delas com
+    // uma corrida já criada e descontada mesmo com o registro de uso
+    // rejeitado pelo limite — o limite viraria decorativo (achado do Codex
+    // no PR #79).
+    let cupomUsoId: string | null = null;
     let valorDescontoAplicado = 0;
     if (data.cupomCodigo) {
       const { avaliarCupomParaCorrida } = await import("./cupons.functions");
@@ -433,12 +440,30 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
         cidadeId: usuario.cidade_id,
         valorCorrida: data.valorCotado,
       });
-      const descontoLimitadoPelaComissao = Math.min(avaliacao.valorDesconto, comissaoOriginal);
-      if (descontoLimitadoPelaComissao <= 0) {
-        throw new Error("Este cupom não pôde ser aplicado a esta corrida.");
+
+      const { data: reserva, error: reservaError } = await supabaseAdmin
+        .from("cupom_usos")
+        .insert({
+          cupom_id: avaliacao.cupomId,
+          usuario_id: usuario.id,
+          corrida_id: null,
+          valor_desconto: avaliacao.valorDesconto,
+        } as any)
+        .select("id")
+        .single();
+
+      if (reservaError) {
+        // 23514 = violação de CHECK/RAISE do trigger de limites — mensagem
+        // já pronta pro passageiro ("atingiu o limite", "já usou o máximo").
+        if ((reservaError as { code?: string }).code === "23514") {
+          throw new Error(reservaError.message);
+        }
+        console.error("Erro ao reservar uso do cupom:", reservaError);
+        throw new Error("Não foi possível aplicar o cupom. Tente novamente.");
       }
-      cupomId = avaliacao.cupomId;
-      valorDescontoAplicado = descontoLimitadoPelaComissao;
+
+      cupomUsoId = reserva.id as string;
+      valorDescontoAplicado = avaliacao.valorDesconto;
     }
 
     const valorComissao = Math.round((comissaoOriginal - valorDescontoAplicado) * 100) / 100;
@@ -473,6 +498,12 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
     );
 
     if (atomicError || !corridaId) {
+      // A corrida não foi criada — libera a reserva do cupom (se houver)
+      // pra não desperdiçar um uso do limite com uma corrida que nunca
+      // chegou a existir.
+      if (cupomUsoId) {
+        await supabaseAdmin.from("cupom_usos").delete().eq("id", cupomUsoId).is("corrida_id", null);
+      }
       if (atomicError?.code === "23505") {
         throw new Error("Você já possui uma corrida ativa.");
       }
@@ -481,22 +512,21 @@ export async function criarCorridaCore(supabaseAdmin: any, authUserId: string, d
     }
 
     // A corrida já foi criada com sucesso nesse ponto (com o desconto já
-    // aplicado no valor cobrado) — o que importa pro passageiro já
-    // aconteceu. Registrar o uso do cupom é só bookkeeping: uma falha aqui
-    // (ex.: corrida de uma race rara batendo no limite do cupom bem nesse
-    // instante) nunca deve reverter ou cancelar a corrida já criada, só
-    // ficar visível pra reconciliação manual.
-    if (cupomId) {
-      const { error: cupomUsoError } = await supabaseAdmin.from("cupom_usos").insert({
-        cupom_id: cupomId,
-        usuario_id: usuario.id,
-        corrida_id: corridaId,
-        valor_desconto: valorDescontoAplicado,
-      } as any);
+    // aplicado no valor cobrado, e o uso do cupom já reservado e contado
+    // contra o limite antes disso). Vincular o corrida_id à reserva é só
+    // bookkeeping a partir daqui: uma falha nesse UPDATE nunca deve reverter
+    // ou cancelar a corrida já criada, só ficar visível pra reconciliação
+    // manual — o desconto já foi legitimamente concedido e contado.
+    if (cupomUsoId) {
+      const { error: cupomUsoError } = await supabaseAdmin
+        .from("cupom_usos")
+        .update({ corrida_id: corridaId } as any)
+        .eq("id", cupomUsoId)
+        .is("corrida_id", null);
       if (cupomUsoError) {
         console.error(
-          "[Cupons] Corrida criada com desconto aplicado, mas falha ao registrar o uso do cupom — requer reconciliação manual.",
-          { corridaId, cupomId, motivo: cupomUsoError.message },
+          "[Cupons] Corrida criada com desconto aplicado, mas falha ao vincular corrida_id ao uso do cupom — requer reconciliação manual.",
+          { corridaId, cupomUsoId, motivo: cupomUsoError.message },
         );
       }
     }
