@@ -24,7 +24,9 @@ export async function criarNotificacao(
     mensagem: string;
     corrida_id?: string | null;
   }
-) {
+): Promise<{ inserted: boolean }> {
+  let inserted = false;
+
   try {
     const { error } = await supabase
       .from("notificacoes")
@@ -39,6 +41,8 @@ export async function criarNotificacao(
 
     if (error) {
       console.error("Erro ao criar notificação:", error);
+    } else {
+      inserted = true;
     }
   } catch (err) {
     console.error("Erro inesperado ao criar notificação:", err);
@@ -49,6 +53,11 @@ export async function criarNotificacao(
   await enviarPushParaUsuario(supabase, params).catch((err) => {
     console.error("Erro inesperado ao enviar push:", err);
   });
+
+  // Chamadores existentes ignoram este retorno (fire-and-forget) — só quem
+  // precisa decidir se pode marcar algo como "enviado" (ex.: o lembrete de
+  // corrida agendada, achado do Codex no PR #73) precisa checar `inserted`.
+  return { inserted };
 }
 
 async function enviarPushParaUsuario(

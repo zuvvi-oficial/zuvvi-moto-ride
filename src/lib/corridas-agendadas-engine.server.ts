@@ -97,7 +97,7 @@ export async function enviarLembretesCorridasAgendadas(): Promise<ResumoLembrete
       minute: "2-digit",
     });
 
-    await criarNotificacao(supabaseAdmin, {
+    const resultado = await criarNotificacao(supabaseAdmin, {
       usuario_id: agendamento.passageiro_id,
       tipo: "corrida_agendada_lembrete",
       titulo: "🕐 Sua corrida agendada é em breve",
@@ -106,6 +106,24 @@ export async function enviarLembretesCorridasAgendadas(): Promise<ResumoLembrete
         : `Sua corrida agendada está marcada para ${horaFormatada}.`,
       corrida_id: null,
     });
+
+    if (!resultado.inserted) {
+      // A notificação in-app não foi criada de verdade (falha transitória de
+      // banco) — reverte a reserva pra este agendamento ser tentado de novo
+      // no próximo cron, em vez de ficar marcado como "lembrete enviado" pra
+      // sempre sem nunca ter avisado ninguém (achado do Codex no PR #73).
+      // Seguro reverter incondicionalmente por id: nenhuma outra execução
+      // pode ter voltado a disputar esta linha enquanto lembrete_enviado_at
+      // segue não-nulo.
+      console.error("[CorridasAgendadasEngine] Notificação de lembrete não foi criada; revertendo reserva.", {
+        id: agendamento.id,
+      });
+      await supabaseAdmin
+        .from("corridas_agendadas")
+        .update({ lembrete_enviado_at: null } as any)
+        .eq("id", agendamento.id);
+      continue;
+    }
 
     enviados += 1;
   }
