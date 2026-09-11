@@ -598,8 +598,9 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
     // sincronizarPagamentoPixComMercadoPago descartar silenciosamente uma
     // aprovação tardia (ela já para na primeira checagem de status 'falhou'),
     // arriscando cobrar o passageiro por uma corrida cancelada sem nenhum
-    // registro de conciliação. O caminho seguro para isso já existe e faz
-    // essa invalidação primeiro: cancelarCorridaPixServer (pix-etapa.server.ts).
+    // registro de conciliação. Invalidar a cobrança Pix no provedor antes
+    // de marcar 'falhou' ainda não tem um caminho implementado e ligado ao
+    // app — por isso Pix fica de fora aqui, propositalmente, até que exista.
     // Best-effort: um erro aqui é só logado, nunca desfaz o cancelamento já
     // confirmado.
     const { error: pagamentoCleanupError } = await supabaseAdmin
