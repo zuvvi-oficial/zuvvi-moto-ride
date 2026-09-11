@@ -103,10 +103,47 @@ export const getGorjetaDaCorrida = createServerFn({ method: "GET" })
 
     if (!gorjeta) return { existe: false as const };
 
+    // Antes de responder, tenta atualizar o status com a verdade canônica
+    // do Mercado Pago — igual ao pagamento da corrida, nunca confia no
+    // payload do webhook sozinho. Fail-closed: se o provedor estiver fora
+    // do ar, mantém o snapshot local em vez de quebrar a consulta.
+    if (gorjeta.status === "pendente") {
+      try {
+        const { sincronizarGorjetaPixComMercadoPago } = await import("./gorjeta-pagamento.server");
+        await sincronizarGorjetaPixComMercadoPago(gorjeta.id);
+      } catch (err) {
+        console.error("Falha ao sincronizar gorjeta com o Mercado Pago:", err);
+      }
+    }
+
+    const { data: atual } = await supabaseAdmin
+      .from("gorjetas")
+      .select("id, valor, status")
+      .eq("id", gorjeta.id)
+      .maybeSingle();
+    const final = atual ?? gorjeta;
+
     return {
       existe: true as const,
-      id: gorjeta.id as string,
-      valor: Number(gorjeta.valor),
-      status: gorjeta.status as "pendente" | "paga" | "falhou",
+      id: final.id as string,
+      valor: Number(final.valor),
+      status: final.status as "pendente" | "paga" | "falhou",
+    };
+  });
+
+export const criarCobrancaGorjeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ gorjetaId: z.string().uuid() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const usuario = await resolverUsuario(supabaseAdmin, context.userId);
+
+    const { criarCobrancaPixGorjeta } = await import("./gorjeta-pagamento.server");
+    const resultado = await criarCobrancaPixGorjeta(data.gorjetaId, usuario.id);
+
+    return {
+      pixCopiaCola: resultado.qrCode,
+      qrCodeBase64: resultado.qrCodeBase64,
+      ticketUrl: resultado.ticketUrl,
     };
   });

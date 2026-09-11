@@ -170,30 +170,44 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Respon
       .maybeSingle();
 
     if (pagamentoError) throw pagamentoError;
-    if (!pagamento || pagamento.meio !== "pix") {
+
+    if (pagamento && pagamento.meio === "pix") {
+      const { data: corrida, error: corridaError } = await supabaseAdmin
+        .from("corridas")
+        .select("id, motorista_id, forma_pagamento")
+        .eq("id", pagamento.corrida_id)
+        .maybeSingle();
+
+      if (corridaError) throw corridaError;
+      if (corrida && corrida.forma_pagamento === "pix" && corrida.motorista_id) {
+        // O Webhook é apenas um gatilho. Nenhum status do payload é confiado.
+        // A verdade financeira é lida novamente na API do Mercado Pago
+        // usando o OAuth do motorista e as validações canônicas já existentes.
+        await sincronizarPagamentoPixComMercadoPago({
+          rideId: corrida.id,
+          expectedMotoristaId: corrida.motorista_id,
+        });
+      }
+
       await finalizeEvent(supabaseAdmin, eventKey, "processed");
       return new Response("ok", { status: 200 });
     }
 
-    const { data: corrida, error: corridaError } = await supabaseAdmin
-      .from("corridas")
-      .select("id, motorista_id, forma_pagamento")
-      .eq("id", pagamento.corrida_id)
+    // Não é pagamento de corrida — pode ser uma gorjeta digital (Etapa 2).
+    // Mesma disciplina: o webhook só aciona a reconciliação, que sempre
+    // reconsulta a API do Mercado Pago antes de marcar como paga.
+    const { data: gorjeta, error: gorjetaError } = await (supabaseAdmin as any)
+      .from("gorjetas")
+      .select("id")
+      .eq("id_transacao_mercadopago", paymentId)
       .maybeSingle();
 
-    if (corridaError) throw corridaError;
-    if (!corrida || corrida.forma_pagamento !== "pix" || !corrida.motorista_id) {
-      await finalizeEvent(supabaseAdmin, eventKey, "processed");
-      return new Response("ok", { status: 200 });
-    }
+    if (gorjetaError) throw gorjetaError;
 
-    // O Webhook é apenas um gatilho. Nenhum status do payload é confiado.
-    // A verdade financeira é lida novamente na API do Mercado Pago usando o
-    // OAuth do motorista e as validações canônicas já existentes.
-    await sincronizarPagamentoPixComMercadoPago({
-      rideId: corrida.id,
-      expectedMotoristaId: corrida.motorista_id,
-    });
+    if (gorjeta) {
+      const { sincronizarGorjetaPixComMercadoPago } = await import("./gorjeta-pagamento.server");
+      await sincronizarGorjetaPixComMercadoPago(gorjeta.id);
+    }
 
     await finalizeEvent(supabaseAdmin, eventKey, "processed");
     return new Response("ok", { status: 200 });
