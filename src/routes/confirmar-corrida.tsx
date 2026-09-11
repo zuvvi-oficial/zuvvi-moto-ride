@@ -2,11 +2,12 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { getMapboxToken, cotarCorrida, criarCorrida } from '@/lib/user.functions';
+import { criarCorridaAgendada } from '@/lib/corridas-agendadas.functions';
 import { ensureMercadoPagoDeviceId } from '@/lib/pix-device-id';
 import { registrarPixDeviceSession } from '@/lib/pix-device-session.functions';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode } from 'lucide-react';
+import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode, CalendarClock } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -43,11 +44,24 @@ function ConfirmarCorrida() {
   const [isCreating, setIsCreating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao' | 'dinheiro' | null>(null);
+  const [modo, setModo] = useState<'agora' | 'agendar'>('agora');
+  const [horarioAgendado, setHorarioAgendado] = useState('');
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const cotarCorridaFn = useServerFn(cotarCorrida);
   const criarCorridaFn = useServerFn(criarCorrida);
+  const criarCorridaAgendadaFn = useServerFn(criarCorridaAgendada);
   const registrarPixDeviceSessionFn = useServerFn(registrarPixDeviceSession);
+
+  // Mesma janela aplicada no servidor (criarCorridaAgendada): pelo menos 30min
+  // e no máximo 7 dias de antecedência. Só pra já orientar o input; a
+  // validação de verdade é sempre a do servidor.
+  const agendamentoMin = new Date(Date.now() + 30 * 60 * 1000);
+  const agendamentoMax = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const toDatetimeLocalValue = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
 
   const createInFlightRef = useRef(false);
 
@@ -55,8 +69,50 @@ function ConfirmarCorrida() {
     // 1. TRAVA SÍNCRONA CONTRA DUPLO ENVIO (3.8-A1)
     if (createInFlightRef.current) return;
 
-    if (!metodoPagamento || !estimatedFare || !quotationSignature || !routeInfo || !quotationTarifas) {
+    if (!metodoPagamento) {
       toast.error("Selecione uma forma de pagamento para continuar.");
+      return;
+    }
+
+    if (modo === 'agendar') {
+      if (!horarioAgendado) {
+        toast.error("Escolha o dia e horário da corrida agendada.");
+        return;
+      }
+
+      createInFlightRef.current = true;
+      setIsCreating(true);
+
+      try {
+        const result = await criarCorridaAgendadaFn({
+          data: {
+            origemLat: originLat,
+            origemLng: originLng,
+            origemNome: originName || 'Sua localização',
+            destinoLat: destLat,
+            destinoLng: destLng,
+            destinoNome: destName,
+            formaPagamento: metodoPagamento,
+            horarioAgendado: new Date(horarioAgendado).toISOString(),
+          }
+        });
+
+        if (result.success) {
+          toast.success("Corrida agendada com sucesso!");
+          navigate({ to: '/corridas-agendadas' });
+        }
+      } catch (err: any) {
+        console.error(err);
+        toast.error(err.message || "Erro ao agendar corrida. Tente novamente.");
+      } finally {
+        createInFlightRef.current = false;
+        setIsCreating(false);
+      }
+      return;
+    }
+
+    if (!estimatedFare || !quotationSignature || !routeInfo || !quotationTarifas) {
+      toast.error("Aguarde o cálculo do valor da corrida.");
       return;
     }
 
@@ -92,9 +148,9 @@ function ConfirmarCorrida() {
 
       if (result.success) {
         toast.success("Corrida solicitada com sucesso!");
-        navigate({ 
-          to: '/procurando-motorista', 
-          search: { rideId: result.rideId } 
+        navigate({
+          to: '/procurando-motorista',
+          search: { rideId: result.rideId }
         });
       }
     } catch (err: any) {
@@ -244,11 +300,57 @@ function ConfirmarCorrida() {
               )}
             </div>
 
+            {/* Agora vs Agendar */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'agora' as const, label: 'Agora' },
+                { id: 'agendar' as const, label: 'Agendar' },
+              ].map((item) => {
+                const isSelected = modo === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setModo(item.id);
+                      if (item.id === 'agendar' && metodoPagamento === 'pix') {
+                        setMetodoPagamento(null);
+                      }
+                    }}
+                    className={`flex items-center justify-center gap-2 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all ${
+                      isSelected
+                        ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo'
+                        : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {item.id === 'agendar' && <CalendarClock className="w-4 h-4" />}
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {modo === 'agendar' && (
+              <div className="space-y-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">Data e horário</p>
+                <input
+                  type="datetime-local"
+                  value={horarioAgendado}
+                  min={toDatetimeLocalValue(agendamentoMin)}
+                  max={toDatetimeLocalValue(agendamentoMax)}
+                  onChange={(e) => setHorarioAgendado(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white [color-scheme:dark] focus:outline-none focus:border-zuvvi-volt/50"
+                />
+                <p className="text-[10px] text-muted-foreground px-1">
+                  Pelo menos 30 min de antecedência. Pix não está disponível para corridas agendadas.
+                </p>
+              </div>
+            )}
+
             {/* Forma de Pagamento */}
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Forma de pagamento</p>
-                <button 
+                <button
                   onClick={() => setShowPaymentModal(true)}
                   className="text-[10px] text-zuvvi-volt font-bold uppercase tracking-widest hover:underline"
                 >
@@ -260,7 +362,7 @@ function ConfirmarCorrida() {
                   { id: 'pix', label: 'Pix', icon: QrCode },
                   { id: 'cartao', label: 'Cartão', icon: CreditCard },
                   { id: 'dinheiro', label: 'Dinheiro', icon: Banknote },
-                ].map((item) => {
+                ].filter((item) => modo === 'agora' || item.id !== 'pix').map((item) => {
                   const Icon = item.icon;
                   const isSelected = metodoPagamento === item.id;
                   return (
@@ -271,8 +373,8 @@ function ConfirmarCorrida() {
                         setShowPaymentModal(false);
                       }}
                       className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${
-                        isSelected 
-                          ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo' 
+                        isSelected
+                          ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo'
                           : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
                       }`}
                     >
@@ -288,7 +390,9 @@ function ConfirmarCorrida() {
             <div className="pt-2 border-t border-white/10 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Valor Estimado</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    {modo === 'agendar' ? 'Valor Estimado (recalculado na hora)' : 'Valor Estimado'}
+                  </p>
                   <div className="flex items-baseline gap-1">
                     <span className="text-xs font-bold text-zuvvi-volt">R$</span>
                     <span className="text-3xl font-black text-white">
@@ -302,13 +406,18 @@ function ConfirmarCorrida() {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={handleConfirmarCorrida}
                 className="w-full bg-zuvvi-volt text-zuvvi-indigo py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-sm zuvvi-glow transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
-                disabled={isLoading || isCreating || !metodoPagamento}
+                disabled={isLoading || isCreating || !metodoPagamento || (modo === 'agendar' && !horarioAgendado)}
               >
                 {isLoading || isCreating ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
+                ) : modo === 'agendar' ? (
+                  <>
+                    AGENDAR CORRIDA
+                    <CalendarClock className="w-5 h-5" />
+                  </>
                 ) : (
                   <>
                     CONFIRMAR E CHAMAR
@@ -354,7 +463,7 @@ function ConfirmarCorrida() {
                   { id: 'pix', label: 'Pix', icon: QrCode },
                   { id: 'cartao', label: 'Cartão', icon: CreditCard },
                   { id: 'dinheiro', label: 'Dinheiro', icon: Banknote },
-                ].map((item) => {
+                ].filter((item) => modo === 'agora' || item.id !== 'pix').map((item) => {
                   const Icon = item.icon;
                   return (
                     <button

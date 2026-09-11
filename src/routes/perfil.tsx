@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
-import { Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut, IdCard, ShieldCheck, Heart } from "lucide-react";
+import { Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut, IdCard, ShieldCheck, Heart, CalendarClock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -218,7 +218,23 @@ function PerfilPassageiro() {
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
           </Link>
 
-          <Link 
+          <Link
+            to="/corridas-agendadas"
+            className="w-full bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-zuvvi-indigo/60 group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center border border-zuvvi-volt/20 group-hover:border-zuvvi-volt/40">
+                <CalendarClock className="w-5 h-5 text-zuvvi-volt" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold">Corridas agendadas</p>
+                <p className="text-[11px] text-muted-foreground">Veja e cancele seus agendamentos</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
+          </Link>
+
+          <Link
             to="/meus-chamados"
             className="w-full bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-zuvvi-indigo/60 group"
           >
