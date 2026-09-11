@@ -382,11 +382,13 @@ export type Database = {
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           id: string
           motivo_cancelamento: string | null
+          motorista_favorito_id: string | null
           motorista_id: string | null
           origem_lat: number
           origem_lng: number
           origem_nome: string | null
           passageiro_id: string
+          prioridade_favorito_expira_em: string | null
           status: Database["public"]["Enums"]["corrida_status"]
           tarifa_bandeirada: number | null
           tarifa_minima: number | null
@@ -414,11 +416,13 @@ export type Database = {
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
           motivo_cancelamento?: string | null
+          motorista_favorito_id?: string | null
           motorista_id?: string | null
           origem_lat: number
           origem_lng: number
           origem_nome?: string | null
           passageiro_id: string
+          prioridade_favorito_expira_em?: string | null
           status?: Database["public"]["Enums"]["corrida_status"]
           tarifa_bandeirada?: number | null
           tarifa_minima?: number | null
@@ -446,11 +450,13 @@ export type Database = {
           forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
           motivo_cancelamento?: string | null
+          motorista_favorito_id?: string | null
           motorista_id?: string | null
           origem_lat?: number
           origem_lng?: number
           origem_nome?: string | null
           passageiro_id?: string
+          prioridade_favorito_expira_em?: string | null
           status?: Database["public"]["Enums"]["corrida_status"]
           tarifa_bandeirada?: number | null
           tarifa_minima?: number | null
@@ -466,6 +472,13 @@ export type Database = {
             columns: ["cidade_id"]
             isOneToOne: false
             referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corridas_motorista_favorito_id_fkey"
+            columns: ["motorista_favorito_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
           {
