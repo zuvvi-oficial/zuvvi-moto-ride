@@ -10,6 +10,21 @@ import { cotarCorridaCore, criarCorridaCore } from "./user.functions";
 
 const BATCH_LIMIT = 50;
 
+// Se uma execução anterior reservou um agendamento (status='convertida' sem
+// corrida_id ainda) e foi interrompida antes de terminar — deploy, timeout,
+// crash — essa reserva precisa de um "lease": depois desse prazo, sem sinal
+// de conclusão, ela é liberada de volta para 'agendada' em vez de ficar
+// presa pra sempre (achado do Codex no PR #68, P1).
+const LEASE_TIMEOUT_MS = 2 * 60 * 1000;
+
+// Se o cron ficou fora do ar por muito tempo (secret mal configurado,
+// instabilidade do GitHub Actions), agendamentos vencidos há muito tempo não
+// devem ser disparados de qualquer jeito quando o cron volta — isso criaria
+// corridas reais horas ou dias depois do horário pedido, sem o passageiro
+// esperando. Marca como falhou em vez de despachar (achado do Codex no PR
+// #68, P1).
+const JANELA_MAXIMA_ATRASO_MS = 20 * 60 * 1000;
+
 export type ResumoConversaoAgendadas = Readonly<{
   verificados: number;
   convertidos: number;
@@ -26,6 +41,7 @@ type AgendamentoRow = Readonly<{
   destino_lng: number;
   destino_nome: string | null;
   forma_pagamento: "pix" | "cartao" | "dinheiro";
+  horario_agendado: string;
 }>;
 
 export async function converterCorridasAgendadasVencidas(): Promise<ResumoConversaoAgendadas> {
@@ -36,10 +52,19 @@ export async function converterCorridasAgendadasVencidas(): Promise<ResumoConver
   let convertidos = 0;
   let falharam = 0;
 
+  // Recuperação de reservas travadas por uma execução anterior interrompida
+  // (ver LEASE_TIMEOUT_MS acima). Roda antes de buscar novos candidatos.
+  await supabaseAdmin
+    .from("corridas_agendadas")
+    .update({ status: "agendada", updated_at: new Date().toISOString() } as any)
+    .eq("status", "convertida")
+    .is("corrida_id", null)
+    .lt("updated_at", new Date(Date.now() - LEASE_TIMEOUT_MS).toISOString());
+
   const { data: agendamentos, error } = await supabaseAdmin
     .from("corridas_agendadas")
     .select(
-      "id, passageiro_id, origem_lat, origem_lng, origem_nome, destino_lat, destino_lng, destino_nome, forma_pagamento",
+      "id, passageiro_id, origem_lat, origem_lng, origem_nome, destino_lat, destino_lng, destino_nome, forma_pagamento, horario_agendado",
     )
     .eq("status", "agendada")
     .lte("horario_agendado", new Date().toISOString())
@@ -55,6 +80,32 @@ export async function converterCorridasAgendadasVencidas(): Promise<ResumoConver
   verificados = candidatos.length;
 
   for (const agendamento of candidatos) {
+    // Atraso além do limite (cron ficou fora do ar por muito tempo): nunca
+    // despacha uma corrida "atrasada" sem o passageiro esperando. Marca como
+    // falhou direto, sem reservar nem gastar cotação/criação.
+    const atrasoMs = Date.now() - new Date(agendamento.horario_agendado).getTime();
+    if (atrasoMs > JANELA_MAXIMA_ATRASO_MS) {
+      falharam += 1;
+      await supabaseAdmin
+        .from("corridas_agendadas")
+        .update({
+          status: "falhou",
+          motivo_falha: "Agendamento expirado: atraso além do limite aceitável.",
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", agendamento.id)
+        .eq("status", "agendada");
+
+      await criarNotificacao(supabaseAdmin, {
+        usuario_id: agendamento.passageiro_id,
+        tipo: "corrida_agendada_falhou",
+        titulo: "⚠️ Sua corrida agendada expirou",
+        mensagem: "Não conseguimos solicitar sua corrida agendada a tempo. Peça manualmente pelo app.",
+        corrida_id: null,
+      });
+      continue;
+    }
+
     try {
       // Reserva o agendamento antes de qualquer trabalho caro (cotação via
       // Mapbox, criação da corrida): UPDATE condicional (compare-and-swap),
@@ -116,10 +167,22 @@ export async function converterCorridasAgendadasVencidas(): Promise<ResumoConver
         destinoNome: agendamento.destino_nome || undefined,
       });
 
-      await supabaseAdmin
+      // A corrida real já foi criada com sucesso nesse ponto — o que importa
+      // pro passageiro já aconteceu. Uma falha neste UPDATE é só um problema
+      // de vínculo/bookkeeping (achado do Codex no PR #68, P2): nunca deve
+      // reverter pra 'falhou' nem deixar de notificar quem já tem corrida de
+      // verdade, mas precisa ficar visível pra reconciliação manual.
+      const { error: vinculoError } = await supabaseAdmin
         .from("corridas_agendadas")
         .update({ corrida_id: resultado.rideId, updated_at: new Date().toISOString() } as any)
         .eq("id", agendamento.id);
+
+      if (vinculoError) {
+        console.error(
+          "[CorridasAgendadasEngine] Corrida criada com sucesso, mas falha ao vincular corrida_id — requer reconciliação manual.",
+          { agendamentoId: agendamento.id, corridaId: resultado.rideId },
+        );
+      }
 
       await criarNotificacao(supabaseAdmin, {
         usuario_id: agendamento.passageiro_id,
