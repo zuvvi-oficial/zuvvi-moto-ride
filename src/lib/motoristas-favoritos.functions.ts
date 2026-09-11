@@ -140,3 +140,31 @@ export const removerMotoristaFavorito = createServerFn({ method: "POST" })
 
     return { success: true as const };
   });
+
+// Etapa 4 (opcional) do motorista favorito: o motorista vê quantos
+// passageiros o têm como favorito — só um número, sem expor quem são.
+export const contarFavoritadoPor = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: usuario, error: usuarioError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+
+    if (usuarioError || !usuario) throw new Error("Usuário não encontrado.");
+
+    const { count, error } = await supabaseAdmin
+      .from("motoristas_favoritos")
+      .select("id", { count: "exact", head: true })
+      .eq("motorista_id", usuario.id);
+
+    if (error) {
+      console.error("Erro ao contar quantos passageiros favoritaram o motorista:", error);
+      throw new Error("Não foi possível carregar seus favoritos.");
+    }
+
+    return { total: count ?? 0 };
+  });

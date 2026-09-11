@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock,
   HelpCircle,
+  Heart,
   LifeBuoy,
   Loader2,
   LogOut,
@@ -18,6 +19,7 @@ import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { getMotoristaStatusHome } from "@/lib/motorista-status.functions";
+import { contarFavoritadoPor } from "@/lib/motoristas-favoritos.functions";
 
 export const Route = createFileRoute("/perfil-motorista")({
   loader: async () => {
@@ -41,6 +43,11 @@ function PerfilMotorista() {
     queryKey: ["motorista-status"],
     queryFn: () => getMotoristaStatusHome(),
     refetchOnWindowFocus: true,
+  });
+
+  const { data: favoritado } = useQuery({
+    queryKey: ["motorista-favoritado-por"],
+    queryFn: () => contarFavoritadoPor(),
   });
 
   const handleLogout = async () => {
@@ -107,6 +114,12 @@ function PerfilMotorista() {
                   <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white/60">
                     {status.is_disponivel ? "Online" : "Offline"}
                   </span>
+                  {favoritado && favoritado.total > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-zuvvi-volt/20 bg-zuvvi-volt/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-zuvvi-volt">
+                      <Heart className="h-3 w-3 fill-zuvvi-volt" />
+                      Favorito de {favoritado.total} {favoritado.total === 1 ? "passageiro" : "passageiros"}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
