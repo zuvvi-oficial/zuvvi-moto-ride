@@ -1,7 +1,7 @@
 // Endpoint interno chamado pela GitHub Action agendada (ver
 // .github/workflows/corridas-agendadas-converter.yml). Protegido por
 // segredo compartilhado, nunca exposto sem autenticação.
-import { converterCorridasAgendadasVencidas } from "./corridas-agendadas-engine.server";
+import { converterCorridasAgendadasVencidas, enviarLembretesCorridasAgendadas } from "./corridas-agendadas-engine.server";
 
 const ENDPOINT_PATH = "/api/internal/corridas-agendadas-converter";
 
@@ -34,8 +34,18 @@ export async function handleCorridasAgendadasConverterRequest(request: Request):
   }
 
   try {
-    const resumo = await converterCorridasAgendadasVencidas();
-    return new Response(JSON.stringify(resumo), {
+    const conversao = await converterCorridasAgendadasVencidas();
+    // Lembrete roda no mesmo golpe do cron (a cada 5 min): não precisa de
+    // segredo/workflow separado. Best-effort — uma falha aqui não deve virar
+    // 500 pra rotina de conversão, que é a que realmente importa.
+    const lembretes = await enviarLembretesCorridasAgendadas().catch((err) => {
+      console.error("[CorridasAgendadasConverterEndpoint] Falha ao enviar lembretes.", {
+        kind: err instanceof Error ? err.name : "unknown",
+      });
+      return { verificados: 0, enviados: 0 };
+    });
+
+    return new Response(JSON.stringify({ ...conversao, lembretes }), {
       status: 200,
       headers: { "content-type": "application/json" },
     });
