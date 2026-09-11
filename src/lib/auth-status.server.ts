@@ -37,14 +37,10 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
       const { data: authData, error } = await supabase.auth.getUser(token);
       if (!error && authData?.user) {
         const user = authData.user;
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id);
-        const adminUser = adminData?.user;
-        
         return {
           userId: user.id,
-          email: adminUser?.email || user.email || '',
-          isAdmin: adminUser?.email === 'mokahz@gmail.com' && !!adminUser?.email_confirmed_at
+          email: user.email || '',
+          isAdmin: await isAdminUser(user.id),
         };
       }
     }
@@ -57,20 +53,35 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
       const { data: authData, error: userError } = await supabase.auth.getUser(accessToken);
       if (!userError && authData?.user) {
         const user = authData.user;
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: adminData } = await supabaseAdmin.auth.admin.getUserById(user.id);
-        const adminUser = adminData?.user;
-
         return {
           userId: user.id,
-          email: adminUser?.email || user.email || '',
-          isAdmin: adminUser?.email === 'mokahz@gmail.com' && !!adminUser?.email_confirmed_at
+          email: user.email || '',
+          isAdmin: await isAdminUser(user.id),
         };
       }
     }
-    
+
     return null;
   } catch (e) {
     return null;
   }
+}
+
+// Única fonte de verdade pra status de admin em todo o app — tabela
+// admin_users por auth_user_id. Antes esta função checava só se o e-mail da
+// sessão era literalmente 'mokahz@gmail.com' (confirmado), sem consultar a
+// tabela; esse isAdmin retornado aqui nunca chegou a ser lido por nenhum
+// caminho de autorização real (todos re-derivam de admin_users via
+// resolveDestinationInternal/getAuthStatus), mas ficava como uma armadilha
+// pronta pra qualquer código futuro que confiasse nele diretamente.
+async function isAdminUser(userId: string): Promise<boolean> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("admin_users")
+    .select("role, ativo")
+    .eq("auth_user_id", userId)
+    .eq("role", "admin")
+    .eq("ativo", true)
+    .maybeSingle();
+  return !!data;
 }
