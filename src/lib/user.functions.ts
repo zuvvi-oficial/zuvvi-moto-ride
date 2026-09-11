@@ -723,6 +723,34 @@ export const cancelarCorrida = createServerFn({ method: "POST" })
       throw new Error("Esta corrida não pode mais ser cancelada porque já avançou de etapa.");
     }
 
+    // Encerrar (marcar como 'falhou') qualquer pagamento em dinheiro/cartão
+    // ainda pendente desta corrida agora cancelada — sem isso o pagamento
+    // ficava "pendente" para sempre no banco mesmo com a corrida já morta.
+    // Deliberadamente EXCLUI Pix (achado do Codex no PR #53): um pagamento
+    // Pix "pendente" pode ter uma cobrança ainda viva no Mercado Pago, que o
+    // passageiro consegue pagar mesmo depois deste cancelamento. Marcar
+    // 'falhou' aqui sem antes invalidar a cobrança no provedor faria
+    // sincronizarPagamentoPixComMercadoPago descartar silenciosamente uma
+    // aprovação tardia (ela já para na primeira checagem de status 'falhou'),
+    // arriscando cobrar o passageiro por uma corrida cancelada sem nenhum
+    // registro de conciliação. O caminho seguro para isso já existe e faz
+    // essa invalidação primeiro: cancelarCorridaPixServer (pix-etapa.server.ts).
+    // Best-effort: um erro aqui é só logado, nunca desfaz o cancelamento já
+    // confirmado.
+    const { error: pagamentoCleanupError } = await supabaseAdmin
+      .from("pagamentos")
+      .update({ status: "falhou", updated_at: new Date().toISOString() })
+      .eq("corrida_id", data.rideId)
+      .eq("status", "pendente")
+      .neq("meio", "pix");
+
+    if (pagamentoCleanupError) {
+      console.error(
+        "Erro ao encerrar pagamento pendente da corrida cancelada:",
+        pagamentoCleanupError,
+      );
+    }
+
     // Notificar Motorista se houver
     if (corrida.motorista_id) {
       await criarNotificacao(supabaseAdmin, {
