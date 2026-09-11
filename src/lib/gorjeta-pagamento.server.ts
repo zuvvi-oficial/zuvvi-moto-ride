@@ -12,10 +12,29 @@ import { obterAccessTokenValido, montarCorpoCobrancaPix, normalizeMercadoPagoTic
  * "tentativas" dedicada (tabela própria + RPC de reivindicação atômica) que
  * o pagamento de corrida usa — decisão consciente de proporcionalidade,
  * não descuido.
+ *
+ * `tentativa_pix_id` é a versão mínima desse mesmo padrão: reservada antes
+ * de chamar o Mercado Pago (serve de chave de idempotência), reaproveitada
+ * se a mesma chamada for repetida (retry de rede), e só substituída quando
+ * uma tentativa anterior é confirmada morta (rejeitada/cancelada/expirada)
+ * — nunca enquanto ainda pode estar pendente/em análise. Isso permite tentar
+ * de novo depois de um Pix expirado sem nunca criar uma segunda cobrança
+ * válida pra mesma gorjeta (corrida_id é único desde a Etapa 1).
  */
 
 const GENERIC_ERROR = "Não foi possível gerar a cobrança Pix da gorjeta. Tente novamente.";
 const CONFIRM_ERROR = "Não foi possível confirmar o pagamento da gorjeta.";
+const STATUS_TERMINAIS_DE_FALHA = new Set(["rejected", "cancelled", "expired"]);
+
+type GorjetaRow = Readonly<{
+  id: string;
+  passageiro_id: string;
+  motorista_id: string;
+  valor: number;
+  status: "pendente" | "paga" | "falhou";
+  id_transacao_mercadopago: string | null;
+  tentativa_pix_id: string | null;
+}>;
 
 function externalReferenceDaGorjeta(gorjetaId: string): string {
   return `gorjeta-${gorjetaId}`;
@@ -26,32 +45,132 @@ function sameCurrencyAmount(actual: unknown, expected: number): boolean {
   return Number.isFinite(parsed) && Math.round(parsed * 100) === Math.round(Number(expected) * 100);
 }
 
+async function carregarGorjeta(
+  supabaseAdmin: any,
+  gorjetaId: string,
+  passageiroId: string,
+): Promise<GorjetaRow> {
+  const { data: gorjeta, error } = await supabaseAdmin
+    .from("gorjetas")
+    .select("id, passageiro_id, motorista_id, valor, status, id_transacao_mercadopago, tentativa_pix_id")
+    .eq("id", gorjetaId)
+    .maybeSingle();
+
+  if (error || !gorjeta || gorjeta.passageiro_id !== passageiroId) {
+    throw new Error(GENERIC_ERROR);
+  }
+  return gorjeta as GorjetaRow;
+}
+
+async function buscarCobrancaPixExistente(
+  accessToken: string,
+  paymentId: string,
+): Promise<PixChargeResult> {
+  const response = await fetch(
+    `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok) throw new Error(GENERIC_ERROR);
+
+  const provider = (await response.json()) as Record<string, unknown>;
+  const qrCode =
+    (provider["point_of_interaction"] as any)?.transaction_data?.qr_code ?? null;
+  const qrCodeBase64 =
+    (provider["point_of_interaction"] as any)?.transaction_data?.qr_code_base64 ?? null;
+  const ticketUrl = normalizeMercadoPagoTicketUrl(
+    (provider["point_of_interaction"] as any)?.transaction_data?.ticket_url,
+  );
+
+  if (!qrCode || !qrCodeBase64) throw new Error(GENERIC_ERROR);
+  return { paymentId, qrCode, qrCodeBase64, ticketUrl };
+}
+
 export async function criarCobrancaPixGorjeta(
   gorjetaId: string,
   passageiroId: string,
 ): Promise<PixChargeResult> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const { data: gorjeta, error: gorjetaError } = await supabaseAdmin
-    .from("gorjetas")
-    .select("id, passageiro_id, motorista_id, valor, status, id_transacao_mercadopago")
-    .eq("id", gorjetaId)
-    .maybeSingle();
+  let gorjeta = await carregarGorjeta(supabaseAdmin, gorjetaId, passageiroId);
 
-  if (gorjetaError || !gorjeta || gorjeta.passageiro_id !== passageiroId) {
-    throw new Error(GENERIC_ERROR);
-  }
-  if (gorjeta.status !== "pendente") {
-    throw new Error("Esta gorjeta já foi processada.");
-  }
+  if (gorjeta.status === "paga") throw new Error("Esta gorjeta já foi paga.");
+
+  // Já existe uma cobrança criada (pode estar viva ainda ou já ter morrido)
+  // — nunca decide sozinho com o estado local: sempre reconsulta o Mercado
+  // Pago primeiro.
   if (gorjeta.id_transacao_mercadopago) {
-    // Já existe uma cobrança criada pra esta gorjeta (o QR pode ter
-    // expirado sem pagamento) — nesta etapa não regeramos uma segunda
-    // cobrança pro mesmo registro, pra nunca correr o risco de dois
-    // pagamentos válidos pra uma linha só. Quem quiser tentar de novo
-    // precisa criar uma nova gorjeta.
-    throw new Error("Já existe uma cobrança gerada para esta gorjeta.");
+    const resultado = await sincronizarGorjetaPixComMercadoPago(gorjeta.id);
+
+    if (resultado === "paga") throw new Error("Esta gorjeta já foi paga.");
+
+    if (resultado === "pendente") {
+      // Ainda em aberto — devolve a mesma cobrança em vez de criar uma
+      // segunda (o passageiro pode ter perdido a resposta original por
+      // uma falha de rede e tocado em "gerar Pix" de novo).
+      const motoristaAtual = await supabaseAdmin
+        .from("motoristas")
+        .select("conta_mercado_pago_id")
+        .eq("id", gorjeta.motorista_id)
+        .maybeSingle();
+      if (motoristaAtual.error || !motoristaAtual.data?.conta_mercado_pago_id) {
+        throw new Error("A conta Mercado Pago do motorista não está conectada ou válida.");
+      }
+      const accessTokenExistente = await obterAccessTokenValido(
+        supabaseAdmin as any,
+        gorjeta.motorista_id,
+        motoristaAtual.data.conta_mercado_pago_id,
+      );
+      return buscarCobrancaPixExistente(accessTokenExistente, gorjeta.id_transacao_mercadopago);
+    }
+
+    // resultado === "falhou": a tentativa anterior está confirmada morta —
+    // segue abaixo para liberar uma tentativa nova.
+    gorjeta = await carregarGorjeta(supabaseAdmin, gorjetaId, passageiroId);
   }
+
+  if (gorjeta.status === "falhou") {
+    const { data: resetado, error: resetError } = await supabaseAdmin
+      .from("gorjetas")
+      .update({
+        status: "pendente",
+        id_transacao_mercadopago: null,
+        tentativa_pix_id: crypto.randomUUID(),
+        motivo_falha: null,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("id", gorjeta.id)
+      .eq("status", "falhou")
+      .select("id, passageiro_id, motorista_id, valor, status, id_transacao_mercadopago, tentativa_pix_id")
+      .maybeSingle();
+
+    if (resetError) throw new Error(GENERIC_ERROR);
+    // Se nada voltou, outra chamada concorrente já reabriu essa gorjeta —
+    // recarrega o estado atual (deve estar 'pendente' agora) e segue.
+    gorjeta = (resetado as GorjetaRow | null) ?? (await carregarGorjeta(supabaseAdmin, gorjetaId, passageiroId));
+  }
+
+  if (gorjeta.status !== "pendente") throw new Error(GENERIC_ERROR);
+
+  // Reserva a chave de idempotência da tentativa antes de chamar o Mercado
+  // Pago, pro mesmo pedido (retry de rede) reusar a mesma chave em vez de
+  // arriscar duas cobranças pra mesma tentativa.
+  let tentativaPixId = gorjeta.tentativa_pix_id;
+  if (!tentativaPixId) {
+    const { data: reservado, error: reservaError } = await supabaseAdmin
+      .from("gorjetas")
+      .update({ tentativa_pix_id: crypto.randomUUID(), updated_at: new Date().toISOString() } as any)
+      .eq("id", gorjeta.id)
+      .eq("status", "pendente")
+      .is("tentativa_pix_id", null)
+      .select("tentativa_pix_id")
+      .maybeSingle();
+
+    if (reservaError) throw new Error(GENERIC_ERROR);
+    tentativaPixId =
+      reservado?.tentativa_pix_id ??
+      (await carregarGorjeta(supabaseAdmin, gorjetaId, passageiroId)).tentativa_pix_id;
+  }
+  if (!tentativaPixId) throw new Error(GENERIC_ERROR);
 
   const { data: motorista, error: motoristaError } = await supabaseAdmin
     .from("motoristas")
@@ -75,8 +194,6 @@ export async function criarCobrancaPixGorjeta(
     motorista.conta_mercado_pago_id,
   );
 
-  const externalReference = externalReferenceDaGorjeta(gorjeta.id);
-
   let response: Awaited<ReturnType<Payment["create"]>>;
   try {
     const client = new MercadoPagoConfig({ accessToken });
@@ -92,12 +209,12 @@ export async function criarCobrancaPixGorjeta(
         passageiroCelular: passageiro.celular,
         passageiroCpf: passageiro.cpf,
         passageiroCreatedAt: passageiro.created_at,
-        externalReference,
+        externalReference: externalReferenceDaGorjeta(gorjeta.id),
         descricao: "Gorjeta Zuvvi",
         itemTitulo: "Gorjeta para o motorista",
         itemDescricao: "Gorjeta digital de uma corrida Zuvvi",
       }),
-      requestOptions: { idempotencyKey: externalReference },
+      requestOptions: { idempotencyKey: tentativaPixId },
     });
   } catch (error) {
     console.error("[GorjetaPagamento] Falha ao criar cobrança Pix.", {
@@ -224,16 +341,27 @@ export async function sincronizarGorjetaPixComMercadoPago(
     return "paga";
   }
 
-  if (providerStatus === "rejected" || providerStatus === "cancelled") {
-    await supabaseAdmin
+  if (providerStatus && STATUS_TERMINAIS_DE_FALHA.has(providerStatus)) {
+    const { data: atualizado, error: updateError } = await supabaseAdmin
       .from("gorjetas")
       .update({
         status: "falhou",
-        motivo_falha: providerStatusDetail ?? "Pagamento rejeitado pelo Mercado Pago.",
+        motivo_falha: providerStatusDetail ?? `Pagamento não concluído (${providerStatus}).`,
         updated_at: new Date().toISOString(),
       } as any)
       .eq("id", gorjeta.id)
-      .eq("status", "pendente");
+      .eq("status", "pendente")
+      .select("id")
+      .maybeSingle();
+
+    // Se o update falhar de verdade (erro do Supabase, não "0 linhas
+    // afetadas porque outra chamada já mudou o status"), não pode devolver
+    // "falhou" como se tivesse persistido — o Webhook finalizaria o evento
+    // como processado com a gorjeta ainda 'pendente' e com
+    // id_transacao_mercadopago já preenchido, sem nenhum jeito de tentar de
+    // novo (achado do Codex no PR #76).
+    if (updateError) throw new Error(CONFIRM_ERROR);
+
     return "falhou";
   }
 
