@@ -118,9 +118,16 @@ export const signUp = createServerFn({ method: "POST" })
     // Import inside handler to avoid client bundle issues
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Bloqueio de segurança: não permitir criar mokahz@gmail.com manualmente se ele já for o admin autorizado
-    // O admin deve vir apenas via Google Auth ou bootstrap seguro.
-    
+    // Bloqueio de segurança: o e-mail do admin nunca pode entrar por aqui —
+    // o cadastro público sempre confirma o e-mail na hora (email_confirm:
+    // true), então sem este bloqueio bastaria alguém tentar se cadastrar
+    // com esse e-mail pra já sair com uma conta "confirmada" com ele. O
+    // admin deve vir apenas via Google Auth (que passa por outro caminho,
+    // não por este signUp).
+    if (data.email.trim().toLowerCase() === "mokahz@gmail.com") {
+      throw new Error("Este e-mail não pode ser usado para cadastro. Faça login com o Google.");
+    }
+
     // 1. Criar usuário no Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
