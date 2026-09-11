@@ -426,7 +426,7 @@ function FinanceiroAdmin() {
                   Exportar CSV
                 </Button>
               </div>
-              <div className="rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-x-auto">
+              <div className="hidden md:block rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-white/5">
                     <TableRow className="hover:bg-transparent border-white/10">
@@ -473,6 +473,50 @@ function FinanceiroAdmin() {
                   </TableBody>
                 </Table>
               </div>
+
+              <div className="md:hidden space-y-3">
+                {(resumo?.porCidade || []).map((cidade) => (
+                  <div key={cidade.cidadeId} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm">
+                        {cidade.cidadeNome} - {cidade.estadoUf}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2 shrink-0"
+                        aria-label={`Ver corridas de ${cidade.cidadeNome}`}
+                        onClick={() =>
+                          abrirDrill({ tipo: 'cidade', id: cidade.cidadeId, label: `${cidade.cidadeNome} - ${cidade.estadoUf}` })
+                        }
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Faturado</p>
+                        <p className="text-sm font-bold">{formatarMoeda(cidade.totalFaturado)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Comissão</p>
+                        <p className="text-sm font-bold">{formatarMoeda(cidade.totalComissao)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Repasse</p>
+                        <p className="text-sm font-bold">{formatarMoeda(cidade.totalMotorista)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Corridas</p>
+                        <p className="text-sm font-bold">{cidade.qtdCorridas}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(resumo?.porCidade || []).length === 0 && (
+                  <p className="text-center py-10 text-gray-500 text-sm">Nenhum pagamento no período selecionado.</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -492,7 +536,7 @@ function FinanceiroAdmin() {
                   Exportar CSV
                 </Button>
               </div>
-              <div className="rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-x-auto">
+              <div className="hidden md:block rounded-md border border-white/10 bg-zuvvi-indigo/50 overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-white/5">
                     <TableRow className="hover:bg-transparent border-white/10">
@@ -534,6 +578,48 @@ function FinanceiroAdmin() {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              <div className="md:hidden space-y-3">
+                {(resumo?.porMotorista || []).map((motorista) => (
+                  <div key={motorista.motoristaId} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm">{motorista.nome}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2 shrink-0"
+                        aria-label={`Ver corridas de ${motorista.nome}`}
+                        onClick={() => abrirDrill({ tipo: 'motorista', id: motorista.motoristaId, label: motorista.nome })}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Faturado</p>
+                        <p className="text-sm font-bold">{formatarMoeda(motorista.totalFaturado)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Comissão</p>
+                        <p className="text-sm font-bold">{formatarMoeda(motorista.totalComissao)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Recebeu</p>
+                        <p className="text-sm font-bold">{formatarMoeda(motorista.totalMotorista)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Corridas</p>
+                        <p className="text-sm font-bold">{motorista.qtdCorridas}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(resumo?.porMotorista || []).length === 0 && (
+                  <p className="text-center py-10 text-gray-500 text-sm">
+                    Nenhum motorista com pagamentos no período selecionado.
+                  </p>
+                )}
               </div>
             </div>
           </>
