@@ -3,11 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { getMapboxToken, cotarCorrida, criarCorrida } from '@/lib/user.functions';
 import { criarCorridaAgendada } from '@/lib/corridas-agendadas.functions';
+import { validarCupom } from '@/lib/cupons.functions';
 import { ensureMercadoPagoDeviceId } from '@/lib/pix-device-id';
 import { registrarPixDeviceSession } from '@/lib/pix-device-session.functions';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode, CalendarClock } from 'lucide-react';
+import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode, CalendarClock, Tag, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -46,12 +47,42 @@ function ConfirmarCorrida() {
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao' | 'dinheiro' | null>(null);
   const [modo, setModo] = useState<'agora' | 'agendar'>('agora');
   const [horarioAgendado, setHorarioAgendado] = useState('');
+  const [cupomInput, setCupomInput] = useState('');
+  const [cupomAplicado, setCupomAplicado] = useState<{ codigo: string; valorDesconto: number } | null>(null);
+  const [validandoCupom, setValidandoCupom] = useState(false);
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const cotarCorridaFn = useServerFn(cotarCorrida);
   const criarCorridaFn = useServerFn(criarCorrida);
   const criarCorridaAgendadaFn = useServerFn(criarCorridaAgendada);
   const registrarPixDeviceSessionFn = useServerFn(registrarPixDeviceSession);
+  const validarCupomFn = useServerFn(validarCupom);
+
+  const valorComDesconto =
+    estimatedFare != null && cupomAplicado
+      ? Math.max(0, Math.round((estimatedFare - cupomAplicado.valorDesconto) * 100) / 100)
+      : estimatedFare;
+
+  const handleAplicarCupom = async () => {
+    const codigo = cupomInput.trim();
+    if (!codigo || !estimatedFare) return;
+    setValidandoCupom(true);
+    try {
+      const res = await validarCupomFn({ data: { codigo, valorCorrida: estimatedFare } });
+      setCupomAplicado({ codigo: res.codigo, valorDesconto: res.valorDesconto });
+      toast.success(`Cupom aplicado: -R$ ${res.valorDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+    } catch (err: any) {
+      setCupomAplicado(null);
+      toast.error(err.message || 'Cupom inválido.');
+    } finally {
+      setValidandoCupom(false);
+    }
+  };
+
+  const handleRemoverCupom = () => {
+    setCupomAplicado(null);
+    setCupomInput('');
+  };
 
   // Mesma janela aplicada no servidor (criarCorridaAgendada): pelo menos 30min
   // e no máximo 7 dias de antecedência. Só pra já orientar o input; a
@@ -143,6 +174,7 @@ function ConfirmarCorrida() {
           tarifaValorMin: quotationTarifas.valorMin,
           tarifaMinima: quotationTarifas.tarifaMinima,
           assinaturaCotacao: quotationSignature,
+          ...(cupomAplicado ? { cupomCodigo: cupomAplicado.codigo } : {}),
         }
       });
 
@@ -312,8 +344,13 @@ function ConfirmarCorrida() {
                     key={item.id}
                     onClick={() => {
                       setModo(item.id);
-                      if (item.id === 'agendar' && metodoPagamento === 'pix') {
-                        setMetodoPagamento(null);
+                      if (item.id === 'agendar') {
+                        if (metodoPagamento === 'pix') setMetodoPagamento(null);
+                        // Cupom só se aplica em corrida ao vivo (Etapa 2 do
+                        // diferencial): o preço de uma corrida agendada só é
+                        // calculado de verdade na conversão, minutos ou dias
+                        // depois.
+                        handleRemoverCupom();
                       }
                     }}
                     className={`flex items-center justify-center gap-2 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all ${
@@ -386,6 +423,48 @@ function ConfirmarCorrida() {
               </div>
             </div>
 
+            {/* Cupom de desconto — só em corrida ao vivo (Etapa 2) */}
+            {modo === 'agora' && (
+              <div className="space-y-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">Cupom de desconto</p>
+                {cupomAplicado ? (
+                  <div className="flex items-center justify-between gap-2 bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl px-4 py-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Tag className="w-4 h-4 text-zuvvi-volt shrink-0" />
+                      <span className="text-sm font-black text-zuvvi-volt truncate">{cupomAplicado.codigo}</span>
+                      <span className="text-xs text-white/60 shrink-0">
+                        -R$ {cupomAplicado.valorDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleRemoverCupom}
+                      className="shrink-0 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+                      aria-label="Remover cupom"
+                    >
+                      <X className="w-3.5 h-3.5 text-white/60" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={cupomInput}
+                      onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
+                      placeholder="Código do cupom"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-zuvvi-volt/50 uppercase"
+                    />
+                    <button
+                      onClick={handleAplicarCupom}
+                      disabled={!cupomInput.trim() || validandoCupom || !estimatedFare}
+                      className="shrink-0 px-5 rounded-2xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest disabled:opacity-40 hover:bg-white/10 transition-colors flex items-center justify-center"
+                    >
+                      {validandoCupom ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Valor e Ação */}
             <div className="pt-2 border-t border-white/10 space-y-4">
               <div className="flex items-center justify-between">
@@ -393,12 +472,26 @@ function ConfirmarCorrida() {
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
                     {modo === 'agendar' ? 'Valor Estimado (recalculado na hora)' : 'Valor Estimado'}
                   </p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xs font-bold text-zuvvi-volt">R$</span>
-                    <span className="text-3xl font-black text-white">
-                      {estimatedFare ? estimatedFare.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--,--'}
-                    </span>
-                  </div>
+                  {cupomAplicado && estimatedFare != null ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-bold text-white/40 line-through">
+                        R$ {estimatedFare.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="flex items-baseline gap-1">
+                        <span className="text-xs font-bold text-zuvvi-volt">R$</span>
+                        <span className="text-3xl font-black text-white">
+                          {valorComDesconto!.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xs font-bold text-zuvvi-volt">R$</span>
+                      <span className="text-3xl font-black text-white">
+                        {estimatedFare ? estimatedFare.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--,--'}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-xl px-3 py-2 flex items-center gap-2">
                   <Bike className="w-4 h-4 text-zuvvi-volt" />
