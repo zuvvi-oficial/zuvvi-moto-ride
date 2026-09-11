@@ -569,6 +569,117 @@ export type Database = {
           },
         ]
       }
+      cupom_usos: {
+        Row: {
+          corrida_id: string
+          created_at: string
+          cupom_id: string
+          id: string
+          usuario_id: string
+          valor_desconto: number
+        }
+        Insert: {
+          corrida_id: string
+          created_at?: string
+          cupom_id: string
+          id?: string
+          usuario_id: string
+          valor_desconto: number
+        }
+        Update: {
+          corrida_id?: string
+          created_at?: string
+          cupom_id?: string
+          id?: string
+          usuario_id?: string
+          valor_desconto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cupom_usos_corrida_id_fkey"
+            columns: ["corrida_id"]
+            isOneToOne: true
+            referencedRelation: "corridas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cupom_usos_cupom_id_fkey"
+            columns: ["cupom_id"]
+            isOneToOne: false
+            referencedRelation: "cupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cupom_usos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cupons: {
+        Row: {
+          ativo: boolean
+          cidade_id: string | null
+          codigo: string
+          created_at: string
+          descricao: string | null
+          id: string
+          limite_uso_por_usuario: number
+          limite_uso_total: number | null
+          tipo_desconto: Database["public"]["Enums"]["cupom_tipo_desconto"]
+          updated_at: string
+          valido_ate: string | null
+          valido_de: string
+          valor: number
+          valor_maximo_desconto: number | null
+          valor_minimo_corrida: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          cidade_id?: string | null
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          limite_uso_por_usuario?: number
+          limite_uso_total?: number | null
+          tipo_desconto: Database["public"]["Enums"]["cupom_tipo_desconto"]
+          updated_at?: string
+          valido_ate?: string | null
+          valido_de?: string
+          valor: number
+          valor_maximo_desconto?: number | null
+          valor_minimo_corrida?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          cidade_id?: string | null
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          limite_uso_por_usuario?: number
+          limite_uso_total?: number | null
+          tipo_desconto?: Database["public"]["Enums"]["cupom_tipo_desconto"]
+          updated_at?: string
+          valido_ate?: string | null
+          valido_de?: string
+          valor?: number
+          valor_maximo_desconto?: number | null
+          valor_minimo_corrida?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cupons_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_motorista: {
         Row: {
           created_at: string
@@ -1608,6 +1719,7 @@ export type Database = {
         | "cancelada"
         | "sem_motorista"
         | "aguardando_pagamento"
+      cupom_tipo_desconto: "percentual" | "fixo"
       documento_status_analise:
         | "pendente"
         | "aprovado"
@@ -1797,6 +1909,7 @@ export const Constants = {
         "sem_motorista",
         "aguardando_pagamento",
       ],
+      cupom_tipo_desconto: ["percentual", "fixo"],
       documento_status_analise: [
         "pendente",
         "aprovado",
