@@ -6,6 +6,22 @@ import { nanoid } from "nanoid";
 
 const RIDE_SEARCH_TIMEOUT_MS = 120_000;
 
+// Etapa 3 do motorista favorito: janela curta em que só o favorito
+// escolhido pode ver/aceitar a corrida, antes de virar oferta geral.
+const FAVORITO_PRIORIDADE_JANELA_MS = 15_000;
+
+function haversineMetros(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371e3;
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 type UserRow = Database["public"]["Tables"]["usuarios"]["Row"];
 
 type MotoristaRow = Database["public"]["Tables"]["motoristas"]["Row"];
@@ -430,33 +446,101 @@ export const criarCorrida = createServerFn({ method: "POST" })
       const { criarNotificacao } = await import("./notificacoes.server");
       const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
 
-      const { data: candidatos } = await supabaseAdmin
-        .from("usuarios")
-        .select("id, motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at)")
-        .eq("cidade_id", usuario.cidade_id)
-        .eq("is_motorista", true);
+      // Etapa 3 do motorista favorito: se algum motorista favoritado por esse
+      // passageiro estiver disponível agora nesta mesma cidade, ele recebe a
+      // oferta primeiro — o mais próximo, se houver mais de um — com uma
+      // janela curta antes de virar oferta geral (getOfertasDisponiveis e
+      // accept_corrida_atomic reforçam essa mesma janela).
+      let favoritoEscolhidoId: string | null = null;
+      try {
+        const { data: favoritos } = await supabaseAdmin
+          .from("motoristas_favoritos")
+          .select(
+            "motorista_id, motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at, ultima_lat, ultima_lng, usuarios!inner(cidade_id))",
+          )
+          .eq("passageiro_id", usuario.id);
 
-      const motoristasElegiveis = (candidatos || []).filter((candidato: any) => {
-        const motorista = candidato.motoristas;
-        return (
-          motorista?.is_disponivel === true &&
-          motorista?.status_aprovacao === "aprovado" &&
-          !!motorista?.ultima_localizacao_at &&
-          new Date(motorista.ultima_localizacao_at) >= cincoMinutosAtras
+        const favoritosDisponiveis = (favoritos || [])
+          .map((f: any) => ({ id: f.motorista_id as string, m: f.motoristas }))
+          .filter(
+            ({ m }: any) =>
+              m?.is_disponivel === true &&
+              m?.status_aprovacao === "aprovado" &&
+              m?.usuarios?.cidade_id === usuario.cidade_id &&
+              !!m?.ultima_localizacao_at &&
+              new Date(m.ultima_localizacao_at) >= cincoMinutosAtras,
+          );
+
+        if (favoritosDisponiveis.length > 0) {
+          const comCoordenadas = favoritosDisponiveis.filter(
+            ({ m }: any) => Number.isFinite(m.ultima_lat) && Number.isFinite(m.ultima_lng),
+          );
+          const ordenados =
+            comCoordenadas.length > 0
+              ? [...comCoordenadas].sort(
+                  (a: any, b: any) =>
+                    haversineMetros(data.origemLat, data.origemLng, a.m.ultima_lat, a.m.ultima_lng) -
+                    haversineMetros(data.origemLat, data.origemLng, b.m.ultima_lat, b.m.ultima_lng),
+                )
+              : favoritosDisponiveis;
+          const escolhido = ordenados[0] as { id: string };
+
+          const { error: prioridadeError } = await supabaseAdmin
+            .from("corridas")
+            .update({
+              motorista_favorito_id: escolhido.id,
+              prioridade_favorito_expira_em: new Date(Date.now() + FAVORITO_PRIORIDADE_JANELA_MS).toISOString(),
+            } as any)
+            .eq("id", corridaId as string);
+
+          if (!prioridadeError) {
+            favoritoEscolhidoId = escolhido.id;
+            await criarNotificacao(supabaseAdmin, {
+              usuario_id: escolhido.id,
+              tipo: "nova_oferta_corrida",
+              titulo: "⭐ Um passageiro que já andou com você está te chamando!",
+              mensagem: `Passageiro esperando em ${data.origemNome || "sua região"}.`,
+              corrida_id: corridaId as string,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao priorizar motorista favorito:", err);
+      }
+
+      // Sem favorito disponível: broadcast normal para todos os elegíveis da
+      // cidade, como sempre funcionou. Com favorito: só ele é avisado agora;
+      // os demais passam a ver a corrida (via getOfertasDisponiveis) quando a
+      // janela de prioridade expirar.
+      if (!favoritoEscolhidoId) {
+        const { data: candidatos } = await supabaseAdmin
+          .from("usuarios")
+          .select("id, motoristas!inner(is_disponivel, status_aprovacao, ultima_localizacao_at)")
+          .eq("cidade_id", usuario.cidade_id)
+          .eq("is_motorista", true);
+
+        const motoristasElegiveis = (candidatos || []).filter((candidato: any) => {
+          const motorista = candidato.motoristas;
+          return (
+            motorista?.is_disponivel === true &&
+            motorista?.status_aprovacao === "aprovado" &&
+            !!motorista?.ultima_localizacao_at &&
+            new Date(motorista.ultima_localizacao_at) >= cincoMinutosAtras
+          );
+        });
+
+        await Promise.allSettled(
+          motoristasElegiveis.map((candidato: any) =>
+            criarNotificacao(supabaseAdmin, {
+              usuario_id: candidato.id,
+              tipo: "nova_oferta_corrida",
+              titulo: "🔔 Nova corrida disponível!",
+              mensagem: `Passageiro esperando em ${data.origemNome || "sua região"}.`,
+              corrida_id: corridaId as string,
+            }),
+          ),
         );
-      });
-
-      await Promise.allSettled(
-        motoristasElegiveis.map((candidato: any) =>
-          criarNotificacao(supabaseAdmin, {
-            usuario_id: candidato.id,
-            tipo: "nova_oferta_corrida",
-            titulo: "🔔 Nova corrida disponível!",
-            mensagem: `Passageiro esperando em ${data.origemNome || "sua região"}.`,
-            corrida_id: corridaId as string,
-          }),
-        ),
-      );
+      }
     } catch (err) {
       console.error("Erro ao notificar motoristas sobre nova oferta:", err);
     }

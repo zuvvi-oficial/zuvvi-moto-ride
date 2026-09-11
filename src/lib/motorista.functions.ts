@@ -255,7 +255,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
 
     const { data: allCandidates } = await supabaseAdmin
       .from("corridas")
-      .select("id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, origem_lat, origem_lng, passageiro_id")
+      .select("id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, origem_lat, origem_lng, passageiro_id, motorista_favorito_id, prioridade_favorito_expira_em")
       .eq("cidade_id", user.cidade_id)
       .eq("status", 'solicitada')
       .is("motorista_id", null);
@@ -322,9 +322,22 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
 
         // Filtro de recusa
         if (idsRecusados.includes(ride.id)) return false;
-        
+
         // Filtro de obsolescência: id deve ser o mais recente absoluto do passageiro
         if (!absoluteLatestIds.has(ride.id)) return false;
+
+        // Etapa 3 do motorista favorito: durante a janela de prioridade, a
+        // corrida só aparece para o motorista favoritado — os demais só a
+        // veem depois que a janela expirar (accept_corrida_atomic reforça a
+        // mesma regra no aceite, então isto é só sobre visibilidade da lista).
+        if (
+          ride.motorista_favorito_id &&
+          ride.motorista_favorito_id !== user.id &&
+          ride.prioridade_favorito_expira_em &&
+          new Date(ride.prioridade_favorito_expira_em) > new Date()
+        ) {
+          return false;
+        }
 
         // Validação de coordenadas da corrida
         if (!Number.isFinite(ride.origem_lat) || !Number.isFinite(ride.origem_lng)) return false;
@@ -463,7 +476,7 @@ export const recusarCorrida = createServerFn({ method: "POST" })
 
     const { data: corrida, error: cError } = await supabaseAdmin
       .from("corridas")
-      .select("id, cidade_id, status")
+      .select("id, cidade_id, status, motorista_favorito_id")
       .eq("id", data.rideId)
       .single();
 
@@ -478,8 +491,20 @@ export const recusarCorrida = createServerFn({ method: "POST" })
         corrida_id: data.rideId
       });
 
-    if (error && (error as any).code !== '23505') { 
+    if (error && (error as any).code !== '23505') {
       throw new Error("Erro ao registrar recusa.");
+    }
+
+    // Etapa 3 do motorista favorito: se quem recusou foi o próprio favorito
+    // com prioridade, libera a janela na hora em vez de fazer os demais
+    // motoristas esperarem o prazo todo sem necessidade.
+    if (corrida.motorista_favorito_id === motoristaInfo.id) {
+      await supabaseAdmin
+        .from("corridas")
+        .update({ prioridade_favorito_expira_em: new Date().toISOString() } as any)
+        .eq("id", data.rideId)
+        .eq("status", "solicitada")
+        .is("motorista_id", null);
     }
 
     return { success: true };
