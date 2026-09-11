@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Award,
   Bike,
   CheckCircle2,
   ChevronLeft,
@@ -10,7 +11,9 @@ import {
   Heart,
   LifeBuoy,
   Loader2,
+  Lock,
   LogOut,
+  Trophy,
   User,
 } from "lucide-react";
 import { useState } from "react";
@@ -20,6 +23,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { getMotoristaStatusHome } from "@/lib/motorista-status.functions";
 import { contarFavoritadoPor } from "@/lib/motoristas-favoritos.functions";
+import { getGamificacaoMotorista, type NivelMotorista } from "@/lib/gamificacao.functions";
+
+const NIVEL_LABEL: Record<NivelMotorista, string> = {
+  bronze: "Bronze",
+  prata: "Prata",
+  ouro: "Ouro",
+  platina: "Platina",
+};
 
 export const Route = createFileRoute("/perfil-motorista")({
   loader: async () => {
@@ -48,6 +59,11 @@ function PerfilMotorista() {
   const { data: favoritado } = useQuery({
     queryKey: ["motorista-favoritado-por"],
     queryFn: () => contarFavoritadoPor(),
+  });
+
+  const { data: gamificacao } = useQuery({
+    queryKey: ["motorista-gamificacao"],
+    queryFn: () => getGamificacaoMotorista(),
   });
 
   const handleLogout = async () => {
@@ -125,6 +141,62 @@ function PerfilMotorista() {
             </div>
           )}
         </section>
+
+        {gamificacao && (
+          <section className="space-y-3">
+            <div className="px-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">
+                Progresso
+              </p>
+              <h2 className="mt-1 text-lg font-black">Seu nível</h2>
+            </div>
+            <div className="rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-zuvvi-volt/20 bg-zuvvi-volt/10">
+                  <Trophy className="h-7 w-7 text-zuvvi-volt" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
+                    Nível {NIVEL_LABEL[gamificacao.nivel]}
+                  </p>
+                  <p className="text-sm text-white/60">
+                    {gamificacao.totalCorridas} corrida{gamificacao.totalCorridas !== 1 ? "s" : ""} concluída
+                    {gamificacao.totalCorridas !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+              {gamificacao.proximoNivel && gamificacao.corridasParaProximoNivel != null && (
+                <p className="text-xs text-white/45">
+                  Faltam {gamificacao.corridasParaProximoNivel} corrida
+                  {gamificacao.corridasParaProximoNivel !== 1 ? "s" : ""} para o nível{" "}
+                  {NIVEL_LABEL[gamificacao.proximoNivel]}.
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                {gamificacao.conquistas.map((conquista) => (
+                  <div
+                    key={conquista.id}
+                    className={`rounded-2xl border p-3 ${
+                      conquista.conquistada
+                        ? "border-zuvvi-volt/20 bg-zuvvi-volt/10"
+                        : "border-white/10 bg-white/[0.02] opacity-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {conquista.conquistada ? (
+                        <Award className="h-4 w-4 shrink-0 text-zuvvi-volt" />
+                      ) : (
+                        <Lock className="h-4 w-4 shrink-0 text-white/30" />
+                      )}
+                      <p className="text-[11px] font-black leading-tight">{conquista.titulo}</p>
+                    </div>
+                    <p className="mt-1 text-[10px] leading-snug text-white/40">{conquista.descricao}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="space-y-3">
           <div className="px-1">
