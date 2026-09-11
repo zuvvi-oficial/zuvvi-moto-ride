@@ -1540,5 +1540,68 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
       });
     }
 
+    // Programa de indicação — Etapa 2: se este passageiro foi indicado por
+    // alguém, essa é a primeira corrida dele a se completar. O UPDATE
+    // condicional em status='pendente' garante que a recompensa do
+    // indicador só é concedida uma vez por indicação — não importa quantas
+    // corridas o indicado fizer depois —, e só quando existiu de fato uma
+    // corrida real completada, não no cadastro (evita incentivar cadastro
+    // falso sem corrida nenhuma). Best-effort e isolado: nunca deve
+    // derrubar a finalização da corrida, que já aconteceu com sucesso acima.
+    if (rideData) {
+      try {
+        const { data: indicacao, error: indicacaoError } = await supabaseAdmin
+          .from("indicacoes")
+          .update({ status: "concluida", concluida_at: new Date().toISOString() } as any)
+          .eq("indicado_id", rideData.passageiro_id)
+          .eq("status", "pendente")
+          .select("id, indicador_id")
+          .maybeSingle();
+
+        if (indicacaoError) {
+          console.error("[Indicacao] Falha ao verificar indicação pendente na finalização da corrida.", indicacaoError);
+        } else if (indicacao) {
+          const RECOMPENSA_INDICACAO_VALOR = 10;
+          const RECOMPENSA_INDICACAO_VALIDADE_DIAS = 30;
+
+          const { criarCupomAutomatico } = await import("./cupons.functions");
+          const crypto = await import("crypto");
+          const codigoCupom = `INDIQUE-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+          const validoAte = new Date(
+            Date.now() + RECOMPENSA_INDICACAO_VALIDADE_DIAS * 24 * 60 * 60 * 1000,
+          ).toISOString();
+
+          const cupom = await criarCupomAutomatico(supabaseAdmin, {
+            codigo: codigoCupom,
+            tipoDesconto: "fixo",
+            valor: RECOMPENSA_INDICACAO_VALOR,
+            descricao: "Recompensa — programa de indicação",
+            validoAte,
+            usuarioRestritoId: indicacao.indicador_id,
+          });
+
+          const { error: linkError } = await supabaseAdmin
+            .from("indicacoes")
+            .update({ cupom_indicador_id: cupom.id } as any)
+            .eq("id", indicacao.id);
+          if (linkError) {
+            console.error(
+              "[Indicacao] Cupom de recompensa criado mas falha ao vincular à indicação — requer reconciliação manual.",
+              { indicacaoId: indicacao.id, cupomId: cupom.id },
+            );
+          }
+
+          await criarNotificacao(supabaseAdmin, {
+            usuario_id: indicacao.indicador_id,
+            tipo: "cupom_indicacao_recebido",
+            titulo: "🎉 Sua indicação rendeu um cupom!",
+            mensagem: `Um amigo que você indicou completou a primeira corrida. Use o cupom ${codigoCupom} e ganhe R$ ${RECOMPENSA_INDICACAO_VALOR.toFixed(2)} de desconto.`,
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.error("[Indicacao] Falha inesperada ao processar recompensa de indicação.", err);
+      }
+    }
+
     return { success: true };
   });
