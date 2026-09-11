@@ -17,6 +17,7 @@ import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { CompartilharViagemDialog } from "@/components/passageiro/CompartilharViagemDialog";
+import { GorjetaDigital } from "@/components/passageiro/GorjetaDigital";
 import { toast } from "sonner";
 import { criarAvaliacao, getAvaliacaoStatus } from "@/lib/avaliacoes.functions";
 import {
@@ -928,6 +929,8 @@ function AcompanhamentoCorrida() {
                     {ehFavorito ? "Motorista favoritado" : `Favoritar ${motorista.nome}`}
                   </button>
                 )}
+
+                <GorjetaDigital rideId={rideId} />
 
                 <button
                   onClick={() => void navigate({ to: "/" })}
