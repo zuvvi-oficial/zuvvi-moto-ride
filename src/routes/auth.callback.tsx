@@ -31,7 +31,34 @@ function AuthCallbackPage() {
     const processAuth = async () => {
       try {
         console.log("[GoogleAuth] callback_started");
-        
+
+        // Achado do Codex no PR #61: quando o usuário cancela o login (Apple
+        // ou Google) ou o provedor rejeita a autorização, o Supabase
+        // redireciona de volta pra cá com error/error_description na URL
+        // (query string ou hash, dependendo do fluxo) em vez de criar uma
+        // sessão. Sem essa checagem, o código ficava ~5s esperando uma
+        // sessão que nunca viria, tentava refresh, e navegava pra "/" em
+        // silêncio — sem explicar nada pro usuário.
+        const searchParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const oauthErrorCode = searchParams.get("error") || hashParams.get("error");
+
+        if (oauthErrorCode) {
+          const oauthErrorDescription =
+            searchParams.get("error_description") || hashParams.get("error_description");
+          console.log(`[GoogleAuth] oauth_error=${oauthErrorCode} description=${oauthErrorDescription}`);
+          if (cancelled) return;
+          setDebugError(
+            `error=${oauthErrorCode}${oauthErrorDescription ? ` | ${oauthErrorDescription}` : ""}`,
+          );
+          setError(
+            oauthErrorCode === "access_denied"
+              ? "Login cancelado."
+              : "Não foi possível concluir o login com essa conta. Tente novamente.",
+          );
+          return;
+        }
+
         let session = await waitForSession();
         if (cancelled) return;
         
@@ -148,7 +175,7 @@ function AuthCallbackPage() {
       </div>
       <div className="space-y-1">
         <p className="text-white font-bold text-lg">Processando...</p>
-        <p className="text-muted-foreground text-sm">Validando sua conta Google</p>
+        <p className="text-muted-foreground text-sm">Validando sua conta</p>
       </div>
     </div>
   );
