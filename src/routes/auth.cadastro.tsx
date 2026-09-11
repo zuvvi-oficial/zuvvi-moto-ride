@@ -79,7 +79,14 @@ const cadastroSchema = z.object({
     .string()
     .transform((val) => val.replace(/\D/g, ''))
     .refine((val) => val.length >= 10 && val.length <= 11, "Celular inválido"),
-  
+  codigoIndicacao: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .max(20, "Código inválido")
+    .optional()
+    .transform((val) => (val ? val : undefined)),
+
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
@@ -271,8 +278,18 @@ function CadastroPage() {
           {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword.message}</p>}
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="codigoIndicacao" className="text-white/80">Código de indicação (opcional)</Label>
+          <Input
+            id="codigoIndicacao"
+            placeholder="Ex: AB12CD"
+            className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt uppercase"
+            {...register("codigoIndicacao")}
+          />
+          {errors.codigoIndicacao && <p className="text-red-500 text-xs">{errors.codigoIndicacao.message}</p>}
+        </div>
 
-        <Button 
+        <Button
           type="submit" 
           disabled={isLoading}
           className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-12 text-lg mt-4 transition-all active:scale-[0.98]"

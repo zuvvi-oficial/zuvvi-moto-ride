@@ -14,6 +14,7 @@ import { Route as AcompanhamentoRouteImport } from './routes/acompanhamento'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarteiraRouteImport } from './routes/carteira'
 import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida'
+import { Route as ConvidarAmigosRouteImport } from './routes/convidar-amigos'
 import { Route as CorridasRouteImport } from './routes/corridas'
 import { Route as CorridasAgendadasRouteImport } from './routes/corridas-agendadas'
 import { Route as GanhosMotoristaRouteImport } from './routes/ganhos-motorista'
@@ -64,6 +65,11 @@ const CarteiraRoute = CarteiraRouteImport.update({
 const ConfirmarCorridaRoute = ConfirmarCorridaRouteImport.update({
   id: '/confirmar-corrida',
   path: '/confirmar-corrida',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConvidarAmigosRoute = ConvidarAmigosRouteImport.update({
+  id: '/convidar-amigos',
+  path: '/convidar-amigos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CorridasRoute = CorridasRouteImport.update({
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/convidar-amigos': typeof ConvidarAmigosRoute
   '/corridas': typeof CorridasRoute
   '/corridas-agendadas': typeof CorridasAgendadasRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/convidar-amigos': typeof ConvidarAmigosRoute
   '/corridas': typeof CorridasRoute
   '/corridas-agendadas': typeof CorridasAgendadasRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
@@ -271,6 +279,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/carteira': typeof CarteiraRoute
   '/confirmar-corrida': typeof ConfirmarCorridaRoute
+  '/convidar-amigos': typeof ConvidarAmigosRoute
   '/corridas': typeof CorridasRoute
   '/corridas-agendadas': typeof CorridasAgendadasRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
@@ -306,6 +315,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carteira'
     | '/confirmar-corrida'
+    | '/convidar-amigos'
     | '/corridas'
     | '/corridas-agendadas'
     | '/ganhos-motorista'
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carteira'
     | '/confirmar-corrida'
+    | '/convidar-amigos'
     | '/corridas'
     | '/corridas-agendadas'
     | '/ganhos-motorista'
@@ -372,6 +383,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carteira'
     | '/confirmar-corrida'
+    | '/convidar-amigos'
     | '/corridas'
     | '/corridas-agendadas'
     | '/ganhos-motorista'
@@ -406,6 +418,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   CarteiraRoute: typeof CarteiraRoute
   ConfirmarCorridaRoute: typeof ConfirmarCorridaRoute
+  ConvidarAmigosRoute: typeof ConvidarAmigosRoute
   CorridasRoute: typeof CorridasRoute
   CorridasAgendadasRoute: typeof CorridasAgendadasRoute
   GanhosMotoristaRoute: typeof GanhosMotoristaRoute
@@ -462,6 +475,13 @@ declare module '@tanstack/react-router' {
       path: '/confirmar-corrida'
       fullPath: '/confirmar-corrida'
       preLoaderRoute: typeof ConfirmarCorridaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/convidar-amigos': {
+      id: '/convidar-amigos'
+      path: '/convidar-amigos'
+      fullPath: '/convidar-amigos'
+      preLoaderRoute: typeof ConvidarAmigosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/corridas': {
@@ -677,6 +697,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   CarteiraRoute: CarteiraRoute,
   ConfirmarCorridaRoute: ConfirmarCorridaRoute,
+  ConvidarAmigosRoute: ConvidarAmigosRoute,
   CorridasRoute: CorridasRoute,
   CorridasAgendadasRoute: CorridasAgendadasRoute,
   GanhosMotoristaRoute: GanhosMotoristaRoute,
