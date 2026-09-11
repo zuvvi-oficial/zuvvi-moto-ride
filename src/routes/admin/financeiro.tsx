@@ -2,8 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
-import { getResumoFinanceiroAdmin } from '@/lib/financeiro.functions';
-import { getCidadesAdmin } from '@/lib/admin.functions';
+import { getResumoFinanceiroAdmin, getCidadesOperacionaisAdmin } from '@/lib/financeiro.functions';
 import {
   Table,
   TableBody,
@@ -41,20 +40,25 @@ function periodoPadrao() {
 }
 
 // pago_at é timestamp; datas do filtro vêm do <input type="date"> como
-// "AAAA-MM-DD" no horário local, então ancoramos início/fim do dia
-// explicitamente antes de converter para ISO (evita cortar corridas do
-// próprio dia final por causa do fuso horário).
+// "AAAA-MM-DD". Achado do Codex no PR #55: sem um fuso explícito, o mesmo
+// texto vira horários UTC diferentes dependendo de quem interpreta a
+// string (servidor no loader vs. navegador do admin no componente), e
+// admins em fusos diferentes veriam totais diferentes para o "mesmo" dia.
+// Fixamos o fuso de negócio (Brasil, -03:00, sem horário de verão desde
+// 2019) explicitamente na string ISO, tornando o horário absoluto
+// resultante independente de onde o código roda.
+const FUSO_NEGOCIO = "-03:00";
+
 function paraIntervaloISO(dataInicio: string, dataFim: string) {
   return {
-    dataInicio: new Date(`${dataInicio}T00:00:00`).toISOString(),
-    dataFim: new Date(`${dataFim}T23:59:59.999`).toISOString(),
+    dataInicio: new Date(`${dataInicio}T00:00:00${FUSO_NEGOCIO}`).toISOString(),
+    dataFim: new Date(`${dataFim}T23:59:59.999${FUSO_NEGOCIO}`).toISOString(),
   };
 }
 
-// A chave da query usa as datas "AAAA-MM-DD" cruas (não o ISO já convertido):
-// o loader roda no servidor e o componente no navegador, e interpretar a
-// mesma string sem fuso em cada ambiente gera horários ISO diferentes — se
-// a chave usasse o ISO, loader e componente cairiam em caches distintos.
+// A chave da query usa as datas "AAAA-MM-DD" cruas, não o ISO já convertido
+// — mantém a chave estável e legível; a conversão determinística (fuso
+// fixo) fica isolada dentro do queryFn.
 const financeiroQueryOptions = (params: { dataInicio: string; dataFim: string; cidadeId: string | undefined }) =>
   queryOptions({
     queryKey: ['admin-financeiro-resumo', params],
@@ -66,7 +70,7 @@ const financeiroQueryOptions = (params: { dataInicio: string; dataFim: string; c
 
 const cidadesFiltroOptions = queryOptions({
   queryKey: ['admin-financeiro-cidades'],
-  queryFn: () => getCidadesAdmin({ data: { pagina: 0, limite: 500 } }),
+  queryFn: () => getCidadesOperacionaisAdmin(),
 });
 
 export const Route = createFileRoute('/admin/financeiro')({
@@ -90,17 +94,15 @@ function FinanceiroAdmin() {
   const [dataFim, setDataFim] = useState(padrao.dataFim);
   const [cidadeId, setCidadeId] = useState<string | undefined>(undefined);
 
-  const getCidadesFn = useServerFn(getCidadesAdmin);
+  const getCidadesFn = useServerFn(getCidadesOperacionaisAdmin);
 
-  const { data: cidadesResult } = useQuery({
+  const { data: cidades = [] } = useQuery({
     ...cidadesFiltroOptions,
-    queryFn: () => getCidadesFn({ data: { pagina: 0, limite: 500 } }),
+    queryFn: () => getCidadesFn(),
   });
 
   const params = { dataInicio, dataFim, cidadeId: cidadeId === 'all' ? undefined : cidadeId };
   const { data: resumo, isLoading, error } = useQuery(financeiroQueryOptions(params));
-
-  const cidades = cidadesResult?.cidades || [];
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
