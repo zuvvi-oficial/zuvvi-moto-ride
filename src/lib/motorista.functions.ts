@@ -563,6 +563,24 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
     // mas garantimos que o status de disponibilidade seja resetado se necessário.
     // Como a Home Motorista depende de motorista-status, invalidar a query será suficiente.
 
+    // 4. Encerrar (marcar como 'falhou') qualquer pagamento ainda pendente desta
+    // corrida agora cancelada — sem isso o pagamento ficava "pendente" para
+    // sempre no banco mesmo com a corrida já morta. Mesma convenção já usada
+    // em pix-etapa.server.ts para o cancelamento de cobrança Pix. Best-effort:
+    // um erro aqui é só logado, nunca desfaz o cancelamento já confirmado.
+    const { error: pagamentoCleanupError } = await supabaseAdmin
+      .from("pagamentos")
+      .update({ status: "falhou", updated_at: new Date().toISOString() })
+      .eq("corrida_id", data.rideId)
+      .eq("status", "pendente");
+
+    if (pagamentoCleanupError) {
+      console.error(
+        "Erro ao encerrar pagamento pendente da corrida cancelada:",
+        pagamentoCleanupError,
+      );
+    }
+
     // Notificar Passageiro
     const { data: rideData } = await supabaseAdmin
       .from("corridas")
