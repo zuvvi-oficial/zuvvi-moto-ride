@@ -4,8 +4,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 /**
  * Gamificação do motorista — diferencial puramente de leitura: deriva nível
  * e conquistas a partir de dados que já existem (corridas concluídas, nota
- * média, gorjetas recebidas). Nenhuma tabela nova, nenhum estado gravado —
- * só agregação sob demanda.
+ * média). Nenhuma tabela nova, nenhum estado gravado — só agregação sob
+ * demanda.
+ *
+ * A conquista de gorjetas ("Querido dos passageiros") foi removida daqui:
+ * hoje nenhuma gorjeta chega a 'paga' (só a Etapa 1 existe, sem motor de
+ * cobrança), então seria uma conquista que ninguém jamais desbloqueia.
+ * Volta a fazer sentido quando a Etapa 2/3 de gorjeta digital existir
+ * (achado do Codex no PR #75).
  */
 
 export type NivelMotorista = "bronze" | "prata" | "ouro" | "platina";
@@ -33,11 +39,12 @@ function calcularNivel(corridasConcluidas: number): {
   };
 }
 
-// Nota alta só vira conquista com uma amostra mínima de corridas — evita que
-// um motorista com 2 corridas e nota 5 apareça igual a alguém consistente.
+// Nota alta só vira conquista com uma amostra mínima de avaliações reais —
+// nem toda corrida concluída é avaliada, então o tamanho da amostra tem que
+// contar avaliacoes de fato recebidas, não corridas concluídas (achado do
+// Codex no PR #75: motorista_media já é a média dessas mesmas linhas).
 const AMOSTRA_MINIMA_NOTA = 20;
 const NOTA_MINIMA_EXCELENCIA = 4.8;
-const GORJETAS_PARA_MASTER = 10;
 
 export type Conquista = Readonly<{
   id: string;
@@ -61,7 +68,7 @@ export const getGamificacaoMotorista = createServerFn({ method: "GET" })
 
     const motoristaId = usuario.id;
 
-    const [{ data: motorista }, { count: corridasConcluidas }, { count: gorjetasPagas }] = await Promise.all([
+    const [motoristaResult, corridasResult, avaliacoesResult] = await Promise.all([
       supabaseAdmin.from("motoristas").select("nota_media").eq("id", motoristaId).maybeSingle(),
       supabaseAdmin
         .from("corridas")
@@ -69,15 +76,23 @@ export const getGamificacaoMotorista = createServerFn({ method: "GET" })
         .eq("motorista_id", motoristaId)
         .eq("status", "concluida"),
       supabaseAdmin
-        .from("gorjetas")
+        .from("avaliacoes")
         .select("id", { count: "exact", head: true })
-        .eq("motorista_id", motoristaId)
-        .eq("status", "paga"),
+        .eq("avaliado_id", motoristaId),
     ]);
 
-    const totalCorridas = corridasConcluidas ?? 0;
-    const totalGorjetas = gorjetasPagas ?? 0;
-    const notaMedia = motorista?.nota_media != null ? Number(motorista.nota_media) : null;
+    if (motoristaResult.error || corridasResult.error || avaliacoesResult.error) {
+      console.error("Erro ao carregar dados de gamificação:", {
+        motorista: motoristaResult.error,
+        corridas: corridasResult.error,
+        avaliacoes: avaliacoesResult.error,
+      });
+      throw new Error("Não foi possível carregar seu progresso.");
+    }
+
+    const totalCorridas = corridasResult.count ?? 0;
+    const totalAvaliacoesRecebidas = avaliacoesResult.count ?? 0;
+    const notaMedia = motoristaResult.data?.nota_media != null ? Number(motoristaResult.data.nota_media) : null;
 
     const { nivel, proximoNivel, corridasParaProximoNivel } = calcularNivel(totalCorridas);
 
@@ -103,14 +118,8 @@ export const getGamificacaoMotorista = createServerFn({ method: "GET" })
       {
         id: "nota_excelencia",
         titulo: "Excelência",
-        descricao: `Nota média acima de ${NOTA_MINIMA_EXCELENCIA.toFixed(1)} (mínimo ${AMOSTRA_MINIMA_NOTA} corridas).`,
-        conquistada: totalCorridas >= AMOSTRA_MINIMA_NOTA && (notaMedia ?? 0) >= NOTA_MINIMA_EXCELENCIA,
-      },
-      {
-        id: "gorjeta_master",
-        titulo: "Querido dos passageiros",
-        descricao: `Recebeu ${GORJETAS_PARA_MASTER} ou mais gorjetas.`,
-        conquistada: totalGorjetas >= GORJETAS_PARA_MASTER,
+        descricao: `Nota média acima de ${NOTA_MINIMA_EXCELENCIA.toFixed(1)} (mínimo ${AMOSTRA_MINIMA_NOTA} avaliações recebidas).`,
+        conquistada: totalAvaliacoesRecebidas >= AMOSTRA_MINIMA_NOTA && (notaMedia ?? 0) > NOTA_MINIMA_EXCELENCIA,
       },
     ];
 
@@ -119,7 +128,6 @@ export const getGamificacaoMotorista = createServerFn({ method: "GET" })
       proximoNivel,
       corridasParaProximoNivel,
       totalCorridas,
-      totalGorjetas,
       notaMedia,
       conquistas,
     };
