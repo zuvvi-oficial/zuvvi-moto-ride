@@ -21,17 +21,39 @@ self.addEventListener("push", function (event) {
 
   var ehMensagem = payload.tipo === "nova_mensagem_chat";
 
+  function appEstaEmFoco() {
+    // Só o cliente sabe se a pessoa está de fato com o app na frente; o
+    // servidor manda a mensagem sempre, pra nunca engolir um aviso.
+    if (!ehMensagem) return Promise.resolve(false);
+    return self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(function (janelas) {
+        return janelas.some(function (janela) {
+          return janela.focused === true;
+        });
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: "/brand/icon-192.png",
-      badge: "/brand/icon-96.png",
-      tag: payload.tipo || "zuvvi-notificacao",
-      // Mensagens novas empilham no mesmo balão, mas precisam avisar de novo a
-      // cada uma — sem renotify o Android troca o texto em silêncio.
-      renotify: ehMensagem,
-      vibrate: ehMensagem ? [40, 60, 40] : undefined,
-      data: { tipo: payload.tipo, corridaId: payload.corridaId, url: payload.url },
+    appEstaEmFoco().then(function (emFoco) {
+      // Com o app aberto, o aviso dentro dele (som, vibração e toast) já cobre:
+      // mostrar o balão do sistema por cima seria avisar duas vezes.
+      if (emFoco) return undefined;
+
+      return self.registration.showNotification(payload.title, {
+        body: payload.body,
+        icon: "/brand/icon-192.png",
+        badge: "/brand/icon-96.png",
+        tag: payload.tipo || "zuvvi-notificacao",
+        // Mensagens novas empilham no mesmo balão, mas precisam avisar de novo a
+        // cada uma — sem renotify o Android troca o texto em silêncio.
+        renotify: ehMensagem,
+        vibrate: ehMensagem ? [40, 60, 40] : undefined,
+        data: { tipo: payload.tipo, corridaId: payload.corridaId, url: payload.url },
+      });
     }),
   );
 });

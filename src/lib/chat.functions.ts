@@ -101,11 +101,12 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
   };
 }
 
-// Quem está com a conversa aberta manda heartbeat de presença a cada 20s. Se a
-// última presença do destinatário for mais velha que isso, ele não está olhando
-// o chat e precisa ser avisado — quem está lendo em tempo real, não.
-const PRESENCA_ATIVA_MS = 45_000;
-
+// O servidor sempre avisa: aqui ele não tem como saber se o destinatário está
+// mesmo lendo a conversa. A presença (`ultimo_visto_at`) não serve pra isso —
+// ela é atualizada por quem está só com a tela da corrida aberta, e até quando
+// o app vai pro segundo plano. Quem decide não incomodar é o cliente, que sabe
+// se está em foco: o service worker segura o balão e o aviso in-app só toca com
+// a conversa fechada.
 async function notificarNovaMensagem(params: {
   supabaseAdmin: SupabaseClient;
   corridaId: string;
@@ -114,18 +115,6 @@ async function notificarNovaMensagem(params: {
   conteudo: string;
   destinatarioEhMotorista: boolean;
 }) {
-  const { data: presenca } = await params.supabaseAdmin
-    .from("chat_presenca")
-    .select("ultimo_visto_at")
-    .eq("corrida_id", params.corridaId)
-    .eq("usuario_id", params.destinatarioId)
-    .maybeSingle();
-
-  if (presenca?.ultimo_visto_at) {
-    const inativoHa = Date.now() - new Date(presenca.ultimo_visto_at).getTime();
-    if (inativoHa < PRESENCA_ATIVA_MS) return;
-  }
-
   const { criarNotificacao } = await import("./notificacoes.server");
   const primeiroNome = params.remetenteNome.trim().split(/\s+/)[0] || "Alguém";
   const previa =

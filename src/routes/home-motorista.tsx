@@ -111,7 +111,11 @@ function HomeMotorista() {
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
   const playSound = useSoundStore((state: any) => state.play);
-  const { avaliar: avaliarAlertaChat, sincronizar: sincronizarAlertaChat } = useChatAlert();
+  const {
+    avaliar: avaliarAlertaChat,
+    sincronizar: sincronizarAlertaChat,
+    resetar: resetarAlertaChat,
+  } = useChatAlert();
   const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
   const [pixFailureNotice, setPixFailureNotice] = useState<NotificationBellItem | null>(null);
 
@@ -373,10 +377,10 @@ function HomeMotorista() {
     setChatSending(false);
     chatClosedSyncInFlightRef.current = false;
     chatClosedSyncPendingRef.current = false;
-    // Corrida nova começa do zero: sem isso a contagem da corrida anterior
-    // serviria de base e engoliria o alerta das primeiras mensagens.
-    sincronizarAlertaChat(0);
-  }, [activeRide?.id, sincronizarAlertaChat]);
+    // Corrida nova: a base volta a ser desconhecida, pra contagem da corrida
+    // anterior não engolir o alerta nem uma pendência antiga alertar sozinha.
+    resetarAlertaChat();
+  }, [activeRide?.id, resetarAlertaChat]);
 
 
   useEffect(() => {

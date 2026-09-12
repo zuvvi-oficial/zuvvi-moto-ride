@@ -152,7 +152,11 @@ function AcompanhamentoCorrida() {
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
-  const { avaliar: avaliarAlertaChat, sincronizar: sincronizarAlertaChat } = useChatAlert();
+  const {
+    avaliar: avaliarAlertaChat,
+    sincronizar: sincronizarAlertaChat,
+    resetar: resetarAlertaChat,
+  } = useChatAlert();
 
   const carregarChatFn = useServerFn(carregarChat);
   const enviarMensagemFn = useServerFn(enviarMensagemChat);
@@ -190,11 +194,11 @@ function AcompanhamentoCorrida() {
     [sincronizarAlertaChat],
   );
 
-  // Corrida nova começa do zero: sem isso a contagem da corrida anterior
-  // serviria de base e engoliria o alerta das primeiras mensagens.
+  // Corrida nova: a base volta a ser desconhecida, pra contagem da corrida
+  // anterior não engolir o alerta nem uma pendência antiga alertar sozinha.
   useEffect(() => {
-    sincronizarAlertaChat(0);
-  }, [rideId, sincronizarAlertaChat]);
+    resetarAlertaChat();
+  }, [rideId, resetarAlertaChat]);
 
   const syncRide = React.useCallback(
     async (showLoading = false) => {

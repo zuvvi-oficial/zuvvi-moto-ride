@@ -23,10 +23,18 @@ export function useChatAlert() {
   const play = useSoundStore((state) => state.play);
   const anteriorRef = useRef<number | null>(null);
 
-  // Registra a contagem sem alertar: usado na carga inicial e ao abrir o chat,
-  // quando o usuário já está vendo as mensagens.
+  // Registra a contagem sem alertar: usado ao abrir o chat, quando o usuário
+  // já está vendo as mensagens.
   const sincronizar = useCallback((naoLidas: number) => {
     anteriorRef.current = naoLidas;
+  }, []);
+
+  // Volta pro estado "ainda não sei quantas eram": a primeira contagem que
+  // chegar vira a base, sem alertar. Usado ao montar e ao trocar de corrida —
+  // zerar a base aqui faria uma corrida que já tem mensagens pendentes alertar
+  // durante o carregamento.
+  const resetar = useCallback(() => {
+    anteriorRef.current = null;
   }, []);
 
   const avaliar = useCallback(
@@ -54,5 +62,5 @@ export function useChatAlert() {
     [play],
   );
 
-  return { avaliar, sincronizar };
+  return { avaliar, sincronizar, resetar };
 }
