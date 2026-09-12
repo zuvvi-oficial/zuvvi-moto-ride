@@ -280,32 +280,39 @@ function ConfirmarCorrida() {
   }, []);
 
   return (
-    <div className="relative h-[100dvh] w-full bg-zuvvi-indigo text-foreground overflow-hidden font-poppins">
-      {/* Mapa de Fundo */}
-      <div ref={mapContainer} className="absolute inset-0 z-0" />
-      
-      {/* Botão Voltar */}
-      <button 
-        onClick={() => navigate({ to: '/' })}
-        className="absolute top-6 left-6 z-20 w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center transition-transform active:scale-90"
-      >
-        <ChevronLeft className="w-6 h-6 text-white" />
-      </button>
+    <div className="relative h-[100dvh] w-full bg-zuvvi-indigo text-foreground overflow-hidden font-poppins flex flex-col">
+      {/* Mapa — faixa fixa no topo, não mais escondido atrás do card */}
+      <div className="relative w-full shrink-0 h-[28%] min-h-[170px]">
+        <div ref={mapContainer} className="absolute inset-0" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zuvvi-indigo to-transparent pointer-events-none" />
 
-      {/* Camada de Interface */}
-      <div className="absolute inset-0 z-10 flex flex-col justify-end pointer-events-none p-5">
-        <div className="mx-auto w-full max-w-md pointer-events-auto animate-rise">
-          
-          <div className="bg-zuvvi-indigo/90 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl space-y-6">
+        <button
+          onClick={() => navigate({ to: '/' })}
+          className="absolute top-6 left-5 z-20 w-11 h-11 bg-zuvvi-indigo/80 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center transition-transform active:scale-90"
+        >
+          <ChevronLeft className="w-5 h-5 text-white" />
+        </button>
+      </div>
+
+      {/* Folha inferior — preenche o resto da tela, sem rolagem */}
+      <div className="relative z-10 flex-1 min-h-0 -mt-7 rounded-t-[2.5rem] bg-zuvvi-indigo border-t border-white/10 shadow-[0_-24px_60px_rgba(0,0,0,0.35)] flex flex-col animate-rise">
+        <div className="mx-auto flex w-full max-w-md flex-1 min-h-0 flex-col px-6 pt-3 pb-5">
+          <div className="mx-auto mb-4 h-1.5 w-12 shrink-0 rounded-full bg-white/15" />
+
+          <div className="flex-1 min-h-0 flex flex-col gap-4">
+            {/* Área rolável apenas como rede de segurança em telas muito
+                pequenas — preço e botão de confirmar ficam fora daqui,
+                sempre visíveis, pra nunca sumir de vista. */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 -mx-1 px-1">
             {/* Resumo da Rota */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-start gap-4">
                 <div className="flex flex-col items-center py-1">
                   <div className="w-2 h-2 rounded-full bg-white/40" />
-                  <div className="w-0.5 h-10 border-l border-dashed border-white/20 my-1" />
+                  <div className="w-0.5 h-8 border-l border-dashed border-white/20 my-1" />
                   <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
                 </div>
-                <div className="flex-1 space-y-4 min-w-0">
+                <div className="flex-1 space-y-3 min-w-0">
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Origem</p>
                     <p className="text-sm font-medium truncate opacity-60">{originName || 'Sua localização atual'}</p>
@@ -318,7 +325,7 @@ function ConfirmarCorrida() {
               </div>
 
               {routeInfo && (
-                <div className="flex items-center gap-4 p-3 bg-white/5 rounded-2xl border border-white/5">
+                <div className="flex items-center justify-center gap-4 p-2.5 bg-white/5 rounded-2xl border border-white/5">
                   <div className="flex items-center gap-2">
                     <Navigation className="w-3 h-3 text-zuvvi-volt" />
                     <span className="text-xs font-bold">{routeInfo.distance.toFixed(1)} km</span>
@@ -464,9 +471,10 @@ function ConfirmarCorrida() {
                 )}
               </div>
             )}
+            </div>
 
             {/* Valor e Ação */}
-            <div className="pt-2 border-t border-white/10 space-y-4">
+            <div className="shrink-0 pt-2 border-t border-white/10 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
@@ -521,7 +529,7 @@ function ConfirmarCorrida() {
             </div>
           </div>
 
-          <p className="text-[9px] text-center text-muted-foreground mt-4 uppercase tracking-[0.2em] px-4 leading-relaxed">
+          <p className="shrink-0 text-[9px] text-center text-muted-foreground mt-3 uppercase tracking-[0.2em] px-4 leading-relaxed">
             Ao confirmar, você concorda que o valor final pode variar dependendo do trajeto real.
           </p>
         </div>
