@@ -236,6 +236,11 @@ function HomeMotorista() {
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
   const locationUpdateInFlightRef = useRef(false);
+  // true só entre o fix em cache (getCurrentPosition) ser aplicado e o
+  // primeiro fix de verdade do watchPosition chegar — deixa esse primeiro fix
+  // fresco furar o intervalo de 10s em vez de ficar preso atrás da posição em
+  // cache, que pode já estar desatualizada (achado do Codex no PR #126).
+  const aguardandoFixFrescoPosBootstrapRef = useRef(false);
   const hasActiveRideRef = useRef(false);
   const isOnlineRef = useRef(false);
   const handleGpsErrorRef = useRef<(msg: string) => void>(() => {});
@@ -912,6 +917,7 @@ function HomeMotorista() {
     setGpsError(null);
     lastUpdateRef.current = 0;
     locationUpdateInFlightRef.current = false;
+    aguardandoFixFrescoPosBootstrapRef.current = false;
   }, []);
 
   const handleGpsError = useCallback(
@@ -951,7 +957,10 @@ function HomeMotorista() {
 
       // Cria watchPosition SOMENTE se watchIdRef.current === null
       if (watchIdRef.current === null) {
-        const handlePositionUpdate = async (position: GeolocationPosition) => {
+        const handlePositionUpdate = async (
+          position: GeolocationPosition,
+          { isBootstrap }: { isBootstrap: boolean },
+        ) => {
           const { latitude, longitude } = position.coords;
 
           if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
@@ -959,7 +968,15 @@ function HomeMotorista() {
           const now = Date.now();
           const isFirstUpdate = lastUpdateRef.current === 0;
           const isTimeElapsed = now - lastUpdateRef.current >= 10000;
-          const canUpdate = (isFirstUpdate || isTimeElapsed) && !locationUpdateInFlightRef.current;
+          // O primeiro fix de verdade do watchPosition depois de um bootstrap
+          // em cache sempre passa, mesmo dentro dos 10s — senão a posição em
+          // cache (que pode já estar desatualizada) ficaria valendo até o
+          // intervalo normal passar.
+          const isFreshFixAfterBootstrap =
+            !isBootstrap && aguardandoFixFrescoPosBootstrapRef.current;
+          const canUpdate =
+            (isFirstUpdate || isTimeElapsed || isFreshFixAfterBootstrap) &&
+            !locationUpdateInFlightRef.current;
 
           if (canUpdate) {
             locationUpdateInFlightRef.current = true;
@@ -968,6 +985,7 @@ function HomeMotorista() {
               setIsGpsActive(true);
               setGpsError(null);
               lastUpdateRef.current = now;
+              aguardandoFixFrescoPosBootstrapRef.current = isBootstrap;
             } catch (err: any) {
               // Se falhar no servidor, mas estiver em corrida, mantém o watcher ativo
               if (hasActiveRideRef.current) {
@@ -993,14 +1011,14 @@ function HomeMotorista() {
         // aqui — quem trata erro de verdade é o watchPosition abaixo, que
         // roda em paralelo exigindo sempre um fix fresco e mantém a posição
         // atualizada de verdade.
-        navigator.geolocation.getCurrentPosition(handlePositionUpdate, () => {}, {
-          enableHighAccuracy: false,
-          timeout: 5000,
-          maximumAge: 5 * 60 * 1000,
-        });
+        navigator.geolocation.getCurrentPosition(
+          (position) => void handlePositionUpdate(position, { isBootstrap: true }),
+          () => {},
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 5 * 60 * 1000 },
+        );
 
         watchIdRef.current = navigator.geolocation.watchPosition(
-          handlePositionUpdate,
+          (position) => void handlePositionUpdate(position, { isBootstrap: false }),
           (err) => {
             let msg = "Erro ao obter localização.";
             if (err.code === err.PERMISSION_DENIED) {
