@@ -33,7 +33,7 @@ export function MotoristaBottomNav({ active }: MotoristaBottomNavProps) {
               to={to}
               aria-current={isActive ? "page" : undefined}
               aria-label={key === "perfil" ? "Abrir perfil do motorista" : undefined}
-              className={`flex flex-col items-center gap-1 transition-colors ${
+              className={`flex-1 py-1 flex flex-col items-center justify-center gap-1 transition-colors ${
                 isActive ? "text-zuvvi-volt" : "text-muted-foreground hover:text-white"
               }`}
             >
