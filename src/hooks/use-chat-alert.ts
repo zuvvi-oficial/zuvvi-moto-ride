@@ -6,7 +6,7 @@ import { falar, vozAtivada } from "@/lib/fala";
 // Som próprio do chat: precisa ser claramente diferente do alerta de corrida
 // nova, senão o motorista acha que entrou corrida a cada mensagem.
 const SOM_MENSAGEM = "/sounds/zuvvi_chat.wav";
-const VIBRACAO_MENSAGEM = [40, 60, 40];
+const VIBRACAO_MENSAGEM = [300, 120, 300, 120, 300];
 // O chime dura pouco menos de meio segundo; a voz entra logo depois dele em vez
 // de por cima.
 const ATRASO_DA_VOZ_MS = 600;
