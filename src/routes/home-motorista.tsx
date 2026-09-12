@@ -25,6 +25,8 @@ import {
   MessageCircle,
   Star,
   Send,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { useChatAlert } from "@/hooks/use-chat-alert";
@@ -124,6 +126,7 @@ function HomeMotorista() {
   const [codigoEmbarque, setCodigoEmbarque] = useState("");
   const [routeError, setRouteError] = useState<string | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
   const playSound = useSoundStore((state: any) => state.play);
   const {
@@ -186,6 +189,16 @@ function HomeMotorista() {
     targetLng: number; 
     phase: "pickup" | "destination";
   } | null>(null);
+
+  // Tela cheia reaproveita a mesma instância do mapa (não cria um segundo
+  // mapa) — só muda o tamanho do container, então o Mapbox precisa recalcular
+  // as dimensões do canvas depois que o CSS aplicar o novo tamanho.
+  useEffect(() => {
+    const map = pickupMapInstance.current;
+    if (!map) return;
+    const raf = requestAnimationFrame(() => map.resize());
+    return () => cancelAnimationFrame(raf);
+  }, [isMapFullscreen]);
 
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -1278,7 +1291,13 @@ function HomeMotorista() {
             </div>
 
             {activeRide && mapboxToken && activeRide.origem_lat && activeRide.origem_lng ? (
-              <div className="h-28 rounded-2xl overflow-hidden border border-white/10 relative">
+              <div
+                className={
+                  isMapFullscreen
+                    ? "fixed inset-0 z-[100] overflow-hidden"
+                    : "h-28 rounded-2xl overflow-hidden border border-white/10 relative"
+                }
+              >
                 <MapView
                   center={{
                     lat: Number(activeRide.origem_lat),
@@ -1292,14 +1311,70 @@ function HomeMotorista() {
                     setIsPickupMapReady(true);
                   }}
                 />
-                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-zuvvi-indigo/40 via-transparent to-transparent" />
-                <div className="absolute top-2 left-2 bg-zuvvi-indigo/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
+                {!isMapFullscreen && (
+                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-zuvvi-indigo/40 via-transparent to-transparent" />
+                )}
+                <div
+                  className={
+                    isMapFullscreen
+                      ? "absolute top-4 left-4 bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10"
+                      : "absolute top-2 left-2 bg-zuvvi-indigo/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10"
+                  }
+                >
                   <p className="text-[8px] text-white/80 font-bold uppercase tracking-widest">
                     {activeRide.status === "em_andamento"
                       ? "Destino da viagem"
                       : "Local de embarque"}
                   </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMapFullscreen((v) => !v)}
+                  aria-label={
+                    isMapFullscreen ? "Fechar mapa em tela cheia" : "Ver mapa em tela cheia"
+                  }
+                  className={
+                    isMapFullscreen
+                      ? "absolute top-4 right-4 w-10 h-10 rounded-full bg-zuvvi-indigo/80 backdrop-blur-sm border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
+                      : "absolute bottom-2 right-2 w-7 h-7 rounded-full bg-zuvvi-indigo/80 backdrop-blur-sm border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
+                  }
+                >
+                  {isMapFullscreen ? (
+                    <Minimize2 className="w-4 h-4 text-white/80" />
+                  ) : (
+                    <Maximize2 className="w-3.5 h-3.5 text-white/80" />
+                  )}
+                </button>
+
+                {(() => {
+                  const navLat =
+                    activeRide.status === "em_andamento"
+                      ? activeRide.destino_lat
+                      : activeRide.origem_lat;
+                  const navLng =
+                    activeRide.status === "em_andamento"
+                      ? activeRide.destino_lng
+                      : activeRide.origem_lng;
+                  if (!navLat || !navLng) return null;
+                  return (
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${navLat},${navLng}&travelmode=driving`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className={
+                        isMapFullscreen
+                          ? "absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-zuvvi-volt text-zuvvi-indigo px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-transform shadow-xl"
+                          : "absolute top-2 right-2 flex items-center gap-1 bg-zuvvi-volt/90 text-zuvvi-indigo px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest active:scale-95 transition-transform"
+                      }
+                    >
+                      <Navigation className="w-3 h-3" />
+                      Navegar
+                    </a>
+                  );
+                })()}
+
                 {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
                   <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
                     <div className="bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
