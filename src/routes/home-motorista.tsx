@@ -182,13 +182,19 @@ function HomeMotorista() {
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
-  const lastRouteCoordsRef = useRef<{ 
-    driverLat: number; 
-    driverLng: number; 
-    targetLat: number; 
-    targetLng: number; 
+  const lastRouteCoordsRef = useRef<{
+    driverLat: number;
+    driverLng: number;
+    targetLat: number;
+    targetLng: number;
     phase: "pickup" | "destination";
   } | null>(null);
+  // Rastro luminoso: histórico de posições do motorista nesta corrida, pra
+  // desenhar uma linha que vai "sumindo" atrás da moto. Só em memória — some
+  // se a página recarregar, sem nenhum custo de armazenamento.
+  const driverTrailRef = useRef<Array<[number, number]>>([]);
+  const trailRideIdRef = useRef<string | null>(null);
+  const MAX_TRAIL_POINTS = 60;
 
   // Tela cheia reaproveita a mesma instância do mapa (não cria um segundo
   // mapa) — só muda o tamanho do container, então o Mapbox precisa recalcular
@@ -1012,7 +1018,8 @@ function HomeMotorista() {
 
     const driverLat = status.ultima_lat;
     const driverLng = status.ultima_lng;
-    
+    const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+
     const isTrip = activeRide.status === "em_andamento";
     const phase = isTrip ? "destination" : "pickup";
     
@@ -1033,8 +1040,62 @@ function HomeMotorista() {
       }
     }
 
+    // 3.1 Rastro luminoso atrás da moto
+    const trailSourceId = "zuvvi-driver-trail-source";
+    const trailLayerId = "zuvvi-driver-trail-layer";
+    if (hasValidDriver && routeStatuses.includes(activeRide.status)) {
+      if (trailRideIdRef.current !== activeRide.id) {
+        driverTrailRef.current = [];
+        trailRideIdRef.current = activeRide.id;
+      }
+
+      const lastPoint = driverTrailRef.current[driverTrailRef.current.length - 1];
+      if (!lastPoint || lastPoint[0] !== driverLng || lastPoint[1] !== driverLat) {
+        driverTrailRef.current = [
+          ...driverTrailRef.current.slice(-(MAX_TRAIL_POINTS - 1)),
+          [driverLng!, driverLat!],
+        ];
+      }
+
+      if (driverTrailRef.current.length >= 2) {
+        const trailGeojson = {
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: driverTrailRef.current },
+        };
+        const trailSource = map.getSource(trailSourceId) as mapboxgl.GeoJSONSource;
+        if (trailSource) {
+          trailSource.setData(trailGeojson);
+        } else {
+          map.addSource(trailSourceId, { type: "geojson", lineMetrics: true, data: trailGeojson });
+          map.addLayer({
+            id: trailLayerId,
+            type: "line",
+            source: trailSourceId,
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+              "line-width": 4,
+              "line-gradient": [
+                "interpolate",
+                ["linear"],
+                ["line-progress"],
+                0,
+                "rgba(198, 255, 61, 0)",
+                1,
+                "rgba(198, 255, 61, 0.9)",
+              ],
+            },
+          });
+        }
+      }
+    } else if (map.getLayer(trailLayerId) || map.getSource(trailSourceId)) {
+      if (map.getLayer(trailLayerId)) map.removeLayer(trailLayerId);
+      if (map.getSource(trailSourceId)) map.removeSource(trailSourceId);
+      driverTrailRef.current = [];
+      trailRideIdRef.current = null;
+    }
+
     // 4 & 5. Rota Directions
-    const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
     if (hasValidDriver && hasValidTarget && routeStatuses.includes(activeRide.status)) {
       const coordsChanged = !lastRouteCoordsRef.current || 
         lastRouteCoordsRef.current.driverLat !== driverLat || 
@@ -1155,6 +1216,8 @@ function HomeMotorista() {
       // 3. Resetar referências operacionais
       routeFittedRideRef.current = null;
       lastRouteCoordsRef.current = null;
+      driverTrailRef.current = [];
+      trailRideIdRef.current = null;
       setRouteError(null);
       setIsPickupMapReady(false);
       
