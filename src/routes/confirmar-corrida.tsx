@@ -274,7 +274,7 @@ function ConfirmarCorrida() {
     return () => {
       if (map.current) map.current.remove();
     };
-  }, []);
+  }, [originLat, originLng, destLat, destLng, getMapboxTokenFn, cotarCorridaFn, navigate]);
 
   return (
     <div className="relative h-[100dvh] w-full bg-zuvvi-indigo text-foreground overflow-hidden font-poppins flex flex-col">
