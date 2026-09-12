@@ -29,11 +29,13 @@ import {
   Minimize2,
   CloudRain,
   Camera,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { ARNavigationOverlay } from "@/components/motorista/ARNavigationOverlay";
 import { useChatAlert } from "@/hooks/use-chat-alert";
-import { falar } from "@/lib/fala";
+import { falar, vozAtivada, CHAVE_PREFERENCIA_VOZ } from "@/lib/fala";
 
 // Frases que o motorista manda sem digitar: ele está em cima da moto, e o
 // embarque se resolve com um toque em vez de teclado.
@@ -132,6 +134,26 @@ function HomeMotorista() {
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [rainAlert, setRainAlert] = useState<{ local: string } | null>(null);
   const [showARNavigation, setShowARNavigation] = useState(false);
+  const [vozLigada, setVozLigada] = useState(true);
+
+  useEffect(() => {
+    setVozLigada(vozAtivada());
+  }, []);
+
+  const alternarVoz = useCallback(() => {
+    setVozLigada((atual) => {
+      const proximo = !atual;
+      try {
+        window.localStorage.setItem(CHAVE_PREFERENCIA_VOZ, String(proximo));
+      } catch {
+        // Preferência local é opcional; não afeta o funcionamento da corrida.
+      }
+      if (!proximo && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      return proximo;
+    });
+  }, []);
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
   const playSound = useSoundStore((state: any) => state.play);
   const {
@@ -704,15 +726,12 @@ function HomeMotorista() {
       style: "currency",
       currency: "BRL",
     });
-    const destinoCompleto =
-      typeof oferta.destino_nome === "string" ? oferta.destino_nome.trim() : "";
-    const destinoFalado =
-      destinoCompleto
-        .split(",")
-        .slice(0, 3)
-        .join(",")
-        .trim() || "destino informado no aplicativo";
-    falar(`Zuvvi. Nova corrida. Valor ${valorTexto}. Destino: ${destinoFalado}.`);
+
+    toast("🔔 Nova corrida disponível!", { description: `Valor estimado: ${valorTexto}` });
+
+    // Frase curta e fixa: quem está pilotando não precisa (nem deveria)
+    // prestar atenção em valor/destino falado, só saber que chegou oferta.
+    if (vozAtivada()) falar("Você tem uma nova corrida disponível.");
   }, [playSound]);
 
   useEffect(() => {
@@ -1359,6 +1378,20 @@ function HomeMotorista() {
         </div>
         
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={alternarVoz}
+            aria-label={vozLigada ? "Desativar alertas de voz" : "Ativar alertas de voz"}
+            aria-pressed={vozLigada}
+            title={vozLigada ? "Desativar alertas de voz" : "Ativar alertas de voz"}
+            className={`flex h-9 w-9 items-center justify-center rounded-full border transition-all active:scale-95 ${
+              vozLigada
+                ? "border-white/10 bg-white/5 text-white/70"
+                : "border-white/10 bg-white/5 text-white/30"
+            }`}
+          >
+            {vozLigada ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
           <NotificationBell onImportantNotification={handleImportantNotification} />
           {activeRide ? (
             <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo">

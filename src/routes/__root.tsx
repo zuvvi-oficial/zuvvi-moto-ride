@@ -19,6 +19,7 @@ import { MOTORISTA_PROFILE_PHOTO_QUERY_KEY } from "@/lib/motorista-profile-photo
 import { PwaShell } from "@/components/pwa/PwaShell";
 import { PassengerDriverAvailabilityGate } from "@/components/passageiro/PassengerDriverAvailabilityGate";
 import { PassengerRideVoiceController } from "@/components/passageiro/PassengerRideVoiceController";
+import { DriverOfferVoiceBridge } from "@/components/motorista/DriverOfferVoiceBridge";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -214,6 +215,7 @@ function RootComponent() {
       <Outlet />
       <PassengerDriverAvailabilityGate />
       <PassengerRideVoiceController />
+      <DriverOfferVoiceBridge />
       <PwaShell />
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
