@@ -13,7 +13,6 @@ import {
   Power,
   Navigation,
   Bike,
-  Clock,
   CheckCircle2,
   Loader2,
   AlertCircle,
@@ -34,6 +33,7 @@ import {
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { ARNavigationOverlay } from "@/components/motorista/ARNavigationOverlay";
+import { MotoristaBottomNav } from "@/components/motorista/MotoristaBottomNav";
 import { useChatAlert } from "@/hooks/use-chat-alert";
 import { falar, vozAtivada, CHAVE_PREFERENCIA_VOZ } from "@/lib/fala";
 
@@ -2213,29 +2213,7 @@ function HomeMotorista() {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 p-6 z-50 pointer-events-none">
-        <div className="max-w-md mx-auto bg-zuvvi-indigo/80 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 flex items-center justify-around pointer-events-auto shadow-2xl">
-          <button className="flex flex-col items-center gap-1 text-zuvvi-volt">
-            <Bike className="w-6 h-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Corrida</span>
-          </button>
-          <a
-            href="/ganhos-motorista"
-            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"
-          >
-            <Clock className="w-6 h-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Ganhos</span>
-          </a>
-          <a
-            href="/perfil-motorista"
-            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-white transition-colors"
-            aria-label="Abrir perfil do motorista"
-          >
-            <User className="w-6 h-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>
-          </a>
-        </div>
-      </nav>
+      <MotoristaBottomNav active="corrida" />
 
       {showCancelModal && activeRide && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zuvvi-indigo/95 backdrop-blur-md animate-in fade-in duration-300">
