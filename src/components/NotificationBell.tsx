@@ -13,6 +13,7 @@ import {
   FileX2,
   Flag,
   MapPin,
+  MessageCircle,
   Navigation,
   Play,
   Trash2,
@@ -66,6 +67,7 @@ const NOTIFICATION_VISUALS: Record<string, NotificationVisual> = {
   documento_aprovado: { icon: FileCheck2, iconClassName: 'text-emerald-300' },
   documento_recusado: { icon: FileX2, iconClassName: 'text-red-300' },
   motorista_aprovado: { icon: BadgeCheck, iconClassName: 'text-zuvvi-volt' },
+  nova_mensagem_chat: { icon: MessageCircle, iconClassName: 'text-sky-300' },
 };
 
 const getNotificationVisual = (tipo: string): NotificationVisual =>

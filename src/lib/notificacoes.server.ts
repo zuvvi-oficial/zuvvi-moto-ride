@@ -15,7 +15,8 @@ type TipoNotificacao =
   | "corrida_agendada_falhou"
   | "corrida_agendada_lembrete"
   | "gorjeta_recebida"
-  | "cupom_indicacao_recebido";
+  | "cupom_indicacao_recebido"
+  | "nova_mensagem_chat";
 
 export async function criarNotificacao(
   supabase: SupabaseClient<any>,
@@ -25,6 +26,9 @@ export async function criarNotificacao(
     titulo: string;
     mensagem: string;
     corrida_id?: string | null;
+    // Destino do toque no push. Só é usado na notificação do sistema; quando
+    // ausente, o service worker decide pelo tipo, como sempre fez.
+    url?: string | null;
   }
 ): Promise<{ inserted: boolean }> {
   let inserted = false;
@@ -64,7 +68,14 @@ export async function criarNotificacao(
 
 async function enviarPushParaUsuario(
   supabase: SupabaseClient<any>,
-  params: { usuario_id: string; tipo: TipoNotificacao; titulo: string; mensagem: string; corrida_id?: string | null },
+  params: {
+    usuario_id: string;
+    tipo: TipoNotificacao;
+    titulo: string;
+    mensagem: string;
+    corrida_id?: string | null;
+    url?: string | null;
+  },
 ) {
   if (!process.env["VAPID_PUBLIC_KEY"] || !process.env["VAPID_PRIVATE_KEY"]) return;
 
@@ -82,7 +93,13 @@ async function enviarPushParaUsuario(
       try {
         const result = await sendWebPushNotification(
           { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
-          { title: params.titulo, body: params.mensagem, tipo: params.tipo, corridaId: params.corrida_id ?? null },
+          {
+            title: params.titulo,
+            body: params.mensagem,
+            tipo: params.tipo,
+            corridaId: params.corrida_id ?? null,
+            url: params.url ?? null,
+          },
         );
         if (result.outcome === "gone") {
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);

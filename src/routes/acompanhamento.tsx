@@ -16,6 +16,7 @@ import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send, S
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { ChatConversation } from "@/components/chat/ChatConversation";
+import { useChatAlert } from "@/hooks/use-chat-alert";
 import { CompartilharViagemDialog } from "@/components/passageiro/CompartilharViagemDialog";
 import { GorjetaDigital } from "@/components/passageiro/GorjetaDigital";
 import { toast } from "sonner";
@@ -151,6 +152,8 @@ function AcompanhamentoCorrida() {
   const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
 
+  const { avaliar: avaliarAlertaChat, sincronizar: sincronizarAlertaChat } = useChatAlert();
+
   const carregarChatFn = useServerFn(carregarChat);
   const enviarMensagemFn = useServerFn(enviarMensagemChat);
   const marcarEntreguesFn = useServerFn(marcarMensagensEntregues);
@@ -173,13 +176,25 @@ function AcompanhamentoCorrida() {
 
 
 
-  const handleChatOpenChange = (open: boolean) => {
-    chatOpenRef.current = open;
-    if (!open) {
-      digitandoRef.current = false;
-    }
-    setChatOpen(open);
-  };
+  const handleChatOpenChange = React.useCallback(
+    (open: boolean) => {
+      chatOpenRef.current = open;
+      if (!open) {
+        digitandoRef.current = false;
+      } else {
+        // Abriu a conversa: o que estava pendente passa a ser lido, não alertado.
+        sincronizarAlertaChat(0);
+      }
+      setChatOpen(open);
+    },
+    [sincronizarAlertaChat],
+  );
+
+  // Corrida nova começa do zero: sem isso a contagem da corrida anterior
+  // serviria de base e engoliria o alerta das primeiras mensagens.
+  useEffect(() => {
+    sincronizarAlertaChat(0);
+  }, [rideId, sincronizarAlertaChat]);
 
   const syncRide = React.useCallback(
     async (showLoading = false) => {
@@ -354,13 +369,14 @@ function AcompanhamentoCorrida() {
       const data = atualizado as ChatData;
       setChatData(data);
       setChatUnreadCount(data.naoLidas ?? 0);
+      sincronizarAlertaChat(data.naoLidas ?? 0);
       setChatError(null);
     } catch {
       setChatError("Não foi possível carregar o chat.");
     } finally {
       setChatLoading(false);
     }
-  }, [rideId, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
+  }, [rideId, carregarChatFn, marcarEntreguesFn, marcarLidasFn, sincronizarAlertaChat]);
 
   const syncChatFechado = React.useCallback(async () => {
     if (!rideId || chatOpenRef.current) return;
@@ -378,13 +394,24 @@ function AcompanhamentoCorrida() {
         const res = await carregarChatFn({ data: { corridaId: rideId } });
         const data = res as ChatData;
         setChatUnreadCount(data.naoLidas ?? 0);
+
+        const ultimaDoInterlocutor = [...(data.mensagens ?? [])]
+          .reverse()
+          .find((m) => m.remetenteId === data.interlocutor.id);
+
+        avaliarAlertaChat({
+          naoLidas: data.naoLidas ?? 0,
+          remetenteNome: data.interlocutor.nome,
+          previa: ultimaDoInterlocutor?.conteudo ?? null,
+          onAbrir: () => handleChatOpenChange(true),
+        });
       } while (chatClosedSyncPendingRef.current && !chatOpenRef.current);
     } catch {
       // Best effort
     } finally {
       chatClosedSyncInFlightRef.current = false;
     }
-  }, [rideId, carregarChatFn, marcarEntreguesFn]);
+  }, [rideId, carregarChatFn, marcarEntreguesFn, avaliarAlertaChat, handleChatOpenChange]);
 
   useEffect(() => {
     if (!rideId) return undefined;

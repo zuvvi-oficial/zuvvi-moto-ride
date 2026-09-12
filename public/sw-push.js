@@ -3,7 +3,7 @@
 // pelo bundler, então não pode usar import/export nem sintaxe de módulo.
 
 self.addEventListener("push", function (event) {
-  var payload = { title: "Zuvvi", body: "Você tem uma atualização.", tipo: null, corridaId: null };
+  var payload = { title: "Zuvvi", body: "Você tem uma atualização.", tipo: null, corridaId: null, url: null };
   if (event.data) {
     try {
       var parsed = event.data.json();
@@ -12,11 +12,14 @@ self.addEventListener("push", function (event) {
         body: parsed.body || payload.body,
         tipo: parsed.tipo || null,
         corridaId: parsed.corridaId || null,
+        url: typeof parsed.url === "string" && parsed.url.charAt(0) === "/" ? parsed.url : null,
       };
     } catch (e) {
       // Payload não-JSON: mantém o fallback acima em vez de falhar o evento.
     }
   }
+
+  var ehMensagem = payload.tipo === "nova_mensagem_chat";
 
   event.waitUntil(
     self.registration.showNotification(payload.title, {
@@ -24,7 +27,11 @@ self.addEventListener("push", function (event) {
       icon: "/brand/icon-192.png",
       badge: "/brand/icon-96.png",
       tag: payload.tipo || "zuvvi-notificacao",
-      data: { tipo: payload.tipo, corridaId: payload.corridaId },
+      // Mensagens novas empilham no mesmo balão, mas precisam avisar de novo a
+      // cada uma — sem renotify o Android troca o texto em silêncio.
+      renotify: ehMensagem,
+      vibrate: ehMensagem ? [40, 60, 40] : undefined,
+      data: { tipo: payload.tipo, corridaId: payload.corridaId, url: payload.url },
     }),
   );
 });
@@ -34,7 +41,9 @@ self.addEventListener("notificationclick", function (event) {
 
   var data = event.notification.data || {};
   var targetUrl = "/";
-  if (data.corridaId) {
+  if (typeof data.url === "string" && data.url.charAt(0) === "/") {
+    targetUrl = data.url;
+  } else if (data.corridaId) {
     if (data.tipo === "nova_oferta_corrida") {
       targetUrl = "/home-motorista";
     } else {

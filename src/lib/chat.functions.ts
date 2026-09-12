@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -38,7 +39,7 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
   // 1. Resolver public.usuarios.id pelo authUserId do contexto
   const { data: usuario, error: userError } = await supabaseAdmin
     .from("usuarios")
-    .select("id")
+    .select("id, nome")
     .eq("auth_user_id", authUserId)
     .single();
 
@@ -91,11 +92,55 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
 
   return {
     meuUsuarioId,
+    meuNome: typeof usuario.nome === "string" ? usuario.nome : "",
+    souPassageiro,
     interlocutor,
     status: corrida.status,
     podeEnviar,
     supabaseAdmin,
   };
+}
+
+// Quem está com a conversa aberta manda heartbeat de presença a cada 20s. Se a
+// última presença do destinatário for mais velha que isso, ele não está olhando
+// o chat e precisa ser avisado — quem está lendo em tempo real, não.
+const PRESENCA_ATIVA_MS = 45_000;
+
+async function notificarNovaMensagem(params: {
+  supabaseAdmin: SupabaseClient;
+  corridaId: string;
+  destinatarioId: string;
+  remetenteNome: string;
+  conteudo: string;
+  destinatarioEhMotorista: boolean;
+}) {
+  const { data: presenca } = await params.supabaseAdmin
+    .from("chat_presenca")
+    .select("ultimo_visto_at")
+    .eq("corrida_id", params.corridaId)
+    .eq("usuario_id", params.destinatarioId)
+    .maybeSingle();
+
+  if (presenca?.ultimo_visto_at) {
+    const inativoHa = Date.now() - new Date(presenca.ultimo_visto_at).getTime();
+    if (inativoHa < PRESENCA_ATIVA_MS) return;
+  }
+
+  const { criarNotificacao } = await import("./notificacoes.server");
+  const primeiroNome = params.remetenteNome.trim().split(/\s+/)[0] || "Alguém";
+  const previa =
+    params.conteudo.length > 140 ? `${params.conteudo.slice(0, 140)}…` : params.conteudo;
+
+  await criarNotificacao(params.supabaseAdmin, {
+    usuario_id: params.destinatarioId,
+    tipo: "nova_mensagem_chat",
+    titulo: `Mensagem de ${primeiroNome}`,
+    mensagem: previa,
+    corrida_id: params.corridaId,
+    url: params.destinatarioEhMotorista
+      ? "/home-motorista"
+      : `/acompanhamento?rideId=${encodeURIComponent(params.corridaId)}`,
+  });
 }
 
 // 1. carregarChat
@@ -170,10 +215,8 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data: input, context }) => {
-    const { meuUsuarioId, podeEnviar, supabaseAdmin } = await resolveParticipanteChat(
-      input.corridaId,
-      context.userId,
-    );
+    const { meuUsuarioId, meuNome, souPassageiro, interlocutor, podeEnviar, supabaseAdmin } =
+      await resolveParticipanteChat(input.corridaId, context.userId);
 
     if (!podeEnviar) {
       throw new Error("O chat não está mais disponível para novas mensagens nesta corrida.");
@@ -240,6 +283,20 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
         return mapearMensagem(retry);
       }
       throw new Error("Erro ao enviar mensagem.");
+    }
+
+    // Aviso é best-effort: mensagem já está salva, nada aqui pode derrubar o envio.
+    try {
+      await notificarNovaMensagem({
+        supabaseAdmin,
+        corridaId: input.corridaId,
+        destinatarioId: interlocutor.id,
+        remetenteNome: meuNome,
+        conteudo: input.conteudo,
+        destinatarioEhMotorista: souPassageiro,
+      });
+    } catch (err) {
+      console.error("[Chat] Falha ao notificar nova mensagem:", err);
     }
 
     return mapearMensagem(criada);

@@ -27,6 +27,7 @@ import {
   Send,
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
+import { useChatAlert } from "@/hooks/use-chat-alert";
 import {
   carregarChat,
   enviarMensagemChat,
@@ -110,6 +111,7 @@ function HomeMotorista() {
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
   const playSound = useSoundStore((state: any) => state.play);
+  const { avaliar: avaliarAlertaChat, sincronizar: sincronizarAlertaChat } = useChatAlert();
   const [showFinalizeConfirmation, setShowFinalizeConfirmation] = useState(false);
   const [pixFailureNotice, setPixFailureNotice] = useState<NotificationBellItem | null>(null);
 
@@ -223,20 +225,25 @@ function HomeMotorista() {
 
 
 
-  const handleChatOpenChange = (open: boolean) => {
-    if (open && !activeRide?.id) return;
-    
-    if (open && activeRide?.id) {
-      chatSessionRideIdRef.current = activeRide.id;
-      chatOpenRef.current = true;
-      setChatOpen(true);
-    } else {
-      chatSessionRideIdRef.current = undefined;
-      chatOpenRef.current = false;
-      digitandoRef.current = false;
-      setChatOpen(false);
-    }
-  };
+  const handleChatOpenChange = useCallback(
+    (open: boolean) => {
+      if (open && !activeRide?.id) return;
+
+      if (open && activeRide?.id) {
+        chatSessionRideIdRef.current = activeRide.id;
+        chatOpenRef.current = true;
+        // Abriu a conversa: o que estava pendente passa a ser lido, não alertado.
+        sincronizarAlertaChat(0);
+        setChatOpen(true);
+      } else {
+        chatSessionRideIdRef.current = undefined;
+        chatOpenRef.current = false;
+        digitandoRef.current = false;
+        setChatOpen(false);
+      }
+    },
+    [activeRide?.id, sincronizarAlertaChat],
+  );
 
   const refreshChat = useCallback(async () => {
     if (!activeRide?.id) return;
@@ -270,6 +277,7 @@ function HomeMotorista() {
         
         setChatData(atualizado as ChatData);
         setChatUnreadCount((atualizado as ChatData).naoLidas ?? 0);
+        sincronizarAlertaChat((atualizado as ChatData).naoLidas ?? 0);
         setChatError(null);
       } while (
         chatRefreshPendingRef.current &&
@@ -291,7 +299,7 @@ function HomeMotorista() {
         setChatLoading(false);
       }
     }
-  }, [activeRide?.id, carregarChatFn, marcarEntreguesFn, marcarLidasFn]);
+  }, [activeRide?.id, carregarChatFn, marcarEntreguesFn, marcarLidasFn, sincronizarAlertaChat]);
 
   const syncChatFechado = useCallback(async () => {
     if (!activeRide?.id) return;
@@ -317,7 +325,19 @@ function HomeMotorista() {
         if (activeChatRideIdRef.current !== currentRideId) break;
 
         if (activeChatRideIdRef.current === currentRideId && chatOpenRef.current === false) {
-          setChatUnreadCount((resultado as ChatData).naoLidas ?? 0);
+          const dados = resultado as ChatData;
+          setChatUnreadCount(dados.naoLidas ?? 0);
+
+          const ultimaDoPassageiro = [...(dados.mensagens ?? [])]
+            .reverse()
+            .find((m) => m.remetenteId === dados.interlocutor.id);
+
+          avaliarAlertaChat({
+            naoLidas: dados.naoLidas ?? 0,
+            remetenteNome: dados.interlocutor.nome,
+            previa: ultimaDoPassageiro?.conteudo ?? null,
+            onAbrir: () => handleChatOpenChange(true),
+          });
         }
       } while (
         chatClosedSyncPendingRef.current &&
@@ -332,7 +352,13 @@ function HomeMotorista() {
         chatClosedSyncPendingRef.current = false;
       }
     }
-  }, [activeRide?.id, carregarChatFn, marcarEntreguesFn]);
+  }, [
+    activeRide?.id,
+    carregarChatFn,
+    marcarEntreguesFn,
+    avaliarAlertaChat,
+    handleChatOpenChange,
+  ]);
 
   useEffect(() => {
     activeChatRideIdRef.current = activeRide?.id;
@@ -347,7 +373,10 @@ function HomeMotorista() {
     setChatSending(false);
     chatClosedSyncInFlightRef.current = false;
     chatClosedSyncPendingRef.current = false;
-  }, [activeRide?.id]);
+    // Corrida nova começa do zero: sem isso a contagem da corrida anterior
+    // serviria de base e engoliria o alerta das primeiras mensagens.
+    sincronizarAlertaChat(0);
+  }, [activeRide?.id, sincronizarAlertaChat]);
 
 
   useEffect(() => {
