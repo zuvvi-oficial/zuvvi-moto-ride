@@ -1077,6 +1077,7 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
     }
 
     const assignedStatuses: Database["public"]["Enums"]["corrida_status"][] = [
+      "aguardando_pagamento",
       "aceita",
       "motorista_a_caminho",
       "motorista_chegou",
