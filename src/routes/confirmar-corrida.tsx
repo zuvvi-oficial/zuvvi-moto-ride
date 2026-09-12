@@ -6,6 +6,7 @@ import { criarCorridaAgendada } from '@/lib/corridas-agendadas.functions';
 import { validarCupom } from '@/lib/cupons.functions';
 import { ensureMercadoPagoDeviceId } from '@/lib/pix-device-id';
 import { registrarPixDeviceSession } from '@/lib/pix-device-session.functions';
+import { AgendarDataHoraDialog } from '@/components/passageiro/AgendarDataHoraDialog';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode, CalendarClock, Tag, X } from 'lucide-react';
@@ -89,10 +90,6 @@ function ConfirmarCorrida() {
   // validação de verdade é sempre a do servidor.
   const agendamentoMin = new Date(Date.now() + 30 * 60 * 1000);
   const agendamentoMax = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const toDatetimeLocalValue = (date: Date) => {
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  };
 
   const createInFlightRef = useRef(false);
 
@@ -376,13 +373,11 @@ function ConfirmarCorrida() {
             {modo === 'agendar' && (
               <div className="space-y-2">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">Data e horário</p>
-                <input
-                  type="datetime-local"
+                <AgendarDataHoraDialog
                   value={horarioAgendado}
-                  min={toDatetimeLocalValue(agendamentoMin)}
-                  max={toDatetimeLocalValue(agendamentoMax)}
-                  onChange={(e) => setHorarioAgendado(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white [color-scheme:dark] focus:outline-none focus:border-zuvvi-volt/50"
+                  onChange={setHorarioAgendado}
+                  min={agendamentoMin}
+                  max={agendamentoMax}
                 />
                 <p className="text-[10px] text-muted-foreground px-1">
                   Pelo menos 30 min de antecedência. Pix não está disponível para corridas agendadas.
