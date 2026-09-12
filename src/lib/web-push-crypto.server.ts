@@ -1,11 +1,4 @@
-import {
-  createECDH,
-  createCipheriv,
-  createHmac,
-  createPrivateKey,
-  randomBytes,
-  sign as cryptoSign,
-} from "node:crypto";
+import { createECDH, createCipheriv, createHmac, randomBytes, sign as cryptoSign } from "node:crypto";
 
 // Implementação própria do Web Push (VAPID — RFC 8292 — e criptografia de
 // mensagem aes128gcm — RFC 8291/8188), sem depender do pacote `web-push`.
@@ -45,10 +38,12 @@ export type VapidKeys = Readonly<{
 
 // DER helpers para montar um PKCS8 EC de P-256 a partir dos bytes crus da
 // chave (RFC 5915 embrulhado em PKCS8, RFC 5958). Evitamos createPrivateKey
-// com format "jwk" de propósito: em produção esse formato falhou com
-// "options.key property must be of type string..." — sinal de um runtime
-// cujo node:crypto não reconhece objeto JWK como entrada válida. DER/PKCS8
-// é a forma mais básica e amplamente suportada de importar uma chave EC.
+// de propósito: em produção, tanto format "jwk" quanto passar um KeyObject
+// já pronto para sign() falharam com "options.key property must be of type
+// string..." — sinal de um runtime cujo node:crypto não trata essas duas
+// formas como as versões recentes de Node tratam. DER/PKCS8 puro, entregue
+// direto para sign() (sem passar por createPrivateKey isolado), é a forma
+// mais básica e amplamente suportada de assinar com uma chave EC.
 function derLength(len: number): Buffer {
   if (len < 0x80) return Buffer.from([len]);
   if (len < 0x100) return Buffer.from([0x81, len]);
@@ -89,16 +84,12 @@ function pkcs8FromRawEcP256(privateKeyRaw: Buffer, publicKeyRaw: Buffer): Buffer
   );
 }
 
-function vapidPrivateKeyObject(privateKeyBase64Url: string, publicKeyRaw: Buffer) {
+function vapidPrivateKeyDer(privateKeyBase64Url: string, publicKeyRaw: Buffer): Buffer {
   const privateKeyRaw = fromBase64url(privateKeyBase64Url);
   if (privateKeyRaw.length !== 32) {
     throw new Error("VAPID_PRIVATE_KEY inválida: esperado escalar de 32 bytes.");
   }
-  return createPrivateKey({
-    key: pkcs8FromRawEcP256(privateKeyRaw, publicKeyRaw),
-    format: "der",
-    type: "pkcs8",
-  });
+  return pkcs8FromRawEcP256(privateKeyRaw, publicKeyRaw);
 }
 
 // Gera o cabeçalho Authorization (VAPID, RFC 8292) para uma notificação
@@ -132,11 +123,15 @@ export function generateVapidAuthorizationHeader(input: {
   );
   const signingInput = `${header}.${claims}`;
 
-  const privateKey = vapidPrivateKeyObject(input.vapidPrivateKeyBase64Url, publicKeyRaw);
+  const privateKeyDer = vapidPrivateKeyDer(input.vapidPrivateKeyBase64Url, publicKeyRaw);
+  // Chave crua (DER/PKCS8) entregue direto para sign(), nunca um KeyObject
+  // pré-criado via createPrivateKey — ver comentário acima do PKCS8 helper.
   // JWT/JOSE usa a assinatura ECDSA "raw" (r || s, 64 bytes para P-256), não a
   // codificação DER que node:crypto produz por padrão — dsaEncoding pede o formato certo.
   const signature = cryptoSign("sha256", Buffer.from(signingInput, "utf8"), {
-    key: privateKey,
+    key: privateKeyDer,
+    format: "der",
+    type: "pkcs8",
     dsaEncoding: "ieee-p1363",
   });
 
