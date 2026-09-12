@@ -348,20 +348,9 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
   }, []);
 
   const handleEnablePush = async () => {
-    const vapidPublicKey = import.meta.env['VITE_VAPID_PUBLIC_KEY'] as string | undefined;
-    if (!vapidPublicKey) {
-      // Sem a chave, o convite some sem explicação e ninguém nunca se inscreve.
-      // O aviso no console é o único rastro de que falta configuração.
-      console.warn(
-        '[Push] VITE_VAPID_PUBLIC_KEY ausente: notificações no celular não podem ser ativadas. Ver .env.example.',
-      );
-      setShowPushPrompt(false);
-      return;
-    }
-
     setIsEnablingPush(true);
     try {
-      const outcome = await subscribeToPushNotifications(vapidPublicKey);
+      const outcome = await subscribeToPushNotifications();
       if (outcome === 'subscribed') {
         toast.success('Notificações ativadas neste aparelho.');
       } else if (outcome === 'denied') {
