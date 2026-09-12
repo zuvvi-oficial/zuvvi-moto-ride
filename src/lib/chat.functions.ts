@@ -121,16 +121,8 @@ async function assinarFotoRemetente(
   if (!fotoPerfilPath) return null;
 
   try {
-    const { PROFILE_BUCKET } = await import("./passenger-profile-photo.functions");
-    // Mesmo TTL do envio do push (web-push.server.ts usa TTL: 86400 no
-    // cabeçalho): a URL assinada precisa durar pelo menos tanto quanto o
-    // próprio push pode ficar pendente de entrega no serviço de push.
-    const { data, error } = await (supabaseAdmin as any).storage
-      .from(PROFILE_BUCKET)
-      .createSignedUrl(fotoPerfilPath, 24 * 60 * 60);
-
-    if (error || !data?.signedUrl) return null;
-    return data.signedUrl;
+    const { obterUrlAssinadaFotoPerfil } = await import("./passenger-profile-photo.functions");
+    return await obterUrlAssinadaFotoPerfil(supabaseAdmin, fotoPerfilPath);
   } catch (err) {
     console.error("[Chat] Falha ao assinar foto de perfil para o push:", err);
     return null;
