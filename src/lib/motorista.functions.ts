@@ -315,7 +315,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       return [];
     }
 
-    const ofertas = allCandidates
+    const ofertasFiltradas = allCandidates
       .filter(ride => {
         // Corridas Pix exigem credencial OAuth privada válida e coerente
         if (ride.forma_pagamento === "pix" && !pixConectado) return false;
@@ -349,10 +349,74 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
         distancia_aprox_m: Math.round(haversine(motorista.ultima_lat, motorista.ultima_lng, ride.origem_lat, ride.origem_lng))
       }))
       .sort((a, b) => a.distancia_aprox_m - b.distancia_aprox_m || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 10)
-      .map(({ id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, distancia_aprox_m }) => ({
-        id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, distancia_aprox_m
-      }));
+      .slice(0, 10);
+
+    // Dados do passageiro (nome, foto, nota média) para o card do pedido de
+    // corrida — busca só para quem sobrou depois de todos os filtros acima.
+    const passageiroIds = Array.from(new Set(ofertasFiltradas.map((r) => r.passageiro_id)));
+    const infoPorPassageiro = new Map<
+      string,
+      { nome: string; fotoUrl: string | null; notaMedia: number | null; totalAvaliacoes: number }
+    >();
+
+    if (passageiroIds.length > 0) {
+      const [{ data: passageiros }, { data: avaliacoesRecebidas }] = await Promise.all([
+        supabaseAdmin.from("usuarios").select("id, nome, foto_perfil_path").in("id", passageiroIds),
+        supabaseAdmin.from("avaliacoes").select("avaliado_id, nota").in("avaliado_id", passageiroIds),
+      ]);
+
+      const notasPorPassageiro = new Map<string, number[]>();
+      for (const avaliacao of avaliacoesRecebidas || []) {
+        const lista = notasPorPassageiro.get(avaliacao.avaliado_id) || [];
+        lista.push(avaliacao.nota);
+        notasPorPassageiro.set(avaliacao.avaliado_id, lista);
+      }
+
+      const { PROFILE_BUCKET } = await import("./passenger-profile-photo.functions");
+
+      for (const passageiro of passageiros || []) {
+        const notas = notasPorPassageiro.get(passageiro.id) || [];
+        const notaMedia = notas.length > 0 ? notas.reduce((a, b) => a + b, 0) / notas.length : null;
+
+        let fotoUrl: string | null = null;
+        if (passageiro.foto_perfil_path) {
+          try {
+            const { data: signed } = await (supabaseAdmin as any).storage
+              .from(PROFILE_BUCKET)
+              .createSignedUrl(passageiro.foto_perfil_path, 60 * 60);
+            fotoUrl = signed?.signedUrl || null;
+          } catch {
+            fotoUrl = null;
+          }
+        }
+
+        infoPorPassageiro.set(passageiro.id, {
+          nome: passageiro.nome || "Passageiro",
+          fotoUrl,
+          notaMedia,
+          totalAvaliacoes: notas.length,
+        });
+      }
+    }
+
+    const ofertas = ofertasFiltradas.map(
+      ({ id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, distancia_aprox_m, passageiro_id }) => {
+        const info = infoPorPassageiro.get(passageiro_id);
+        return {
+          id,
+          origem_nome,
+          destino_nome,
+          valor_estimado,
+          forma_pagamento,
+          created_at,
+          distancia_aprox_m,
+          passageiroNome: info?.nome ?? "Passageiro",
+          passageiroFotoUrl: info?.fotoUrl ?? null,
+          passageiroNotaMedia: info?.notaMedia ?? null,
+          passageiroTotalAvaliacoes: info?.totalAvaliacoes ?? 0,
+        };
+      },
+    );
 
     return ofertas;
   });
