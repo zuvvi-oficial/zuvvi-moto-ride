@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { obterUrlAssinadaFotoPerfil } from "@/lib/passenger-profile-photo.functions";
 
 const RIDE_SEARCH_TIMEOUT_MS = 120_000;
 
@@ -1104,6 +1105,7 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
       .select(`
         id,
         nome,
+        foto_perfil_path,
         motoristas!inner (
           nota_media,
           ultima_lat,
@@ -1134,9 +1136,19 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
       console.error("Erro ao contar corridas do motorista:", err);
     }
 
+    // Foto é informativa, não crítica: sem ela o passageiro só vê o ícone
+    // genérico de sempre — nunca deve bloquear o acompanhamento da corrida
+    // (obterUrlAssinadaFotoPerfil já nunca lança, retorna null em qualquer falha).
+    const fotoPerfilPath =
+      typeof (driver as any).foto_perfil_path === "string" ? (driver as any).foto_perfil_path : null;
+    const fotoUrl = fotoPerfilPath
+      ? await obterUrlAssinadaFotoPerfil(supabaseAdmin, fotoPerfilPath)
+      : null;
+
     const driverInfo = {
       id: driver.id,
       nome: driver.nome,
+      foto_url: fotoUrl,
       nota_media: motoristaData?.nota_media ?? null,
       ultima_lat: motoristaData?.ultima_lat ?? null,
       ultima_lng: motoristaData?.ultima_lng ?? null,

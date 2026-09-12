@@ -125,6 +125,7 @@ function AcompanhamentoCorrida() {
   const [motorista, setMotorista] = useState<{
     id?: string;
     nome: string;
+    foto_url?: string | null;
     nota_media: number | null;
     ultima_lat: number | null;
     ultima_lng: number | null;
@@ -135,6 +136,7 @@ function AcompanhamentoCorrida() {
     placa: string;
     marca: string;
     modelo: string;
+    cor?: string | null;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
@@ -709,8 +711,16 @@ function AcompanhamentoCorrida() {
           <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl pointer-events-auto animate-rise space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
-                  <User className="w-8 h-8 text-zuvvi-volt" />
+                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30 shrink-0">
+                  {motorista.foto_url ? (
+                    <img
+                      src={motorista.foto_url}
+                      alt={`Foto de ${motorista.nome}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-8 h-8 text-zuvvi-volt" />
+                  )}
                 </div>
                 <div>
                   <h3 className="text-white font-bold">{motorista.nome}</h3>
@@ -753,6 +763,7 @@ function AcompanhamentoCorrida() {
                   </p>
                   <p className="text-xs font-bold text-white">
                     {veiculo.marca} {veiculo.modelo}
+                    {veiculo.cor ? ` · ${veiculo.cor}` : ""}
                   </p>
                 </div>
               </div>
