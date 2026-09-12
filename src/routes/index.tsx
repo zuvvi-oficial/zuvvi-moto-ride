@@ -137,7 +137,20 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [frozenHeight, setFrozenHeight] = useState<number | null>(null);
 
   useEffect(() => {
-    setFrozenHeight(window.innerHeight);
+    // Só sobe, nunca desce ("catraca"). Isso corrige o caso de chegar
+    // nesta tela por navegação interna com o teclado de OUTRA tela ainda
+    // fechando (ex: vindo da senha de login) — a primeira medição pode vir
+    // encolhida, mas assim que o teclado terminar de fechar e a altura
+    // crescer de volta ao valor real, ela substitui a congelada. Depois
+    // disso, o teclado desta própria tela só encolhe (nunca cresce além do
+    // que já foi visto), então a catraca ignora esse encolhimento e a
+    // altura fica travada no maior valor real já observado.
+    const updateSeMaior = () => {
+      setFrozenHeight((atual) => (atual === null || window.innerHeight > atual ? window.innerHeight : atual));
+    };
+    updateSeMaior();
+    window.addEventListener('resize', updateSeMaior);
+    return () => window.removeEventListener('resize', updateSeMaior);
   }, []);
 
   useEffect(() => {
