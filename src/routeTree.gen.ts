@@ -17,6 +17,7 @@ import { Route as ConfirmarCorridaRouteImport } from './routes/confirmar-corrida
 import { Route as ConvidarAmigosRouteImport } from './routes/convidar-amigos'
 import { Route as CorridasRouteImport } from './routes/corridas'
 import { Route as CorridasAgendadasRouteImport } from './routes/corridas-agendadas'
+import { Route as DiagnosticoTecladoRouteImport } from './routes/diagnostico-teclado'
 import { Route as GanhosMotoristaRouteImport } from './routes/ganhos-motorista'
 import { Route as HomeMotoristaRouteImport } from './routes/home-motorista'
 import { Route as MeusChamadosRouteImport } from './routes/meus-chamados'
@@ -80,6 +81,11 @@ const CorridasRoute = CorridasRouteImport.update({
 const CorridasAgendadasRoute = CorridasAgendadasRouteImport.update({
   id: '/corridas-agendadas',
   path: '/corridas-agendadas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticoTecladoRoute = DiagnosticoTecladoRouteImport.update({
+  id: '/diagnostico-teclado',
+  path: '/diagnostico-teclado',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GanhosMotoristaRoute = GanhosMotoristaRouteImport.update({
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/convidar-amigos': typeof ConvidarAmigosRoute
   '/corridas': typeof CorridasRoute
   '/corridas-agendadas': typeof CorridasAgendadasRoute
+  '/diagnostico-teclado': typeof DiagnosticoTecladoRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/convidar-amigos': typeof ConvidarAmigosRoute
   '/corridas': typeof CorridasRoute
   '/corridas-agendadas': typeof CorridasAgendadasRoute
+  '/diagnostico-teclado': typeof DiagnosticoTecladoRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/convidar-amigos': typeof ConvidarAmigosRoute
   '/corridas': typeof CorridasRoute
   '/corridas-agendadas': typeof CorridasAgendadasRoute
+  '/diagnostico-teclado': typeof DiagnosticoTecladoRoute
   '/ganhos-motorista': typeof GanhosMotoristaRoute
   '/home-motorista': typeof HomeMotoristaRoute
   '/meus-chamados': typeof MeusChamadosRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/convidar-amigos'
     | '/corridas'
     | '/corridas-agendadas'
+    | '/diagnostico-teclado'
     | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
@@ -352,6 +362,7 @@ export interface FileRouteTypes {
     | '/convidar-amigos'
     | '/corridas'
     | '/corridas-agendadas'
+    | '/diagnostico-teclado'
     | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
@@ -386,6 +397,7 @@ export interface FileRouteTypes {
     | '/convidar-amigos'
     | '/corridas'
     | '/corridas-agendadas'
+    | '/diagnostico-teclado'
     | '/ganhos-motorista'
     | '/home-motorista'
     | '/meus-chamados'
@@ -421,6 +433,7 @@ export interface RootRouteChildren {
   ConvidarAmigosRoute: typeof ConvidarAmigosRoute
   CorridasRoute: typeof CorridasRoute
   CorridasAgendadasRoute: typeof CorridasAgendadasRoute
+  DiagnosticoTecladoRoute: typeof DiagnosticoTecladoRoute
   GanhosMotoristaRoute: typeof GanhosMotoristaRoute
   HomeMotoristaRoute: typeof HomeMotoristaRoute
   MeusChamadosRoute: typeof MeusChamadosRoute
@@ -496,6 +509,13 @@ declare module '@tanstack/react-router' {
       path: '/corridas-agendadas'
       fullPath: '/corridas-agendadas'
       preLoaderRoute: typeof CorridasAgendadasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostico-teclado': {
+      id: '/diagnostico-teclado'
+      path: '/diagnostico-teclado'
+      fullPath: '/diagnostico-teclado'
+      preLoaderRoute: typeof DiagnosticoTecladoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ganhos-motorista': {
@@ -700,6 +720,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConvidarAmigosRoute: ConvidarAmigosRoute,
   CorridasRoute: CorridasRoute,
   CorridasAgendadasRoute: CorridasAgendadasRoute,
+  DiagnosticoTecladoRoute: DiagnosticoTecladoRoute,
   GanhosMotoristaRoute: GanhosMotoristaRoute,
   HomeMotoristaRoute: HomeMotoristaRoute,
   MeusChamadosRoute: MeusChamadosRoute,
