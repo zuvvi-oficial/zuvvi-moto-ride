@@ -107,7 +107,7 @@ export function AgendarDataHoraDialog({ value, onChange, min, max }: AgendarData
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[92vw] max-w-[92vw] sm:max-w-sm rounded-[2.5rem] border-white/10 bg-zuvvi-indigo text-white p-6">
+        <DialogContent className="w-[92vw] max-w-[92vw] sm:max-w-sm max-h-[85dvh] overflow-y-auto rounded-[2.5rem] border-white/10 bg-zuvvi-indigo text-white p-6">
           <DialogHeader className="items-center text-center space-y-2">
             <div className="w-12 h-12 rounded-2xl bg-zuvvi-volt/15 border border-zuvvi-volt/30 flex items-center justify-center">
               <CalendarClock className="h-5 w-5 text-zuvvi-volt" />
