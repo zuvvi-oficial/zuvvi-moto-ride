@@ -116,7 +116,24 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [isEditingOrigin, setIsEditingOrigin] = useState(false);
   const [favoritosOpen, setFavoritosOpen] = useState(false);
   const [recentesOpen, setRecentesOpen] = useState(false);
-  
+
+  // 100dvh nem sempre encolhe quando o teclado abre (depende do navegador
+  // respeitar interactive-widget=resizes-content). Medindo a visualViewport
+  // direto garantimos que o frame acompanhe a área realmente visível em
+  // qualquer aparelho, sem o header/menu "flutuando" sobre o teclado.
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    const syncHeight = () => setViewportHeight(vv.height);
+
+    syncHeight();
+    vv.addEventListener('resize', syncHeight);
+    return () => vv.removeEventListener('resize', syncHeight);
+  }, []);
+
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
@@ -226,21 +243,21 @@ function HomePassageiro({ nome }: { nome: string }) {
 
   return (
 
-    <div 
+    <div
       className="relative bg-zuvvi-indigo text-foreground overflow-hidden"
-      style={{ height: '100dvh', width: '100vw' }}
+      style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh', width: '100vw' }}
     >
       {/* 1. Fundo (Z-INDEX 0) */}
-      <div 
+      <div
         style={{ position: 'absolute', inset: 0, zIndex: 0 }}
         className="bg-zuvvi-indigo-dark"
       />
 
 
       {/* 2. Camada de Interface (Z-INDEX 10) - Sobreposta ao mapa */}
-      <div 
+      <div
         className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-hidden overscroll-none"
-        style={{ height: '100dvh', width: '100vw' }}
+        style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh', width: '100vw' }}
       >
         {/* Header */}
         <header className="px-5 py-4 pointer-events-auto shrink-0">
