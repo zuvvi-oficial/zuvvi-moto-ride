@@ -95,7 +95,9 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
   try {
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
+    let endpointRenovado: string | null = null;
     if (subscription && !inscricaoUsaChaveAtual(subscription, vapidPublicKey)) {
+      endpointRenovado = subscription.endpoint;
       await subscription.unsubscribe();
       subscription = null;
     }
@@ -111,7 +113,9 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
     const keys = subscriptionKeys(subscription);
     if (!keys) return "error";
 
-    const { registrarPushSubscription } = await import("@/lib/push-subscriptions.functions");
+    const { registrarPushSubscription, removerPushSubscription } = await import(
+      "@/lib/push-subscriptions.functions"
+    );
     await registrarPushSubscription({
       data: {
         endpoint: subscription.endpoint,
@@ -120,6 +124,13 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
         userAgent: navigator.userAgent.slice(0, 300),
       },
     });
+
+    // A renovação por chave desatualizada pode trocar de endpoint (o serviço
+    // de push decide); sem remover o registro velho, ele fica órfão no banco
+    // até uma tentativa de envio futura esbarrar nele e receber 404/410.
+    if (endpointRenovado && endpointRenovado !== subscription.endpoint) {
+      await removerPushSubscription({ data: { endpoint: endpointRenovado } }).catch(() => {});
+    }
 
     return "subscribed";
   } catch (error) {
