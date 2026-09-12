@@ -700,20 +700,27 @@ function HomeMotorista() {
     staleTime: Infinity,
   });
 
+  // Sem esperar isGpsActive aqui: o servidor (getOfertasDisponiveis) já
+  // exige uma localização com no máximo 5 min de idade antes de listar
+  // qualquer oferta, então isso nunca mostra corrida com posição desatualizada.
+  // Exigir isGpsActive também no cliente só travava a tela em "Ativando
+  // localização..." mesmo quando o servidor já tinha uma posição recente de
+  // segundos atrás (antes do app fechar) — a corrida ficava esperando o GPS
+  // confirmar de novo à toa.
   const { data: rawOfertas = [] } = useQuery({
     queryKey: ["motorista-ofertas"],
     queryFn: () => getOfertasFn(),
-    enabled: isOnline && isGpsActive && !activeRide,
+    enabled: isOnline && !activeRide,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
 
-  // Lista visual segura: só exibe se ONLINE, GPS ativo e sem corrida ativa.
+  // Lista visual segura: só exibe se ONLINE e sem corrida ativa.
   // useMemo evita recriar o array (e disparar o efeito de alerta abaixo) a
   // cada render quando a condição está falsa.
   const ofertas = useMemo(
-    () => (isOnline && isGpsActive && !activeRide ? rawOfertas : []),
-    [isOnline, isGpsActive, activeRide, rawOfertas],
+    () => (isOnline && !activeRide ? rawOfertas : []),
+    [isOnline, activeRide, rawOfertas],
   );
 
   const dispararSequenciaAlerta = useCallback((oferta: any) => {
