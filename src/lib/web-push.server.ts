@@ -13,6 +13,10 @@ export type WebPushPayload = Readonly<{
   corridaId?: string | null;
   // Destino do toque. Quando ausente, o service worker decide pelo tipo.
   url?: string | null;
+  // Ícone grande da notificação (ex.: foto de perfil de quem mandou a
+  // mensagem). Sempre uma URL https assinada — nunca um caminho relativo,
+  // já que o service worker busca isso fora do domínio do app.
+  icon?: string | null;
 }>;
 
 export type WebPushSendResult =

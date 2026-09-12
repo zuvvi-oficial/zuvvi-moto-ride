@@ -3,7 +3,7 @@
 // pelo bundler, então não pode usar import/export nem sintaxe de módulo.
 
 self.addEventListener("push", function (event) {
-  var payload = { title: "Zuvvi", body: "Você tem uma atualização.", tipo: null, corridaId: null, url: null };
+  var payload = { title: "Zuvvi", body: "Você tem uma atualização.", tipo: null, corridaId: null, url: null, icon: null };
   if (event.data) {
     try {
       var parsed = event.data.json();
@@ -13,6 +13,9 @@ self.addEventListener("push", function (event) {
         tipo: parsed.tipo || null,
         corridaId: parsed.corridaId || null,
         url: typeof parsed.url === "string" && parsed.url.charAt(0) === "/" ? parsed.url : null,
+        // Só https: é uma URL assinada do próprio Supabase, nunca um esquema
+        // arbitrário (javascript:, data:, etc.) vindo de um payload adulterado.
+        icon: typeof parsed.icon === "string" && parsed.icon.indexOf("https://") === 0 ? parsed.icon : null,
       };
     } catch (e) {
       // Payload não-JSON: mantém o fallback acima em vez de falhar o evento.
@@ -45,7 +48,9 @@ self.addEventListener("push", function (event) {
 
       return self.registration.showNotification(payload.title, {
         body: payload.body,
-        icon: "/brand/icon-192.png",
+        // Foto de quem mandou, quando tiver uma cadastrada (hoje só
+        // passageiro); sem isso, cai no logo padrão da Zuvvi.
+        icon: payload.icon || "/brand/icon-192.png",
         // O badge da barra de status precisa de fundo transparente: o Android
         // usa só o canal alfa como silhueta e ignora as cores. Um PNG opaco
         // (como o icon-96, que tem fundo) vira um quadrado branco sólido.
