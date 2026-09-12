@@ -2,11 +2,9 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Award,
-  Bike,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Gift,
   HelpCircle,
   Heart,
@@ -15,10 +13,10 @@ import {
   Lock,
   LogOut,
   Trophy,
-  User,
 } from "lucide-react";
 import { useState } from "react";
 import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";
+import { MotoristaBottomNav } from "@/components/motorista/MotoristaBottomNav";
 import { MotoristaProfilePhoto } from "@/components/motorista/MotoristaProfilePhoto";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -309,28 +307,7 @@ function PerfilMotorista() {
         </section>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/5 bg-zuvvi-indigo/95 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl">
-        <div className="mx-auto grid w-full max-w-md grid-cols-3 rounded-[2rem] border border-white/10 bg-white/[0.025] px-4 py-3">
-          <Link
-            to="/home-motorista"
-            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-white"
-          >
-            <Bike className="h-6 w-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Corrida</span>
-          </Link>
-          <Link
-            to="/ganhos-motorista"
-            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-white"
-          >
-            <Clock className="h-6 w-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Ganhos</span>
-          </Link>
-          <div className="flex flex-col items-center gap-1 text-zuvvi-volt" aria-current="page">
-            <User className="h-6 w-6" />
-            <span className="text-[8px] font-black uppercase tracking-widest">Perfil</span>
-          </div>
-        </div>
-      </nav>
+      <MotoristaBottomNav active="perfil" />
 
       <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
