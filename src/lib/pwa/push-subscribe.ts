@@ -28,6 +28,23 @@ function subscriptionKeys(subscription: PushSubscription): { p256dh: string; aut
   return { p256dh, auth };
 }
 
+function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+  let binario = "";
+  for (const byte of new Uint8Array(buffer)) binario += String.fromCharCode(byte);
+  return btoa(binario).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// Uma inscrição existente fica presa para sempre na chave VAPID pública usada
+// no momento do subscribe() original — trocar a chave no servidor não afeta
+// quem já tinha se inscrito antes. Sem essa checagem, uma rotação de chave
+// deixaria o push quebrado (silenciosamente) para todo mundo que já havia
+// ativado notificações, mesmo que a pessoa "reative" o sino de novo.
+function inscricaoUsaChaveAtual(subscription: PushSubscription, vapidPublicKey: string): boolean {
+  const chaveAtual = subscription.options.applicationServerKey;
+  if (!chaveAtual) return false;
+  return arrayBufferToBase64Url(chaveAtual) === vapidPublicKey;
+}
+
 export type PushSubscribeOutcome = "subscribed" | "denied" | "unsupported" | "error";
 
 // A chave não muda durante a sessão, então guardar a primeira resposta boa
@@ -78,6 +95,10 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
   try {
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
+    if (subscription && !inscricaoUsaChaveAtual(subscription, vapidPublicKey)) {
+      await subscription.unsubscribe();
+      subscription = null;
+    }
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
