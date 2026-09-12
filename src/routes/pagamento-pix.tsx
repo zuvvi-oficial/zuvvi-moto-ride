@@ -14,6 +14,8 @@ import {
   RefreshCw,
   RotateCcw,
   ShieldCheck,
+  Star,
+  User,
   WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,6 +26,7 @@ import {
   type PagamentoPixTelaSnapshot,
   type PagamentoPixTelaStatus,
 } from "@/lib/pagamento-pix-status.functions";
+import { getAcompanhamentoPassageiro } from "@/lib/user.functions";
 
 const searchSchema = z.object({ rideId: z.string().uuid() });
 
@@ -64,6 +67,38 @@ function PagamentoPixPassageiro() {
   const navigate = useNavigate();
   const { isOnline, wasOffline } = useOnlineStatus();
   const getStatusFn = useServerFn(getPagamentoPixPassageiroStatus);
+
+  // Busca isolada e só informativa (quem é o motorista, pra tranquilizar o
+  // passageiro enquanto ele paga) — nunca deve interferir no polling do
+  // status do pagamento acima, que é o caminho crítico desta tela.
+  const getAcompanhamentoFn = useServerFn(getAcompanhamentoPassageiro);
+  const [motoristaInfo, setMotoristaInfo] = useState<{
+    nome: string;
+    foto_url?: string | null;
+    nota_media: number | null;
+  } | null>(null);
+  const [veiculoInfo, setVeiculoInfo] = useState<{
+    marca: string;
+    modelo: string;
+    cor?: string | null;
+    placa: string;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAcompanhamentoFn({ data: { rideId } })
+      .then((data) => {
+        if (cancelled) return;
+        if (data.driver) setMotoristaInfo(data.driver);
+        if (data.vehicle) setVeiculoInfo(data.vehicle);
+      })
+      .catch(() => {
+        // Sem foto/nome, a tela de pagamento continua funcionando normal.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [getAcompanhamentoFn, rideId]);
 
   const [snapshot, setSnapshot] = useState<PagamentoPixTelaSnapshot | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -341,6 +376,41 @@ function PagamentoPixPassageiro() {
                       : "A corrida só será liberada depois que o pagamento for confirmado."}
                 </p>
               </div>
+
+              {motoristaInfo && (
+                <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/10 p-3">
+                  <div className="w-11 h-11 rounded-full overflow-hidden bg-zuvvi-volt/10 border border-zuvvi-volt/20 flex items-center justify-center shrink-0">
+                    {motoristaInfo.foto_url ? (
+                      <img
+                        src={motoristaInfo.foto_url}
+                        alt={`Foto de ${motoristaInfo.nome}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-zuvvi-volt" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-sm font-bold text-white truncate">{motoristaInfo.nome}</p>
+                    <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
+                        <span className="text-[11px] text-zuvvi-volt font-bold">
+                          {motoristaInfo.nota_media !== null
+                            ? motoristaInfo.nota_media.toFixed(1)
+                            : "Novo na Zuvvi"}
+                        </span>
+                      </div>
+                      {veiculoInfo && (
+                        <span className="text-[11px] text-white/50 truncate">
+                          {veiculoInfo.marca} {veiculoInfo.modelo}
+                          {veiculoInfo.cor ? ` · ${veiculoInfo.cor}` : ""} · {veiculoInfo.placa}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-7 rounded-2xl border border-white/10 bg-black/10 p-4 flex items-center justify-between gap-4">
                 <div>

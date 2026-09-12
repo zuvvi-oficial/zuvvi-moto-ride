@@ -1077,6 +1077,7 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
     }
 
     const assignedStatuses: Database["public"]["Enums"]["corrida_status"][] = [
+      "aguardando_pagamento",
       "aceita",
       "motorista_a_caminho",
       "motorista_chegou",
@@ -1208,6 +1209,11 @@ export const getAcompanhamentoPassageiro = createServerFn({ method: "GET" })
       },
       driver: driverInfo,
       vehicle: vehicleInfo,
-      handoffAvailable: true
+      // aguardando_pagamento entrou nos assignedStatuses só pra permitir a
+      // tela de pagamento Pix mostrar quem é o motorista — mas o passageiro
+      // não pode ganhar acesso à tela de acompanhamento (chat, mapa etc.)
+      // antes de pagar (achado do Codex no #117). getPagamentoPixPassageiroStatus
+      // continua sendo a única fonte de verdade sobre quando o Pix libera a corrida.
+      handoffAvailable: corrida.status !== "aguardando_pagamento"
     };
   });
