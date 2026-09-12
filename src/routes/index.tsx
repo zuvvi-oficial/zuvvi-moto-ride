@@ -9,8 +9,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { getAuthStatus } from "@/lib/auth-status.functions";
 import { getPassengerProfilePhoto, PASSENGER_PROFILE_PHOTO_QUERY_KEY } from "@/lib/passenger-profile-photo.functions";
 import heroMoto from "@/assets/hero-moto.jpg";
-import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2, Trash2, X, ChevronLeft, Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, ChevronRight, LocateFixed, AlertTriangle, Loader2, Trash2, X, ChevronLeft, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
 import { getMapboxToken, checkCityAvailability, getReverseGeocoding, getRetomadaCorridaPassageiro } from "@/lib/user.functions";
@@ -185,11 +184,6 @@ function HomePassageiro({ nome }: { nome: string }) {
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
   const getReverseGeocodingFn = useServerFn(getReverseGeocoding);
 
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.reload();
-  };
 
   const requestLocation = () => {
     if (isUpdatingLocation) return;
@@ -481,13 +475,6 @@ function HomePassageiro({ nome }: { nome: string }) {
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell />
-            <button
-              onClick={handleLogout}
-              className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-colors hover:bg-white/10"
-              title="Sair"
-            >
-              <LogOut className="w-4 h-4 text-muted-foreground" />
-            </button>
           </div>
         </div>
       </header>
