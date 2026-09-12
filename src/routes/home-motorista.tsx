@@ -1305,6 +1305,8 @@ function HomeMotorista() {
                   }}
                   token={mapboxToken}
                   zoom={15}
+                  pitch={isMapFullscreen ? 55 : 0}
+                  show3DBuildings
                   className="w-full h-full"
                   onMapInstance={(map) => {
                     pickupMapInstance.current = map;
