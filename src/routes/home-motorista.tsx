@@ -28,8 +28,10 @@ import {
   Maximize2,
   Minimize2,
   CloudRain,
+  Camera,
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
+import { ARNavigationOverlay } from "@/components/motorista/ARNavigationOverlay";
 import { useChatAlert } from "@/hooks/use-chat-alert";
 import { falar } from "@/lib/fala";
 
@@ -129,6 +131,7 @@ function HomeMotorista() {
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [rainAlert, setRainAlert] = useState<{ local: string } | null>(null);
+  const [showARNavigation, setShowARNavigation] = useState(false);
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
   const playSound = useSoundStore((state: any) => state.play);
   const {
@@ -1507,6 +1510,29 @@ function HomeMotorista() {
                   );
                 })()}
 
+                {isMapFullscreen &&
+                  (() => {
+                    const arLat =
+                      activeRide.status === "em_andamento"
+                        ? activeRide.destino_lat
+                        : activeRide.origem_lat;
+                    const arLng =
+                      activeRide.status === "em_andamento"
+                        ? activeRide.destino_lng
+                        : activeRide.origem_lng;
+                    if (!Number.isFinite(arLat) || !Number.isFinite(arLng)) return null;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setShowARNavigation(true)}
+                        aria-label="Ver seta de navegação em realidade aumentada"
+                        className="absolute top-4 right-16 w-10 h-10 rounded-full bg-zuvvi-indigo/80 backdrop-blur-sm border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
+                      >
+                        <Camera className="w-4 h-4 text-white/80" />
+                      </button>
+                    );
+                  })()}
+
                 {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
                   <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
                     <div className="bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
@@ -1534,6 +1560,32 @@ function HomeMotorista() {
                 </p>
               </div>
             ) : null}
+
+            {showARNavigation &&
+              activeRide &&
+              (() => {
+                const targetLat =
+                  activeRide.status === "em_andamento"
+                    ? activeRide.destino_lat
+                    : activeRide.origem_lat;
+                const targetLng =
+                  activeRide.status === "em_andamento"
+                    ? activeRide.destino_lng
+                    : activeRide.origem_lng;
+                if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng)) return null;
+                return (
+                  <ARNavigationOverlay
+                    targetLat={targetLat as number}
+                    targetLng={targetLng as number}
+                    label={
+                      activeRide.status === "em_andamento"
+                        ? "Destino da viagem"
+                        : "Local de embarque"
+                    }
+                    onClose={() => setShowARNavigation(false)}
+                  />
+                );
+              })()}
 
             {rainAlert && (
               <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-400/20 rounded-xl px-3 py-2">
