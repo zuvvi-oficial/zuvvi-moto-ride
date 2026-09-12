@@ -39,13 +39,15 @@ function DiagnosticoTeclado() {
     sync('inicial');
     const onResize = () => sync('resize');
     const onScroll = () => sync('scroll');
+    const onWindowResize = () => sync('window-resize');
     vvApi.addEventListener('resize', onResize);
     vvApi.addEventListener('scroll', onScroll);
-    window.addEventListener('resize', () => sync('window-resize'));
+    window.addEventListener('resize', onWindowResize);
 
     return () => {
       vvApi.removeEventListener('resize', onResize);
       vvApi.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onWindowResize);
     };
   }, []);
 
