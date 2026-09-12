@@ -28,6 +28,23 @@ function subscriptionKeys(subscription: PushSubscription): { p256dh: string; aut
   return { p256dh, auth };
 }
 
+function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+  let binario = "";
+  for (const byte of new Uint8Array(buffer)) binario += String.fromCharCode(byte);
+  return btoa(binario).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// Uma inscrição existente fica presa para sempre na chave VAPID pública usada
+// no momento do subscribe() original — trocar a chave no servidor não afeta
+// quem já tinha se inscrito antes. Sem essa checagem, uma rotação de chave
+// deixaria o push quebrado (silenciosamente) para todo mundo que já havia
+// ativado notificações, mesmo que a pessoa "reative" o sino de novo.
+function inscricaoUsaChaveAtual(subscription: PushSubscription, vapidPublicKey: string): boolean {
+  const chaveAtual = subscription.options.applicationServerKey;
+  if (!chaveAtual) return false;
+  return arrayBufferToBase64Url(chaveAtual) === vapidPublicKey;
+}
+
 export type PushSubscribeOutcome = "subscribed" | "denied" | "unsupported" | "error";
 
 // A chave não muda durante a sessão, então guardar a primeira resposta boa
@@ -78,6 +95,12 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
   try {
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
+    let endpointRenovado: string | null = null;
+    if (subscription && !inscricaoUsaChaveAtual(subscription, vapidPublicKey)) {
+      endpointRenovado = subscription.endpoint;
+      await subscription.unsubscribe();
+      subscription = null;
+    }
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -90,7 +113,9 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
     const keys = subscriptionKeys(subscription);
     if (!keys) return "error";
 
-    const { registrarPushSubscription } = await import("@/lib/push-subscriptions.functions");
+    const { registrarPushSubscription, removerPushSubscription } = await import(
+      "@/lib/push-subscriptions.functions"
+    );
     await registrarPushSubscription({
       data: {
         endpoint: subscription.endpoint,
@@ -99,6 +124,13 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
         userAgent: navigator.userAgent.slice(0, 300),
       },
     });
+
+    // A renovação por chave desatualizada pode trocar de endpoint (o serviço
+    // de push decide); sem remover o registro velho, ele fica órfão no banco
+    // até uma tentativa de envio futura esbarrar nele e receber 404/410.
+    if (endpointRenovado && endpointRenovado !== subscription.endpoint) {
+      await removerPushSubscription({ data: { endpoint: endpointRenovado } }).catch(() => {});
+    }
 
     return "subscribed";
   } catch (error) {

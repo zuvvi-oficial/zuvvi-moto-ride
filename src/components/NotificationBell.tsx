@@ -337,14 +337,21 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
   }, [userId, queryClient, onImportantNotification]);
 
   useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      !isPushSupported() ||
-      Notification.permission !== 'default'
-    ) {
+    if (typeof window === 'undefined' || !isPushSupported()) return;
+
+    if (Notification.permission === 'default') {
+      setShowPushPrompt(true);
       return;
     }
-    setShowPushPrompt(true);
+
+    // Permissão já concedida antes: revalida a inscrição em silêncio a cada
+    // abertura do app. Sem isso, quem já ativou nunca mais vê o prompt e
+    // nunca dispara subscribeToPushNotifications de novo — se a chave VAPID
+    // do servidor for trocada (rotação de segurança), essas pessoas ficam
+    // com push quebrado para sempre, sem nenhuma forma de recuperar sozinhas.
+    if (Notification.permission === 'granted') {
+      subscribeToPushNotifications().catch(() => {});
+    }
   }, []);
 
   const handleEnablePush = async () => {
