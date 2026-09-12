@@ -57,9 +57,10 @@ self.addEventListener("push", function (event) {
         // (como o icon-96, que tem fundo) vira um quadrado branco sólido.
         badge: "/brand/icon-badge.png",
         tag: payload.tipo || "zuvvi-notificacao",
-        // Mensagens novas empilham no mesmo balão, mas precisam avisar de novo a
-        // cada uma — sem renotify o Android troca o texto em silêncio.
-        renotify: ehMensagem,
+        // Mensagens e ofertas novas empilham no mesmo balão (mesma tag), mas
+        // precisam avisar de novo a cada uma — sem renotify o Android troca o
+        // texto (e no caso da oferta, também engole a vibração) em silêncio.
+        renotify: ehMensagem || ehOfertaCorrida,
         vibrate: ehMensagem || ehOfertaCorrida ? [300, 120, 300, 120, 300] : undefined,
         data: { tipo: payload.tipo, corridaId: payload.corridaId, url: payload.url },
       });
@@ -68,19 +69,26 @@ self.addEventListener("push", function (event) {
 
   if (ehOfertaCorrida) {
     // Só dá pra "falar" de dentro de uma página com sincronizador de voz —
-    // sem isso, avisamos as instâncias do app abertas em segundo plano (não
+    // sem isso, avisamos uma instância do app aberta em segundo plano (não
     // com o app 100% fechado/finalizado, aí não há nada em memória pra falar)
-    // pra elas mesmas lerem em voz alta, sem duplicar a leitura de quem já
-    // está com o app na tela (esse caso já é coberto pelo polling do app).
+    // pra ela mesma ler em voz alta. Se alguma janela estiver em foco, quem
+    // está olhando a tela já é avisado pelo polling do próprio app — falar
+    // aqui também duplicaria a locução. E se houver várias janelas em segundo
+    // plano (ex.: duas abas), avisamos só uma: mandar pra todas faria cada
+    // uma falar ao mesmo tempo (achado do Codex no PR #125).
     event.waitUntil(
       self.clients
         .matchAll({ type: "window", includeUncontrolled: true })
         .then(function (janelas) {
-          janelas.forEach(function (janela) {
-            if (!janela.focused) {
-              janela.postMessage({ type: "zuvvi-nova-oferta-voz" });
-            }
+          var temJanelaEmFoco = janelas.some(function (janela) {
+            return janela.focused;
           });
+          if (temJanelaEmFoco) return;
+
+          var janelaEmSegundoPlano = janelas[0];
+          if (janelaEmSegundoPlano) {
+            janelaEmSegundoPlano.postMessage({ type: "zuvvi-nova-oferta-voz" });
+          }
         })
         .catch(function () {}),
     );
