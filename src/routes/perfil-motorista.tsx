@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";
+import { MotoristaProfilePhoto } from "@/components/motorista/MotoristaProfilePhoto";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
@@ -113,9 +114,7 @@ function PerfilMotorista() {
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-zuvvi-volt/20 bg-zuvvi-volt/10">
-                <User className="h-8 w-8 text-zuvvi-volt" />
-              </div>
+              <MotoristaProfilePhoto />
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
                   Minha conta
