@@ -117,17 +117,28 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [favoritosOpen, setFavoritosOpen] = useState(false);
   const [recentesOpen, setRecentesOpen] = useState(false);
 
-  // Header e menu inferior são position:fixed de verdade — nunca se movem,
-  // independente de o navegador encolher ou deslocar a área visível quando
-  // o teclado abre (depender de visualViewport/100dvh pra isso se mostrou
-  // pouco confiável em navegadores reais). O conteúdo do meio fica numa
-  // faixa fixa medida com a altura real de header/nav, com seu próprio
-  // scroll — só essa faixa reage ao teclado.
+  // Header e menu inferior nunca podem se mover — nem pra cima, nem pra
+  // baixo, aconteça o que acontecer com o teclado. position:fixed sozinho
+  // não garante isso: "bottom: 0" é relativo à tela ATUAL, e em vários
+  // navegadores o teclado encolhe essa tela de verdade, então "colado na
+  // base" acaba subindo junto. A solução é parar de depender do tamanho
+  // atual da tela: a altura é congelada uma única vez, assim que a tela
+  // carrega (antes de qualquer teclado abrir), e o menu passa a usar essa
+  // altura congelada — nunca mais recalculada — pra saber onde ficar. Sem
+  // nada variável na conta, não tem como se mover.
+  // Efeito colateral aceito: quando o teclado abre, ele cobre por cima a
+  // parte de baixo da tela (onde o menu está) em vez de empurrar alguém —
+  // por isso Origem/campo de busca ficam ancorados perto do topo (logo
+  // abaixo do cabeçalho), longe o bastante de onde o teclado cobre.
   const headerRef = useRef<HTMLElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [navHeight, setNavHeight] = useState(0);
-  const [isDestinationFocused, setIsDestinationFocused] = useState(false);
+  const [frozenHeight, setFrozenHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    setFrozenHeight(window.innerHeight);
+  }, []);
 
   useEffect(() => {
     const headerEl = headerRef.current;
@@ -257,7 +268,7 @@ function HomePassageiro({ nome }: { nome: string }) {
 
     <div
       className="relative bg-zuvvi-indigo text-foreground"
-      style={{ height: '100dvh', width: '100vw' }}
+      style={{ height: frozenHeight ? `${frozenHeight}px` : '100dvh', width: '100vw' }}
     >
       {/* 1. Fundo (Z-INDEX 0) */}
       <div
@@ -265,13 +276,18 @@ function HomePassageiro({ nome }: { nome: string }) {
         className="bg-zuvvi-indigo-dark"
       />
 
-      {/* 2. Conteúdo rolável — ocupa a faixa entre o header e o menu fixos.
-          Só esta faixa reage ao teclado; header e menu nunca se movem. */}
+      {/* 2. Conteúdo — ocupa a faixa entre o header e o menu fixos. Altura
+          calculada a partir da altura congelada, não da tela atual, pra
+          não "respirar" quando o teclado abre e destravar o menu junto. */}
       <main
         className="fixed inset-x-0 z-10 overflow-y-auto overscroll-contain pointer-events-none"
-        style={{ top: headerHeight, bottom: navHeight }}
+        style={
+          frozenHeight
+            ? { top: headerHeight, height: Math.max(frozenHeight - headerHeight - navHeight, 0) }
+            : { top: headerHeight, bottom: navHeight }
+        }
       >
-        <div className="min-h-full flex flex-col justify-end px-5 pb-4 mx-auto w-full max-w-md space-y-4">
+        <div className="min-h-full flex flex-col px-5 pb-4 mx-auto w-full max-w-md space-y-4">
 
           {isLocating && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-4 shadow-2xl pointer-events-auto animate-rise">
@@ -371,7 +387,6 @@ function HomePassageiro({ nome }: { nome: string }) {
                     endereco: dest.place_name
                   });
                 }}
-                onFocusChange={setIsDestinationFocused}
               />
 
               
@@ -396,14 +411,6 @@ function HomePassageiro({ nome }: { nome: string }) {
                   <span className="text-[10px] font-bold uppercase tracking-widest">Recentes</span>
                 </button>
               </div>
-
-              {/* Reserva de espaço só enquanto o campo de destino está em
-                  foco — dá ao navegador uma área rolável de verdade pra
-                  trazer o campo (e a origem, logo acima) pra cima do
-                  teclado, sem precisar mexer no header/menu fixos. */}
-              {isDestinationFocused && (
-                <div aria-hidden className="shrink-0" style={{ height: '100dvh' }} />
-              )}
             </div>
           )}
           <FavoritosDialog
@@ -459,7 +466,11 @@ function HomePassageiro({ nome }: { nome: string }) {
       </header>
 
       {/* Menu Inferior fixo — nunca se move, mesmo com o teclado aberto */}
-      <nav ref={navRef} className="fixed bottom-0 inset-x-0 z-20 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto">
+      <nav
+        ref={navRef}
+        className="fixed inset-x-0 z-20 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto"
+        style={frozenHeight ? { top: frozenHeight - navHeight, bottom: 'auto' } : { bottom: 0 }}
+      >
           <div className="mx-auto max-w-md flex items-center justify-around">
             <button className="flex flex-col items-center gap-1 volt-text">
               <Bike className="w-6 h-6" strokeWidth={2.5} />
@@ -873,15 +884,13 @@ function DestinoSearch({
   onSelect,
   placeholder = "Para onde vamos?",
   autoFocus = false,
-  compact = false,
-  onFocusChange
+  compact = false
 }: {
   location: { lat: number; lng: number } | null,
   onSelect: (dest: any) => void,
   placeholder?: string,
   autoFocus?: boolean,
-  compact?: boolean,
-  onFocusChange?: (focused: boolean) => void
+  compact?: boolean
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -927,8 +936,6 @@ function DestinoSearch({
         value={query}
         autoFocus={autoFocus}
         onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => onFocusChange?.(true)}
-        onBlur={() => onFocusChange?.(false)}
         placeholder={placeholder}
         className={`w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl font-bold placeholder:text-muted-foreground/50 ${
           compact 
