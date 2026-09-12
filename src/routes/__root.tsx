@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { syncAuthSessionToCookies } from "@/integrations/supabase/auth-attacher";
+import { PASSENGER_PROFILE_PHOTO_QUERY_KEY } from "@/lib/passenger-profile-photo.functions";
 import { PwaShell } from "@/components/pwa/PwaShell";
 import { PassengerDriverAvailabilityGate } from "@/components/passageiro/PassengerDriverAvailabilityGate";
 import { PassengerRideVoiceController } from "@/components/passageiro/PassengerRideVoiceController";
@@ -191,6 +192,13 @@ function RootComponent() {
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log(`[AuthRoot] event=${event}`);
       syncAuthSessionToCookies(session);
+
+      // Sem isso, a foto de perfil do usuário anterior fica em cache e
+      // pode aparecer por um instante pro próximo usuário que logar no
+      // mesmo navegador sem recarregar a página (achado do Codex no #96).
+      if (event === "SIGNED_OUT") {
+        queryClient.removeQueries({ queryKey: PASSENGER_PROFILE_PHOTO_QUERY_KEY });
+      }
     });
 
     return () => {

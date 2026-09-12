@@ -5,6 +5,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const PROFILE_BUCKET = "fotos-perfil";
 const PROFILE_PATH_PATTERN = /^[0-9a-f-]{36}\/avatar\.jpg$/i;
 
+// Chave de query compartilhada entre quem lê a foto (tela de perfil e o
+// cabeçalho da tela de início), pra invalidar um lugar só refletir nos dois.
+export const PASSENGER_PROFILE_PHOTO_QUERY_KEY = ["passenger-profile-photo"] as const;
+
 export const getPassengerProfilePhoto = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
