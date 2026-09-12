@@ -82,14 +82,21 @@ async function enviarPushParaUsuario(
     icon?: string | null;
   },
 ) {
-  if (!process.env["VAPID_PUBLIC_KEY"] || !process.env["VAPID_PRIVATE_KEY"]) return;
+  if (!process.env["VAPID_PUBLIC_KEY"] || !process.env["VAPID_PRIVATE_KEY"]) {
+    console.error("Push não enviado: VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY ausente no servidor.");
+    return;
+  }
 
   const { data: subscriptions, error } = await supabase
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
     .eq("usuario_id", params.usuario_id);
 
-  if (error || !subscriptions?.length) return;
+  if (error) {
+    console.error("Erro ao buscar inscrições de push do usuário:", error);
+    return;
+  }
+  if (!subscriptions?.length) return;
 
   const { sendWebPushNotification } = await import("./web-push.server");
 
@@ -109,6 +116,14 @@ async function enviarPushParaUsuario(
         );
         if (result.outcome === "gone") {
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+        } else if (result.outcome === "error") {
+          // Antes disso o resultado de erro era descartado em silêncio: uma
+          // falha aqui (ex.: 403 por chave VAPID incompatível) nunca aparecia
+          // em lugar nenhum, então uma notificação podia simplesmente sumir
+          // sem deixar rastro.
+          console.error(
+            `Falha ao enviar push (status ${result.status}) para a inscrição ${sub.id}.`,
+          );
         }
       } catch (err) {
         console.error("Erro ao enviar push para uma inscrição:", err);
