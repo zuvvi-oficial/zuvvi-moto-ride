@@ -36,6 +36,16 @@ export const Route = createFileRoute("/acompanhamento")({
   component: AcompanhamentoCorrida,
 });
 
+// Frases que o passageiro manda pro motorista sem digitar. Curtas de propósito:
+// quem está esperando a moto resolve o embarque com um toque.
+const RESPOSTAS_RAPIDAS_PASSAGEIRO = [
+  "Já estou descendo",
+  "Estou te esperando aqui",
+  "Pode aguardar 2 minutos?",
+  "Cheguei no ponto de encontro",
+  "Obrigado!",
+];
+
 interface ChatMensagem {
   id: string;
   clientMessageId: string;
@@ -861,6 +871,7 @@ function AcompanhamentoCorrida() {
         loading={chatLoading}
         error={chatError}
         enviando={chatSending}
+        respostasRapidas={RESPOSTAS_RAPIDAS_PASSAGEIRO}
         onEnviar={handleEnviarMensagem}
         onDigitandoChange={handleDigitandoChange}
         onRetry={refreshChat}

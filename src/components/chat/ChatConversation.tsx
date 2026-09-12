@@ -43,6 +43,8 @@ interface ChatConversationProps {
   loading?: boolean;
   error?: string | null;
   enviando?: boolean;
+  /** Frases de um toque, específicas de quem está usando (passageiro ou motorista). */
+  respostasRapidas?: string[];
   onEnviar: (conteudo: string) => void | Promise<void>;
   onDigitandoChange?: (digitando: boolean) => void;
   onRetry?: () => void | Promise<void>;
@@ -59,6 +61,7 @@ export function ChatConversation({
   loading = false,
   error = null,
   enviando = false,
+  respostasRapidas = [],
   onEnviar,
   onDigitandoChange,
   onRetry,
@@ -154,8 +157,8 @@ export function ChatConversation({
     setShowScrollBottom(!isNearBottom);
   };
 
-  const handleSend = async () => {
-    const content = draft.trim();
+  const enviar = async (conteudo: string, limparRascunho: boolean) => {
+    const content = conteudo.trim();
     if (!content || content.length > 1000 || enviando) return;
 
     if (typingIdleTimeoutRef.current) {
@@ -165,7 +168,7 @@ export function ChatConversation({
 
     try {
       await onEnviar(content);
-      setDraft("");
+      if (limparRascunho) setDraft("");
       setIsLocalDigitando(false);
       onDigitandoChangeRef.current?.(false);
       scrollToBottom();
@@ -173,6 +176,8 @@ export function ChatConversation({
       // Draft mantido em caso de erro conforme requisito
     }
   };
+
+  const handleSend = () => enviar(draft, true);
 
   const handleBlur = () => {
     if (typingIdleTimeoutRef.current) {
@@ -487,6 +492,25 @@ export function ChatConversation({
         <div className="shrink-0 bg-background border-t pb-[env(safe-area-inset-bottom)] z-20">
           {podeEnviar ? (
             <div className="p-3 sm:p-4">
+              {respostasRapidas.length > 0 && (
+                <div
+                  className="flex gap-2 overflow-x-auto pb-3 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  aria-label="Respostas rápidas"
+                >
+                  {respostasRapidas.map((resposta) => (
+                    <button
+                      key={resposta}
+                      type="button"
+                      onClick={() => void enviar(resposta, false)}
+                      disabled={enviando}
+                      className="shrink-0 rounded-full border border-border bg-muted/60 px-3.5 py-2 text-[13px] font-medium whitespace-nowrap transition-colors hover:bg-muted active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {resposta}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-end gap-2 bg-muted/50 rounded-2xl p-2 border border-border focus-within:border-primary/30 focus-within:bg-background transition-all">
                 <div className="flex-1 flex flex-col">
                   {draft.length >= 850 && (

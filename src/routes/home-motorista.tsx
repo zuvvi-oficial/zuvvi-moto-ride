@@ -28,6 +28,17 @@ import {
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { useChatAlert } from "@/hooks/use-chat-alert";
+import { falar } from "@/lib/fala";
+
+// Frases que o motorista manda sem digitar: ele está em cima da moto, e o
+// embarque se resolve com um toque em vez de teclado.
+const RESPOSTAS_RAPIDAS_MOTORISTA = [
+  "Estou chegando",
+  "Cheguei, te espero aqui",
+  "Chego em 2 minutos",
+  "Pode descer",
+  "Estou no local combinado",
+];
 import {
   carregarChat,
   enviarMensagemChat,
@@ -649,8 +660,6 @@ function HomeMotorista() {
       console.error("[HomeMotorista] Erro ao tocar sino:", e)
     );
 
-    if (!("speechSynthesis" in window)) return;
-
     const valor = Number(oferta.valor_estimado) || 0;
     const valorTexto = valor.toLocaleString("pt-BR", {
       style: "currency",
@@ -664,38 +673,7 @@ function HomeMotorista() {
         .slice(0, 3)
         .join(",")
         .trim() || "destino informado no aplicativo";
-    const frase = `Zuvvi. Nova corrida. Valor ${valorTexto}. Destino: ${destinoFalado}.`;
-
-    const synth = window.speechSynthesis;
-    // Uma oferta nova substitui qualquer locução antiga que ainda esteja na fila.
-    synth.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(frase);
-    utterance.lang = "pt-BR";
-    utterance.rate = 1.15;
-    utterance.pitch = 1.03;
-    utterance.volume = 1;
-
-    const vozesPtBr = synth
-      .getVoices()
-      .filter((voice) => voice.lang.toLowerCase().replace("_", "-") === "pt-br");
-    const nomesPreferidos = [
-      "francisca",
-      "luciana",
-      "maria",
-      "google português do brasil",
-      "female",
-      "mulher",
-    ];
-    const vozPremium =
-      nomesPreferidos
-        .map((nome) =>
-          vozesPtBr.find((voice) => voice.name.toLowerCase().includes(nome))
-        )
-        .find(Boolean) || vozesPtBr[0];
-
-    if (vozPremium) utterance.voice = vozPremium;
-    synth.speak(utterance);
+    falar(`Zuvvi. Nova corrida. Valor ${valorTexto}. Destino: ${destinoFalado}.`);
   }, [playSound]);
 
   useEffect(() => {
@@ -1916,6 +1894,7 @@ function HomeMotorista() {
           loading={chatLoading}
           error={chatError}
           enviando={chatSending}
+          respostasRapidas={RESPOSTAS_RAPIDAS_MOTORISTA}
           onEnviar={handleEnviarMensagem}
           onDigitandoChange={handleDigitandoChange}
           onRetry={refreshChat}
