@@ -2,9 +2,9 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getHistoricoCorridas } from "@/lib/historico.functions";
-import { Clock, MapPin, User, Calendar, CreditCard, Loader2, CalendarClock, Navigation } from "lucide-react";
+import { Clock, User, CreditCard, Loader2, CalendarClock, Navigation } from "lucide-react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
@@ -54,6 +54,25 @@ function HistoricoCorridas() {
     return "text-zuvvi-volt";
   };
 
+  const getDayLabel = (date: Date) => {
+    if (isToday(date)) return "Hoje";
+    if (isYesterday(date)) return "Ontem";
+    const label = format(date, "dd 'de' MMMM", { locale: ptBR });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+
+  const grupos = ((corridas as any[]) || []).reduce((acc: { chave: string; label: string; itens: any[] }[], corrida) => {
+    const data = new Date(corrida.created_at);
+    const chave = format(data, "yyyy-MM-dd");
+    const ultimoGrupo = acc[acc.length - 1];
+    if (ultimoGrupo && ultimoGrupo.chave === chave) {
+      ultimoGrupo.itens.push(corrida);
+    } else {
+      acc.push({ chave, label: getDayLabel(data), itens: [corrida] });
+    }
+    return acc;
+  }, []);
+
   return (
     <div className="min-h-screen bg-zuvvi-indigo-dark text-foreground flex flex-col pb-28">
       {/* Header */}
@@ -70,7 +89,7 @@ function HistoricoCorridas() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-md mx-auto w-full px-5 py-6 space-y-4">
+      <main className="flex-1 max-w-md mx-auto w-full px-5 py-6 space-y-8">
         {isLoading || !isHydrated ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
             <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
@@ -86,84 +105,96 @@ function HistoricoCorridas() {
             <p className="text-sm font-medium">Você ainda não fez nenhuma corrida.</p>
           </div>
         ) : (
-          (corridas as any[]).map((corrida: any) => (
-            <div 
-              key={corrida.id}
-              className="bg-zuvvi-indigo/40 border border-white/5 rounded-3xl p-5 space-y-4 transition-all hover:bg-zuvvi-indigo/60"
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <Calendar className="w-3 h-3" />
-                  {format(new Date(corrida.created_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
-                </div>
-                <span className={`text-[10px] font-black uppercase tracking-widest ${getStatusColor(corrida.status)}`}>
-                  {getStatusLabel(corrida.status)}
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-5 flex flex-col items-center pt-1 shrink-0">
-                    <div className="w-2 h-2 rounded-full bg-zuvvi-volt/40" />
-                    <div className="w-[1px] h-4 bg-white/10 my-1" />
-                    <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Destino</p>
-                    <p className="text-sm font-bold truncate">{corrida.destino_nome || "Destino não informado"}</p>
-                  </div>
-                </div>
-
-                {(corrida.distancia_km != null || corrida.duracao_min != null) && (
-                  <div className="flex items-center gap-4 pl-8">
-                    {corrida.distancia_km != null && (
-                      <div className="flex items-center gap-1.5">
-                        <Navigation className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[11px] font-medium text-muted-foreground">
-                          {Number(corrida.distancia_km).toFixed(1)} km
+          grupos.map((grupo) => (
+            <div key={grupo.chave}>
+              <p className="text-[11px] font-black uppercase tracking-widest text-zuvvi-volt/80 mb-3 px-1">
+                {grupo.label}
+              </p>
+              <div className="space-y-4">
+                {grupo.itens.map((corrida: any) => {
+                  const isCancelada = corrida.status === "cancelada" || corrida.status === "sem_motorista";
+                  return (
+                    <div
+                      key={corrida.id}
+                      className="bg-zuvvi-indigo/40 border border-white/5 rounded-3xl p-5 space-y-4 transition-all hover:bg-zuvvi-indigo/60"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          {format(new Date(corrida.created_at), "HH:mm", { locale: ptBR })}
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${getStatusColor(corrida.status)}`}>
+                          {getStatusLabel(corrida.status)}
                         </span>
                       </div>
-                    )}
-                    {corrida.duracao_min != null && (
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[11px] font-medium text-muted-foreground">
-                          {Math.round(Number(corrida.duracao_min))} min
-                        </span>
+
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-5 flex flex-col items-center pt-1 shrink-0">
+                            <div className="w-2 h-2 rounded-full bg-zuvvi-volt/40" />
+                            <div className="w-[1px] h-4 bg-white/10 my-1" />
+                            <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Destino</p>
+                            <p className="text-sm font-bold truncate">{corrida.destino_nome || "Destino não informado"}</p>
+                          </div>
+                        </div>
+
+                        {(corrida.distancia_km != null || corrida.duracao_min != null) && (
+                          <div className="flex items-center gap-4 pl-8">
+                            {corrida.distancia_km != null && (
+                              <div className="flex items-center gap-1.5">
+                                <Navigation className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-[11px] font-medium text-muted-foreground">
+                                  {Number(corrida.distancia_km).toFixed(1)} km
+                                </span>
+                              </div>
+                            )}
+                            {corrida.duracao_min != null && (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-[11px] font-medium text-muted-foreground">
+                                  {Math.round(Number(corrida.duracao_min))} min
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+                              <CreditCard className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Pagamento</p>
+                              <p className="text-[11px] font-bold uppercase">{corrida.forma_pagamento}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Valor</p>
+                            <p className={`text-lg font-black ${isCancelada ? "text-muted-foreground/70" : "text-zuvvi-volt"}`}>
+                              R$ {(corrida.valor_final || corrida.valor_estimado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
 
-                <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-                      <CreditCard className="w-4 h-4 text-muted-foreground" />
+                      {corrida.nome_motorista && (
+                        <div className="pt-3 border-t border-white/5 flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-full bg-zuvvi-volt/10 flex items-center justify-center">
+                            <User className="w-3 h-3 text-zuvvi-volt" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            Motorista: <span className="text-foreground font-bold">{corrida.nome_motorista}</span>
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Pagamento</p>
-                      <p className="text-[11px] font-bold uppercase">{corrida.forma_pagamento}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Valor</p>
-                    <p className="text-lg font-black text-zuvvi-volt">
-                      R$ {(corrida.valor_final || corrida.valor_estimado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
-
-              {corrida.nome_motorista && (
-                <div className="pt-3 border-t border-white/5 flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-zuvvi-volt/10 flex items-center justify-center">
-                    <User className="w-3 h-3 text-zuvvi-volt" />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Motorista: <span className="text-foreground font-bold">{corrida.nome_motorista}</span>
-                  </p>
-                </div>
-              )}
             </div>
           ))
         )}
