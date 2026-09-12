@@ -1240,28 +1240,32 @@ function HomeMotorista() {
 
       <main className="p-6 max-w-md mx-auto">
         {activeRide ? (
-          <div className="bg-white/5 border border-zuvvi-volt/30 rounded-[2rem] p-6 space-y-6 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-zuvvi-volt">
-                <CheckCircle2 className="w-5 h-5" />
+          <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-zuvvi-volt/25 rounded-[2rem] p-5 shadow-[0_0_40px_-15px_rgba(198,255,61,0.25)] space-y-4 animate-in fade-in duration-500">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-zuvvi-volt shrink-0">
+                <div className="w-7 h-7 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
                 <span className="text-[10px] font-black uppercase tracking-widest">
                   Corrida aceita
                 </span>
               </div>
-              <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                <User className="w-3.5 h-3.5 text-white/60" />
-                <span className="text-[11px] font-bold text-white tracking-tight">
+              <div className="flex items-center gap-1.5 bg-white/5 pl-1.5 pr-3 py-1 rounded-full border border-white/10 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                  <User className="w-3 h-3 text-white/60" />
+                </div>
+                <span className="text-[11px] font-bold text-white tracking-tight truncate">
                   {(activeRide as any).passageiro_nome}
                 </span>
               </div>
             </div>
 
             {activeRide && mapboxToken && activeRide.origem_lat && activeRide.origem_lng ? (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
                   {activeRide.status === "em_andamento" ? "Destino da Viagem" : "Local de Embarque"}
                 </p>
-                <div className="h-56 rounded-2xl overflow-hidden border border-white/5 relative">
+                <div className="h-32 rounded-2xl overflow-hidden border border-white/10 relative">
                   <MapView
                     center={{
                       lat: Number(activeRide.origem_lat),
@@ -1275,6 +1279,7 @@ function HomeMotorista() {
                       setIsPickupMapReady(true);
                     }}
                   />
+                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-zuvvi-indigo/40 via-transparent to-transparent" />
                   {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
                     <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
                       <div className="bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
@@ -1297,25 +1302,25 @@ function HomeMotorista() {
                 </div>
               </div>
             ) : activeRide && !mapboxToken ? (
-              <div className="h-56 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+              <div className="h-32 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
                 <p className="text-[10px] text-white/40 uppercase font-bold">
                   Mapa temporariamente indisponível.
                 </p>
               </div>
             ) : null}
 
-            <div className="flex gap-4">
-              <div className="flex flex-col items-center gap-1 mt-1">
+            <div className="flex gap-3 pt-3 border-t border-white/5">
+              <div className="flex flex-col items-center gap-1 mt-1 shrink-0">
                 <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
-                <div className="w-0.5 h-8 bg-white/10" />
+                <div className="w-0.5 h-6 bg-white/10" />
                 <MapPin className="w-4 h-4 text-white/40" />
               </div>
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-3 min-w-0">
                 <div className="space-y-0.5">
                   <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
                     Origem
                   </p>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium truncate">
                     {activeRide.origem_nome || "Local de embarque"}
                   </p>
                 </div>
@@ -1323,17 +1328,17 @@ function HomeMotorista() {
                   <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
                     Destino
                   </p>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium truncate">
                     {activeRide.destino_nome || "Local de destino"}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
-                <CircleDollarSign className="w-4 h-4 text-zuvvi-volt" />
-                <div>
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
+              <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-2.5">
+                <CircleDollarSign className="w-4 h-4 text-zuvvi-volt shrink-0" />
+                <div className="min-w-0">
                   <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
                     Valor
                   </p>
@@ -1344,9 +1349,9 @@ function HomeMotorista() {
                   </p>
                 </div>
               </div>
-              <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
-                <Wallet className="w-4 h-4 text-white/60" />
-                <div>
+              <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-2.5">
+                <Wallet className="w-4 h-4 text-white/60 shrink-0" />
+                <div className="min-w-0">
                   <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
                     Pagamento
                   </p>
@@ -1357,7 +1362,7 @@ function HomeMotorista() {
               </div>
             </div>
 
-            <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-4 text-center">
+            <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-3.5 text-center">
               {activeRide.status === "aceita" ? (
                 <button
                   onClick={() => handleMarcarACaminho(activeRide.id)}
@@ -1383,8 +1388,8 @@ function HomeMotorista() {
                   )}
                 </button>
               ) : activeRide.status === "motorista_chegou" ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
                     <p className="text-[10px] font-black uppercase tracking-widest text-zuvvi-volt">
                       DIGITE O CÓDIGO DE EMBARQUE
                     </p>
@@ -1429,28 +1434,31 @@ function HomeMotorista() {
               )}
             </div>
 
-            <button
-              onClick={() => handleChatOpenChange(true)}
-              className="w-full py-4 rounded-2xl bg-zuvvi-volt/10 border border-zuvvi-volt/20 text-zuvvi-volt text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[44px] relative"
-              aria-label={chatButtonAria}
-            >
-              <MessageCircle className="w-4 h-4" />
-              CHAT COM PASSAGEIRO
-              {chatUnreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-zuvvi-indigo animate-in zoom-in duration-300">
-                  {unreadCountDisplay}
-                </span>
-              )}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleChatOpenChange(true)}
+                className="flex-[2] py-3.5 rounded-2xl bg-zuvvi-volt/10 border border-zuvvi-volt/20 text-zuvvi-volt text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[44px] relative"
+                aria-label={chatButtonAria}
+              >
+                <MessageCircle className="w-4 h-4" />
+                Chat
+                {chatUnreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-zuvvi-indigo animate-in zoom-in duration-300">
+                    {unreadCountDisplay}
+                  </span>
+                )}
+              </button>
 
-
-            <button
-              onClick={() => setShowCancelModal(true)}
-              disabled={!!processingRideId}
-              className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all disabled:opacity-50 active:scale-[0.98]"
-            >
-              CANCELAR CORRIDA
-            </button>
+              <button
+                onClick={() => setShowCancelModal(true)}
+                disabled={!!processingRideId}
+                aria-label="Cancelar corrida"
+                className="flex-1 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
+              >
+                <X className="w-4 h-4" />
+                Cancelar
+              </button>
+            </div>
           </div>
         ) : !isOnline ? (
           <div className="space-y-4 animate-in fade-in duration-700">
