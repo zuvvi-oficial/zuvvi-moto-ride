@@ -1,11 +1,17 @@
 import { useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { useSoundStore } from "@/hooks/use-sound";
+import { falar } from "@/lib/fala";
 
 // Som próprio do chat: precisa ser claramente diferente do alerta de corrida
 // nova, senão o motorista acha que entrou corrida a cada mensagem.
 const SOM_MENSAGEM = "/sounds/zuvvi_chat.wav";
 const VIBRACAO_MENSAGEM = [40, 60, 40];
+// O chime dura pouco menos de meio segundo; a voz entra logo depois dele em vez
+// de por cima.
+const ATRASO_DA_VOZ_MS = 600;
+// Mensagem comprida vira locução interminável — quem quiser o resto abre o chat.
+const MAX_CARACTERES_FALADOS = 160;
 
 type AvaliarParams = {
   naoLidas: number;
@@ -58,6 +64,17 @@ export function useChatAlert() {
         description: previa || "Toque para abrir a conversa.",
         action: { label: "Abrir", onClick: onAbrir },
       });
+
+      // Lê a mensagem em voz alta: quem está pilotando — ou com o celular no
+      // bolso — fica sabendo sem precisar olhar a tela.
+      const textoFalado = previa
+        ? previa.slice(0, MAX_CARACTERES_FALADOS)
+        : "Você recebeu uma mensagem nova.";
+      const frase = primeiroNome
+        ? `Mensagem de ${primeiroNome}. ${textoFalado}`
+        : `Mensagem nova. ${textoFalado}`;
+
+      window.setTimeout(() => falar(frase), ATRASO_DA_VOZ_MS);
     },
     [play],
   );
