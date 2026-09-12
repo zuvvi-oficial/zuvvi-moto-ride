@@ -13,14 +13,17 @@ const items = [
   { key: "perfil", label: "Perfil", to: "/perfil-motorista", Icon: User },
 ] as const;
 
+// Mesma pílula flutuante com blur usada em todo o app do motorista (cabeçalho,
+// badges do mapa, etc.) — não o cartão colado na borda usado do lado do
+// passageiro, que destoou do resto da tela do motorista.
 export function MotoristaBottomNav({ active }: MotoristaBottomNavProps) {
   return (
     <nav
       aria-label="Navegação principal do motorista"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-zuvvi-indigo/95 backdrop-blur-xl border-t border-white/10 px-5 pt-3"
-      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      className="fixed bottom-0 left-0 right-0 px-6 z-40 pointer-events-none"
+      style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))", paddingTop: "1.5rem" }}
     >
-      <div className="mx-auto max-w-md flex items-center justify-around rounded-[1.75rem] border border-white/5 bg-white/[0.025] px-1 py-1.5">
+      <div className="max-w-md mx-auto bg-zuvvi-indigo/80 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 flex items-center justify-around pointer-events-auto shadow-2xl">
         {items.map(({ key, label, to, Icon }) => {
           const isActive = active === key;
 
@@ -30,20 +33,12 @@ export function MotoristaBottomNav({ active }: MotoristaBottomNavProps) {
               to={to}
               aria-current={isActive ? "page" : undefined}
               aria-label={key === "perfil" ? "Abrir perfil do motorista" : undefined}
-              className={`min-h-12 min-w-16 px-3 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${
-                isActive
-                  ? "bg-zuvvi-volt/10 border border-zuvvi-volt/20 text-zuvvi-volt shadow-[0_0_24px_rgba(198,255,61,0.08)]"
-                  : "border border-transparent text-muted-foreground hover:text-foreground hover:bg-white/[0.035]"
+              className={`flex-1 py-1 flex flex-col items-center justify-center gap-1 transition-colors ${
+                isActive ? "text-zuvvi-volt" : "text-muted-foreground hover:text-white"
               }`}
             >
-              <Icon className="w-5.5 h-5.5" strokeWidth={isActive ? 2.5 : 2} />
-              <span
-                className={`text-[9px] uppercase tracking-wider ${
-                  isActive ? "font-black" : "font-bold"
-                }`}
-              >
-                {label}
-              </span>
+              <Icon className="w-6 h-6" />
+              <span className="text-[8px] font-black uppercase tracking-widest">{label}</span>
             </Link>
           );
         })}
