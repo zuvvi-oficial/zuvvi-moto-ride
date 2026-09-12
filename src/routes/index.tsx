@@ -121,17 +121,23 @@ function HomePassageiro({ nome }: { nome: string }) {
   // respeitar interactive-widget=resizes-content). Medindo a visualViewport
   // direto garantimos que o frame acompanhe a área realmente visível em
   // qualquer aparelho, sem o header/menu "flutuando" sobre o teclado.
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  // offsetTop cobre navegadores que também deslocam (pan) a visualViewport
+  // além de encolher — mesma técnica já usada abaixo no FavoritosDialog.
+  const [viewport, setViewport] = useState<{ height: number; offsetTop: number } | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return;
 
     const vv = window.visualViewport;
-    const syncHeight = () => setViewportHeight(vv.height);
+    const syncViewport = () => setViewport({ height: vv.height, offsetTop: vv.offsetTop });
 
-    syncHeight();
-    vv.addEventListener('resize', syncHeight);
-    return () => vv.removeEventListener('resize', syncHeight);
+    syncViewport();
+    vv.addEventListener('resize', syncViewport);
+    vv.addEventListener('scroll', syncViewport);
+    return () => {
+      vv.removeEventListener('resize', syncViewport);
+      vv.removeEventListener('scroll', syncViewport);
+    };
   }, []);
 
 
@@ -245,7 +251,11 @@ function HomePassageiro({ nome }: { nome: string }) {
 
     <div
       className="relative bg-zuvvi-indigo text-foreground overflow-hidden"
-      style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh', width: '100vw' }}
+      style={
+        viewport
+          ? { position: 'fixed', top: `${viewport.offsetTop}px`, left: 0, height: `${viewport.height}px`, width: '100vw' }
+          : { height: '100dvh', width: '100vw' }
+      }
     >
       {/* 1. Fundo (Z-INDEX 0) */}
       <div
@@ -257,7 +267,7 @@ function HomePassageiro({ nome }: { nome: string }) {
       {/* 2. Camada de Interface (Z-INDEX 10) - Sobreposta ao mapa */}
       <div
         className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-hidden overscroll-none"
-        style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh', width: '100vw' }}
+        style={{ height: viewport ? `${viewport.height}px` : '100dvh', width: '100vw' }}
       >
         {/* Header */}
         <header className="px-5 py-4 pointer-events-auto shrink-0">
