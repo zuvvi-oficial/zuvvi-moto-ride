@@ -70,6 +70,10 @@ import {
 } from "@/lib/motorista.functions";
 
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
+import {
+  getMotoristaProfilePhoto,
+  MOTORISTA_PROFILE_PHOTO_QUERY_KEY,
+} from "@/lib/motorista-profile-photo.functions";
 import { isPushSupported, subscribeToPushNotifications } from "@/lib/pwa/push-subscribe";
 
 export const Route = createFileRoute("/home-motorista")({
@@ -215,6 +219,12 @@ function HomeMotorista() {
 
   const activeRide = status?.active_ride ?? null;
   const isOnline = !!status?.is_disponivel;
+
+  const getMotoristaProfilePhotoFn = useServerFn(getMotoristaProfilePhoto);
+  const { data: motoristaFoto } = useQuery({
+    queryKey: MOTORISTA_PROFILE_PHOTO_QUERY_KEY,
+    queryFn: () => getMotoristaProfilePhotoFn(),
+  });
 
   const carregarChatFn = useServerFn(carregarChat);
   const enviarMensagemFn = useServerFn(enviarMensagemChat);
@@ -1183,8 +1193,16 @@ function HomeMotorista() {
         className={`p-6 flex items-center justify-between border-b border-white/5 sticky top-0 z-50 backdrop-blur-xl ${isOnline || activeRide ? "bg-zuvvi-volt/5" : "bg-zuvvi-indigo/90"}`}
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-            <User className="w-5 h-5 text-zuvvi-volt" />
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
+            {motoristaFoto?.signedUrl ? (
+              <img
+                src={motoristaFoto.signedUrl}
+                alt="Sua foto de perfil"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <User className="w-5 h-5 text-zuvvi-volt" />
+            )}
           </div>
           <div>
             <p className="text-[9px] text-muted-foreground uppercase tracking-widest">
