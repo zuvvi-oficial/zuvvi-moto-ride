@@ -39,7 +39,7 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
   // 1. Resolver public.usuarios.id pelo authUserId do contexto
   const { data: usuario, error: userError } = await supabaseAdmin
     .from("usuarios")
-    .select("id, nome")
+    .select("id, nome, foto_perfil_path")
     .eq("auth_user_id", authUserId)
     .single();
 
@@ -93,6 +93,8 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
   return {
     meuUsuarioId,
     meuNome: typeof usuario.nome === "string" ? usuario.nome : "",
+    meuFotoPerfilPath:
+      typeof usuario.foto_perfil_path === "string" ? usuario.foto_perfil_path : null,
     souPassageiro,
     interlocutor,
     status: corrida.status,
@@ -107,11 +109,40 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
 // o app vai pro segundo plano. Quem decide não incomodar é o cliente, que sabe
 // se está em foco: o service worker segura o balão e o aviso in-app só toca com
 // a conversa fechada.
+// Assina a foto de perfil de quem mandou a mensagem, se tiver uma cadastrada,
+// pra usar como ícone grande do push (hoje só passageiros têm essa foto —
+// motorista continua caindo no logo padrão da Zuvvi, tratado no service
+// worker). Nunca derruba o envio da mensagem: falha aqui só significa
+// notificação sem foto, não notificação nenhuma.
+async function assinarFotoRemetente(
+  supabaseAdmin: SupabaseClient,
+  fotoPerfilPath: string | null,
+): Promise<string | null> {
+  if (!fotoPerfilPath) return null;
+
+  try {
+    const { PROFILE_BUCKET } = await import("./passenger-profile-photo.functions");
+    // Mesmo TTL do envio do push (web-push.server.ts usa TTL: 86400 no
+    // cabeçalho): a URL assinada precisa durar pelo menos tanto quanto o
+    // próprio push pode ficar pendente de entrega no serviço de push.
+    const { data, error } = await (supabaseAdmin as any).storage
+      .from(PROFILE_BUCKET)
+      .createSignedUrl(fotoPerfilPath, 24 * 60 * 60);
+
+    if (error || !data?.signedUrl) return null;
+    return data.signedUrl;
+  } catch (err) {
+    console.error("[Chat] Falha ao assinar foto de perfil para o push:", err);
+    return null;
+  }
+}
+
 async function notificarNovaMensagem(params: {
   supabaseAdmin: SupabaseClient;
   corridaId: string;
   destinatarioId: string;
   remetenteNome: string;
+  remetenteFotoPerfilPath: string | null;
   conteudo: string;
   destinatarioEhMotorista: boolean;
 }) {
@@ -119,6 +150,7 @@ async function notificarNovaMensagem(params: {
   const primeiroNome = params.remetenteNome.trim().split(/\s+/)[0] || "Alguém";
   const previa =
     params.conteudo.length > 140 ? `${params.conteudo.slice(0, 140)}…` : params.conteudo;
+  const icon = await assinarFotoRemetente(params.supabaseAdmin, params.remetenteFotoPerfilPath);
 
   await criarNotificacao(params.supabaseAdmin, {
     usuario_id: params.destinatarioId,
@@ -129,6 +161,7 @@ async function notificarNovaMensagem(params: {
     url: params.destinatarioEhMotorista
       ? "/home-motorista"
       : `/acompanhamento?rideId=${encodeURIComponent(params.corridaId)}`,
+    icon,
   });
 }
 
@@ -204,8 +237,15 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data: input, context }) => {
-    const { meuUsuarioId, meuNome, souPassageiro, interlocutor, podeEnviar, supabaseAdmin } =
-      await resolveParticipanteChat(input.corridaId, context.userId);
+    const {
+      meuUsuarioId,
+      meuNome,
+      meuFotoPerfilPath,
+      souPassageiro,
+      interlocutor,
+      podeEnviar,
+      supabaseAdmin,
+    } = await resolveParticipanteChat(input.corridaId, context.userId);
 
     if (!podeEnviar) {
       throw new Error("O chat não está mais disponível para novas mensagens nesta corrida.");
@@ -281,6 +321,7 @@ export const enviarMensagemChat = createServerFn({ method: "POST" })
         corridaId: input.corridaId,
         destinatarioId: interlocutor.id,
         remetenteNome: meuNome,
+        remetenteFotoPerfilPath: meuFotoPerfilPath,
         conteudo: input.conteudo,
         destinatarioEhMotorista: souPassageiro,
       });

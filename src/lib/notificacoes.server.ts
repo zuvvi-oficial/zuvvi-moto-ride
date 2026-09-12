@@ -29,6 +29,10 @@ export async function criarNotificacao(
     // Destino do toque no push. Só é usado na notificação do sistema; quando
     // ausente, o service worker decide pelo tipo, como sempre fez.
     url?: string | null;
+    // Ícone grande do push (ex.: foto de perfil de quem mandou a mensagem).
+    // Só é usado na notificação do sistema; sem ele, o service worker usa o
+    // logo padrão da Zuvvi.
+    icon?: string | null;
   }
 ): Promise<{ inserted: boolean }> {
   let inserted = false;
@@ -75,6 +79,7 @@ async function enviarPushParaUsuario(
     mensagem: string;
     corrida_id?: string | null;
     url?: string | null;
+    icon?: string | null;
   },
 ) {
   if (!process.env["VAPID_PUBLIC_KEY"] || !process.env["VAPID_PRIVATE_KEY"]) return;
@@ -99,6 +104,7 @@ async function enviarPushParaUsuario(
             tipo: params.tipo,
             corridaId: params.corrida_id ?? null,
             url: params.url ?? null,
+            icon: params.icon ?? null,
           },
         );
         if (result.outcome === "gone") {

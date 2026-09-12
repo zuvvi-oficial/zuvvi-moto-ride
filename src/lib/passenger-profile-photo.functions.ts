@@ -2,7 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const PROFILE_BUCKET = "fotos-perfil";
+// Exportado para quem precisa assinar a mesma foto por outro motivo (ex.: o
+// ícone da notificação push de chat) sem duplicar o nome do bucket.
+export const PROFILE_BUCKET = "fotos-perfil";
 const PROFILE_PATH_PATTERN = /^[0-9a-f-]{36}\/avatar\.jpg$/i;
 
 // Chave de query compartilhada entre quem lê a foto (tela de perfil e o
