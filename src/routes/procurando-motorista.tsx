@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useServerFn } from '@tanstack/react-start';
 import { getCorrida, cancelarCorrida, verificarTimeoutCorrida } from '@/lib/user.functions';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,13 +59,13 @@ function ProcurandoMotorista() {
 
   // Gancho mínimo da Etapa 5: somente Pix passa pela tela de pagamento.
   // Dinheiro e cartão preservam exatamente o handoff existente para acompanhamento.
-  const navigateAfterDriverAssigned = (formaPagamento?: string | null) => {
+  const navigateAfterDriverAssigned = useCallback((formaPagamento?: string | null) => {
     if (formaPagamento === 'pix') {
       navigate({ to: '/pagamento-pix', search: { rideId } });
       return;
     }
     navigate({ to: '/acompanhamento', search: { rideId } });
-  };
+  }, [navigate, rideId]);
 
   // Proteção contra chamadas duplicadas de verificarTimeoutCorrida
   const timeoutCheckInFlightRef = useRef(false);
@@ -241,7 +241,7 @@ function ProcurandoMotorista() {
         supabase.removeChannel(channel);
       }
     };
-  }, [rideId, getCorridaFn, navigate]);
+  }, [rideId, getCorridaFn, navigate, navigateAfterDriverAssigned]);
 
   // Effect de contagem regressiva baseada no created_at real da corrida
   useEffect(() => {

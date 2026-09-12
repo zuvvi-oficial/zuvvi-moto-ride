@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   NotificationBell,
   type NotificationBellItem,
@@ -647,8 +647,13 @@ function HomeMotorista() {
     refetchOnWindowFocus: true,
   });
 
-  // Lista visual segura: só exibe se ONLINE, GPS ativo e sem corrida ativa
-  const ofertas = isOnline && isGpsActive && !activeRide ? rawOfertas : [];
+  // Lista visual segura: só exibe se ONLINE, GPS ativo e sem corrida ativa.
+  // useMemo evita recriar o array (e disparar o efeito de alerta abaixo) a
+  // cada render quando a condição está falsa.
+  const ofertas = useMemo(
+    () => (isOnline && isGpsActive && !activeRide ? rawOfertas : []),
+    [isOnline, isGpsActive, activeRide, rawOfertas],
+  );
 
   const dispararSequenciaAlerta = useCallback((oferta: any) => {
     // Alerta Zuvvi: som, vibração e voz começam juntos com a oferta na tela.
@@ -1092,7 +1097,7 @@ function HomeMotorista() {
       lastRouteCoordsRef.current = null;
       setRouteError(null);
     }
-  }, [status?.ultima_lat, status?.ultima_lng, activeRide, mapboxToken, isPickupMapReady]);
+  }, [status, status?.ultima_lat, status?.ultima_lng, activeRide, mapboxToken, isPickupMapReady]);
 
   // 7. Cleanup
   useEffect(() => {

@@ -195,9 +195,24 @@ function ConfirmarCorrida() {
 
 
   useEffect(() => {
+    // Sinaliza que esta execução do efeito foi substituída por outra (origem/
+    // destino mudaram antes de terminar): impede que uma resposta atrasada
+    // pise no estado de uma cotação mais nova, e evita reaproveitar o botão
+    // de confirmar com uma assinatura de cotação que já não bate com as
+    // coordenadas atuais (o servidor rejeitaria o par assinatura+coordenadas).
+    let cancelado = false;
+
+    setIsLoading(true);
+    setShowPaymentModal(false);
+    setRouteInfo(null);
+    setEstimatedFare(null);
+    setQuotationSignature(null);
+    setQuotationTarifas(null);
+
     async function init() {
       try {
         const token = await getMapboxTokenFn();
+        if (cancelado) return;
         if (!token) throw new Error("Token do Mapbox não encontrado");
         mapboxgl.accessToken = token;
 
@@ -210,6 +225,7 @@ function ConfirmarCorrida() {
             destinoLng: destLng
           }
         });
+        if (cancelado) return;
 
         setRouteInfo({ distance: quotation.distance, duration: quotation.duration });
         setEstimatedFare(quotation.valor);
@@ -228,7 +244,7 @@ function ConfirmarCorrida() {
 
           map.current.on('load', () => {
             // Desenhar a rota
-            if (!map.current || !quotation) return;
+            if (cancelado || !map.current || !quotation) return;
 
             map.current.addSource('route', {
               type: 'geojson',
@@ -263,6 +279,7 @@ function ConfirmarCorrida() {
           });
         }
       } catch (err) {
+        if (cancelado) return;
         console.error(err);
         toast.error("Erro ao carregar detalhes da corrida");
         navigate({ to: '/' });
@@ -272,9 +289,13 @@ function ConfirmarCorrida() {
     init();
 
     return () => {
-      if (map.current) map.current.remove();
+      cancelado = true;
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
     };
-  }, []);
+  }, [originLat, originLng, destLat, destLng, getMapboxTokenFn, cotarCorridaFn, navigate]);
 
   return (
     <div className="relative h-[100dvh] w-full bg-zuvvi-indigo text-foreground overflow-hidden font-poppins flex flex-col">
