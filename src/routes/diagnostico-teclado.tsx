@@ -5,103 +5,98 @@ export const Route = createFileRoute('/diagnostico-teclado')({
   component: DiagnosticoTeclado,
 });
 
-// Página temporária, sem autenticação, só pra descobrir na prática como o
-// navegador do aparelho do usuário reporta window.visualViewport quando o
-// teclado abre — usada pra investigar o bug do header/menu na tela de
-// início. Remover depois que o diagnóstico terminar.
+// Página temporária, sem autenticação, que replica a estrutura EXATA de
+// header/main/nav position:fixed da tela de início (src/routes/index.tsx)
+// — mesmo código de medição via ResizeObserver — com um overlay ao vivo
+// mostrando onde cada elemento realmente está na tela. Usada pra investigar
+// o bug do header/menu se deslocando com o teclado. Remover depois.
 function DiagnosticoTeclado() {
-  const [innerHeight, setInnerHeight] = useState(0);
-  const [vv, setVv] = useState<{ height: number; offsetTop: number; width: number } | null>(null);
-  const [hasVv, setHasVv] = useState(true);
-  const [events, setEvents] = useState<string[]>([]);
-  const startRef = useRef<number>(Date.now());
+  const [query, setQuery] = useState('');
+  const headerRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [navHeight, setNavHeight] = useState(0);
 
   useEffect(() => {
-    setInnerHeight(window.innerHeight);
-    const vvApi = window.visualViewport;
-    setHasVv(!!vvApi);
-    if (!vvApi) return;
-
-    const log = (tipo: string) => {
-      const t = ((Date.now() - startRef.current) / 1000).toFixed(1);
-      setEvents((prev) => [
-        `${t}s [${tipo}] h=${Math.round(vvApi.height)} offsetTop=${Math.round(vvApi.offsetTop)} innerHeight=${window.innerHeight}`,
-        ...prev,
-      ].slice(0, 30));
-    };
-
-    const sync = (tipo: string) => {
-      setVv({ height: vvApi.height, offsetTop: vvApi.offsetTop, width: vvApi.width });
-      setInnerHeight(window.innerHeight);
-      log(tipo);
-    };
-
-    sync('inicial');
-    const onResize = () => sync('resize');
-    const onScroll = () => sync('scroll');
-    const onWindowResize = () => sync('window-resize');
-    vvApi.addEventListener('resize', onResize);
-    vvApi.addEventListener('scroll', onScroll);
-    window.addEventListener('resize', onWindowResize);
-
+    const headerEl = headerRef.current;
+    const navEl = navRef.current;
+    if (!headerEl || !navEl || typeof ResizeObserver === 'undefined') return;
+    const headerObserver = new ResizeObserver(() => setHeaderHeight(headerEl.getBoundingClientRect().height));
+    const navObserver = new ResizeObserver(() => setNavHeight(navEl.getBoundingClientRect().height));
+    headerObserver.observe(headerEl);
+    navObserver.observe(navEl);
     return () => {
-      vvApi.removeEventListener('resize', onResize);
-      vvApi.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onWindowResize);
+      headerObserver.disconnect();
+      navObserver.disconnect();
     };
   }, []);
 
+  // Overlay de diagnóstico: mede tudo a cada 300ms (não só em eventos),
+  // pra pegar qualquer estado intermediário durante a animação do teclado.
+  const [debug, setDebug] = useState('');
+  useEffect(() => {
+    const tick = () => {
+      const h = headerRef.current?.getBoundingClientRect();
+      const n = navRef.current?.getBoundingClientRect();
+      const vv = window.visualViewport;
+      setDebug(
+        `innerH=${window.innerHeight} vvH=${vv ? Math.round(vv.height) : '-'} vvOffsetTop=${vv ? Math.round(vv.offsetTop) : '-'}\n` +
+        `header top=${h ? Math.round(h.top) : '-'} bottom=${h ? Math.round(h.bottom) : '-'} (deveria top=0)\n` +
+        `nav top=${n ? Math.round(n.top) : '-'} bottom=${n ? Math.round(n.bottom) : '-'} (deveria bottom=innerH)`
+      );
+    };
+    tick();
+    const id = setInterval(tick, 300);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <div style={{ minHeight: '100dvh', background: '#130F36', color: 'white', fontFamily: 'monospace', padding: '16px', fontSize: '15px', lineHeight: 1.5 }}>
-      <h1 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px' }}>
-        Diagnóstico — teclado e viewport
-      </h1>
+    <div className="relative bg-zuvvi-indigo text-foreground" style={{ height: '100dvh', width: '100vw' }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0 }} className="bg-zuvvi-indigo-dark" />
 
-      <p style={{ background: 'rgba(198,255,61,0.15)', border: '1px solid rgba(198,255,61,0.4)', borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
-        1. Toque no campo abaixo pra abrir o teclado.<br />
-        2. Espere 1 segundo.<br />
-        3. Tire um print desta tela (com o teclado aberto) e manda pro Claude.
-      </p>
+      <main
+        className="fixed inset-x-0 z-10 overflow-y-auto overscroll-contain"
+        style={{ top: headerHeight, bottom: navHeight }}
+      >
+        <div className="min-h-full flex flex-col justify-end px-5 pb-4 mx-auto w-full max-w-md space-y-4">
+          <div className="space-y-4">
+            <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 shadow-2xl space-y-3">
+              <p className="text-sm font-bold">Card de origem (exemplo)</p>
+            </div>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Toque aqui pra abrir o teclado"
+              className="w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 py-6 pl-6 pr-4 rounded-[2rem] text-base"
+            />
+          </div>
+        </div>
+      </main>
 
-      <input
-        type="text"
-        placeholder="Toque aqui pra abrir o teclado"
+      <header ref={headerRef} className="fixed top-0 inset-x-0 z-20 px-5 py-4">
+        <div className="mx-auto max-w-md flex items-center justify-between bg-zuvvi-indigo/60 backdrop-blur-lg border border-white/10 rounded-3xl px-4 py-3 shadow-2xl">
+          <p className="text-sm font-bold">CABEÇALHO (deve ficar sempre aqui)</p>
+        </div>
+      </header>
+
+      <nav ref={navRef} className="fixed bottom-0 inset-x-0 z-20 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4">
+        <div className="mx-auto max-w-md flex items-center justify-around">
+          <span className="text-sm font-black volt-text">MENU (deve ficar sempre aqui embaixo)</span>
+        </div>
+      </nav>
+
+      {/* Overlay de diagnóstico — por cima de tudo, sem empurrar nada */}
+      <pre
         style={{
-          width: '100%',
-          boxSizing: 'border-box',
-          padding: '14px',
-          fontSize: '16px',
-          borderRadius: '12px',
-          border: '2px solid #C6FF3D',
-          background: 'rgba(255,255,255,0.08)',
-          color: 'white',
-          marginBottom: '16px',
+          position: 'fixed', top: '90px', left: '8px', right: '8px', zIndex: 999,
+          background: 'rgba(0,0,0,0.85)', color: '#C6FF3D', fontSize: '11px',
+          padding: '8px', margin: 0, whiteSpace: 'pre-wrap', pointerEvents: 'none',
+          borderRadius: '8px',
         }}
-      />
-
-      <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
-        <p><b>window.visualViewport existe?</b> {hasVv ? 'SIM' : 'NÃO (isso já seria a causa)'}</p>
-        <p><b>window.innerHeight:</b> {innerHeight}px</p>
-        {vv && (
-          <>
-            <p><b>visualViewport.height:</b> {Math.round(vv.height)}px</p>
-            <p><b>visualViewport.offsetTop:</b> {Math.round(vv.offsetTop)}px</p>
-            <p><b>visualViewport.width:</b> {Math.round(vv.width)}px</p>
-          </>
-        )}
-      </div>
-
-      <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '12px' }}>
-        <p style={{ marginBottom: '8px' }}><b>Histórico de eventos (mais recente primeiro):</b></p>
-        {events.length === 0 && <p style={{ opacity: 0.5 }}>Nenhum evento ainda — toque no campo acima.</p>}
-        {events.map((e, i) => (
-          <p key={i} style={{ fontSize: '12px', opacity: 0.85, margin: '2px 0' }}>{e}</p>
-        ))}
-      </div>
-
-      <p style={{ marginTop: '16px', fontSize: '11px', opacity: 0.5 }}>
-        {typeof navigator !== 'undefined' ? navigator.userAgent : ''}
-      </p>
+      >
+        {debug}
+      </pre>
     </div>
   );
 }
