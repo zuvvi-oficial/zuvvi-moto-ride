@@ -2,6 +2,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+// A chave pública VAPID precisa chegar ao navegador para ele se inscrever, mas
+// não pode vir de uma variável VITE_: o ambiente do projeto recusa segredo com
+// esse prefixo (é valor de build, não de runtime). Então o servidor entrega a
+// chave — que é pública por definição — a quem está logado.
+export const getVapidPublicKey = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    return { publicKey: process.env["VAPID_PUBLIC_KEY"] || null };
+  });
+
 const subscribeSchema = z.object({
   endpoint: z.string().url(),
   p256dh: z.string().min(1),

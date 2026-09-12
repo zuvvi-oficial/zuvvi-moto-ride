@@ -968,9 +968,8 @@ function HomeMotorista() {
     // primeira tentativa conseguiu a permissão mas falhou ao registrar a
     // inscrição (ex: service worker ainda não pronto, rede instável).
     if (indoOnline) {
-      const vapidPublicKey = import.meta.env["VITE_VAPID_PUBLIC_KEY"] as string | undefined;
-      if (vapidPublicKey && isPushSupported() && Notification.permission !== "denied") {
-        subscribeToPushNotifications(vapidPublicKey).catch(() => {});
+      if (isPushSupported() && Notification.permission !== "denied") {
+        subscribeToPushNotifications().catch(() => {});
       }
     }
 

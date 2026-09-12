@@ -30,13 +30,40 @@ function subscriptionKeys(subscription: PushSubscription): { p256dh: string; aut
 
 export type PushSubscribeOutcome = "subscribed" | "denied" | "unsupported" | "error";
 
+// A chave não muda durante a sessão; buscar uma vez basta. `undefined` aqui
+// significa "ainda não perguntei", diferente de `null` ("não há chave").
+let chavePublicaCache: string | null | undefined;
+
+async function obterChavePublica(): Promise<string | null> {
+  if (chavePublicaCache !== undefined) return chavePublicaCache;
+
+  try {
+    const { getVapidPublicKey } = await import("@/lib/push-subscriptions.functions");
+    const { publicKey } = await getVapidPublicKey();
+    chavePublicaCache = publicKey || null;
+  } catch (error) {
+    console.error("[Push] Falha ao obter a chave pública VAPID:", error);
+    chavePublicaCache = null;
+  }
+
+  return chavePublicaCache;
+}
+
 // Pede permissão (se necessário) e registra a inscrição no servidor.
 // Idempotente: chamar de novo com uma inscrição já ativa apenas reenvia
 // as mesmas chaves (upsert por endpoint no servidor).
-export async function subscribeToPushNotifications(
-  vapidPublicKey: string,
-): Promise<PushSubscribeOutcome> {
-  if (!isPushSupported() || !vapidPublicKey) return "unsupported";
+export async function subscribeToPushNotifications(): Promise<PushSubscribeOutcome> {
+  if (!isPushSupported()) return "unsupported";
+
+  const vapidPublicKey = await obterChavePublica();
+  if (!vapidPublicKey) {
+    // Sem VAPID_PUBLIC_KEY no ambiente, o push é impossível — e sem este aviso
+    // a ativação falharia calada, que foi o que escondeu isso por tanto tempo.
+    console.warn(
+      "[Push] VAPID_PUBLIC_KEY ausente no servidor: notificações não podem ser ativadas. Ver .env.example.",
+    );
+    return "unsupported";
+  }
 
   if (Notification.permission === "denied") return "denied";
   if (Notification.permission !== "granted") {
