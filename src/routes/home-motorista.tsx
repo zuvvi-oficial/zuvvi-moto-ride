@@ -27,6 +27,7 @@ import {
   Send,
   Maximize2,
   Minimize2,
+  CloudRain,
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { useChatAlert } from "@/hooks/use-chat-alert";
@@ -127,6 +128,7 @@ function HomeMotorista() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [rainAlert, setRainAlert] = useState<{ local: string } | null>(null);
   const [lastOfertasIds, setLastOfertasIds] = useState<Set<string>>(new Set());
   const playSound = useSoundStore((state: any) => state.play);
   const {
@@ -1183,6 +1185,71 @@ function HomeMotorista() {
     }
   }, [status, status?.ultima_lat, status?.ultima_lng, activeRide, mapboxToken, isPickupMapReady]);
 
+  // Alerta de chuva: consulta a previsão pública do Open-Meteo (gratuita, sem
+  // chave) pro ponto de embarque (ou destino, se a corrida já começou).
+  // Totalmente isolado do efeito de mapa/rota acima — não compartilha
+  // nenhuma referência, e qualquer falha aqui só significa "sem alerta
+  // desta vez", nunca quebra a tela de corrida.
+  useEffect(() => {
+    const routeStatuses = ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"];
+    if (!activeRide || !routeStatuses.includes(activeRide.status)) {
+      setRainAlert(null);
+      return;
+    }
+
+    const isTrip = activeRide.status === "em_andamento";
+    const lat = isTrip ? activeRide.destino_lat : activeRide.origem_lat;
+    const lng = isTrip ? activeRide.destino_lng : activeRide.origem_lng;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setRainAlert(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkRain = async () => {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=precipitation_probability&forecast_days=1&timezone=auto`;
+        const response = await fetch(url);
+        if (!response.ok) return;
+        const data = await response.json();
+        const times: string[] = data?.hourly?.time ?? [];
+        const probabilities: number[] = data?.hourly?.precipitation_probability ?? [];
+
+        const now = Date.now();
+        let idx = times.findIndex((t) => new Date(t).getTime() >= now);
+        if (idx === -1) idx = 0;
+        const upcoming = probabilities.slice(idx, idx + 2);
+        const maxProb = upcoming.length > 0 ? Math.max(...upcoming) : 0;
+
+        if (!cancelled) {
+          setRainAlert(maxProb >= 50 ? { local: isTrip ? "no destino" : "no embarque" } : null);
+        }
+      } catch {
+        // Sem previsão desta vez — a tela de corrida segue normal.
+      }
+    };
+
+    void checkRain();
+    const interval = setInterval(checkRain, 10 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // Propositalmente sem "activeRide" inteiro: como ele vem do polling de
+    // status (refetch a cada 10s), sua referência muda a cada chamada mesmo
+    // sem os valores mudarem — dependendo dele o efeito reiniciaria o
+    // intervalo de 10 minutos a cada poll, chamando o Open-Meteo sem parar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeRide?.id,
+    activeRide?.status,
+    activeRide?.origem_lat,
+    activeRide?.origem_lng,
+    activeRide?.destino_lat,
+    activeRide?.destino_lng,
+  ]);
+
   // 7. Cleanup
   useEffect(() => {
     return () => {
@@ -1467,6 +1534,15 @@ function HomeMotorista() {
                 </p>
               </div>
             ) : null}
+
+            {rainAlert && (
+              <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-400/20 rounded-xl px-3 py-2">
+                <CloudRain className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                <p className="text-[10px] text-blue-200 font-bold uppercase tracking-wide">
+                  Previsão de chuva {rainAlert.local}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5 pt-3 border-t border-white/5">
               <div className="flex items-center gap-2 min-w-0">
