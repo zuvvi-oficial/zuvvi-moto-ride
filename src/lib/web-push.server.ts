@@ -11,6 +11,8 @@ export type WebPushPayload = Readonly<{
   body: string;
   tipo: string;
   corridaId?: string | null;
+  // Destino do toque. Quando ausente, o service worker decide pelo tipo.
+  url?: string | null;
 }>;
 
 export type WebPushSendResult =
