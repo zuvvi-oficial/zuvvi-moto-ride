@@ -23,6 +23,7 @@ self.addEventListener("push", function (event) {
   }
 
   var ehMensagem = payload.tipo === "nova_mensagem_chat";
+  var ehOfertaCorrida = payload.tipo === "nova_oferta_corrida";
 
   function appEstaEmFoco() {
     // Só o cliente sabe se a pessoa está de fato com o app na frente; o
@@ -59,11 +60,31 @@ self.addEventListener("push", function (event) {
         // Mensagens novas empilham no mesmo balão, mas precisam avisar de novo a
         // cada uma — sem renotify o Android troca o texto em silêncio.
         renotify: ehMensagem,
-        vibrate: ehMensagem ? [300, 120, 300, 120, 300] : undefined,
+        vibrate: ehMensagem || ehOfertaCorrida ? [300, 120, 300, 120, 300] : undefined,
         data: { tipo: payload.tipo, corridaId: payload.corridaId, url: payload.url },
       });
     }),
   );
+
+  if (ehOfertaCorrida) {
+    // Só dá pra "falar" de dentro de uma página com sincronizador de voz —
+    // sem isso, avisamos as instâncias do app abertas em segundo plano (não
+    // com o app 100% fechado/finalizado, aí não há nada em memória pra falar)
+    // pra elas mesmas lerem em voz alta, sem duplicar a leitura de quem já
+    // está com o app na tela (esse caso já é coberto pelo polling do app).
+    event.waitUntil(
+      self.clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then(function (janelas) {
+          janelas.forEach(function (janela) {
+            if (!janela.focused) {
+              janela.postMessage({ type: "zuvvi-nova-oferta-voz" });
+            }
+          });
+        })
+        .catch(function () {}),
+    );
+  }
 });
 
 self.addEventListener("notificationclick", function (event) {
