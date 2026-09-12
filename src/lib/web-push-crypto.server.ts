@@ -43,16 +43,61 @@ export type VapidKeys = Readonly<{
   privateKeyBase64Url: string;
 }>;
 
+// DER helpers para montar um PKCS8 EC de P-256 a partir dos bytes crus da
+// chave (RFC 5915 embrulhado em PKCS8, RFC 5958). Evitamos createPrivateKey
+// com format "jwk" de propósito: em produção esse formato falhou com
+// "options.key property must be of type string..." — sinal de um runtime
+// cujo node:crypto não reconhece objeto JWK como entrada válida. DER/PKCS8
+// é a forma mais básica e amplamente suportada de importar uma chave EC.
+function derLength(len: number): Buffer {
+  if (len < 0x80) return Buffer.from([len]);
+  if (len < 0x100) return Buffer.from([0x81, len]);
+  return Buffer.from([0x82, (len >> 8) & 0xff, len & 0xff]);
+}
+
+function derTlv(tag: number, content: Buffer): Buffer {
+  return Buffer.concat([Buffer.from([tag]), derLength(content.length), content]);
+}
+
+const OID_EC_PUBLIC_KEY = Buffer.from([0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01]);
+const OID_PRIME256V1 = Buffer.from([0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07]);
+
+function pkcs8FromRawEcP256(privateKeyRaw: Buffer, publicKeyRaw: Buffer): Buffer {
+  // ECPrivateKey ::= SEQUENCE { version 1, privateKey OCTET STRING,
+  //                             [1] EXPLICIT publicKey BIT STRING }  -- RFC 5915
+  const publicKeyBitString = derTlv(0x03, Buffer.concat([Buffer.from([0x00]), publicKeyRaw]));
+  const explicitPublicKey = derTlv(0xa1, publicKeyBitString);
+  const ecPrivateKey = derTlv(
+    0x30,
+    Buffer.concat([
+      Buffer.from([0x02, 0x01, 0x01]), // version = 1
+      derTlv(0x04, privateKeyRaw),
+      explicitPublicKey,
+    ]),
+  );
+
+  // PrivateKeyInfo ::= SEQUENCE { version 0, algorithm AlgorithmIdentifier,
+  //                               privateKey OCTET STRING }  -- PKCS8 / RFC 5958
+  const algorithmIdentifier = derTlv(0x30, Buffer.concat([OID_EC_PUBLIC_KEY, OID_PRIME256V1]));
+  return derTlv(
+    0x30,
+    Buffer.concat([
+      Buffer.from([0x02, 0x01, 0x00]), // version = 0
+      algorithmIdentifier,
+      derTlv(0x04, ecPrivateKey),
+    ]),
+  );
+}
+
 function vapidPrivateKeyObject(privateKeyBase64Url: string, publicKeyRaw: Buffer) {
+  const privateKeyRaw = fromBase64url(privateKeyBase64Url);
+  if (privateKeyRaw.length !== 32) {
+    throw new Error("VAPID_PRIVATE_KEY inválida: esperado escalar de 32 bytes.");
+  }
   return createPrivateKey({
-    key: {
-      kty: "EC",
-      crv: "P-256",
-      d: privateKeyBase64Url,
-      x: base64url(publicKeyRaw.subarray(1, 33)),
-      y: base64url(publicKeyRaw.subarray(33, 65)),
-    },
-    format: "jwk",
+    key: pkcs8FromRawEcP256(privateKeyRaw, publicKeyRaw),
+    format: "der",
+    type: "pkcs8",
   });
 }
 
