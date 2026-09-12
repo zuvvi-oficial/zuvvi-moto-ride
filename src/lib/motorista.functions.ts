@@ -362,33 +362,37 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
     if (passageiroIds.length > 0) {
       const [{ data: passageiros }, { data: avaliacoesRecebidas }] = await Promise.all([
         supabaseAdmin.from("usuarios").select("id, nome, foto_perfil_path").in("id", passageiroIds),
-        supabaseAdmin.from("avaliacoes").select("avaliado_id, nota").in("avaliado_id", passageiroIds),
+        // avaliacoes.avaliado_id não guarda o papel — quem já foi motorista e
+        // passageiro tem as duas notas misturadas no mesmo usuarios.id. Junta
+        // com corridas e só conta quando o avaliado era de fato o passageiro
+        // daquela corrida específica (achado do Codex no PR #113).
+        supabaseAdmin
+          .from("avaliacoes")
+          .select("avaliado_id, nota, corridas!inner(passageiro_id)")
+          .in("avaliado_id", passageiroIds),
       ]);
 
       const notasPorPassageiro = new Map<string, number[]>();
-      for (const avaliacao of avaliacoesRecebidas || []) {
+      for (const avaliacao of (avaliacoesRecebidas || []) as any[]) {
+        if (avaliacao.corridas?.passageiro_id !== avaliacao.avaliado_id) continue;
         const lista = notasPorPassageiro.get(avaliacao.avaliado_id) || [];
         lista.push(avaliacao.nota);
         notasPorPassageiro.set(avaliacao.avaliado_id, lista);
       }
 
-      const { PROFILE_BUCKET } = await import("./passenger-profile-photo.functions");
+      const { obterUrlAssinadaFotoPerfil } = await import("./passenger-profile-photo.functions");
 
       for (const passageiro of passageiros || []) {
         const notas = notasPorPassageiro.get(passageiro.id) || [];
         const notaMedia = notas.length > 0 ? notas.reduce((a, b) => a + b, 0) / notas.length : null;
 
-        let fotoUrl: string | null = null;
-        if (passageiro.foto_perfil_path) {
-          try {
-            const { data: signed } = await (supabaseAdmin as any).storage
-              .from(PROFILE_BUCKET)
-              .createSignedUrl(passageiro.foto_perfil_path, 60 * 60);
-            fotoUrl = signed?.signedUrl || null;
-          } catch {
-            fotoUrl = null;
-          }
-        }
+        // Cacheada por caminho de arquivo (Codex, PR #113): sem isso, o
+        // motorista online sem corrida repete essa consulta a cada 5s e cada
+        // resposta trazia uma URL assinada nova para a mesma foto, trocando o
+        // "src" da imagem à toa e forçando o navegador a rebaixá-la de novo.
+        const fotoUrl = passageiro.foto_perfil_path
+          ? await obterUrlAssinadaFotoPerfil(supabaseAdmin, passageiro.foto_perfil_path)
+          : null;
 
         infoPorPassageiro.set(passageiro.id, {
           nome: passageiro.nome || "Passageiro",
