@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { NotificationBell } from "@/components/NotificationBell";
 import { getAuthStatus } from "@/lib/auth-status.functions";
+import { getPassengerProfilePhoto, PASSENGER_PROFILE_PHOTO_QUERY_KEY } from "@/lib/passenger-profile-photo.functions";
 import heroMoto from "@/assets/hero-moto.jpg";
 import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, LogOut, ChevronRight, LocateFixed, AlertTriangle, Loader2, Trash2, X, ChevronLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,6 +80,7 @@ function UnifiedIndex() {
 function HomePassageiro({ nome }: { nome: string }) {
   const navigate = useNavigate();
   const getRetomadaCorridaPassageiroFn = useServerFn(getRetomadaCorridaPassageiro);
+  const getProfilePhotoFn = useServerFn(getPassengerProfilePhoto);
 
   const { data: retomadaCorrida } = useQuery({
     queryKey: ["retomada-corrida-passageiro"],
@@ -86,6 +88,14 @@ function HomePassageiro({ nome }: { nome: string }) {
     staleTime: 0,
     refetchOnMount: "always",
   });
+
+  // Mesma queryKey usada em PassengerProfilePhoto (tela de perfil) — ao
+  // trocar a foto lá, a invalidação da query já atualiza o cabeçalho aqui.
+  const { data: profilePhoto } = useQuery({
+    queryKey: PASSENGER_PROFILE_PHOTO_QUERY_KEY,
+    queryFn: () => getProfilePhotoFn(),
+  });
+  const fotoUrl = profilePhoto?.signedUrl ?? null;
 
   useEffect(() => {
     if (!retomadaCorrida) return;
@@ -457,8 +467,12 @@ function HomePassageiro({ nome }: { nome: string }) {
       <header ref={headerRef} className="fixed top-0 inset-x-0 z-20 px-5 py-4 pointer-events-auto">
         <div className="mx-auto max-w-md flex items-center justify-between bg-zuvvi-indigo/60 backdrop-blur-lg border border-white/10 rounded-3xl px-4 py-3 shadow-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
-              <User className="text-zuvvi-volt w-6 h-6" />
+            <div className="w-10 h-10 rounded-full bg-zuvvi-volt/20 border border-zuvvi-volt/30 overflow-hidden flex items-center justify-center shrink-0">
+              {fotoUrl ? (
+                <img src={fotoUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+              ) : (
+                <User className="text-zuvvi-volt w-6 h-6" />
+              )}
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Olá, {nome.split(" ")[0]}</p>

@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Image as ImageIcon, Loader2, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getPassengerProfilePhoto,
   savePassengerProfilePhoto,
+  PASSENGER_PROFILE_PHOTO_QUERY_KEY,
 } from "@/lib/passenger-profile-photo.functions";
 import {
   Dialog,
@@ -70,35 +72,17 @@ export function PassengerProfilePhoto() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
   const getPhotoFn = useServerFn(getPassengerProfilePhoto);
   const savePhotoFn = useServerFn(savePassengerProfilePhoto);
+  const queryClient = useQueryClient();
 
-  const refreshPhoto = async () => {
-    const result = await getPhotoFn();
-    setPhotoUrl(result.signedUrl ?? null);
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    getPhotoFn()
-      .then((result) => {
-        if (!cancelled) setPhotoUrl(result.signedUrl ?? null);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: PASSENGER_PROFILE_PHOTO_QUERY_KEY,
+    queryFn: () => getPhotoFn(),
+  });
+  const photoUrl = data?.signedUrl ?? null;
 
   const handleSelectedFile = async (file?: File) => {
     if (!file || isUploading) return;
@@ -130,7 +114,7 @@ export function PassengerProfilePhoto() {
       }
 
       await savePhotoFn({ data: { path } });
-      await refreshPhoto();
+      await queryClient.invalidateQueries({ queryKey: PASSENGER_PROFILE_PHOTO_QUERY_KEY });
       toast.success("Foto de perfil atualizada.");
     } catch (error: any) {
       toast.error(error?.message || "Não foi possível atualizar sua foto.");
