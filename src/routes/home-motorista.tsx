@@ -1356,7 +1356,7 @@ function HomeMotorista() {
                     activeRide.status === "em_andamento"
                       ? activeRide.destino_lng
                       : activeRide.origem_lng;
-                  if (!navLat || !navLng) return null;
+                  if (!Number.isFinite(navLat) || !Number.isFinite(navLng)) return null;
                   return (
                     <a
                       href={`https://www.google.com/maps/dir/?api=1&destination=${navLat},${navLng}&travelmode=driving`}
