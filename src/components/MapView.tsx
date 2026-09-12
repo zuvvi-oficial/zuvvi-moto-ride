@@ -56,28 +56,6 @@ export function MapView({
 
       map.current.on('load', () => {
         map.current?.resize();
-
-        // Camada padrão do Mapbox (mesma dos exemplos oficiais): a style
-        // dark-v11 já traz a fonte "composite" com a layer "building", só
-        // não é extrudada por padrão. Só adiciona quando pedido — nunca
-        // roda nas telas que não passaram show3DBuildings.
-        if (show3DBuildings && map.current && !map.current.getLayer("zuvvi-3d-buildings")) {
-          map.current.addLayer({
-            id: "zuvvi-3d-buildings",
-            source: "composite",
-            "source-layer": "building",
-            filter: ["==", "extrude", "true"],
-            type: "fill-extrusion",
-            minzoom: 14,
-            paint: {
-              "fill-extrusion-color": "#2a2a55",
-              "fill-extrusion-height": ["get", "height"],
-              "fill-extrusion-base": ["get", "min_height"],
-              "fill-extrusion-opacity": 0.75
-            }
-          });
-        }
-
         if (onMapInstance && map.current) {
           onMapInstance(map.current);
         }
@@ -122,32 +100,47 @@ export function MapView({
 
   // Inclinar/desinclinar suavemente quando pitch mudar depois de montado (ex.:
   // o motorista expande o mapa pra tela cheia) e ligar/desligar os prédios 3D
-  // junto — sem isso só o valor inicial de pitch seria respeitado.
+  // junto. Também cobre a própria carga inicial: se o estilo ainda não tiver
+  // terminado de carregar (conexão lenta), espera o evento "load" em vez de
+  // simplesmente desistir — do contrário a tela cheia podia abrir travada em
+  // pitch 0 até o motorista fechar e abrir de novo (achado do Codex no #121).
   useEffect(() => {
     const currentMap = map.current;
-    if (!currentMap || !currentMap.isStyleLoaded()) return;
+    if (!currentMap) return;
 
-    currentMap.easeTo({ pitch, duration: 800 });
+    const applyCamera = () => {
+      currentMap.easeTo({ pitch, duration: 800 });
 
-    const hasLayer = currentMap.getLayer("zuvvi-3d-buildings");
-    if (show3DBuildings && !hasLayer) {
-      currentMap.addLayer({
-        id: "zuvvi-3d-buildings",
-        source: "composite",
-        "source-layer": "building",
-        filter: ["==", "extrude", "true"],
-        type: "fill-extrusion",
-        minzoom: 14,
-        paint: {
-          "fill-extrusion-color": "#2a2a55",
-          "fill-extrusion-height": ["get", "height"],
-          "fill-extrusion-base": ["get", "min_height"],
-          "fill-extrusion-opacity": 0.75
-        }
-      });
-    } else if (!show3DBuildings && hasLayer) {
-      currentMap.removeLayer("zuvvi-3d-buildings");
+      const hasLayer = currentMap.getLayer("zuvvi-3d-buildings");
+      if (show3DBuildings && !hasLayer) {
+        currentMap.addLayer({
+          id: "zuvvi-3d-buildings",
+          source: "composite",
+          "source-layer": "building",
+          filter: ["==", "extrude", "true"],
+          type: "fill-extrusion",
+          minzoom: 14,
+          paint: {
+            "fill-extrusion-color": "#2a2a55",
+            "fill-extrusion-height": ["get", "height"],
+            "fill-extrusion-base": ["get", "min_height"],
+            "fill-extrusion-opacity": 0.75
+          }
+        });
+      } else if (!show3DBuildings && hasLayer) {
+        currentMap.removeLayer("zuvvi-3d-buildings");
+      }
+    };
+
+    if (currentMap.isStyleLoaded()) {
+      applyCamera();
+      return;
     }
+
+    currentMap.once("load", applyCamera);
+    return () => {
+      currentMap.off("load", applyCamera);
+    };
   }, [pitch, show3DBuildings]);
 
   // Atualizar marcador secundário quando a posição mudar
