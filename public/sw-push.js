@@ -46,7 +46,10 @@ self.addEventListener("push", function (event) {
       return self.registration.showNotification(payload.title, {
         body: payload.body,
         icon: "/brand/icon-192.png",
-        badge: "/brand/icon-96.png",
+        // O badge da barra de status precisa de fundo transparente: o Android
+        // usa só o canal alfa como silhueta e ignora as cores. Um PNG opaco
+        // (como o icon-96, que tem fundo) vira um quadrado branco sólido.
+        badge: "/brand/icon-badge.png",
         tag: payload.tipo || "zuvvi-notificacao",
         // Mensagens novas empilham no mesmo balão, mas precisam avisar de novo a
         // cada uma — sem renotify o Android troca o texto em silêncio.
