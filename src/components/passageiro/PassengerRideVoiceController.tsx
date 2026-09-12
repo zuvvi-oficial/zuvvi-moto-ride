@@ -4,8 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Volume2, VolumeX } from "lucide-react";
 import { getAcompanhamentoPassageiro } from "@/lib/user.functions";
 import { supabase } from "@/integrations/supabase/client";
-
-const VOICE_PREFERENCE_KEY = "zuvvi:passageiro-alertas-voz";
+import { CHAVE_PREFERENCIA_VOZ as VOICE_PREFERENCE_KEY } from "@/lib/fala";
 
 interface RideVoiceData {
   status: string | null;

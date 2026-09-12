@@ -11,6 +11,24 @@ type OpcoesFala = {
   pitch?: number;
 };
 
+/**
+ * Chave onde o passageiro guarda se quer alertas falados. O nome vem do
+ * controle de voz da corrida e fica como está: mudá-lo faria o app esquecer
+ * quem já desativou.
+ */
+export const CHAVE_PREFERENCIA_VOZ = "zuvvi:passageiro-alertas-voz";
+
+/** Padrão é falar; só quem desativou explicitamente fica no silêncio. */
+export function vozAtivada() {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(CHAVE_PREFERENCIA_VOZ) !== "false";
+  } catch {
+    // Sem acesso ao storage, não dá pra afirmar que foi desativado.
+    return true;
+  }
+}
+
 const NOMES_DE_VOZ_PREFERIDOS = [
   "francisca",
   "luciana",
