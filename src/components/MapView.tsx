@@ -11,16 +11,23 @@ interface MapViewProps {
   secondaryMarker?: { lat: number; lng: number; color?: string } | undefined;
   onMapInstance?: (map: mapboxgl.Map) => void;
   className?: string;
+  // Opt-in: por padrão o mapa continua exatamente como sempre foi (visão de
+  // cima, sem prédios) — só quem passar esses props explicitamente ganha a
+  // perspectiva 3D, então nenhuma tela existente muda sozinha.
+  pitch?: number;
+  show3DBuildings?: boolean;
 }
 
-export function MapView({ 
-  center, 
-  zoom = 15, 
-  token, 
+export function MapView({
+  center,
+  zoom = 15,
+  token,
   markerColor = "#C6FF3D",
   secondaryMarker,
   onMapInstance,
-  className = "w-full h-full"
+  className = "w-full h-full",
+  pitch = 0,
+  show3DBuildings = false,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -43,6 +50,7 @@ export function MapView({
         style: "mapbox://styles/mapbox/dark-v11",
         center: [center.lng, center.lat],
         zoom: zoom,
+        pitch: pitch,
         attributionControl: false
       });
 
@@ -89,6 +97,51 @@ export function MapView({
       }
     }
   }, [center.lat, center.lng, zoom]);
+
+  // Inclinar/desinclinar suavemente quando pitch mudar depois de montado (ex.:
+  // o motorista expande o mapa pra tela cheia) e ligar/desligar os prédios 3D
+  // junto. Também cobre a própria carga inicial: se o estilo ainda não tiver
+  // terminado de carregar (conexão lenta), espera o evento "load" em vez de
+  // simplesmente desistir — do contrário a tela cheia podia abrir travada em
+  // pitch 0 até o motorista fechar e abrir de novo (achado do Codex no #121).
+  useEffect(() => {
+    const currentMap = map.current;
+    if (!currentMap) return;
+
+    const applyCamera = () => {
+      currentMap.easeTo({ pitch, duration: 800 });
+
+      const hasLayer = currentMap.getLayer("zuvvi-3d-buildings");
+      if (show3DBuildings && !hasLayer) {
+        currentMap.addLayer({
+          id: "zuvvi-3d-buildings",
+          source: "composite",
+          "source-layer": "building",
+          filter: ["==", "extrude", "true"],
+          type: "fill-extrusion",
+          minzoom: 14,
+          paint: {
+            "fill-extrusion-color": "#2a2a55",
+            "fill-extrusion-height": ["get", "height"],
+            "fill-extrusion-base": ["get", "min_height"],
+            "fill-extrusion-opacity": 0.75
+          }
+        });
+      } else if (!show3DBuildings && hasLayer) {
+        currentMap.removeLayer("zuvvi-3d-buildings");
+      }
+    };
+
+    if (currentMap.isStyleLoaded()) {
+      applyCamera();
+      return;
+    }
+
+    currentMap.once("load", applyCamera);
+    return () => {
+      currentMap.off("load", applyCamera);
+    };
+  }, [pitch, show3DBuildings]);
 
   // Atualizar marcador secundário quando a posição mudar
   useEffect(() => {
