@@ -54,7 +54,7 @@ self.addEventListener("push", function (event) {
         // Mensagens novas empilham no mesmo balão, mas precisam avisar de novo a
         // cada uma — sem renotify o Android troca o texto em silêncio.
         renotify: ehMensagem,
-        vibrate: ehMensagem ? [40, 60, 40] : undefined,
+        vibrate: ehMensagem ? [300, 120, 300, 120, 300] : undefined,
         data: { tipo: payload.tipo, corridaId: payload.corridaId, url: payload.url },
       });
     }),
