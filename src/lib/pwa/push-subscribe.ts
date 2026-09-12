@@ -30,23 +30,24 @@ function subscriptionKeys(subscription: PushSubscription): { p256dh: string; aut
 
 export type PushSubscribeOutcome = "subscribed" | "denied" | "unsupported" | "error";
 
-// A chave não muda durante a sessão; buscar uma vez basta. `undefined` aqui
-// significa "ainda não perguntei", diferente de `null` ("não há chave").
-let chavePublicaCache: string | null | undefined;
+// A chave não muda durante a sessão, então guardar a primeira resposta boa
+// evita ida e volta desnecessária. Falha de rede ou de sessão NÃO é guardada:
+// o motorista tenta de novo a cada vez que fica online, e cachear o erro
+// deixaria o push morto até recarregar a página.
+let chavePublicaCache: string | undefined;
 
 async function obterChavePublica(): Promise<string | null> {
-  if (chavePublicaCache !== undefined) return chavePublicaCache;
+  if (chavePublicaCache) return chavePublicaCache;
 
   try {
     const { getVapidPublicKey } = await import("@/lib/push-subscriptions.functions");
     const { publicKey } = await getVapidPublicKey();
-    chavePublicaCache = publicKey || null;
+    if (publicKey) chavePublicaCache = publicKey;
+    return publicKey || null;
   } catch (error) {
     console.error("[Push] Falha ao obter a chave pública VAPID:", error);
-    chavePublicaCache = null;
+    return null;
   }
-
-  return chavePublicaCache;
 }
 
 // Pede permissão (se necessário) e registra a inscrição no servidor.
@@ -54,6 +55,15 @@ async function obterChavePublica(): Promise<string | null> {
 // as mesmas chaves (upsert por endpoint no servidor).
 export async function subscribeToPushNotifications(): Promise<PushSubscribeOutcome> {
   if (!isPushSupported()) return "unsupported";
+
+  // A permissão vem primeiro, antes de qualquer espera de rede: em Safari/iOS
+  // o pedido precisa sair ainda "colado" no toque que originou a ação, e
+  // buscar a chave antes gastaria esse gesto — o usuário nunca veria o aviso.
+  if (Notification.permission === "denied") return "denied";
+  if (Notification.permission !== "granted") {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return "denied";
+  }
 
   const vapidPublicKey = await obterChavePublica();
   if (!vapidPublicKey) {
@@ -63,12 +73,6 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
       "[Push] VAPID_PUBLIC_KEY ausente no servidor: notificações não podem ser ativadas. Ver .env.example.",
     );
     return "unsupported";
-  }
-
-  if (Notification.permission === "denied") return "denied";
-  if (Notification.permission !== "granted") {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") return "denied";
   }
 
   try {
