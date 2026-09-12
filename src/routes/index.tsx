@@ -117,26 +117,32 @@ function HomePassageiro({ nome }: { nome: string }) {
   const [favoritosOpen, setFavoritosOpen] = useState(false);
   const [recentesOpen, setRecentesOpen] = useState(false);
 
-  // 100dvh nem sempre encolhe quando o teclado abre (depende do navegador
-  // respeitar interactive-widget=resizes-content). Medindo a visualViewport
-  // direto garantimos que o frame acompanhe a área realmente visível em
-  // qualquer aparelho, sem o header/menu "flutuando" sobre o teclado.
-  // offsetTop cobre navegadores que também deslocam (pan) a visualViewport
-  // além de encolher — mesma técnica já usada abaixo no FavoritosDialog.
-  const [viewport, setViewport] = useState<{ height: number; offsetTop: number } | null>(null);
+  // Header e menu inferior são position:fixed de verdade — nunca se movem,
+  // independente de o navegador encolher ou deslocar a área visível quando
+  // o teclado abre (depender de visualViewport/100dvh pra isso se mostrou
+  // pouco confiável em navegadores reais). O conteúdo do meio fica numa
+  // faixa fixa medida com a altura real de header/nav, com seu próprio
+  // scroll — só essa faixa reage ao teclado.
+  const headerRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [navHeight, setNavHeight] = useState(0);
+  const [isDestinationFocused, setIsDestinationFocused] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const headerEl = headerRef.current;
+    const navEl = navRef.current;
+    if (!headerEl || !navEl || typeof ResizeObserver === 'undefined') return;
 
-    const vv = window.visualViewport;
-    const syncViewport = () => setViewport({ height: vv.height, offsetTop: vv.offsetTop });
-
-    syncViewport();
-    vv.addEventListener('resize', syncViewport);
-    vv.addEventListener('scroll', syncViewport);
+    // getBoundingClientRect (não contentRect) porque header/nav têm padding
+    // direto neles — contentRect exclui o padding e sub-mediria a altura.
+    const headerObserver = new ResizeObserver(() => setHeaderHeight(headerEl.getBoundingClientRect().height));
+    const navObserver = new ResizeObserver(() => setNavHeight(navEl.getBoundingClientRect().height));
+    headerObserver.observe(headerEl);
+    navObserver.observe(navEl);
     return () => {
-      vv.removeEventListener('resize', syncViewport);
-      vv.removeEventListener('scroll', syncViewport);
+      headerObserver.disconnect();
+      navObserver.disconnect();
     };
   }, []);
 
@@ -250,53 +256,23 @@ function HomePassageiro({ nome }: { nome: string }) {
   return (
 
     <div
-      className="relative bg-zuvvi-indigo text-foreground overflow-hidden"
-      style={
-        viewport
-          ? { position: 'fixed', top: `${viewport.offsetTop}px`, left: 0, height: `${viewport.height}px`, width: '100vw' }
-          : { height: '100dvh', width: '100vw' }
-      }
+      className="relative bg-zuvvi-indigo text-foreground"
+      style={{ height: '100dvh', width: '100vw' }}
     >
       {/* 1. Fundo (Z-INDEX 0) */}
       <div
-        style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+        style={{ position: 'fixed', inset: 0, zIndex: 0 }}
         className="bg-zuvvi-indigo-dark"
       />
 
-
-      {/* 2. Camada de Interface (Z-INDEX 10) - Sobreposta ao mapa */}
-      <div
-        className="absolute inset-0 z-10 flex flex-col pointer-events-none overflow-hidden overscroll-none"
-        style={{ height: viewport ? `${viewport.height}px` : '100dvh', width: '100vw' }}
+      {/* 2. Conteúdo rolável — ocupa a faixa entre o header e o menu fixos.
+          Só esta faixa reage ao teclado; header e menu nunca se movem. */}
+      <main
+        className="fixed inset-x-0 z-10 overflow-y-auto overscroll-contain pointer-events-none"
+        style={{ top: headerHeight, bottom: navHeight }}
       >
-        {/* Header */}
-        <header className="px-5 py-4 pointer-events-auto shrink-0">
-          <div className="mx-auto max-w-md flex items-center justify-between bg-zuvvi-indigo/60 backdrop-blur-lg border border-white/10 rounded-3xl px-4 py-3 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
-                <User className="text-zuvvi-volt w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Olá, {nome.split(" ")[0]}</p>
-                <ZuvviLogo surface="dark" className="h-auto w-[82px]" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <NotificationBell />
-              <button 
-                onClick={handleLogout} 
-                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-colors hover:bg-white/10"
-                title="Sair"
-              >
-                <LogOut className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </div>
-          </div>
-        </header>
+        <div className="min-h-full flex flex-col justify-end px-5 pb-4 mx-auto w-full max-w-md space-y-4">
 
-        {/* Conteúdo Principal */}
-        <main className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end px-5 pb-28 mx-auto w-full max-w-md space-y-4">
-          
           {isLocating && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-4 shadow-2xl pointer-events-auto animate-rise">
               <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
@@ -386,8 +362,8 @@ function HomePassageiro({ nome }: { nome: string }) {
               </div>
 
               {/* Card de Destino */}
-              <DestinoSearch 
-                location={isManualOrigin ? manualLocation : location} 
+              <DestinoSearch
+                location={isManualOrigin ? manualLocation : location}
                 onSelect={(dest) => {
                   handleDestinationSelected({
                     latitude: dest.center[1],
@@ -395,6 +371,7 @@ function HomePassageiro({ nome }: { nome: string }) {
                     endereco: dest.place_name
                   });
                 }}
+                onFocusChange={setIsDestinationFocused}
               />
 
               
@@ -419,10 +396,18 @@ function HomePassageiro({ nome }: { nome: string }) {
                   <span className="text-[10px] font-bold uppercase tracking-widest">Recentes</span>
                 </button>
               </div>
+
+              {/* Reserva de espaço só enquanto o campo de destino está em
+                  foco — dá ao navegador uma área rolável de verdade pra
+                  trazer o campo (e a origem, logo acima) pra cima do
+                  teclado, sem precisar mexer no header/menu fixos. */}
+              {isDestinationFocused && (
+                <div aria-hidden className="shrink-0" style={{ height: '100dvh' }} />
+              )}
             </div>
           )}
-          <FavoritosDialog 
-            open={favoritosOpen} 
+          <FavoritosDialog
+            open={favoritosOpen}
             onOpenChange={setFavoritosOpen}
             location={isManualOrigin ? manualLocation : location}
             onSelectFavorite={(fav) => {
@@ -433,8 +418,8 @@ function HomePassageiro({ nome }: { nome: string }) {
               });
             }}
           />
-          
-          <RecentesDialog 
+
+          <RecentesDialog
             open={recentesOpen}
             onOpenChange={setRecentesOpen}
             onSelectRecente={(recente) => {
@@ -445,12 +430,36 @@ function HomePassageiro({ nome }: { nome: string }) {
               });
             }}
           />
+        </div>
+      </main>
 
-        </main>
+      {/* Header fixo — nunca se move, mesmo com o teclado aberto */}
+      <header ref={headerRef} className="fixed top-0 inset-x-0 z-20 px-5 py-4 pointer-events-auto">
+        <div className="mx-auto max-w-md flex items-center justify-between bg-zuvvi-indigo/60 backdrop-blur-lg border border-white/10 rounded-3xl px-4 py-3 shadow-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30">
+              <User className="text-zuvvi-volt w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Olá, {nome.split(" ")[0]}</p>
+              <ZuvviLogo surface="dark" className="h-auto w-[82px]" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <button
+              onClick={handleLogout}
+              className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-colors hover:bg-white/10"
+              title="Sair"
+            >
+              <LogOut className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+      </header>
 
-
-        {/* Menu Inferior */}
-        <nav className="bottom-0 left-0 right-0 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto shrink-0">
+      {/* Menu Inferior fixo — nunca se move, mesmo com o teclado aberto */}
+      <nav ref={navRef} className="fixed bottom-0 inset-x-0 z-20 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto">
           <div className="mx-auto max-w-md flex items-center justify-around">
             <button className="flex flex-col items-center gap-1 volt-text">
               <Bike className="w-6 h-6" strokeWidth={2.5} />
@@ -469,8 +478,7 @@ function HomePassageiro({ nome }: { nome: string }) {
               <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>
             </Link>
           </div>
-        </nav>
-      </div>
+      </nav>
     </div>
   );
 }
@@ -859,19 +867,21 @@ function FavoritosDialog({
   );
 }
 
-function DestinoSearch({ 
+function DestinoSearch({
 
-  location, 
-  onSelect, 
-  placeholder = "Para onde vamos?", 
+  location,
+  onSelect,
+  placeholder = "Para onde vamos?",
   autoFocus = false,
-  compact = false
-}: { 
-  location: { lat: number; lng: number } | null, 
+  compact = false,
+  onFocusChange
+}: {
+  location: { lat: number; lng: number } | null,
   onSelect: (dest: any) => void,
   placeholder?: string,
   autoFocus?: boolean,
-  compact?: boolean
+  compact?: boolean,
+  onFocusChange?: (focused: boolean) => void
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -917,6 +927,8 @@ function DestinoSearch({
         value={query}
         autoFocus={autoFocus}
         onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => onFocusChange?.(true)}
+        onBlur={() => onFocusChange?.(false)}
         placeholder={placeholder}
         className={`w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl font-bold placeholder:text-muted-foreground/50 ${
           compact 
