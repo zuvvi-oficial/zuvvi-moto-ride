@@ -109,49 +109,59 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={contentRef} className="max-w-md rounded-[2rem] border-white/10 bg-zuvvi-indigo text-white">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+      <DialogContent
+        ref={contentRef}
+        className="w-[92vw] max-w-[92vw] sm:max-w-md rounded-[2rem] border-white/10 bg-zuvvi-indigo text-white p-6"
+      >
+        <DialogHeader className="items-center text-center space-y-3 sm:items-start sm:text-left">
+          <div className="w-12 h-12 rounded-2xl bg-zuvvi-volt/15 border border-zuvvi-volt/30 flex items-center justify-center shrink-0">
             <Share2 className="h-5 w-5 text-zuvvi-volt" />
-            Compartilhar viagem
-          </DialogTitle>
-          <DialogDescription className="text-white/60">
-            Quem receber o link acompanha sua corrida em tempo real, sem precisar de conta na Zuvvi.
-          </DialogDescription>
+          </div>
+          <div className="space-y-1">
+            <DialogTitle className="text-white text-lg font-bold">Compartilhar viagem</DialogTitle>
+            <DialogDescription className="text-white/60 text-sm leading-relaxed">
+              Quem receber o link acompanha sua corrida em tempo real, sem precisar de conta na Zuvvi.
+            </DialogDescription>
+          </div>
         </DialogHeader>
 
         {compartilharMutation.isPending ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-zuvvi-volt" />
           </div>
         ) : shareUrl ? (
-          <div className="space-y-3">
-            <div className="truncate rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80">
-              {shareUrl}
-            </div>
-            <div className="flex gap-2">
-              <Button
+          <div className="space-y-4 min-w-0">
+            <div className="flex items-center justify-between gap-3 min-w-0 rounded-xl bg-zuvvi-indigo/60 border border-white/10 px-4 py-3">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-white/80">{shareUrl}</span>
+              <button
                 type="button"
-                variant="secondary"
-                className="flex-1 border border-white/10 bg-white/5 text-white hover:bg-white/10"
                 onClick={handleCopy}
+                aria-label="Copiar link"
+                className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 hover:bg-white/10 transition-colors"
               >
-                <Copy className="mr-2 h-4 w-4" />
-                Copiar link
-              </Button>
-              <Button type="button" className="flex-1 bg-zuvvi-volt text-zuvvi-indigo hover:opacity-90" onClick={handleWhatsapp}>
-                <MessageCircleHeart className="mr-2 h-4 w-4" />
-                WhatsApp
-              </Button>
+                <Copy className="w-4 h-4 text-zuvvi-volt" />
+              </button>
             </div>
+
+            <Button
+              type="button"
+              className="w-full h-12 rounded-xl bg-zuvvi-volt text-zuvvi-indigo font-bold hover:bg-zuvvi-volt/90"
+              onClick={handleWhatsapp}
+            >
+              <MessageCircleHeart className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">Compartilhar no WhatsApp</span>
+            </Button>
+
             <Button
               type="button"
               variant="ghost"
-              className="w-full text-red-400 hover:text-red-300"
+              className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/5"
               onClick={() => encerrarMutation.mutate()}
               disabled={encerrarMutation.isPending}
             >
-              {encerrarMutation.isPending ? "Encerrando..." : "Encerrar compartilhamento"}
+              <span className="truncate">
+                {encerrarMutation.isPending ? "Encerrando..." : "Encerrar compartilhamento"}
+              </span>
             </Button>
           </div>
         ) : (
