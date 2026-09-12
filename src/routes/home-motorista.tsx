@@ -1240,103 +1240,111 @@ function HomeMotorista() {
 
       <main className="p-6 max-w-md mx-auto">
         {activeRide ? (
-          <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-zuvvi-volt/25 rounded-[2rem] p-5 shadow-[0_0_40px_-15px_rgba(198,255,61,0.25)] space-y-4 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-zuvvi-volt shrink-0">
-                <div className="w-7 h-7 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-4 h-4" />
+          <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-zuvvi-volt/25 rounded-[2rem] p-4 shadow-[0_0_40px_-15px_rgba(198,255,61,0.25)] space-y-3 animate-in fade-in duration-500">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-9 h-9 rounded-full overflow-hidden bg-white/10 border border-white/10 flex items-center justify-center shrink-0">
+                  {activeRide.passageiro_foto_url ? (
+                    <img
+                      src={activeRide.passageiro_foto_url}
+                      alt={activeRide.passageiro_nome}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-4 h-4 text-white/60" />
+                  )}
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  Corrida aceita
-                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-[11px] font-bold text-white tracking-tight truncate">
+                      {activeRide.passageiro_nome}
+                    </span>
+                    {activeRide.passageiro_nota_media != null && (
+                      <span className="flex items-center gap-0.5 text-[9px] text-zuvvi-volt font-bold shrink-0">
+                        <Star className="w-2.5 h-2.5 fill-zuvvi-volt" />
+                        {activeRide.passageiro_nota_media.toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[8px] text-white/40 uppercase font-bold tracking-widest">
+                    Seu passageiro
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/5 pl-1.5 pr-3 py-1 rounded-full border border-white/10 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                  <User className="w-3 h-3 text-white/60" />
-                </div>
-                <span className="text-[11px] font-bold text-white tracking-tight truncate">
-                  {(activeRide as any).passageiro_nome}
-                </span>
+              <div className="flex items-center gap-1.5 text-zuvvi-volt shrink-0">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Aceita</span>
               </div>
             </div>
 
             {activeRide && mapboxToken && activeRide.origem_lat && activeRide.origem_lng ? (
-              <div className="space-y-1.5">
-                <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
-                  {activeRide.status === "em_andamento" ? "Destino da Viagem" : "Local de Embarque"}
-                </p>
-                <div className="h-32 rounded-2xl overflow-hidden border border-white/10 relative">
-                  <MapView
-                    center={{
-                      lat: Number(activeRide.origem_lat),
-                      lng: Number(activeRide.origem_lng),
-                    }}
-                    token={mapboxToken}
-                    zoom={15}
-                    className="w-full h-full"
-                    onMapInstance={(map) => {
-                      pickupMapInstance.current = map;
-                      setIsPickupMapReady(true);
-                    }}
-                  />
-                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-zuvvi-indigo/40 via-transparent to-transparent" />
-                  {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
-                    <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
-                      <div className="bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
-                        <p className="text-[9px] text-white/80 font-bold uppercase tracking-widest flex items-center gap-2">
-                          <Loader2 className="w-3 h-3 animate-spin text-zuvvi-volt" />
-                          Obtendo sua posição para traçar a rota...
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {routeError && (
-                    <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
-                      <div className="bg-red-500/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-red-500/30">
-                        <p className="text-[9px] text-white font-bold uppercase tracking-widest">
-                          {routeError}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+              <div className="h-28 rounded-2xl overflow-hidden border border-white/10 relative">
+                <MapView
+                  center={{
+                    lat: Number(activeRide.origem_lat),
+                    lng: Number(activeRide.origem_lng),
+                  }}
+                  token={mapboxToken}
+                  zoom={15}
+                  className="w-full h-full"
+                  onMapInstance={(map) => {
+                    pickupMapInstance.current = map;
+                    setIsPickupMapReady(true);
+                  }}
+                />
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-zuvvi-indigo/40 via-transparent to-transparent" />
+                <div className="absolute top-2 left-2 bg-zuvvi-indigo/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
+                  <p className="text-[8px] text-white/80 font-bold uppercase tracking-widest">
+                    {activeRide.status === "em_andamento"
+                      ? "Destino da viagem"
+                      : "Local de embarque"}
+                  </p>
                 </div>
+                {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
+                  <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
+                    <div className="bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                      <p className="text-[9px] text-white/80 font-bold uppercase tracking-widest flex items-center gap-2">
+                        <Loader2 className="w-3 h-3 animate-spin text-zuvvi-volt" />
+                        Obtendo sua posição...
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {routeError && (
+                  <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
+                    <div className="bg-red-500/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-red-500/30">
+                      <p className="text-[9px] text-white font-bold uppercase tracking-widest">
+                        {routeError}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : activeRide && !mapboxToken ? (
-              <div className="h-32 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+              <div className="h-28 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
                 <p className="text-[10px] text-white/40 uppercase font-bold">
                   Mapa temporariamente indisponível.
                 </p>
               </div>
             ) : null}
 
-            <div className="flex gap-3 pt-3 border-t border-white/5">
-              <div className="flex flex-col items-center gap-1 mt-1 shrink-0">
-                <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
-                <div className="w-0.5 h-6 bg-white/10" />
-                <MapPin className="w-4 h-4 text-white/40" />
+            <div className="space-y-1.5 pt-3 border-t border-white/5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-1.5 h-1.5 rounded-full bg-zuvvi-volt shrink-0" />
+                <p className="text-sm font-medium truncate flex-1">
+                  {activeRide.origem_nome || "Local de embarque"}
+                </p>
               </div>
-              <div className="flex-1 space-y-3 min-w-0">
-                <div className="space-y-0.5">
-                  <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
-                    Origem
-                  </p>
-                  <p className="text-sm font-medium truncate">
-                    {activeRide.origem_nome || "Local de embarque"}
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
-                    Destino
-                  </p>
-                  <p className="text-sm font-medium truncate">
-                    {activeRide.destino_nome || "Local de destino"}
-                  </p>
-                </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <MapPin className="w-3 h-3 text-white/40 shrink-0" />
+                <p className="text-sm font-medium truncate flex-1">
+                  {activeRide.destino_nome || "Local de destino"}
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
-              <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-2.5">
+              <div className="bg-white/5 rounded-2xl p-2.5 flex items-center gap-2.5">
                 <CircleDollarSign className="w-4 h-4 text-zuvvi-volt shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
@@ -1349,7 +1357,7 @@ function HomeMotorista() {
                   </p>
                 </div>
               </div>
-              <div className="bg-white/5 rounded-2xl p-3 flex items-center gap-2.5">
+              <div className="bg-white/5 rounded-2xl p-2.5 flex items-center gap-2.5">
                 <Wallet className="w-4 h-4 text-white/60 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[8px] text-white/40 uppercase font-black tracking-tighter">
@@ -1362,7 +1370,7 @@ function HomeMotorista() {
               </div>
             </div>
 
-            <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-3.5 text-center">
+            <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl p-3 text-center">
               {activeRide.status === "aceita" ? (
                 <button
                   onClick={() => handleMarcarACaminho(activeRide.id)}
@@ -1437,7 +1445,7 @@ function HomeMotorista() {
             <div className="flex gap-3">
               <button
                 onClick={() => handleChatOpenChange(true)}
-                className="flex-[2] py-3.5 rounded-2xl bg-zuvvi-volt/10 border border-zuvvi-volt/20 text-zuvvi-volt text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[44px] relative"
+                className="flex-[2] py-3 rounded-2xl bg-zuvvi-volt/10 border border-zuvvi-volt/20 text-zuvvi-volt text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[44px] relative"
                 aria-label={chatButtonAria}
               >
                 <MessageCircle className="w-4 h-4" />
@@ -1453,7 +1461,7 @@ function HomeMotorista() {
                 onClick={() => setShowCancelModal(true)}
                 disabled={!!processingRideId}
                 aria-label="Cancelar corrida"
-                className="flex-1 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
+                className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
               >
                 <X className="w-4 h-4" />
                 Cancelar

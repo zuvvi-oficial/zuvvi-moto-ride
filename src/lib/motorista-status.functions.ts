@@ -160,15 +160,47 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
     const activeRide = await fetchActiveRide(supabaseAdmin, usuario.id);
 
     let passageiroNome = "Passageiro";
+    let passageiroFotoUrl: string | null = null;
+    let passageiroNotaMedia: number | null = null;
+    let passageiroTotalAvaliacoes = 0;
     if (activeRide?.passageiro_id) {
-      const { data: pData } = await supabaseAdmin
-        .from("usuarios")
-        .select("nome")
-        .eq("id", activeRide.passageiro_id)
-        .maybeSingle();
-      
+      // Mesmo padrão de foto/nota já usado no card de pedido de corrida
+      // (getOfertasDisponiveis) — aqui é só para 1 passageiro, então sem Map.
+      const [{ data: pData }, { data: avaliacoesRecebidas }] = await Promise.all([
+        supabaseAdmin
+          .from("usuarios")
+          .select("nome, foto_perfil_path")
+          .eq("id", activeRide.passageiro_id)
+          .maybeSingle(),
+        // avaliacoes.avaliado_id não guarda o papel — só conta quando o
+        // avaliado era de fato o passageiro daquela corrida (mesmo achado
+        // do Codex no PR #113, corrigido em getOfertasDisponiveis).
+        supabaseAdmin
+          .from("avaliacoes")
+          .select("avaliado_id, nota, corridas!inner(passageiro_id)")
+          .eq("avaliado_id", activeRide.passageiro_id),
+      ]);
+
       if (pData?.nome) {
         passageiroNome = pData.nome;
+      }
+
+      const notas = (
+        (avaliacoesRecebidas || []) as Array<{
+          avaliado_id: string;
+          nota: number;
+          corridas: { passageiro_id: string } | null;
+        }>
+      )
+        .filter((avaliacao) => avaliacao.corridas?.passageiro_id === avaliacao.avaliado_id)
+        .map((avaliacao) => avaliacao.nota);
+      passageiroTotalAvaliacoes = notas.length;
+      passageiroNotaMedia =
+        notas.length > 0 ? notas.reduce((a: number, b: number) => a + b, 0) / notas.length : null;
+
+      if (pData?.foto_perfil_path) {
+        const { obterUrlAssinadaFotoPerfil } = await import("./passenger-profile-photo.functions");
+        passageiroFotoUrl = await obterUrlAssinadaFotoPerfil(supabaseAdmin, pData.foto_perfil_path);
       }
     }
 
@@ -187,6 +219,9 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
             destino_lat: activeRide.destino_lat !== null ? Number(activeRide.destino_lat) : null,
             destino_lng: activeRide.destino_lng !== null ? Number(activeRide.destino_lng) : null,
             passageiro_nome: passageiroNome,
+            passageiro_foto_url: passageiroFotoUrl,
+            passageiro_nota_media: passageiroNotaMedia,
+            passageiro_total_avaliacoes: passageiroTotalAvaliacoes,
           }
         : null,
       nome: usuario.nome,
