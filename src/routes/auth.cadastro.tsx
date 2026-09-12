@@ -144,6 +144,8 @@ function CadastroPage() {
     } catch (error: any) {
       const userFriendlyMessage = error.message?.includes('violates unique constraint')
         ? "Este e-mail, CPF ou celular já está cadastrado."
+        : error.message?.includes('Faça login com o Google')
+        ? error.message
         : "Ocorreu um erro ao processar seu cadastro. Tente novamente.";
       toast.error(userFriendlyMessage);
     } finally {
