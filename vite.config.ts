@@ -10,6 +10,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(() => {
   const isNetlifyBuild = process.env["NETLIFY"] === "true";
+  const pwaOutDir = isNetlifyBuild ? "dist" : "dist/client";
 
   return {
     // Netlify's official adapter packages the TanStack Start server itself.
@@ -33,8 +34,9 @@ export default defineConfig(() => {
       // The manifest is a static, same-origin file in public/.
       manifest: false,
       filename: "sw.js",
-      // The Nitro/Cloudflare build serves static files from dist/client.
-      outDir: "dist/client",
+      // Lovable's Cloudflare/nitro build serves static files from dist/client;
+      // Netlify's nitro preset emits the client bundle into plain dist/ instead.
+      outDir: pwaOutDir,
       workbox: {
         globPatterns: ["**/*.{js,css,woff,woff2,png,svg,ico,webmanifest,html}"],
         // Manipuladores de push/notificationclick (public/sw-push.js), importados
