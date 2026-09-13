@@ -139,21 +139,26 @@ function HistoricoCorridas() {
 
       <main className="flex-1 max-w-md mx-auto w-full px-5 py-6 space-y-8">
         {isLoading || !isHydrated ? (
-          <div className="space-y-8">
-            <div>
-              <Skeleton className="h-3 w-16 mb-3 ml-1" />
-              <div className="space-y-4">
-                <CorridaCardSkeleton />
-                <CorridaCardSkeleton />
+          <>
+            <div className="sr-only" aria-live="polite">
+              Carregando suas corridas...
+            </div>
+            <div className="space-y-8" aria-hidden="true">
+              <div>
+                <Skeleton className="h-3 w-16 mb-3 ml-1" />
+                <div className="space-y-4">
+                  <CorridaCardSkeleton />
+                  <CorridaCardSkeleton />
+                </div>
+              </div>
+              <div>
+                <Skeleton className="h-3 w-16 mb-3 ml-1" />
+                <div className="space-y-4">
+                  <CorridaCardSkeleton />
+                </div>
               </div>
             </div>
-            <div>
-              <Skeleton className="h-3 w-16 mb-3 ml-1" />
-              <div className="space-y-4">
-                <CorridaCardSkeleton />
-              </div>
-            </div>
-          </div>
+          </>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 text-red-400">
             <p className="text-sm font-medium">Erro ao carregar histórico.</p>
