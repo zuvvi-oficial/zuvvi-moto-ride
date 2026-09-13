@@ -316,6 +316,18 @@ function AcompanhamentoCorrida() {
               payload.new?.status === "em_andamento" ||
               payload.new?.status === "concluida"
             ) {
+              // Padrões diferentes por marco pra quem sente no bolso reconhecer
+              // qual mudança aconteceu sem precisar olhar a tela.
+              if ("vibrate" in navigator) {
+                const padroesVibracao: Record<string, number[]> = {
+                  motorista_a_caminho: [120],
+                  motorista_chegou: [150, 80, 150],
+                  em_andamento: [100],
+                  concluida: [60, 40, 60, 40, 150],
+                };
+                navigator.vibrate(padroesVibracao[payload.new.status] || [100]);
+              }
+
               if (payload.new?.status === "concluida") {
                 void checkAvaliacaoStatus();
               }
@@ -704,8 +716,11 @@ function AcompanhamentoCorrida() {
 
         <div className="flex items-center gap-3">
           <NotificationBell />
-          <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto">
-            <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center">
+          <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto overflow-hidden">
+            <p
+              key={corrida.status}
+              className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-1 duration-300"
+            >
               {corrida.status === "aceita"
                 ? "Motorista Aceitou"
                 : corrida.status === "motorista_a_caminho"

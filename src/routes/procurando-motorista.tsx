@@ -57,6 +57,15 @@ function ProcurandoMotorista() {
   const cancelarCorridaFn = useServerFn(cancelarCorrida);
   const verificarTimeoutCorridaFn = useServerFn(verificarTimeoutCorrida);
 
+  // Reage à mudança do estado (não a cada caminho que a seta) — funciona
+  // igual não importa se quem encontrou o motorista foi o Realtime, a
+  // verificação de timeout ou a carga inicial.
+  useEffect(() => {
+    if (motoristaEncontrado && "vibrate" in navigator) {
+      navigator.vibrate([100, 60, 100, 60, 200]);
+    }
+  }, [motoristaEncontrado]);
+
   // Gancho mínimo da Etapa 5: somente Pix passa pela tela de pagamento.
   // Dinheiro e cartão preservam exatamente o handoff existente para acompanhamento.
   const navigateAfterDriverAssigned = useCallback(
