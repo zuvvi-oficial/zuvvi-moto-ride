@@ -370,13 +370,17 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
   const handleEnablePush = async () => {
     setIsEnablingPush(true);
     try {
-      const outcome = await subscribeToPushNotifications();
+      const { outcome, detalhe } = await subscribeToPushNotifications();
       if (outcome === "subscribed") {
         toast.success("Notificações ativadas neste aparelho.");
       } else if (outcome === "denied") {
         toast.error("Permissão de notificações negada.");
       } else if (outcome === "error" || outcome === "unavailable") {
-        toast.error("Não foi possível ativar as notificações agora. Tente de novo.");
+        toast.error(
+          `Não foi possível ativar as notificações agora. Tente de novo.${
+            detalhe ? ` (${detalhe.slice(0, 200)})` : ""
+          }`,
+        );
       }
     } finally {
       setIsEnablingPush(false);

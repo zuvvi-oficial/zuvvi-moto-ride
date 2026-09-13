@@ -60,43 +60,79 @@ export type PushSubscribeOutcome =
 // deixaria o push morto até recarregar a página.
 let chavePublicaCache: string | undefined;
 
-async function obterChavePublica(): Promise<string | null> {
-  if (chavePublicaCache) return chavePublicaCache;
+function descreverErro(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+// Resultado de subscribeToPushNotifications(): o motivo técnico exato de uma
+// falha em "error"/"unavailable" viaja junto do retorno de cada chamada, e
+// não por uma variável de módulo — a tela do sino já reinscreve em silêncio
+// a cada abertura do app, então duas chamadas concorrentes (essa e a do
+// motorista ficando online) compartilhando um único slot global fariam uma
+// apagar ou trocar o motivo da outra antes do respectivo toast ler.
+interface ChavePublicaResultado {
+  publicKey: string | null;
+  erro: string | null;
+}
+
+async function obterChavePublica(): Promise<ChavePublicaResultado> {
+  if (chavePublicaCache) return { publicKey: chavePublicaCache, erro: null };
 
   try {
     const { getVapidPublicKey } = await import("@/lib/push-subscriptions.functions");
     const { publicKey } = await getVapidPublicKey();
-    if (publicKey) chavePublicaCache = publicKey;
-    return publicKey || null;
+    if (publicKey) {
+      chavePublicaCache = publicKey;
+      return { publicKey, erro: null };
+    }
+    return {
+      publicKey: null,
+      erro: "Servidor respondeu sem chave VAPID pública (VAPID_PUBLIC_KEY ausente no ambiente).",
+    };
   } catch (error) {
     console.error("[Push] Falha ao obter a chave pública VAPID:", error);
-    return null;
+    return { publicKey: null, erro: `Falha ao buscar chave VAPID: ${descreverErro(error)}` };
   }
+}
+
+export interface PushSubscribeResult {
+  outcome: PushSubscribeOutcome;
+  // Motivo técnico exato da falha (nome/mensagem da exceção real), presente
+  // só quando outcome é "error" ou "unavailable" — é o que permite ver na
+  // tela qual falha específica está ocorrendo, em vez de um "não deu certo"
+  // genérico que esconde causas bem diferentes entre si.
+  detalhe: string | null;
 }
 
 // Pede permissão (se necessário) e registra a inscrição no servidor.
 // Idempotente: chamar de novo com uma inscrição já ativa apenas reenvia
 // as mesmas chaves (upsert por endpoint no servidor).
-export async function subscribeToPushNotifications(): Promise<PushSubscribeOutcome> {
-  if (!isPushSupported()) return "unsupported";
+export async function subscribeToPushNotifications(): Promise<PushSubscribeResult> {
+  if (!isPushSupported()) return { outcome: "unsupported", detalhe: null };
 
   // A permissão vem primeiro, antes de qualquer espera de rede: em Safari/iOS
   // o pedido precisa sair ainda "colado" no toque que originou a ação, e
   // buscar a chave antes gastaria esse gesto — o usuário nunca veria o aviso.
-  if (Notification.permission === "denied") return "denied";
+  if (Notification.permission === "denied") return { outcome: "denied", detalhe: null };
   if (Notification.permission !== "granted") {
     const permission = await Notification.requestPermission();
-    if (permission !== "granted") return "denied";
+    if (permission !== "granted") return { outcome: "denied", detalhe: null };
   }
 
-  const vapidPublicKey = await obterChavePublica();
+  const { publicKey: vapidPublicKey, erro: erroChave } = await obterChavePublica();
   if (!vapidPublicKey) {
     // Sem VAPID_PUBLIC_KEY no ambiente, o push é impossível — e sem este aviso
     // a ativação falharia calada, que foi o que escondeu isso por tanto tempo.
     console.warn(
       "[Push] Não foi possível obter a chave pública VAPID (ausente no servidor, ou falha de rede). Notificações não puderam ser ativadas.",
     );
-    return "unavailable";
+    return { outcome: "unavailable", detalhe: erroChave };
   }
 
   try {
@@ -118,7 +154,12 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
     }
 
     const keys = subscriptionKeys(subscription);
-    if (!keys) return "error";
+    if (!keys) {
+      return {
+        outcome: "error",
+        detalhe: "Inscrição criada sem as chaves p256dh/auth (subscription.toJSON() incompleto).",
+      };
+    }
 
     const { registrarPushSubscription, removerPushSubscription } =
       await import("@/lib/push-subscriptions.functions");
@@ -138,10 +179,10 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
       await removerPushSubscription({ data: { endpoint: endpointRenovado } }).catch(() => {});
     }
 
-    return "subscribed";
+    return { outcome: "subscribed", detalhe: null };
   } catch (error) {
     console.error("[Push] Falha ao inscrever para notificações:", error);
-    return "error";
+    return { outcome: "error", detalhe: descreverErro(error) };
   }
 }
 
