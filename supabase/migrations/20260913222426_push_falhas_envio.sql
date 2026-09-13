@@ -1,1 +1,32 @@
-LS0gUmVnaXN0cmEgZmFsaGFzIHJlYWlzIGRlIGVudmlvIGRlIFdlYiBQdXNoIChuw6NvIGEgaW5zY3Jpw6fDo28gZG8gbmF2ZWdhZG9yLAotLSBxdWUgasOhIMOpIHZpc8OtdmVsIHZpYSBwdXNoX3N1YnNjcmlwdGlvbnMvdG9hc3QgLS0gaXNzbyBhcXVpIMOpIG8gcGFzc28KLS0gc2VndWludGUsIHNlcnZpZG9yLXBhcmEtcHJvdmVkb3IsIHF1ZSBob2plIHPDsyBhcGFyZWNlIGVtIGNvbnNvbGUuZXJyb3IKLS0gZG8gc2Vydmlkb3IsIGludmlzw612ZWwgc2VtIGFjZXNzbyBhbyBwYWluZWwgZGEgVmVyY2VsKS4gU2VtIGlzc28sIHVtYQotLSBmYWxoYSBubyBlbnZpbyAoVkFQSUQgYXVzZW50ZSwgY2hhdmUgaW5jb21wYXTDrXZlbCwgZXJybyBIVFRQIGRvIHByb3ZlZG9yKQotLSBudW5jYSBkZWl4YSByYXN0cm8gY29uc3VsdMOhdmVsLCBlc2NvbmRlbmRvIGp1c3RhbWVudGUgbyBjYXNvIHF1ZSBtYWlzCi0tIGltcG9ydGEgZGlhZ25vc3RpY2FyOiBhIG5vdGlmaWNhw6fDo28gZm9pICJjcmlhZGEiIG1hcyBudW5jYSBjaGVnb3UuCkNSRUFURSBUQUJMRSBJRiBOT1QgRVhJU1RTIHB1YmxpYy5wdXNoX2ZhbGhhc19lbnZpbyAoCiAgICBpZCBVVUlEIFBSSU1BUlkgS0VZIERFRkFVTFQgZ2VuX3JhbmRvbV91dWlkKCksCiAgICB1c3VhcmlvX2lkIFVVSUQgTk9UIE5VTEwgUkVGRVJFTkNFUyBwdWJsaWMudXN1YXJpb3MoaWQpIE9OIERFTEVURSBDQVNDQURFLAogICAgcHVzaF9zdWJzY3JpcHRpb25faWQgVVVJRCBSRUZFUkVOQ0VTIHB1YmxpYy5wdXNoX3N1YnNjcmlwdGlvbnMoaWQpIE9OIERFTEVURSBTRVQgTlVMTCwKICAgIHRpcG9fbm90aWZpY2FjYW8gVEVYVCBOT1QgTlVMTCwKICAgIG1vdGl2byBURVhUIE5PVCBOVUxMLAogICAgZGV0YWxoZSBURVhULAogICAgY3JlYXRlZF9hdCBUSU1FU1RBTVBUWiBOT1QgTlVMTCBERUZBVUxUIG5vdygpCik7CgpDUkVBVEUgSU5ERVggSUYgTk9UIEVYSVNUUyBpZHhfcHVzaF9mYWxoYXNfZW52aW9fdXN1YXJpb19jcmVhdGVkCiAgICBPTiBwdWJsaWMucHVzaF9mYWxoYXNfZW52aW8gKHVzdWFyaW9faWQsIGNyZWF0ZWRfYXQgREVTQyk7CgpDT01NRU5UIE9OIFRBQkxFIHB1YmxpYy5wdXNoX2ZhbGhhc19lbnZpbyBJUwogICAgJ0xvZyBkZSBkaWFnbsOzc3RpY286IGNhZGEgZmFsaGEgcmVhbCBhbyBlbnZpYXIgdW0gV2ViIFB1c2ggKG7Do28gYSBpbnNjcmnDp8OjbyBkbyBuYXZlZ2Fkb3IpLiBFc2NyaXRvIGFwZW5hcyBwZWxvIHNlcnZpZG9yIChzZXJ2aWNlX3JvbGUpOyBudW5jYSBleHBvc3RvIGEgYW5vbi9hdXRoZW50aWNhdGVkLic7CkNPTU1FTlQgT04gQ09MVU1OIHB1YmxpYy5wdXNoX2ZhbGhhc19lbnZpby5tb3Rpdm8gSVMKICAgICdDYXRlZ29yaWEgY3VydGEgZSBlc3TDoXZlbCBkYSBmYWxoYSAoZXguOiB2YXBpZF9hdXNlbnRlLCBodHRwX2Vycm9yLCBleGNlY2FvKSAtLSB1c2FkYSBwYXJhIGFncnVwYXIvZmlsdHJhciBzZW0gZGVwZW5kZXIgZG8gdGV4dG8gbGl2cmUgZGUgImRldGFsaGUiLic7CkNPTU1FTlQgT04gQ09MVU1OIHB1YmxpYy5wdXNoX2ZhbGhhc19lbnZpby5kZXRhbGhlIElTCiAgICAnVGV4dG8gbGl2cmUgY29tIG8gbW90aXZvIHTDqWNuaWNvIGV4YXRvIChzdGF0dXMgSFRUUCBkbyBwcm92ZWRvciwgbWVuc2FnZW0gZGEgZXhjZcOnw6NvKSAtLSBzw7MgcGFyYSBkaWFnbsOzc3RpY28gbWFudWFsLCBudW5jYSBpbnRlcnByZXRhZG8gcG9yIGPDs2RpZ28uJzsKCi0tIFNvbWVudGUgbyBzZXJ2aWRvciBlc2NyZXZlIGUgbMOqIGVzdGUgbG9nOyBudW5jYSBleHBvc3RvIGFvIG5hdmVnYWRvci4KUkVWT0tFIEFMTCBPTiBwdWJsaWMucHVzaF9mYWxoYXNfZW52aW8gRlJPTSBwdWJsaWMsIGFub24sIGF1dGhlbnRpY2F0ZWQ7CkdSQU5UIEFMTCBPTiBwdWJsaWMucHVzaF9mYWxoYXNfZW52aW8gVE8gc2VydmljZV9yb2xlOwoKQUxURVIgVEFCTEUgcHVibGljLnB1c2hfZmFsaGFzX2VudmlvIEVOQUJMRSBST1cgTEVWRUwgU0VDVVJJVFk7Cg==
+-- Registra falhas reais de envio de Web Push (não a inscrição do navegador,
+-- que já é visível via push_subscriptions/toast — isso aqui é o passo
+-- seguinte, servidor-para-provedor, que hoje só aparece em console.error
+-- do servidor, invisível sem acesso ao painel da Vercel). Sem isso, uma
+-- falha no envio (VAPID ausente, chave incompatível, erro HTTP do provedor)
+-- nunca deixa rastro consultável, escondendo justamente o caso que mais
+-- importa diagnosticar: a notificação foi "criada" mas nunca chegou.
+CREATE TABLE IF NOT EXISTS public.push_falhas_envio (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    push_subscription_id UUID REFERENCES public.push_subscriptions(id) ON DELETE SET NULL,
+    tipo_notificacao TEXT NOT NULL,
+    motivo TEXT NOT NULL,
+    detalhe TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_falhas_envio_usuario_created
+    ON public.push_falhas_envio (usuario_id, created_at DESC);
+
+COMMENT ON TABLE public.push_falhas_envio IS
+    'Log de diagnóstico: cada falha real ao enviar um Web Push (não a inscrição do navegador). Escrito apenas pelo servidor (service_role); nunca exposto a anon/authenticated.';
+COMMENT ON COLUMN public.push_falhas_envio.motivo IS
+    'Categoria curta e estável da falha (ex.: vapid_ausente, http_error, excecao) — usada para agrupar/filtrar sem depender do texto livre de "detalhe".';
+COMMENT ON COLUMN public.push_falhas_envio.detalhe IS
+    'Texto livre com o motivo técnico exato (status HTTP do provedor, mensagem da exceção) — só para diagnóstico manual, nunca interpretado por código.';
+
+-- Somente o servidor escreve e lê este log; nunca exposto ao navegador.
+REVOKE ALL ON public.push_falhas_envio FROM public, anon, authenticated;
+GRANT ALL ON public.push_falhas_envio TO service_role;
+
+ALTER TABLE public.push_falhas_envio ENABLE ROW LEVEL SECURITY;
