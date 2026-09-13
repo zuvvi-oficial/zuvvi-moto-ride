@@ -26,8 +26,17 @@ export default defineConfig(() => {
         // The manifest is a static, same-origin file in public/.
         manifest: false,
         filename: "sw.js",
-        // The Nitro/Cloudflare build serves static files from dist/client.
-        outDir: "dist/client",
+        // "dist" is the real client output directory Nitro copies from for
+        // every preset used by this project (Vercel, Netlify, Cloudflare) —
+        // confirmed by building with each preset's own env var and checking
+        // where the static assets actually end up. "dist/client" (the
+        // previous value here) is never that directory under any preset:
+        // sw.js used to land in a folder Nitro never publishes, so the
+        // browser's registration request for /sw.js always 404'd, and the
+        // precache manifest below was always computed against an
+        // almost-empty directory (hence "precache 0 entries" in every
+        // build log, however small the app got).
+        outDir: "dist",
         workbox: {
           globPatterns: ["**/*.{js,css,woff,woff2,png,svg,ico,webmanifest,html}"],
           // Manipuladores de push/notificationclick (public/sw-push.js), importados
