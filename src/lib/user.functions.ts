@@ -381,7 +381,7 @@ export async function criarCorridaCore(
 
   const { data: usuario } = await supabaseAdmin
     .from("usuarios")
-    .select("id, cidade_id")
+    .select("id, cidade_id, foto_perfil_path")
     .eq("auth_user_id", authUserId)
     .single();
 
@@ -559,6 +559,15 @@ export async function criarCorridaCore(
     const { criarNotificacao } = await import("./notificacoes.server");
     const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
 
+    // Foto do passageiro no push de oferta, mesmo padrão já usado na
+    // notificação de chat — informativa, nunca crítica (obterUrlAssinadaFotoPerfil
+    // já retorna null em qualquer falha, sem lançar).
+    const fotoPerfilPathPassageiro =
+      typeof usuario.foto_perfil_path === "string" ? usuario.foto_perfil_path : null;
+    const iconePassageiro = fotoPerfilPathPassageiro
+      ? await obterUrlAssinadaFotoPerfil(supabaseAdmin, fotoPerfilPathPassageiro)
+      : null;
+
     // Etapa 3 do motorista favorito: se algum motorista favoritado por esse
     // passageiro estiver disponível agora nesta mesma cidade, ele recebe a
     // oferta primeiro — o mais próximo, se houver mais de um — com uma
@@ -681,6 +690,7 @@ export async function criarCorridaCore(
             titulo: "⭐ Um passageiro que já andou com você está te chamando!",
             mensagem: `Passageiro esperando em ${data.origemNome || "sua região"}.`,
             corrida_id: corridaId as string,
+            icon: iconePassageiro,
           });
         }
       }
@@ -718,6 +728,7 @@ export async function criarCorridaCore(
             titulo: "🔔 Nova corrida disponível!",
             mensagem: `Passageiro esperando em ${data.origemNome || "sua região"}.`,
             corrida_id: corridaId as string,
+            icon: iconePassageiro,
           }),
         ),
       );
