@@ -78,11 +78,7 @@ import {
   getMotoristaProfilePhoto,
   MOTORISTA_PROFILE_PHOTO_QUERY_KEY,
 } from "@/lib/motorista-profile-photo.functions";
-import {
-  isPushSupported,
-  subscribeToPushNotifications,
-  getUltimoErroPushDetalhe,
-} from "@/lib/pwa/push-subscribe";
+import { isPushSupported, subscribeToPushNotifications } from "@/lib/pwa/push-subscribe";
 
 export const Route = createFileRoute("/home-motorista")({
   loader: async () => {
@@ -1075,7 +1071,7 @@ function HomeMotorista() {
         // pelo menos sabe que precisa tentar de novo (ex: internet instável
         // no momento exato do toque em Online).
         subscribeToPushNotifications()
-          .then((outcome) => {
+          .then(({ outcome, detalhe }) => {
             // "unavailable" é uma falha recuperável (rede instável, servidor
             // fora do ar ao buscar a chave) — diferente de "unsupported"
             // (navegador sem a API, nada a fazer), por isso também precisa
@@ -1084,7 +1080,6 @@ function HomeMotorista() {
               // O motivo técnico exato (nome/mensagem da exceção real) vai
               // junto do aviso: sem isso "não foi possível" é tudo que dá
               // pra reportar de volta, e não dá pra distinguir causas.
-              const detalhe = getUltimoErroPushDetalhe();
               toast.error(
                 `Não foi possível ativar as notificações de nova corrida neste aparelho. Toque em Online de novo para tentar mais uma vez.${
                   detalhe ? ` (${detalhe.slice(0, 200)})` : ""
