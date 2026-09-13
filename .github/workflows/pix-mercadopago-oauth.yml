@@ -126,7 +126,7 @@ jobs:
           // quando a PR atual não toca em package.json.
           if (base.dependencies) delete base.dependencies['qrcode.react'];
 
-          if (atual.scripts?.build !== 'vite build && bun scripts/build/publicar-service-worker.ts') {
+          if (atual.scripts?.build !== 'vite build && node scripts/build/publicar-service-worker.mjs') {
             throw new Error('scripts.build deve publicar o service worker após vite build (ZV 08)');
           }
           delete atual.scripts.build;

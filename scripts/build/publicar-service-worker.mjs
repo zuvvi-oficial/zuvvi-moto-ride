@@ -16,6 +16,12 @@
 // (que devolve HTML), e o navegador rejeitava o registro do service worker
 // — quebrando push e instalação como PWA silenciosamente, sem nenhum erro
 // visível no build.
+//
+// JavaScript puro executado via `node` (não `bun scripts/....ts`): a
+// plataforma de deploy que executa `bun run build` pode rodar esse comando
+// composto num ambiente onde só o binário "node" (não "bun") está
+// garantido no PATH depois que o passo `vite build` termina — usar Node
+// aqui evita depender disso.
 
 import { existsSync, copyFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -28,7 +34,7 @@ const SERVICE_WORKER_FILE_PATTERN = /^(sw\.js|workbox-.*\.js)$/;
 // preset Netlify publica "dist" diretamente — já é a origem, nada a copiar.
 const TARGET_DIRS = [".vercel/output/static", ".output/public"];
 
-function encontrarArquivosDoServiceWorker(dir: string): string[] {
+function encontrarArquivosDoServiceWorker(dir) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir).filter((name) => SERVICE_WORKER_FILE_PATTERN.test(name));
 }
