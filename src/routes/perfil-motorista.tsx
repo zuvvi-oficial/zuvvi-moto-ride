@@ -22,6 +22,7 @@ import { MotoristaProfilePhoto } from "@/components/motorista/MotoristaProfilePh
 import { ExcluirContaDialog } from "@/components/perfil/ExcluirContaDialog";
 import { BaixarMeusDadosButton } from "@/components/perfil/BaixarMeusDadosButton";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { getMotoristaStatusHome } from "@/lib/motorista-status.functions";
@@ -103,9 +104,22 @@ function PerfilMotorista() {
       <main className="mx-auto w-full max-w-md flex-1 space-y-7 px-5 py-7 pb-32">
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.045] p-6">
           {isLoading ? (
-            <div className="flex min-h-28 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-zuvvi-volt" />
-            </div>
+            <>
+              <div className="sr-only" aria-live="polite">
+                Carregando seu perfil...
+              </div>
+              <div className="flex items-center gap-4" aria-hidden="true">
+                <Skeleton className="h-16 w-16 rounded-full shrink-0" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-2.5 w-24" />
+                  <Skeleton className="h-5 w-40" />
+                  <div className="flex gap-2 pt-1">
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </>
           ) : error || !status ? (
             <div className="py-4 text-center">
               <p className="font-bold">Não foi possível carregar seu perfil.</p>

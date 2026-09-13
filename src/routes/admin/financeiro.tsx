@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminBottomNav } from "@/components/admin/AdminBottomNav";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 function toLocalDateInputValue(date: Date) {
@@ -440,10 +441,40 @@ function FinanceiroAdmin() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-            <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
-            <p className="text-sm font-medium opacity-60">Carregando resumo financeiro...</p>
-          </div>
+          <>
+            <div className="sr-only" aria-live="polite">
+              Carregando resumo financeiro...
+            </div>
+            <div aria-hidden="true" className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3"
+                  >
+                    <Skeleton className="h-2.5 w-24" />
+                    <Skeleton className="h-7 w-20" />
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-32" />
+                <div className="rounded-md border border-white/10 bg-zuvvi-indigo/50 p-4 space-y-3">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-32" />
+                <div className="rounded-md border border-white/10 bg-zuvvi-indigo/50 p-4 space-y-3">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              </div>
+            </div>
+          </>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 text-red-400">
             <p className="text-sm font-medium">Erro ao carregar resumo financeiro.</p>
