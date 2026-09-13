@@ -45,7 +45,14 @@ function inscricaoUsaChaveAtual(subscription: PushSubscription, vapidPublicKey: 
   return arrayBufferToBase64Url(chaveAtual) === vapidPublicKey;
 }
 
-export type PushSubscribeOutcome = "subscribed" | "denied" | "unsupported" | "error";
+// "unsupported": o navegador não tem a API (nada a fazer, fica em silêncio).
+// "unavailable": a API existe, mas não deu pra buscar a chave VAPID agora
+// (rede instável, servidor fora do ar) — diferente de "unsupported", essa
+// é recuperável e precisa aparecer pro motorista (achado do Codex na PR
+// #151: antes essa falha virava "unsupported" e ficava tão calada quanto
+// um navegador de fato incapaz, escondendo justamente o caso mais comum).
+export type PushSubscribeOutcome =
+  "subscribed" | "denied" | "unsupported" | "unavailable" | "error";
 
 // A chave não muda durante a sessão, então guardar a primeira resposta boa
 // evita ida e volta desnecessária. Falha de rede ou de sessão NÃO é guardada:
@@ -87,9 +94,9 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
     // Sem VAPID_PUBLIC_KEY no ambiente, o push é impossível — e sem este aviso
     // a ativação falharia calada, que foi o que escondeu isso por tanto tempo.
     console.warn(
-      "[Push] VAPID_PUBLIC_KEY ausente no servidor: notificações não podem ser ativadas. Ver .env.example.",
+      "[Push] Não foi possível obter a chave pública VAPID (ausente no servidor, ou falha de rede). Notificações não puderam ser ativadas.",
     );
-    return "unsupported";
+    return "unavailable";
   }
 
   try {
