@@ -13,17 +13,17 @@ const items = [
   { key: "perfil", label: "Perfil", to: "/perfil-motorista", Icon: User },
 ] as const;
 
-// Mesma pílula flutuante com blur usada em todo o app do motorista (cabeçalho,
-// badges do mapa, etc.) — não o cartão colado na borda usado do lado do
-// passageiro, que destoou do resto da tela do motorista.
+// Mesmo tratamento do cabeçalho do motorista (barra reta colada na borda, só
+// com uma linha fina de separação) — não a pílula flutuante com contorno
+// completo, que o usuário pediu pra tirar.
 export function MotoristaBottomNav({ active }: MotoristaBottomNavProps) {
   return (
     <nav
       aria-label="Navegação principal do motorista"
-      className="fixed bottom-0 left-0 right-0 px-6 z-40 pointer-events-none"
-      style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))", paddingTop: "1.5rem" }}
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-zuvvi-indigo/90 backdrop-blur-xl px-6 pt-3"
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
-      <div className="max-w-md mx-auto bg-zuvvi-indigo/80 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 flex items-center justify-around pointer-events-auto shadow-2xl">
+      <div className="max-w-md mx-auto flex items-center justify-around">
         {items.map(({ key, label, to, Icon }) => {
           const isActive = active === key;
 
