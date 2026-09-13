@@ -60,16 +60,42 @@ export type PushSubscribeOutcome =
 // deixaria o push morto até recarregar a página.
 let chavePublicaCache: string | undefined;
 
+// Guarda o motivo técnico exato da última falha em "error"/"unavailable",
+// já que as duas telas que consomem PushSubscribeOutcome só têm uma
+// categoria genérica pra mostrar — sem isso, "não deu certo" é tudo que o
+// motorista consegue enxergar e reportar de volta.
+let ultimoErroDetalhe: string | null = null;
+
+export function getUltimoErroPushDetalhe(): string | null {
+  return ultimoErroDetalhe;
+}
+
+function descreverErro(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
 async function obterChavePublica(): Promise<string | null> {
   if (chavePublicaCache) return chavePublicaCache;
 
   try {
     const { getVapidPublicKey } = await import("@/lib/push-subscriptions.functions");
     const { publicKey } = await getVapidPublicKey();
-    if (publicKey) chavePublicaCache = publicKey;
-    return publicKey || null;
+    if (publicKey) {
+      chavePublicaCache = publicKey;
+      return publicKey;
+    }
+    ultimoErroDetalhe =
+      "Servidor respondeu sem chave VAPID pública (VAPID_PUBLIC_KEY ausente no ambiente).";
+    return null;
   } catch (error) {
     console.error("[Push] Falha ao obter a chave pública VAPID:", error);
+    ultimoErroDetalhe = `Falha ao buscar chave VAPID: ${descreverErro(error)}`;
     return null;
   }
 }
@@ -78,6 +104,8 @@ async function obterChavePublica(): Promise<string | null> {
 // Idempotente: chamar de novo com uma inscrição já ativa apenas reenvia
 // as mesmas chaves (upsert por endpoint no servidor).
 export async function subscribeToPushNotifications(): Promise<PushSubscribeOutcome> {
+  ultimoErroDetalhe = null;
+
   if (!isPushSupported()) return "unsupported";
 
   // A permissão vem primeiro, antes de qualquer espera de rede: em Safari/iOS
@@ -118,7 +146,11 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
     }
 
     const keys = subscriptionKeys(subscription);
-    if (!keys) return "error";
+    if (!keys) {
+      ultimoErroDetalhe =
+        "Inscrição criada sem as chaves p256dh/auth (subscription.toJSON() incompleto).";
+      return "error";
+    }
 
     const { registrarPushSubscription, removerPushSubscription } =
       await import("@/lib/push-subscriptions.functions");
@@ -141,6 +173,7 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
     return "subscribed";
   } catch (error) {
     console.error("[Push] Falha ao inscrever para notificações:", error);
+    ultimoErroDetalhe = descreverErro(error);
     return "error";
   }
 }

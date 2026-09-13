@@ -78,7 +78,11 @@ import {
   getMotoristaProfilePhoto,
   MOTORISTA_PROFILE_PHOTO_QUERY_KEY,
 } from "@/lib/motorista-profile-photo.functions";
-import { isPushSupported, subscribeToPushNotifications } from "@/lib/pwa/push-subscribe";
+import {
+  isPushSupported,
+  subscribeToPushNotifications,
+  getUltimoErroPushDetalhe,
+} from "@/lib/pwa/push-subscribe";
 
 export const Route = createFileRoute("/home-motorista")({
   loader: async () => {
@@ -1077,14 +1081,20 @@ function HomeMotorista() {
             // (navegador sem a API, nada a fazer), por isso também precisa
             // do aviso (achado do Codex na PR #151).
             if (outcome === "error" || outcome === "unavailable") {
+              // O motivo técnico exato (nome/mensagem da exceção real) vai
+              // junto do aviso: sem isso "não foi possível" é tudo que dá
+              // pra reportar de volta, e não dá pra distinguir causas.
+              const detalhe = getUltimoErroPushDetalhe();
               toast.error(
-                "Não foi possível ativar as notificações de nova corrida neste aparelho. Toque em Online de novo para tentar mais uma vez.",
+                `Não foi possível ativar as notificações de nova corrida neste aparelho. Toque em Online de novo para tentar mais uma vez.${
+                  detalhe ? ` (${detalhe.slice(0, 200)})` : ""
+                }`,
               );
             }
           })
-          .catch(() => {
+          .catch((error) => {
             toast.error(
-              "Não foi possível ativar as notificações de nova corrida neste aparelho. Toque em Online de novo para tentar mais uma vez.",
+              `Não foi possível ativar as notificações de nova corrida neste aparelho. Toque em Online de novo para tentar mais uma vez. (${String(error?.message || error).slice(0, 200)})`,
             );
           });
       }

@@ -27,7 +27,11 @@ import { format, isThisYear, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useSoundStore } from "@/hooks/use-sound";
-import { isPushSupported, subscribeToPushNotifications } from "@/lib/pwa/push-subscribe";
+import {
+  isPushSupported,
+  subscribeToPushNotifications,
+  getUltimoErroPushDetalhe,
+} from "@/lib/pwa/push-subscribe";
 
 export interface NotificationBellItem {
   id: string;
@@ -376,7 +380,12 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
       } else if (outcome === "denied") {
         toast.error("Permissão de notificações negada.");
       } else if (outcome === "error" || outcome === "unavailable") {
-        toast.error("Não foi possível ativar as notificações agora. Tente de novo.");
+        const detalhe = getUltimoErroPushDetalhe();
+        toast.error(
+          `Não foi possível ativar as notificações agora. Tente de novo.${
+            detalhe ? ` (${detalhe.slice(0, 200)})` : ""
+          }`,
+        );
       }
     } finally {
       setIsEnablingPush(false);
