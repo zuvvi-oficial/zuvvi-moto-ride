@@ -57,14 +57,15 @@ function ProcurandoMotorista() {
   const cancelarCorridaFn = useServerFn(cancelarCorrida);
   const verificarTimeoutCorridaFn = useServerFn(verificarTimeoutCorrida);
 
-  // Reage à mudança do estado (não a cada caminho que a seta) — funciona
-  // igual não importa se quem encontrou o motorista foi o Realtime, a
-  // verificação de timeout ou a carga inicial.
-  useEffect(() => {
-    if (motoristaEncontrado && "vibrate" in navigator) {
+  // Chamada direta (não um useEffect reagindo ao estado): a navegação para
+  // acompanhamento acontece no mesmo tick logo em seguida em todo caminho que
+  // encontra o motorista, e um efeito só roda depois do commit — rápido
+  // demais e o componente já pode ter desmontado antes da vibração disparar.
+  const vibrarMotoristaEncontrado = useCallback(() => {
+    if ("vibrate" in navigator) {
       navigator.vibrate([100, 60, 100, 60, 200]);
     }
-  }, [motoristaEncontrado]);
+  }, []);
 
   // Gancho mínimo da Etapa 5: somente Pix passa pela tela de pagamento.
   // Dinheiro e cartão preservam exatamente o handoff existente para acompanhamento.
@@ -124,6 +125,7 @@ function ProcurandoMotorista() {
         // Evita passageiro preso em 00:00 caso o evento Realtime seja perdido/atrasado.
         motoristaEncontradoRef.current = true;
         setMotoristaEncontrado(true);
+        vibrarMotoristaEncontrado();
         if (retryTimeoutRef.current) {
           clearTimeout(retryTimeoutRef.current);
           retryTimeoutRef.current = null;
@@ -174,6 +176,7 @@ function ProcurandoMotorista() {
         if (data && data.motorista_id && assignedStatuses.includes(data.status)) {
           motoristaEncontradoRef.current = true;
           setMotoristaEncontrado(true);
+          vibrarMotoristaEncontrado();
           navigateAfterDriverAssigned(data.forma_pagamento);
           return;
         }
@@ -242,6 +245,7 @@ function ProcurandoMotorista() {
             ) {
               motoristaEncontradoRef.current = true;
               setMotoristaEncontrado(true);
+              vibrarMotoristaEncontrado();
               toast.success("Motorista encontrou você!");
               navigateAfterDriverAssigned(updatedRide.forma_pagamento);
             }
@@ -272,6 +276,7 @@ function ProcurandoMotorista() {
               ) {
                 motoristaEncontradoRef.current = true;
                 setMotoristaEncontrado(true);
+                vibrarMotoristaEncontrado();
                 navigateAfterDriverAssigned(data.forma_pagamento);
               }
             } catch (err) {
@@ -288,7 +293,7 @@ function ProcurandoMotorista() {
         supabase.removeChannel(channel);
       }
     };
-  }, [rideId, getCorridaFn, navigate, navigateAfterDriverAssigned]);
+  }, [rideId, getCorridaFn, navigate, navigateAfterDriverAssigned, vibrarMotoristaEncontrado]);
 
   // Effect de contagem regressiva baseada no created_at real da corrida
   useEffect(() => {
