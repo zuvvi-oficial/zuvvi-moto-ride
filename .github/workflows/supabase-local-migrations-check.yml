@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/supabase-local-migrations-check.yml'
       - 'supabase/migrations/**'
+      - 'src/integrations/supabase/types.ts'
   workflow_dispatch:
 
 jobs:
@@ -30,6 +31,38 @@ jobs:
 
       - name: Run Full Database Reset (Local Only)
         run: npx supabase@2.111.0 db reset --local
+
+      - name: Instalar Bun fixado
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: bun install --frozen-lockfile
+
+      # ZV 03 (plano de fechamento): evita CI verde com banco incompatível —
+      # gera os tipos a partir do schema local recém-recriado pelas 114
+      # migrations e compara com o arquivo versionado. O arquivo temporário
+      # fica dentro do repositório (não em /tmp) para o Prettier resolver o
+      # .prettierrc do projeto (printWidth 100); sem isso o diff sempre
+      # acusaria divergência só de quebra de linha, não de schema de verdade.
+      # "--ignore-path .prettierignore" é necessário porque o próprio nome
+      # deste arquivo temporário está no .gitignore (para não ser commitado
+      # por engano se alguém rodar isso localmente) — sem essa flag, o
+      # Prettier 3 respeita .gitignore por padrão e pularia a formatação
+      # silenciosamente, fazendo o diff abaixo sempre acusar divergência.
+      # A comparação em si roda por scripts/ci/comparar-tipos-supabase.mjs
+      # em vez de "diff" puro: "--local" (usado aqui) e a API hospedada
+      # (usada para gerar o arquivo versionado) produzem metadados de
+      # geração diferentes que não refletem o schema real — ver o comentário
+      # no topo daquele script para o porquê exato.
+      - name: Gerar tipos TypeScript do schema local e comparar com o versionado
+        run: |
+          set -euo pipefail
+          npx supabase@2.111.0 gen types typescript --local > src/integrations/supabase/types.generated.ts
+          bunx prettier --ignore-path .prettierignore --write src/integrations/supabase/types.generated.ts
+          node scripts/ci/comparar-tipos-supabase.mjs src/integrations/supabase/types.generated.ts src/integrations/supabase/types.ts
+          rm -f src/integrations/supabase/types.generated.ts
 
       - name: Stop Supabase
         if: always()
