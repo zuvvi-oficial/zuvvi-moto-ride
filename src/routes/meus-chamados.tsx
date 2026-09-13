@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ChevronRight,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -83,6 +84,22 @@ function formatarData(value: string) {
   return format(new Date(value), "dd 'de' MMM',' HH:mm", { locale: ptBR });
 }
 
+function ChamadoCardSkeleton() {
+  return (
+    <div className="w-full rounded-2xl p-5 border bg-zuvvi-indigo/40 border-white/5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-6 w-16 rounded-lg" />
+          <Skeleton className="h-6 w-20 rounded-lg" />
+        </div>
+      </div>
+      <Skeleton className="h-4 w-full mt-3" />
+      <Skeleton className="h-4 w-2/3 mt-2" />
+      <Skeleton className="h-2.5 w-24 mt-3" />
+    </div>
+  );
+}
+
 function MeusChamados() {
   const { voltarPara } = Route.useLoaderData();
   const [chamadoAberto, setChamadoAberto] = useState<string | null>(null);
@@ -115,9 +132,16 @@ function MeusChamados() {
 
       <main className="flex-1 max-w-md mx-auto w-full px-5 py-8 space-y-4 animate-rise">
         {isLoading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-zuvvi-volt" />
-          </div>
+          <>
+            <div className="sr-only" aria-live="polite">
+              Carregando seus chamados...
+            </div>
+            <div className="space-y-4" aria-hidden="true">
+              <ChamadoCardSkeleton />
+              <ChamadoCardSkeleton />
+              <ChamadoCardSkeleton />
+            </div>
+          </>
         ) : !chamados || chamados.length === 0 ? (
           <div className="text-center py-16 space-y-4">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-zuvvi-volt/10 border border-zuvvi-volt/20 flex items-center justify-center">

@@ -5,13 +5,14 @@ import {
   listarMinhasCorridasAgendadas,
   cancelarCorridaAgendada,
 } from "@/lib/corridas-agendadas.functions";
-import { CalendarClock, MapPin, CreditCard, Loader2, X, ChevronLeft } from "lucide-react";
+import { CalendarClock, MapPin, CreditCard, X, ChevronLeft } from "lucide-react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/corridas-agendadas")({
   loader: async () => {
@@ -25,6 +26,42 @@ export const Route = createFileRoute("/corridas-agendadas")({
   },
   component: MinhasCorridasAgendadas,
 });
+
+function AgendamentoCardSkeleton() {
+  return (
+    <div className="bg-zuvvi-indigo/40 border border-white/5 rounded-3xl p-5 space-y-4">
+      <div className="flex justify-between items-start">
+        <Skeleton className="h-3 w-32" />
+        <Skeleton className="h-3 w-16" />
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="w-5 flex flex-col items-center pt-1 shrink-0">
+            <div className="w-2 h-2 rounded-full bg-white/40" />
+            <div className="w-[1px] h-4 bg-white/10 my-1" />
+            <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-2">
+            <Skeleton className="h-3.5 w-1/2" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+            <div className="space-y-2">
+              <Skeleton className="h-2 w-16" />
+              <Skeleton className="h-2.5 w-12" />
+            </div>
+          </div>
+          <Skeleton className="h-3 w-14" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function MinhasCorridasAgendadas() {
   const listarFn = useServerFn(listarMinhasCorridasAgendadas);
@@ -91,10 +128,16 @@ function MinhasCorridasAgendadas() {
 
       <main className="flex-1 max-w-md mx-auto w-full px-5 py-6 space-y-4">
         {isLoading || !isHydrated ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-            <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
-            <p className="text-sm font-medium opacity-60">Carregando seus agendamentos...</p>
-          </div>
+          <>
+            <div className="sr-only" aria-live="polite">
+              Carregando seus agendamentos...
+            </div>
+            <div className="space-y-4" aria-hidden="true">
+              <AgendamentoCardSkeleton />
+              <AgendamentoCardSkeleton />
+              <AgendamentoCardSkeleton />
+            </div>
+          </>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 text-red-400">
             <p className="text-sm font-medium">Erro ao carregar agendamentos.</p>
