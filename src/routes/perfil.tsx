@@ -27,6 +27,7 @@ import { MotoristasFavoritosDialog } from "@/components/passageiro/MotoristasFav
 import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
 import { PassengerProfilePhoto } from "@/components/passageiro/PassengerProfilePhoto";
 import { ExcluirContaDialog } from "@/components/perfil/ExcluirContaDialog";
+import { BaixarMeusDadosButton } from "@/components/perfil/BaixarMeusDadosButton";
 import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -380,6 +381,8 @@ function PerfilPassageiro() {
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
           </Link>
+
+          <BaixarMeusDadosButton />
 
           <button
             onClick={handleLogout}
