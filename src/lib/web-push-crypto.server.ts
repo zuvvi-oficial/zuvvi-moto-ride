@@ -25,6 +25,30 @@ export function fromBase64url(str: string): Buffer {
   return Buffer.from(normalized, "base64");
 }
 
+// As duas variáveis VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY são configuradas
+// separadamente no painel de hospedagem — nada impede alguém de trocar uma
+// sem trocar a outra (ex.: regenerar só a pública), o que produz um par que
+// não corresponde matematicamente. O resultado prático disso é sempre o
+// mesmo, silencioso e enganoso: a assinatura VAPID sai formatada
+// corretamente, mas o provedor de push (FCM/Mozilla/etc.) recusa com 403 —
+// indistinguível à primeira vista de um bug na própria assinatura. Esta
+// checagem deriva a chave pública a partir da privada (ECDH em P-256, o
+// mesmo par matemático) e compara com a pública configurada, sem nunca
+// expor nenhuma das duas.
+export function vapidPublicKeyMatchesPrivate(
+  vapidPublicKeyBase64Url: string,
+  vapidPrivateKeyBase64Url: string,
+): boolean {
+  const privateKeyRaw = fromBase64url(vapidPrivateKeyBase64Url);
+  if (privateKeyRaw.length !== 32) return false;
+
+  const ecdh = createECDH("prime256v1");
+  ecdh.setPrivateKey(privateKeyRaw);
+  const derivedPublicKey = base64url(ecdh.getPublicKey(undefined, "uncompressed"));
+
+  return derivedPublicKey === vapidPublicKeyBase64Url;
+}
+
 function hkdfExtract(salt: Buffer, ikm: Buffer): Buffer {
   return createHmac("sha256", salt).update(ikm).digest();
 }

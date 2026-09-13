@@ -136,6 +136,26 @@ async function enviarPushParaUsuario(
     return;
   }
 
+  const { vapidPublicKeyMatchesPrivate } = await import("./web-push-crypto.server");
+  if (
+    !vapidPublicKeyMatchesPrivate(process.env["VAPID_PUBLIC_KEY"], process.env["VAPID_PRIVATE_KEY"])
+  ) {
+    // Sintoma característico deste par incompatível: a assinatura VAPID sai
+    // formatada certinho, mas o provedor de push recusa com 403 — parece um
+    // bug na assinatura, mas é só as duas variáveis terem sido configuradas
+    // (ou regeneradas) em momentos diferentes, sem formar o mesmo par.
+    console.error(
+      "Push não enviado: VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY não formam um par válido.",
+    );
+    await registrarFalhaEnvioPush(supabase, {
+      usuario_id: params.usuario_id,
+      tipo: params.tipo,
+      motivo: "vapid_par_incompativel",
+      detalhe: null,
+    });
+    return;
+  }
+
   const { data: subscriptions, error } = await supabase
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
