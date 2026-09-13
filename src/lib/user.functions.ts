@@ -381,7 +381,7 @@ export async function criarCorridaCore(
 
   const { data: usuario } = await supabaseAdmin
     .from("usuarios")
-    .select("id, cidade_id")
+    .select("id, cidade_id, foto_perfil_path")
     .eq("auth_user_id", authUserId)
     .single();
 
@@ -559,6 +559,15 @@ export async function criarCorridaCore(
     const { criarNotificacao } = await import("./notificacoes.server");
     const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
 
+    // Foto do passageiro no push de oferta, mesmo padrão já usado na
+    // notificação de chat — informativa, nunca crítica (obterUrlAssinadaFotoPerfil
+    // já retorna null em qualquer falha, sem lançar). Buscada só depois de
+    // qualquer UPDATE crítico de prioridade do favorito (achado do Codex na
+    // PR #150: um await aqui na frente atrasaria motorista_favorito_id e
+    // abriria a janela de prioridade pra qualquer motorista aceitar).
+    const fotoPerfilPathPassageiro =
+      typeof usuario.foto_perfil_path === "string" ? usuario.foto_perfil_path : null;
+
     // Etapa 3 do motorista favorito: se algum motorista favoritado por esse
     // passageiro estiver disponível agora nesta mesma cidade, ele recebe a
     // oferta primeiro — o mais próximo, se houver mais de um — com uma
@@ -675,12 +684,16 @@ export async function criarCorridaCore(
           corridaJaResolvida = true;
         } else {
           favoritoEscolhidoId = escolhido.id;
+          const iconeFavorito = fotoPerfilPathPassageiro
+            ? await obterUrlAssinadaFotoPerfil(supabaseAdmin, fotoPerfilPathPassageiro)
+            : null;
           await criarNotificacao(supabaseAdmin, {
             usuario_id: escolhido.id,
             tipo: "nova_oferta_corrida",
             titulo: "⭐ Um passageiro que já andou com você está te chamando!",
             mensagem: `Passageiro esperando em ${data.origemNome || "sua região"}.`,
             corrida_id: corridaId as string,
+            icon: iconeFavorito,
           });
         }
       }
@@ -710,6 +723,10 @@ export async function criarCorridaCore(
         );
       });
 
+      const iconeBroadcast = fotoPerfilPathPassageiro
+        ? await obterUrlAssinadaFotoPerfil(supabaseAdmin, fotoPerfilPathPassageiro)
+        : null;
+
       await Promise.allSettled(
         motoristasElegiveis.map((candidato: any) =>
           criarNotificacao(supabaseAdmin, {
@@ -718,6 +735,7 @@ export async function criarCorridaCore(
             titulo: "🔔 Nova corrida disponível!",
             mensagem: `Passageiro esperando em ${data.origemNome || "sua região"}.`,
             corrida_id: corridaId as string,
+            icon: iconeBroadcast,
           }),
         ),
       );
