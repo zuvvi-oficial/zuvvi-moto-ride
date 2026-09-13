@@ -26,6 +26,7 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PerfilMotoristaRouteImport } from './routes/perfil-motorista'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as ViagemCompartilhadaRouteImport } from './routes/viagem-compartilhada'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCidadesRouteImport } from './routes/admin/cidades'
@@ -128,6 +129,11 @@ const ProcurandoMotoristaRoute = ProcurandoMotoristaRouteImport.update({
   path: '/procurando-motorista',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ViagemCompartilhadaRoute = ViagemCompartilhadaRouteImport.update({
   id: '/viagem-compartilhada',
   path: '/viagem-compartilhada',
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/perfil-motorista': typeof PerfilMotoristaRoute
   '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/cupons': typeof AdminCuponsRoute
@@ -263,6 +270,7 @@ export interface FileRoutesByTo {
   '/perfil-motorista': typeof PerfilMotoristaRoute
   '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/cupons': typeof AdminCuponsRoute
@@ -299,6 +307,7 @@ export interface FileRoutesById {
   '/perfil-motorista': typeof PerfilMotoristaRoute
   '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
+  '/termos': typeof TermosRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
   '/admin/cupons': typeof AdminCuponsRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/perfil-motorista'
     | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/cupons'
@@ -371,6 +381,7 @@ export interface FileRouteTypes {
     | '/perfil-motorista'
     | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/cupons'
@@ -406,6 +417,7 @@ export interface FileRouteTypes {
     | '/perfil-motorista'
     | '/privacidade'
     | '/procurando-motorista'
+    | '/termos'
     | '/viagem-compartilhada'
     | '/admin/cidades'
     | '/admin/cupons'
@@ -442,6 +454,7 @@ export interface RootRouteChildren {
   PerfilMotoristaRoute: typeof PerfilMotoristaRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
+  TermosRoute: typeof TermosRoute
   ViagemCompartilhadaRoute: typeof ViagemCompartilhadaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
   AdminCuponsRoute: typeof AdminCuponsRoute
@@ -572,6 +585,13 @@ declare module '@tanstack/react-router' {
       path: '/procurando-motorista'
       fullPath: '/procurando-motorista'
       preLoaderRoute: typeof ProcurandoMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/viagem-compartilhada': {
@@ -729,6 +749,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilMotoristaRoute: PerfilMotoristaRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
+  TermosRoute: TermosRoute,
   ViagemCompartilhadaRoute: ViagemCompartilhadaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
   AdminCuponsRoute: AdminCuponsRoute,
