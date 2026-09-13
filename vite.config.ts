@@ -9,7 +9,7 @@ import netlify from "@netlify/vite-plugin-tanstack-start";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(() => {
-  const isNetlifyBuild = process.env.NETLIFY === "true";
+  const isNetlifyBuild = process.env["NETLIFY"] === "true";
 
   return {
     // Netlify's official adapter packages the TanStack Start server itself.
