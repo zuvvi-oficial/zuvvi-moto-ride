@@ -825,6 +825,7 @@ function HomeMotorista() {
     setProcessingRideId(rideId);
     try {
       await marcarACaminhoFn({ data: { rideId } });
+      if ("vibrate" in navigator) navigator.vibrate([120]);
       toast.success("Deslocamento iniciado.");
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
     } catch (err: any) {
@@ -839,6 +840,7 @@ function HomeMotorista() {
     setProcessingRideId(rideId);
     try {
       await marcarChegouFn({ data: { rideId } });
+      if ("vibrate" in navigator) navigator.vibrate([150, 80, 150]);
       toast.success("Chegada confirmada.");
       queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
     } catch (err: any) {
@@ -856,6 +858,7 @@ function HomeMotorista() {
     try {
       const result = await iniciarCorridaFn({ data: { rideId, codigo: codigoEmbarque } });
       if (result.success) {
+        if ("vibrate" in navigator) navigator.vibrate([100]);
         toast.success("Corrida iniciada!");
         setCodigoEmbarque("");
         queryClient.invalidateQueries({ queryKey: ["motorista-status"] });
@@ -886,6 +889,7 @@ function HomeMotorista() {
         await finalizarCorridaFn({ data: { rideId: activeRide.id, recebido } });
       }
 
+      if ("vibrate" in navigator) navigator.vibrate([60, 40, 60, 40, 150]);
       setShowFinalizeConfirmation(false);
       setNotaAvaliacao(0);
       setComentarioAvaliacao("");
