@@ -44,9 +44,10 @@ begin
     delete from private.motorista_mercadopago_autorizacoes_pendentes where motorista_id = p_usuario_id;
     delete from private.mercadopago_conta_propriedade where motorista_id = p_usuario_id;
 
-    update public.veiculos
-    set placa = null, marca = null, modelo = null, ano = null, cor = null, ativo = false
-    where motorista_id = p_usuario_id;
+    -- placa/marca/modelo/ano/cor são NOT NULL nesta tabela — não dá pra
+    -- anonimizar em cima da linha, tem que apagar (não é histórico
+    -- financeiro, não precisa ser preservada).
+    delete from public.veiculos where motorista_id = p_usuario_id;
 
     update public.motoristas
     set cnh_numero = null,
@@ -68,6 +69,12 @@ begin
   delete from public.pagamentos_pix_device_sessions where passageiro_id = p_usuario_id;
   delete from public.motoristas_favoritos
   where passageiro_id = p_usuario_id or motorista_id = p_usuario_id;
+
+  -- Agendamentos guardam origem/destino em texto e coordenadas exatas e não
+  -- são histórico financeiro (a corrida real gerada a partir de um
+  -- agendamento convertido já está em public.corridas, preservada à parte)
+  -- — nada aqui precisa sobreviver à exclusão da conta.
+  delete from public.corridas_agendadas where passageiro_id = p_usuario_id;
 
   update public.usuarios
   set nome = 'Usuário excluído',

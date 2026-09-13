@@ -33,7 +33,7 @@ assert.match(migration, /raise exception/i, "deve recusar com uma mensagem clara
 // existindo, só a linha de usuarios é que perde os campos de identificação.
 assert.doesNotMatch(
   migration,
-  /delete from public\.corridas/i,
+  /delete from public\.corridas\b/i,
   "corridas não podem ser apagadas na exclusão de conta",
 );
 assert.doesNotMatch(
@@ -56,6 +56,29 @@ for (const campo of ["nome", "email", "celular", "cpf", "data_nascimento", "foto
 // Credenciais Mercado Pago do motorista precisam ser removidas — não faz
 // sentido manter tokens de acesso guardados após o encerramento da conta.
 assert.match(migration, /delete from private\.motorista_mercadopago_credenciais/);
+
+// veiculos tem placa/marca/modelo/ano/cor NOT NULL — tentar anonimizar com
+// UPDATE...NULL nessas colunas viola a constraint e desfaz a transação
+// inteira (achado do Codex, PR #140: exclusão ficava quebrada pra qualquer
+// motorista com veículo cadastrado). A linha tem que ser apagada.
+assert.match(
+  migration,
+  /delete from public\.veiculos where motorista_id = p_usuario_id/,
+  "veiculos deve ser apagado (não anonimizado) por causa das colunas NOT NULL",
+);
+assert.doesNotMatch(
+  migration,
+  /update public\.veiculos/,
+  "não pode tentar fazer UPDATE em veiculos com colunas NOT NULL",
+);
+
+// Agendamentos guardam coordenadas exatas de origem/destino e não são
+// histórico financeiro (achado do Codex, PR #140) — precisam ser apagados.
+assert.match(
+  migration,
+  /delete from public\.corridas_agendadas where passageiro_id = p_usuario_id/,
+  "corridas_agendadas deve ser apagada (contém localização não-financeira)",
+);
 
 // Só o servidor pode chamar — nunca o cliente direto via anon/authenticated.
 assert.match(
@@ -81,13 +104,32 @@ assert.match(
 );
 assert.match(
   serverFnSource,
-  /storage\.from\("documentos-motorista"\)\.remove/,
+  /storage\s*\.from\("documentos-motorista"\)\s*\.remove/,
   "deve remover os documentos do Storage",
 );
 assert.match(
   serverFnSource,
-  /storage\.from\("fotos-perfil"\)\.remove/,
+  /storage\s*\.from\("fotos-perfil"\)\s*\.remove/,
   "deve remover a foto de perfil do Storage",
+);
+
+// .remove() do Storage RESOLVE com { error } num 4xx/5xx normal, não lança
+// — um try/catch sozinho não pega isso (achado do Codex, PR #140: falha
+// real na remoção de documentos sensíveis ficava invisível, reportando
+// sucesso mesmo assim). Cada chamada precisa checar o error explicitamente.
+const remocaoDocumentosStart = serverFnSource.indexOf('.from("documentos-motorista")');
+const remocaoFotoStart = serverFnSource.indexOf('.from("fotos-perfil")');
+assert.ok(remocaoDocumentosStart >= 0 && remocaoFotoStart >= 0);
+const JANELA_ANTES = 80;
+assert.match(
+  serverFnSource.slice(Math.max(0, remocaoDocumentosStart - JANELA_ANTES), remocaoDocumentosStart),
+  /const \{ error \} = await/,
+  "a remoção dos documentos deve capturar o error retornado",
+);
+assert.match(
+  serverFnSource.slice(Math.max(0, remocaoFotoStart - JANELA_ANTES), remocaoFotoStart),
+  /const \{ error \} = await/,
+  "a remoção da foto deve capturar o error retornado",
 );
 
 const dialogSource = readFileSync("src/components/perfil/ExcluirContaDialog.tsx", "utf8");
