@@ -126,20 +126,32 @@ jobs:
           // quando a PR atual não toca em package.json.
           if (base.dependencies) delete base.dependencies['qrcode.react'];
 
-          // O usuário decidiu não usar mais o Netlify: a remoção de
-          // @netlify/vite-plugin-tanstack-start é a segunda mudança
-          // conscientemente autorizada nesta checagem. Igual ao qrcode.react,
-          // a chave é removida dos dois lados antes de comparar — mas aqui a
-          // regra é permanente (o pacote nunca mais deve voltar), então não
-          // há versão fixa a aceitar, só a ausência dele em "atual".
-          if (atual.devDependencies?.['@netlify/vite-plugin-tanstack-start']) {
-            throw new Error('@netlify/vite-plugin-tanstack-start não deve mais estar em package.json');
+          // Fora de dependencies/devDependencies (scripts, name, etc.), nada
+          // pode mudar sem uma decisão consciente nesta checagem.
+          const { dependencies: atualDeps, devDependencies: atualDevDeps, ...atualRest } = atual;
+          const { dependencies: baseDeps, devDependencies: baseDevDeps, ...baseRest } = base;
+          if (JSON.stringify(atualRest) !== JSON.stringify(baseRest)) {
+            throw new Error('package.json mudou fora de dependencies/devDependencies');
           }
-          if (base.devDependencies) delete base.devDependencies['@netlify/vite-plugin-tanstack-start'];
 
-          if (JSON.stringify(atual) !== JSON.stringify(base)) {
-            throw new Error('package.json mudou além das dependências QR/Netlify autorizadas');
+          // Dentro de dependencies/devDependencies, a limpeza do Netlify (PR #133)
+          // mostrou que exigir baseline idêntico para sempre obriga a reeditar
+          // este arquivo a cada limpeza de dependência morta legítima. A regra
+          // permanente vira: remover uma dependência nunca precisa de permissão
+          // especial (só reduz superfície de ataque); adicionar ou trocar a
+          // versão de uma dependência existente sempre precisa — isso continua
+          // bloqueado abaixo.
+          function assertOnlyRemovals(baseObj = {}, atualObj = {}, label) {
+            for (const [key, value] of Object.entries(atualObj)) {
+              if (baseObj[key] !== value) {
+                throw new Error(
+                  `${label} mudou "${key}" sem autorização (era ${JSON.stringify(baseObj[key])}, agora ${JSON.stringify(value)})`,
+                );
+              }
+            }
           }
+          assertOnlyRemovals(baseDeps, atualDeps, 'dependencies');
+          assertOnlyRemovals(baseDevDeps, atualDevDeps, 'devDependencies');
           NODE
 
           # A Etapa 5 introduziu qrcode.react no bun.lock comparando contra um
@@ -149,24 +161,27 @@ jobs:
           # e aceitar "+3 linhas quaisquer" (sem checar o conteúdo) deixaria
           # passar 3 linhas arbitrárias não relacionadas à entrada QR original.
           #
-          # A remoção do Netlify apaga ~400 linhas de bun.lock (a árvore de
-          # dependências transitivas exclusiva do plugin do Netlify — nada
-          # compartilhado com o resto do projeto). Em vez de exigir diff vazio
-          # ou enumerar cada linha removida, a regra passa a ser: só remoção
-          # de linha inteira é permitida (nunca adição, nunca edição parcial
-          # de uma linha existente — o que poderia esconder uma troca de
-          # URL/hash disfarçada de remoção). Isso mantém a checagem consciente
-          # (nenhuma dependência nova ou modificada passa despercebida) sem
-          # travar para sempre qualquer limpeza legítima de dependência morta.
+          # A remoção do Netlify (PR #133) apagou ~400 linhas de bun.lock, e a
+          # limpeza de UI morta (PR #135) mais umas 80. Em vez de exigir diff
+          # vazio ou enumerar cada linha removida — travando a checagem pra
+          # sempre reeditar este arquivo a cada limpeza de dependência morta —
+          # a regra é: só remoção de linha inteira é permitida (nunca adição,
+          # nunca edição parcial de uma linha existente, o que poderia
+          # esconder uma troca de URL/hash disfarçada de remoção). Isso
+          # mantém a checagem consciente (nenhuma dependência nova ou
+          # modificada passa despercebida) sem precisar de exceção nova a
+          # cada PR de limpeza. Duas formas de linha podem ser removidas:
+          # uma entrada inteira de "packages" (array numa linha só) ou uma
+          # entrada de dependency/devDependency do workspace ("pkg": "versão").
           lock_patch="$(git diff --unified=0 origin/main -- bun.lock)"
           if [ -n "$lock_patch" ]; then
             added_lines="$(echo "$lock_patch" | grep -c '^+[^+]' || true)"
             if [ "$added_lines" -gt 0 ]; then
-              echo "bun.lock ganhou linha(s) nova(s) além da remoção autorizada do Netlify"
+              echo "bun.lock ganhou linha(s) nova(s) além de remoções de dependência"
               git diff origin/main -- bun.lock
               exit 1
             fi
-            bad_removals="$(echo "$lock_patch" | grep '^-[^-]' | grep -Ev '^-    "[^"]+": \[|^-        "@netlify/vite-plugin-tanstack-start": "\^1\.3\.19",$' || true)"
+            bad_removals="$(echo "$lock_patch" | grep '^-[^-]' | grep -Ev '^-    "[^"]+": \[|^-        "[^"]+": "[^"]*",?$' || true)"
             if [ -n "$bad_removals" ]; then
               echo "bun.lock removeu algo que não é uma entrada de pacote inteira nem a dependência do Netlify"
               echo "$bad_removals"
