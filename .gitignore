@@ -17,6 +17,7 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+src/integrations/supabase/types.generated.ts
 
 # Environment / secrets
 .env
