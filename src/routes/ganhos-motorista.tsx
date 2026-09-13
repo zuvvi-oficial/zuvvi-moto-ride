@@ -2,9 +2,10 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getResumoGanhos } from "@/lib/ganhos.functions";
-import { Wallet, Banknote, QrCode, Receipt, Loader2 } from "lucide-react";
+import { Wallet, Banknote, QrCode, Receipt } from "lucide-react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { MotoristaBottomNav } from "@/components/motorista/MotoristaBottomNav";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/ganhos-motorista")({
   loader: async () => {
@@ -45,10 +46,34 @@ function GanhosMotorista() {
 
       <main className="flex-1 max-w-md mx-auto w-full px-5 py-6 space-y-4">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-            <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
-            <p className="text-sm font-medium opacity-60">Carregando seus ganhos...</p>
-          </div>
+          <>
+            <div className="sr-only" aria-live="polite">
+              Carregando seus ganhos...
+            </div>
+            <div aria-hidden="true" className="space-y-4">
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-3">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-9 w-40" />
+                <Skeleton className="h-3 w-36" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-3">
+                  <Skeleton className="w-9 h-9 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-2 w-14" />
+                    <Skeleton className="h-5 w-20" />
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-3">
+                  <Skeleton className="w-9 h-9 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-2 w-14" />
+                    <Skeleton className="h-5 w-20" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 text-red-400">
             <p className="text-sm font-medium">Erro ao carregar resumo de ganhos.</p>
