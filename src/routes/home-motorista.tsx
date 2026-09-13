@@ -1065,7 +1065,28 @@ function HomeMotorista() {
     // inscrição (ex: service worker ainda não pronto, rede instável).
     if (indoOnline) {
       if (isPushSupported() && Notification.permission !== "denied") {
-        subscribeToPushNotifications().catch(() => {});
+        // Antes disso qualquer falha aqui era só um console.error invisível
+        // pro motorista — ele ficava online sem nenhum aviso de que nunca ia
+        // receber notificação de corrida nova com o app fechado. Agora ele
+        // pelo menos sabe que precisa tentar de novo (ex: internet instável
+        // no momento exato do toque em Online).
+        subscribeToPushNotifications()
+          .then((outcome) => {
+            // "unavailable" é uma falha recuperável (rede instável, servidor
+            // fora do ar ao buscar a chave) — diferente de "unsupported"
+            // (navegador sem a API, nada a fazer), por isso também precisa
+            // do aviso (achado do Codex na PR #151).
+            if (outcome === "error" || outcome === "unavailable") {
+              toast.error(
+                "Não foi possível ativar as notificações de nova corrida neste aparelho. Toque em Online de novo para tentar mais uma vez.",
+              );
+            }
+          })
+          .catch(() => {
+            toast.error(
+              "Não foi possível ativar as notificações de nova corrida neste aparelho. Toque em Online de novo para tentar mais uma vez.",
+            );
+          });
       }
     }
 
