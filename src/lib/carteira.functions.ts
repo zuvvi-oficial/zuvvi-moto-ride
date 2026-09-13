@@ -44,20 +44,23 @@ export const getResumoCarteira = createServerFn({ method: "GET" })
       }
 
       // 4. Calcular totais (somente leitura, em memória)
-      return (corridas || []).reduce((acc, c: any) => {
-        const valor = Number(c.valor_final ?? c.valor_estimado ?? 0);
+      return (corridas || []).reduce(
+        (acc, c: any) => {
+          const valor = Number(c.valor_final ?? c.valor_estimado ?? 0);
 
-        acc.totalGastoMes += valor;
-        acc.quantidadeCorridas += 1;
+          acc.totalGastoMes += valor;
+          acc.quantidadeCorridas += 1;
 
-        if (c.forma_pagamento === "dinheiro") {
-          acc.totalDinheiro += valor;
-        } else if (c.forma_pagamento === "pix") {
-          acc.totalPix += valor;
-        }
+          if (c.forma_pagamento === "dinheiro") {
+            acc.totalDinheiro += valor;
+          } else if (c.forma_pagamento === "pix") {
+            acc.totalPix += valor;
+          }
 
-        return acc;
-      }, { ...vazio });
+          return acc;
+        },
+        { ...vazio },
+      );
     } catch (err) {
       console.error("Falha catastrófica no resumo da carteira:", err);
       return vazio;

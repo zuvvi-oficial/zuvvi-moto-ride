@@ -188,9 +188,9 @@ assert.match(statusSource, /pagamento\.status === "pago"/);
 assert.doesNotMatch(statusSource, /Access Token/);
 assert.doesNotMatch(statusSource, /Refresh Token/);
 
-assert.match(searchingSource, /formaPagamento === 'pix'/);
-assert.match(searchingSource, /to: '\/pagamento-pix'/);
-assert.match(searchingSource, /to: '\/acompanhamento'/);
+assert.match(searchingSource, /formaPagamento === ["']pix["']/);
+assert.match(searchingSource, /to: ["']\/pagamento-pix["']/);
+assert.match(searchingSource, /to: ["']\/acompanhamento["']/);
 
 console.log("PIX Etapa 5: estados, ownership e isolamento da tela aprovados.");
 console.log("PIX falhou: mensagem clara e opção de nova tentativa aprovadas.");

@@ -29,7 +29,11 @@ function extractPaymentId(url: URL, payload: unknown): string | null {
 
 function extractTopic(url: URL, payload: unknown): string | null {
   const root = asRecord(payload);
-  const raw = root?.["type"] ?? root?.["topic"] ?? url.searchParams.get("type") ?? url.searchParams.get("topic");
+  const raw =
+    root?.["type"] ??
+    root?.["topic"] ??
+    url.searchParams.get("type") ??
+    url.searchParams.get("topic");
   return typeof raw === "string" ? raw.trim().toLowerCase() : null;
 }
 
@@ -115,7 +119,9 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Respon
 
   const webhookSecret = process.env["MERCADOPAGO_WEBHOOK_SECRET"];
   if (!webhookSecret) {
-    console.error("[PixWebhook] MERCADOPAGO_WEBHOOK_SECRET não configurado; notificação rejeitada.");
+    console.error(
+      "[PixWebhook] MERCADOPAGO_WEBHOOK_SECRET não configurado; notificação rejeitada.",
+    );
     return new Response("retry", { status: 503 });
   }
 
@@ -135,24 +141,36 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Respon
 
   const notificationId = extractNotificationId(payload);
   const action = extractAction(payload);
-  const payloadHash = createHash("sha256").update(rawBody || paymentId).digest("hex");
+  const payloadHash = createHash("sha256")
+    .update(rawBody || paymentId)
+    .digest("hex");
   const normalizedTopic = topic ?? "payment";
-  const eventKey = buildEventKey({ notificationId, topic: normalizedTopic, paymentId, requestId, payloadHash });
+  const eventKey = buildEventKey({
+    notificationId,
+    topic: normalizedTopic,
+    paymentId,
+    requestId,
+    payloadHash,
+  });
 
   let alreadyProcessed = false;
   try {
     // Mesma justificativa do cast em finalizeEvent: RPC nova, tipos ainda não regenerados.
-    const { data, error } = await (supabaseAdmin as any).rpc("pix_mercadopago_webhook_register_event", {
-      p_event_key: eventKey,
-      p_request_id: requestId,
-      p_topic: normalizedTopic,
-      p_action: action,
-      p_resource_id: paymentId,
-      p_payload_hash: payloadHash,
-    });
+    const { data, error } = await (supabaseAdmin as any).rpc(
+      "pix_mercadopago_webhook_register_event",
+      {
+        p_event_key: eventKey,
+        p_request_id: requestId,
+        p_topic: normalizedTopic,
+        p_action: action,
+        p_resource_id: paymentId,
+        p_payload_hash: payloadHash,
+      },
+    );
     if (error) throw error;
     const dedupResult = Array.isArray(data) ? data[0] : data;
-    alreadyProcessed = Boolean(dedupResult) && !dedupResult.is_new && dedupResult.processing_status === "processed";
+    alreadyProcessed =
+      Boolean(dedupResult) && !dedupResult.is_new && dedupResult.processing_status === "processed";
   } catch (error) {
     console.error("[PixWebhook] Falha ao registrar evento para deduplicação.", {
       kind: error instanceof Error ? error.name : "unknown",
@@ -215,7 +233,12 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Respon
     console.error("[PixWebhook] Falha ao reconciliar notificação Mercado Pago.", {
       kind: error instanceof Error ? error.name : "unknown",
     });
-    await finalizeEvent(supabaseAdmin, eventKey, "failed", error instanceof Error ? error.name : "unknown");
+    await finalizeEvent(
+      supabaseAdmin,
+      eventKey,
+      "failed",
+      error instanceof Error ? error.name : "unknown",
+    );
     return new Response("retry", { status: 503 });
   }
 }

@@ -29,7 +29,7 @@ const avaliacoesFunctionsSource = readFileSync("src/lib/avaliacoes.functions.ts"
   );
   assert.match(
     cancelarCorridaMotoristaSource,
-    /\.in\("status",\s*\[\s*'aceita',\s*'motorista_a_caminho',\s*'motorista_chegou'\s*\]\)/,
+    /\.in\("status",\s*\[\s*["']aceita["'],\s*["']motorista_a_caminho["'],\s*["']motorista_chegou["']\s*\]\)/,
     "motorista só pode cancelar nos status anteriores ao embarque — exatamente esses 3, sem em_andamento",
   );
 }
@@ -55,7 +55,7 @@ const avaliacoesFunctionsSource = readFileSync("src/lib/avaliacoes.functions.ts"
   );
   assert.match(
     criarAvaliacaoSource,
-    /if \(ride\.status !== 'concluida'\) \{/,
+    /if \(ride\.status !== ["']concluida["']\) \{/,
     "só corrida concluída pode ser avaliada",
   );
   assert.match(

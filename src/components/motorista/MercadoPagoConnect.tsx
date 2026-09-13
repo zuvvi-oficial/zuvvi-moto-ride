@@ -1,8 +1,8 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useServerFn } from '@tanstack/react-start';
-import { useState } from 'react';
-import { Loader2, CheckCircle2, Settings2, Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { Loader2, CheckCircle2, Settings2, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,12 +13,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   desconectarMercadoPagoPixSeguro,
   getStatusConexaoMercadoPagoPixSegura,
   iniciarConexaoMercadoPagoPixSegura,
-} from '@/lib/pix-mercadopago-oauth.functions';
+} from "@/lib/pix-mercadopago-oauth.functions";
 
 export default function MercadoPagoConnect() {
   const queryClient = useQueryClient();
@@ -31,7 +31,7 @@ export default function MercadoPagoConnect() {
   const [sucesso, setSucesso] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['mercadopago-conexao'],
+    queryKey: ["mercadopago-conexao"],
     queryFn: () => getStatusFn(),
   });
 
@@ -43,13 +43,13 @@ export default function MercadoPagoConnect() {
       const { authorizationUrl } = await iniciarFn();
       window.location.href = authorizationUrl;
     } catch {
-      setErro('Não foi possível iniciar a conexão. Tente novamente.');
+      setErro("Não foi possível iniciar a conexão. Tente novamente.");
       setIsRedirecting(false);
     }
   };
 
   const trocarContaMercadoPago = () => {
-    window.open('https://www.mercadopago.com.br/', '_blank', 'noopener,noreferrer');
+    window.open("https://www.mercadopago.com.br/", "_blank", "noopener,noreferrer");
   };
 
   const desconectar = async () => {
@@ -60,18 +60,18 @@ export default function MercadoPagoConnect() {
       const resultado = await desconectarFn();
       if (!resultado.desconectado) {
         setErro(
-          resultado.motivo === 'corrida_pix_ativa'
-            ? 'Não é possível desconectar enquanto houver uma corrida Pix ativa.'
-            : 'Não é possível desconectar enquanto houver uma obrigação financeira Pix pendente.',
+          resultado.motivo === "corrida_pix_ativa"
+            ? "Não é possível desconectar enquanto houver uma corrida Pix ativa."
+            : "Não é possível desconectar enquanto houver uma obrigação financeira Pix pendente.",
         );
         return;
       }
 
-      queryClient.setQueryData(['mercadopago-conexao'], { conectado: false });
-      setSucesso('Conta Mercado Pago desconectada com sucesso.');
-      void queryClient.invalidateQueries({ queryKey: ['mercadopago-conexao'] });
+      queryClient.setQueryData(["mercadopago-conexao"], { conectado: false });
+      setSucesso("Conta Mercado Pago desconectada com sucesso.");
+      void queryClient.invalidateQueries({ queryKey: ["mercadopago-conexao"] });
     } catch {
-      setErro('Não foi possível desconectar a conta. Tente novamente.');
+      setErro("Não foi possível desconectar a conta. Tente novamente.");
     } finally {
       setIsDisconnecting(false);
     }
@@ -135,7 +135,9 @@ export default function MercadoPagoConnect() {
           <Wallet className="w-5 h-5 text-zuvvi-volt" />
         </div>
         <div>
-          <p className="text-[9px] text-white/40 uppercase tracking-widest font-bold">Recebimentos</p>
+          <p className="text-[9px] text-white/40 uppercase tracking-widest font-bold">
+            Recebimentos
+          </p>
           <h3 className="text-sm font-bold uppercase italic">Conta Mercado Pago</h3>
         </div>
       </div>
@@ -167,9 +169,9 @@ export default function MercadoPagoConnect() {
                 {isRedirecting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : sucesso ? (
-                  'Conectar outra conta Mercado Pago'
+                  "Conectar outra conta Mercado Pago"
                 ) : (
-                  'Conectar conta Mercado Pago'
+                  "Conectar conta Mercado Pago"
                 )}
               </Button>
             </AlertDialogTrigger>
@@ -177,7 +179,9 @@ export default function MercadoPagoConnect() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Confirmar conta Mercado Pago</AlertDialogTitle>
                 <AlertDialogDescription className="text-white/60">
-                  O Mercado Pago pode reutilizar automaticamente a conta que já estiver aberta neste navegador. Se quiser vincular outra conta, abra o Mercado Pago abaixo, saia da conta atual e entre na conta correta antes de continuar.
+                  O Mercado Pago pode reutilizar automaticamente a conta que já estiver aberta neste
+                  navegador. Se quiser vincular outra conta, abra o Mercado Pago abaixo, saia da
+                  conta atual e entre na conta correta antes de continuar.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="gap-2 sm:gap-2">

@@ -17,7 +17,9 @@ const ACTIVE_RIDE_STATUSES = [
 async function fetchActiveRide(supabaseAdmin: any, motoristaId: string) {
   const { data, error } = await supabaseAdmin
     .from("corridas")
-    .select("id, status, origem_nome, destino_nome, valor_estimado, forma_pagamento, origem_lat, origem_lng, destino_lat, destino_lng, passageiro_id")
+    .select(
+      "id, status, origem_nome, destino_nome, valor_estimado, forma_pagamento, origem_lat, origem_lng, destino_lat, destino_lng, passageiro_id",
+    )
     .eq("motorista_id", motoristaId)
     .in("status", ACTIVE_RIDE_STATUSES as unknown as string[]);
 
@@ -34,9 +36,7 @@ async function fetchActiveRide(supabaseAdmin: any, motoristaId: string) {
 
   // Reconciliar o provedor antes de expor uma corrida Pix como operacional.
   try {
-    const { sincronizarPagamentoPixComMercadoPago } = await import(
-      "./pix-payment-sync.server"
-    );
+    const { sincronizarPagamentoPixComMercadoPago } = await import("./pix-payment-sync.server");
     await sincronizarPagamentoPixComMercadoPago({
       rideId: activeRide.id,
       expectedMotoristaId: motoristaId,
@@ -74,11 +74,11 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
         .select("id, is_motorista")
         .eq("auth_user_id", userId)
         .single();
-      
+
       if (uError || !usuario || !usuario.is_motorista) {
         throw new Error("Perfil de motorista não encontrado.");
       }
-      
+
       const { data: motorista, error: updateError } = await supabaseAdmin
         .from("motoristas")
         .update({ is_disponivel: false })
@@ -93,12 +93,13 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
       if (!motorista) {
         throw new Error("Perfil de motorista não encontrado.");
       }
-      
+
       return { success: true, is_disponivel: false };
     }
 
     // REGRA 2: ONLINE - Usar regra central de elegibilidade
-    const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
+    const { evaluateMotoristaOperationalEligibility } =
+      await import("./motorista-eligibility.server");
     const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, userId);
 
     if (!eligibility.eligible) {
@@ -106,8 +107,12 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
     }
 
     // Recalcular ID para o update correto
-    const { data: usuarioFinal, error: fError } = await supabaseAdmin.from("usuarios").select("id").eq("auth_user_id", userId).single();
-    
+    const { data: usuarioFinal, error: fError } = await supabaseAdmin
+      .from("usuarios")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .single();
+
     if (fError || !usuarioFinal) {
       throw new Error("Erro ao identificar perfil de motorista.");
     }
@@ -115,7 +120,7 @@ export const updateMotoristaDisponibilidade = createServerFn({ method: "POST" })
     // REGRA 3: Bloqueio server-side de ONLINE com corrida ativa (ATÔMICO)
     const { data: result, error: rpcError } = await supabaseAdmin.rpc(
       "set_motorista_online_atomic",
-      { p_motorista_id: usuarioFinal.id }
+      { p_motorista_id: usuarioFinal.id },
     );
 
     if (rpcError) {
@@ -133,14 +138,19 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
-    
+    const { evaluateMotoristaOperationalEligibility } =
+      await import("./motorista-eligibility.server");
+
     // Executar regra central (Watchdog)
-    const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, context.userId);
+    const eligibility = await evaluateMotoristaOperationalEligibility(
+      supabaseAdmin,
+      context.userId,
+    );
 
     const { data: usuario, error } = await supabaseAdmin
       .from("usuarios")
-      .select(`
+      .select(
+        `
         id,
         nome,
         is_motorista,
@@ -151,7 +161,8 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
           ultima_lng,
           ultima_localizacao_at
         )
-      `)
+      `,
+      )
       .eq("auth_user_id", context.userId)
       .single();
 
@@ -228,11 +239,17 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
       is_motorista: usuario.is_motorista,
       status_aprovacao: (usuario.motoristas as any).status_aprovacao,
       is_disponivel: (usuario.motoristas as any).is_disponivel,
-      ultima_lat: (usuario.motoristas as any).ultima_lat !== null ? Number((usuario.motoristas as any).ultima_lat) : null,
-      ultima_lng: (usuario.motoristas as any).ultima_lng !== null ? Number((usuario.motoristas as any).ultima_lng) : null,
+      ultima_lat:
+        (usuario.motoristas as any).ultima_lat !== null
+          ? Number((usuario.motoristas as any).ultima_lat)
+          : null,
+      ultima_lng:
+        (usuario.motoristas as any).ultima_lng !== null
+          ? Number((usuario.motoristas as any).ultima_lng)
+          : null,
       ultima_localizacao_at: (usuario.motoristas as any).ultima_localizacao_at,
       operational_eligible: eligibility.eligible,
       operational_block_code: eligibility.reasonCode,
-      operational_block_message: eligibility.message
+      operational_block_message: eligibility.message,
     };
   });

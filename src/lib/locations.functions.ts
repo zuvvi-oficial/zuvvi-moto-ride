@@ -16,7 +16,9 @@ export const getUFs = createServerFn({ method: "GET" })
 
     // O retorno já é a lista de UFs (como array de objetos ou strings dependendo da tipagem do RPC)
     // Se retornar objetos { estado_uf: '...' }, mapeamos.
-    return (data as any[] || []).map(item => typeof item === 'string' ? item : item.estado_uf);
+    return ((data as any[]) || []).map((item) =>
+      typeof item === "string" ? item : item.estado_uf,
+    );
   });
 
 export const getUFsDisponiveis = createServerFn({ method: "GET" })
@@ -41,7 +43,7 @@ export const getUFsDisponiveis = createServerFn({ method: "GET" })
 
 export const getCitiesDisponiveisByUF = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => typeof data === 'string' ? data : '')
+  .inputValidator((data) => (typeof data === "string" ? data : ""))
   .handler(async ({ data: uf }) => {
     if (!uf) return [];
 

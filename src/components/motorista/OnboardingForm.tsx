@@ -1,18 +1,35 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getUploadUrl, registrarDocumento, salvarDadosCNH, criarVeiculo, enviarParaAnalise, getOnboardingData } from "@/lib/motorista.functions";
+import {
+  getUploadUrl,
+  registrarDocumento,
+  salvarDadosCNH,
+  criarVeiculo,
+  enviarParaAnalise,
+  getOnboardingData,
+} from "@/lib/motorista.functions";
 import { toast } from "sonner";
-import { Bike, Loader2, CheckCircle2, FileText, CreditCard, Upload, AlertCircle, FileText as DocIcon, Camera } from "lucide-react";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+import {
+  Bike,
+  Loader2,
+  CheckCircle2,
+  FileText,
+  CreditCard,
+  Upload,
+  AlertCircle,
+  FileText as DocIcon,
+  Camera,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type UploadState = {
-  status: 'idle' | 'uploading' | 'success' | 'error' | 'aprovado' | 'pendente' | 'recusado';
+  status: "idle" | "uploading" | "success" | "error" | "aprovado" | "pendente" | "recusado";
   fileName?: string;
   previewUrl?: string | undefined;
   errorMessage?: string | undefined;
@@ -21,35 +38,42 @@ type UploadState = {
 
 export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [cnhData, setCnhData] = useState({ numero: "", categoria: "A", validade: "" });
-  const [validadeDay, setValidadeDay] = useState('');
-  const [validadeMonth, setValidadeMonth] = useState('');
-  const [validadeYear, setValidadeYear] = useState('');
-  const [veiculoData, setVeiculoData] = useState({ placa: "", marca: "", modelo: "", ano: "", cor: "" });
-  const [veiculoStatus, setVeiculoStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [validadeDay, setValidadeDay] = useState("");
+  const [validadeMonth, setValidadeMonth] = useState("");
+  const [validadeYear, setValidadeYear] = useState("");
+  const [veiculoData, setVeiculoData] = useState({
+    placa: "",
+    marca: "",
+    modelo: "",
+    ano: "",
+    cor: "",
+  });
+  const [veiculoStatus, setVeiculoStatus] = useState<"idle" | "saving" | "success" | "error">(
+    "idle",
+  );
   const [pix, setPix] = useState("");
-  const [pixType, setPixType] = useState<'cpf' | 'telefone' | 'email' | 'aleatoria' | null>(null);
+  const [pixType, setPixType] = useState<"cpf" | "telefone" | "email" | "aleatoria" | null>(null);
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
   const [initialLoadError, setInitialLoadError] = useState(false);
-  
+
   const hasHydrated = useRef(false);
   const veiculoDirty = useRef(false);
 
-
   const meses = [
-    { value: '01', label: 'Janeiro' },
-    { value: '02', label: 'Fevereiro' },
-    { value: '03', label: 'Março' },
-    { value: '04', label: 'Abril' },
-    { value: '05', label: 'Maio' },
-    { value: '06', label: 'Junho' },
-    { value: '07', label: 'Julho' },
-    { value: '08', label: 'Agosto' },
-    { value: '09', label: 'Setembro' },
-    { value: '10', label: 'Outubro' },
-    { value: '11', label: 'Novembro' },
-    { value: '12', label: 'Dezembro' },
+    { value: "01", label: "Janeiro" },
+    { value: "02", label: "Fevereiro" },
+    { value: "03", label: "Março" },
+    { value: "04", label: "Abril" },
+    { value: "05", label: "Maio" },
+    { value: "06", label: "Junho" },
+    { value: "07", label: "Julho" },
+    { value: "08", label: "Agosto" },
+    { value: "09", label: "Setembro" },
+    { value: "10", label: "Outubro" },
+    { value: "11", label: "Novembro" },
+    { value: "12", label: "Dezembro" },
   ];
 
   const anos = useMemo(() => {
@@ -64,35 +88,35 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
 
   const dias = useMemo(() => {
     if (!validadeMonth) return Array.from({ length: 31 }, (_, i) => (i + 1).toString());
-    
+
     let daysInMonth = 31;
     const m = parseInt(validadeMonth);
-    
+
     if ([4, 6, 9, 11].includes(m)) {
       daysInMonth = 30;
     } else if (m === 2) {
       const y = parseInt(validadeYear);
-      const isLeapYear = y ? (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0) : false;
+      const isLeapYear = y ? (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 : false;
       daysInMonth = isLeapYear ? 29 : 28;
     }
-    
+
     return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
   }, [validadeMonth, validadeYear]);
 
   // Atualiza cnhData.validade quando os seletores mudam
   useEffect(() => {
     if (validadeDay && validadeMonth && validadeYear) {
-      const dateStr = `${validadeYear}-${validadeMonth.padStart(2, '0')}-${validadeDay.padStart(2, '0')}`;
-      setCnhData(prev => ({ ...prev, validade: dateStr }));
+      const dateStr = `${validadeYear}-${validadeMonth.padStart(2, "0")}-${validadeDay.padStart(2, "0")}`;
+      setCnhData((prev) => ({ ...prev, validade: dateStr }));
     } else {
-      setCnhData(prev => ({ ...prev, validade: "" }));
+      setCnhData((prev) => ({ ...prev, validade: "" }));
     }
   }, [validadeDay, validadeMonth, validadeYear]);
 
   // Corrige dia se o mês mudar e o dia atual for inválido para o novo mês
   useEffect(() => {
     if (validadeDay && parseInt(validadeDay) > dias.length) {
-      setValidadeDay('');
+      setValidadeDay("");
     }
   }, [dias, validadeDay]);
 
@@ -107,28 +131,28 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
   useEffect(() => {
     async function loadInitialData() {
       if (hasHydrated.current) return;
-      
+
       try {
         const data = await getOnboardingDataFn();
-        
+
         if (data.motorista) {
-          const { cnh_numero, cnh_categoria, cnh_validade, chave_pix, tipo_chave_pix } = data.motorista;
-          
-          if (cnh_numero) setCnhData(prev => ({ ...prev, numero: cnh_numero }));
-          if (cnh_categoria) setCnhData(prev => ({ ...prev, categoria: cnh_categoria }));
-          
+          const { cnh_numero, cnh_categoria, cnh_validade, chave_pix, tipo_chave_pix } =
+            data.motorista;
+
+          if (cnh_numero) setCnhData((prev) => ({ ...prev, numero: cnh_numero }));
+          if (cnh_categoria) setCnhData((prev) => ({ ...prev, categoria: cnh_categoria }));
+
           if (cnh_validade) {
             // Formato YYYY-MM-DD - separar sem timezone
-            const parts = cnh_validade.split('-');
+            const parts = cnh_validade.split("-");
             if (parts.length === 3) {
-              setValidadeYear(parts[0] || '');
-              setValidadeMonth(parts[1] || '');
-              const day = parts[2] ? parseInt(parts[2]).toString() : '';
+              setValidadeYear(parts[0] || "");
+              setValidadeMonth(parts[1] || "");
+              const day = parts[2] ? parseInt(parts[2]).toString() : "";
               setValidadeDay(day);
             }
-
           }
-          
+
           if (chave_pix) setPix(chave_pix);
           if (tipo_chave_pix) setPixType(tipo_chave_pix as any);
         }
@@ -139,17 +163,20 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
             marca: data.veiculo.marca,
             modelo: data.veiculo.modelo,
             ano: data.veiculo.ano.toString(),
-            cor: data.veiculo.cor
+            cor: data.veiculo.cor,
           });
-          if (data.veiculo.status_aprovacao === 'aprovado' || data.veiculo.status_aprovacao === 'em_analise') {
-             // 'em_analise' acontece quando o motorista já foi enviado para análise antes
-             // (enviarParaAnalise força o veículo para esse status) e depois é recusado no
-             // geral sem que o veículo em si tenha sido reprovado — reenviar não exige
-             // reaprovação do veículo, só que ele exista (submit_motorista_for_analysis).
-             setVeiculoStatus('success');
-          } else if (data.veiculo.status_aprovacao === 'em_preenchimento' && data.veiculo.placa) {
-             // Considerar sucesso visual se já existe no banco
-             setVeiculoStatus('success');
+          if (
+            data.veiculo.status_aprovacao === "aprovado" ||
+            data.veiculo.status_aprovacao === "em_analise"
+          ) {
+            // 'em_analise' acontece quando o motorista já foi enviado para análise antes
+            // (enviarParaAnalise força o veículo para esse status) e depois é recusado no
+            // geral sem que o veículo em si tenha sido reprovado — reenviar não exige
+            // reaprovação do veículo, só que ele exista (submit_motorista_for_analysis).
+            setVeiculoStatus("success");
+          } else if (data.veiculo.status_aprovacao === "em_preenchimento" && data.veiculo.placa) {
+            // Considerar sucesso visual se já existe no banco
+            setVeiculoStatus("success");
           }
           veiculoDirty.current = false;
         }
@@ -157,14 +184,15 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         if (data.documentos && data.documentos.length > 0) {
           const docsMap: Record<string, UploadState> = {};
           data.documentos.forEach((doc: any) => {
-            let status: UploadState['status'] = 'idle';
-            if (doc.status_analise === 'aprovado') status = 'success';
-            else if (doc.status_analise === 'pendente') status = 'success'; // Tratado como enviado
-            else if (doc.status_analise === 'recusado') status = 'recusado';
-            
+            let status: UploadState["status"] = "idle";
+            if (doc.status_analise === "aprovado") status = "success";
+            else if (doc.status_analise === "pendente")
+              status = "success"; // Tratado como enviado
+            else if (doc.status_analise === "recusado") status = "recusado";
+
             docsMap[doc.tipo_documento] = {
               status,
-              motivo_recusa: doc.motivo_recusa
+              motivo_recusa: doc.motivo_recusa,
             };
           });
           setUploads(docsMap);
@@ -178,18 +206,17 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         setIsLoadingInitialData(false);
       }
     }
-    
+
     loadInitialData();
   }, []);
 
   const handleFileUpload = async (tipo: string, file: File) => {
-
     // 1. Iniciar estado visual "uploading" e gerar preview local
-    const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
-    
-    setUploads(prev => ({
+    const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
+
+    setUploads((prev) => ({
       ...prev,
-      [tipo]: { status: 'uploading', fileName: file.name, previewUrl } as UploadState
+      [tipo]: { status: "uploading", fileName: file.name, previewUrl } as UploadState,
     }));
 
     try {
@@ -197,10 +224,10 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
       const { uploadUrl, storagePath } = await getUploadUrlFn({
         data: { tipo, mimeType: file.type as any, fileSize: file.size },
       });
-      
+
       // 3. Upload real para o bucket
       const resp = await fetch(uploadUrl, {
-        method: 'PUT',
+        method: "PUT",
         body: file,
       });
 
@@ -208,45 +235,48 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
 
       // 4. Registrar o documento na tabela
       await registrarDocFn({ data: { tipo, storagePath } });
-      
+
       // 5. Sucesso - Atualizar estado visual
-      setUploads(prev => ({
+      setUploads((prev) => ({
         ...prev,
-        [tipo]: { 
-          ...prev[tipo], 
-          status: 'success' 
-        }
+        [tipo]: {
+          ...prev[tipo],
+          status: "success",
+        },
       }));
       toast.success(`${file.name} enviado com sucesso!`);
     } catch (e: any) {
       console.error("Erro no upload do motorista:", e);
-      setUploads(prev => ({
+      setUploads((prev) => ({
         ...prev,
-        [tipo]: { 
-          status: 'error', 
+        [tipo]: {
+          status: "error",
           fileName: file.name,
-          errorMessage: e.message || "Erro ao enviar arquivo" 
-        } as UploadState
+          errorMessage: e.message || "Erro ao enviar arquivo",
+        } as UploadState,
       }));
       toast.error(e.message || "Erro no upload");
     }
   };
 
   const renderUpload = (tipo: string, label: string) => {
-    const state = uploads[tipo] || { status: 'idle' };
-    const isUploading = state.status === 'uploading';
-    const isSuccess = state.status === 'success';
-    const isError = state.status === 'error';
-    const isRecusado = state.status === 'recusado';
+    const state = uploads[tipo] || { status: "idle" };
+    const isUploading = state.status === "uploading";
+    const isSuccess = state.status === "success";
+    const isError = state.status === "error";
+    const isRecusado = state.status === "recusado";
 
     return (
       <div className="space-y-2">
-        <div className={`relative flex items-center justify-between p-4 bg-white/5 rounded-2xl border transition-all ${
-          isSuccess ? 'border-zuvvi-volt bg-zuvvi-volt/5' : 
-          isError || isRecusado ? 'border-red-500/50 bg-red-500/5' : 
-          'border-white/10 hover:border-white/20'
-        }`}>
-
+        <div
+          className={`relative flex items-center justify-between p-4 bg-white/5 rounded-2xl border transition-all ${
+            isSuccess
+              ? "border-zuvvi-volt bg-zuvvi-volt/5"
+              : isError || isRecusado
+                ? "border-red-500/50 bg-red-500/5"
+                : "border-white/10 hover:border-white/20"
+          }`}
+        >
           <div className="flex items-center gap-3">
             {/* Preview ou Ícone */}
             <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -258,14 +288,15 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                 <Loader2 className="w-5 h-5 animate-spin text-zuvvi-volt" />
               ) : isError || isRecusado ? (
                 <AlertCircle className="w-5 h-5 text-red-500" />
-
               ) : (
                 <Upload className="w-5 h-5 text-white/20" />
               )}
             </div>
 
             <div className="flex flex-col">
-              <span className={`text-xs font-bold uppercase tracking-tight ${isSuccess ? 'text-zuvvi-volt' : 'text-white/70'}`}>
+              <span
+                className={`text-xs font-bold uppercase tracking-tight ${isSuccess ? "text-zuvvi-volt" : "text-white/70"}`}
+              >
                 {label}
               </span>
               {state.fileName && (
@@ -286,30 +317,36 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                 <div className="flex gap-2 mt-1">
                   <label className="cursor-pointer text-[9px] text-white/30 hover:text-white/60 underline">
                     Galeria
-                    <input 
-                      type="file" 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      className="hidden"
                       accept="image/*,application/pdf"
-                      onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
+                      onChange={(e) =>
+                        e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])
+                      }
                     />
                   </label>
                   <label className="cursor-pointer text-[9px] text-white/30 hover:text-white/60 underline">
                     Câmera
-                    <input 
-                      type="file" 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      className="hidden"
                       accept="image/*"
                       capture="environment"
-                      onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
+                      onChange={(e) =>
+                        e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])
+                      }
                     />
                   </label>
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <label className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer ${
-                  isUploading ? 'opacity-50 cursor-not-allowed' : 'bg-white/5 hover:bg-white/10'
-                }`}>
+                <label
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer ${
+                    isUploading ? "opacity-50 cursor-not-allowed" : "bg-white/5 hover:bg-white/10"
+                  }`}
+                >
                   {isUploading ? (
                     <>
                       <Loader2 className="w-3 h-3 animate-spin" />
@@ -321,12 +358,14 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                       <span>Selecionar</span>
                     </>
                   )}
-                  <input 
-                    type="file" 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    className="hidden"
                     accept="image/*,application/pdf"
                     disabled={isUploading}
-                    onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
+                    onChange={(e) =>
+                      e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])
+                    }
                   />
                 </label>
 
@@ -334,12 +373,14 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                   <label className="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer bg-white/5 hover:bg-white/10 border border-white/5">
                     <Camera className="w-3 h-3" />
                     <span>Tirar Foto</span>
-                    <input 
-                      type="file" 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      className="hidden"
                       accept="image/*"
                       capture="environment"
-                      onChange={e => e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])} 
+                      onChange={(e) =>
+                        e.target.files?.[0] && handleFileUpload(tipo, e.target.files[0])
+                      }
                     />
                   </label>
                 )}
@@ -347,14 +388,14 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
             )}
           </div>
         </div>
-        
+
         {isError && (
           <p className="text-[10px] text-red-500 ml-1 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
             {state.errorMessage || "Falha ao enviar, tente novamente"}
           </p>
         )}
-        
+
         {isRecusado && (
           <p className="text-[10px] text-red-500 ml-1 flex flex-col gap-0.5">
             <span className="flex items-center gap-1 font-bold uppercase">
@@ -372,38 +413,42 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
     );
   };
 
-
   const handleSaveVeiculo = async (data: typeof veiculoData) => {
     if (!veiculoDirty.current) return;
     if (!data.placa || !data.marca || !data.modelo || !data.ano || !data.cor) return;
 
-    
-    setVeiculoStatus('saving');
+    setVeiculoStatus("saving");
     try {
-      await criarVeiculoFn({ data: { 
-        ...data, 
-        ano: parseInt(data.ano) 
-      } });
-      setVeiculoStatus('success');
+      await criarVeiculoFn({
+        data: {
+          ...data,
+          ano: parseInt(data.ano),
+        },
+      });
+      setVeiculoStatus("success");
       veiculoDirty.current = false;
       toast.success("Veículo salvo com sucesso!");
-
     } catch (e: any) {
       console.error("Erro ao salvar veículo:", e);
-      setVeiculoStatus('error');
+      setVeiculoStatus("error");
       toast.error(e.message || "Erro ao salvar veículo");
     }
   };
 
-  const canSubmit = 
-    cnhData.numero.length === 11 && cnhData.validade && pix && pixType &&
-    veiculoStatus === 'success' &&
-    ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'].every(t => uploads[t]?.status === 'success');
+  const canSubmit =
+    cnhData.numero.length === 11 &&
+    cnhData.validade &&
+    pix &&
+    pixType &&
+    veiculoStatus === "success" &&
+    ["identidade", "cnh", "comprovante_residencia", "crlv", "foto_veiculo", "foto_placa"].every(
+      (t) => uploads[t]?.status === "success",
+    );
 
   const handleSubmit = async () => {
     console.log("Iniciando submissão do formulário de onboarding...");
     setIsSubmitting(true);
-    
+
     try {
       // 1. Validações locais rigorosas antes de chamar o servidor
       if (!cnhData.numero || cnhData.numero.length !== 11) {
@@ -415,40 +460,59 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
       if (!pix || !pixType) {
         throw new Error("Selecione o tipo de Pix e informe a chave para recebimento.");
       }
-      
-      const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
-      const docsFaltantes = tiposObrigatorios.filter(t => uploads[t]?.status !== 'success');
+
+      const tiposObrigatorios = [
+        "identidade",
+        "cnh",
+        "comprovante_residencia",
+        "crlv",
+        "foto_veiculo",
+        "foto_placa",
+      ];
+      const docsFaltantes = tiposObrigatorios.filter((t) => uploads[t]?.status !== "success");
       if (docsFaltantes.length > 0) {
-        throw new Error("Você precisa enviar todos os documentos obrigatórios antes de prosseguir.");
+        throw new Error(
+          "Você precisa enviar todos os documentos obrigatórios antes de prosseguir.",
+        );
       }
 
       console.log("Salvando dados de CNH e Pix...");
-      await salvarCNHFn({ data: { 
-        cnh_numero: cnhData.numero, 
-        cnh_categoria: cnhData.categoria, 
-        cnh_validade: cnhData.validade, 
-        chave_pix: pix,
-        tipo_chave_pix: pixType || undefined
-      } });
-      
+      await salvarCNHFn({
+        data: {
+          cnh_numero: cnhData.numero,
+          cnh_categoria: cnhData.categoria,
+          cnh_validade: cnhData.validade,
+          chave_pix: pix,
+          tipo_chave_pix: pixType || undefined,
+        },
+      });
+
       console.log("Verificando status do veículo...");
-      if (veiculoStatus !== 'success') {
+      if (veiculoStatus !== "success") {
         console.log("Veículo não salvo via auto-save, tentando salvar agora...");
-        if (!veiculoData.placa || !veiculoData.marca || !veiculoData.modelo || !veiculoData.ano || !veiculoData.cor) {
+        if (
+          !veiculoData.placa ||
+          !veiculoData.marca ||
+          !veiculoData.modelo ||
+          !veiculoData.ano ||
+          !veiculoData.cor
+        ) {
           throw new Error("Por favor, preencha todos os campos do veículo.");
         }
-        await criarVeiculoFn({ data: { 
-          ...veiculoData, 
-          ano: parseInt(veiculoData.ano) 
-        } });
+        await criarVeiculoFn({
+          data: {
+            ...veiculoData,
+            ano: parseInt(veiculoData.ano),
+          },
+        });
       }
-      
+
       console.log("Enviando para análise final...");
       const result = await enviarAnaliseFn();
       console.log("Resultado do envio:", result);
 
       toast.success("Cadastro enviado para análise com sucesso!");
-      
+
       // Forçar atualização do estado global de autenticação/usuário para refletir o novo status
       setTimeout(() => {
         window.location.reload();
@@ -468,7 +532,9 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-zuvvi-volt" />
-        <p className="text-white/40 text-xs font-bold uppercase tracking-widest">Carregando seus dados...</p>
+        <p className="text-white/40 text-xs font-bold uppercase tracking-widest">
+          Carregando seus dados...
+        </p>
       </div>
     );
   }
@@ -478,12 +544,14 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center space-y-6 bg-white/5 rounded-3xl border border-red-500/20">
         <AlertCircle className="w-12 h-12 text-red-500" />
         <div className="space-y-2">
-          <h3 className="text-white font-black uppercase tracking-tight">Não foi possível carregar seus dados.</h3>
+          <h3 className="text-white font-black uppercase tracking-tight">
+            Não foi possível carregar seus dados.
+          </h3>
           <p className="text-white/40 text-xs leading-relaxed">
             Nenhuma alteração foi feita. Atualize a página e tente novamente.
           </p>
         </div>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all"
         >
@@ -495,14 +563,13 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
 
   return (
     <div className="space-y-6 pb-10">
-
       <section className="space-y-4">
         <h3 className="text-xs font-black text-zuvvi-volt uppercase tracking-widest flex items-center gap-2">
           <FileText className="w-4 h-4" /> 1. Documentos Pessoais
         </h3>
         <div className="space-y-2">
-          {renderUpload('identidade', 'RG ou CPF')}
-          {renderUpload('comprovante_residencia', 'Comprovante de Residência')}
+          {renderUpload("identidade", "RG ou CPF")}
+          {renderUpload("comprovante_residencia", "Comprovante de Residência")}
         </div>
       </section>
 
@@ -511,40 +578,44 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           <FileText className="w-4 h-4" /> 2. CNH
         </h3>
         <div className="space-y-3">
-          <input 
-            placeholder="Número da CNH (11 dígitos)" 
+          <input
+            placeholder="Número da CNH (11 dígitos)"
             className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
             value={cnhData.numero}
             maxLength={11}
-            onChange={e => {
+            onChange={(e) => {
               const val = e.target.value.replace(/\D/g, "");
               if (val.length <= 11) {
-                setCnhData({...cnhData, numero: val});
+                setCnhData({ ...cnhData, numero: val });
               }
             }}
           />
           <div className="flex gap-2">
-            {['A', 'AB'].map(cat => (
-              <button 
+            {["A", "AB"].map((cat) => (
+              <button
                 key={cat}
                 type="button"
-                onClick={() => setCnhData({...cnhData, categoria: cat})}
-                className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${cnhData.categoria === cat ? 'bg-zuvvi-volt text-zuvvi-indigo' : 'bg-white/5 text-white/40 border border-white/10'}`}
+                onClick={() => setCnhData({ ...cnhData, categoria: cat })}
+                className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${cnhData.categoria === cat ? "bg-zuvvi-volt text-zuvvi-indigo" : "bg-white/5 text-white/40 border border-white/10"}`}
               >
                 CATEGORIA {cat}
               </button>
             ))}
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] text-white/40 uppercase tracking-widest ml-1">Validade da CNH</label>
+            <label className="text-[10px] text-white/40 uppercase tracking-widest ml-1">
+              Validade da CNH
+            </label>
             <div className="grid grid-cols-3 gap-2">
               <Select onValueChange={setValidadeDay} value={validadeDay}>
                 <SelectTrigger className="bg-white/5 border-white/10 text-white focus:border-zuvvi-volt h-12 rounded-2xl">
                   <SelectValue placeholder="Dia" />
                 </SelectTrigger>
                 <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                  {dias.map(d => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  {dias.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -554,8 +625,10 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                   <SelectValue placeholder="Mês" />
                 </SelectTrigger>
                 <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                  {meses.map(m => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  {meses.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -565,14 +638,16 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                   <SelectValue placeholder="Ano" />
                 </SelectTrigger>
                 <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                  {anos.map(y => (
-                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  {anos.map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          {renderUpload('cnh', 'Foto da CNH')}
+          {renderUpload("cnh", "Foto da CNH")}
         </div>
       </section>
 
@@ -581,83 +656,83 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           <Bike className="w-4 h-4" /> 3. Veículo
         </h3>
         <div className="grid grid-cols-2 gap-3">
-          <input 
-            placeholder="Placa (ABC-1234)" 
+          <input
+            placeholder="Placa (ABC-1234)"
             className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all font-mono"
             value={veiculoData.placa}
             maxLength={8}
-            onChange={e => {
+            onChange={(e) => {
               let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
               if (val.length > 3) {
                 val = val.slice(0, 3) + "-" + val.slice(3, 7);
               }
               veiculoDirty.current = true;
-              setVeiculoData({...veiculoData, placa: val});
+              setVeiculoData({ ...veiculoData, placa: val });
             }}
 
             onBlur={() => handleSaveVeiculo(veiculoData)}
           />
-          <input 
-            placeholder="Ano" 
+          <input
+            placeholder="Ano"
             type="number"
             className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
             value={veiculoData.ano}
-            onChange={e => {
+            onChange={(e) => {
               veiculoDirty.current = true;
-              setVeiculoData({...veiculoData, ano: e.target.value});
+              setVeiculoData({ ...veiculoData, ano: e.target.value });
             }}
 
             onBlur={() => handleSaveVeiculo(veiculoData)}
           />
         </div>
-        <input 
-          placeholder="Marca (ex: Honda)" 
+        <input
+          placeholder="Marca (ex: Honda)"
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.marca}
-          onChange={e => {
+          onChange={(e) => {
             veiculoDirty.current = true;
-            setVeiculoData({...veiculoData, marca: e.target.value.toUpperCase()});
+            setVeiculoData({ ...veiculoData, marca: e.target.value.toUpperCase() });
           }}
 
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
-        <input 
-          placeholder="Modelo (ex: CG 160)" 
+        <input
+          placeholder="Modelo (ex: CG 160)"
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.modelo}
-          onChange={e => {
+          onChange={(e) => {
             veiculoDirty.current = true;
-            setVeiculoData({...veiculoData, modelo: e.target.value.toUpperCase()});
+            setVeiculoData({ ...veiculoData, modelo: e.target.value.toUpperCase() });
           }}
 
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
-        <input 
-          placeholder="Cor" 
+        <input
+          placeholder="Cor"
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all"
           value={veiculoData.cor}
-          onChange={e => {
+          onChange={(e) => {
             veiculoDirty.current = true;
-            setVeiculoData({...veiculoData, cor: e.target.value.toUpperCase()});
+            setVeiculoData({ ...veiculoData, cor: e.target.value.toUpperCase() });
           }}
 
           onBlur={() => handleSaveVeiculo(veiculoData)}
         />
 
         <div className="flex items-center gap-2 ml-1 min-h-[16px]">
-          {veiculoStatus === 'saving' && (
+          {veiculoStatus === "saving" && (
             <div className="flex items-center gap-1.5 text-[10px] text-white/40">
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>Salvando dados do veículo...</span>
             </div>
           )}
-          {veiculoStatus === 'success' && (
+          {veiculoStatus === "success" && (
             <div className="flex items-center gap-1.5 text-[10px] text-zuvvi-volt font-bold">
               <CheckCircle2 className="w-3 h-3" />
               <span>Dados do veículo salvos ✓</span>
             </div>
           )}
-          {veiculoStatus === 'error' && (
+          {veiculoStatus === "error" && (
             <div className="flex items-center gap-1.5 text-[10px] text-red-500 font-bold">
               <AlertCircle className="w-3 h-3" />
               <span>Erro ao salvar veículo. Tente novamente.</span>
@@ -665,9 +740,9 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           )}
         </div>
         <div className="space-y-2">
-          {renderUpload('crlv', 'Foto do CRLV Digital')}
-          {renderUpload('foto_veiculo', 'Foto do Veículo')}
-          {renderUpload('foto_placa', 'Foto da Placa')}
+          {renderUpload("crlv", "Foto do CRLV Digital")}
+          {renderUpload("foto_veiculo", "Foto do Veículo")}
+          {renderUpload("foto_placa", "Foto da Placa")}
         </div>
       </section>
 
@@ -676,8 +751,8 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
           <CreditCard className="w-4 h-4" /> 4. Recebimento
         </h3>
         <div className="flex gap-2 mb-3">
-          {(['cpf', 'telefone', 'email', 'aleatoria'] as const).map(type => (
-            <button 
+          {(["cpf", "telefone", "email", "aleatoria"] as const).map((type) => (
+            <button
               key={type}
               type="button"
               onClick={() => {
@@ -686,25 +761,25 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
                 setPix(""); // Limpa somente ao efetivamente trocar tipo
               }}
 
-              className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all uppercase ${pixType === type ? 'bg-zuvvi-volt text-zuvvi-indigo' : 'bg-white/5 text-white/40 border border-white/10'}`}
+              className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all uppercase ${pixType === type ? "bg-zuvvi-volt text-zuvvi-indigo" : "bg-white/5 text-white/40 border border-white/10"}`}
             >
-              {type === 'aleatoria' ? 'Aleatória' : type}
+              {type === "aleatoria" ? "Aleatória" : type}
             </button>
           ))}
         </div>
-        <input 
-          placeholder={!pixType ? "Selecione o tipo de chave" : "Digite a chave Pix"} 
+        <input
+          placeholder={!pixType ? "Selecione o tipo de chave" : "Digite a chave Pix"}
           disabled={!pixType}
           className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm focus:border-zuvvi-volt outline-none transition-all disabled:opacity-50"
           value={pix}
-          onChange={e => {
+          onChange={(e) => {
             let val = e.target.value;
-            if (pixType === 'cpf') {
+            if (pixType === "cpf") {
               val = val.replace(/\D/g, "").slice(0, 11);
               if (val.length > 9) val = val.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
               else if (val.length > 6) val = val.replace(/(\d{3})(\d{3})(\d{0,3})/, "$1.$2.$3");
               else if (val.length > 3) val = val.replace(/(\d{3})(\d{0,3})/, "$1.$2");
-            } else if (pixType === 'telefone') {
+            } else if (pixType === "telefone") {
               val = val.replace(/\D/g, "").slice(0, 11);
               if (val.length > 10) val = val.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
               else if (val.length > 6) val = val.replace(/(\d{2})(\d{4,5})(\d{0,4})/, "($1) $2-$3");
@@ -715,12 +790,16 @@ export default function OnboardingForm({ onSubmitted }: { onSubmitted: () => voi
         />
       </section>
 
-      <button 
+      <button
         disabled={!canSubmit || isSubmitting}
         onClick={handleSubmit}
         className="w-full bg-zuvvi-volt disabled:bg-white/5 disabled:text-white/20 text-zuvvi-indigo py-5 rounded-3xl font-black uppercase tracking-[0.2em] text-xs zuvvi-glow transition-all active:scale-95 flex items-center justify-center gap-2"
       >
-        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+        {isSubmitting ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : (
+          <CheckCircle2 className="w-5 h-5" />
+        )}
         ENVIAR PARA ANÁLISE
       </button>
     </div>

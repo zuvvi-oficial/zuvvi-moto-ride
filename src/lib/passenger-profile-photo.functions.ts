@@ -103,11 +103,7 @@ export const getPassengerProfilePhoto = createServerFn({ method: "GET" })
 
 export const savePassengerProfilePhoto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z
-      .object({ path: z.string().min(1).max(200) })
-      .parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ path: z.string().min(1).max(200) }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as any;

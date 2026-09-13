@@ -43,7 +43,7 @@ assert.match(
 );
 assert.match(
   criarCorridaSource,
-  /Math\.round\(\(data\.valorCotado \* \(comissaoPct \/ 100\)\) \* 100\) \/ 100/,
+  /Math\.round\(data\.valorCotado \* \(comissaoPct \/ 100\) \* 100\) \/ 100/,
   "cálculo existente da comissão deve ser preservado",
 );
 assert.match(
@@ -64,9 +64,7 @@ assert.match(
 const migrationName = readdirSync("supabase/migrations").find((name) =>
   name.endsWith("_criacao_financeira_atomica.sql"),
 );
-const migrationPath = migrationName
-  ? `supabase/migrations/${migrationName}`
-  : "/tmp/etapa3.sql";
+const migrationPath = migrationName ? `supabase/migrations/${migrationName}` : "/tmp/etapa3.sql";
 assert.ok(
   migrationName || existsSync(migrationPath),
   "migration da criação financeira atômica deve estar versionada ou isolada pelo workflow",
@@ -77,7 +75,11 @@ assert.match(migration, /security invoker/i, "RPC deve permanecer SECURITY INVOK
 assert.match(migration, /set search_path = ''/i, "RPC deve fixar search_path");
 assert.match(migration, /pg_advisory_xact_lock/i, "RPC deve serializar criação por passageiro");
 assert.match(migration, /insert into public\.corridas/i, "RPC deve criar a corrida");
-assert.match(migration, /insert into public\.pagamentos/i, "RPC deve criar o pagamento na mesma chamada");
+assert.match(
+  migration,
+  /insert into public\.pagamentos/i,
+  "RPC deve criar o pagamento na mesma chamada",
+);
 assert.match(
   migration,
   /create unique index pagamentos_corrida_unique_idx/i,

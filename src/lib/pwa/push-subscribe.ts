@@ -113,9 +113,8 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeOutco
     const keys = subscriptionKeys(subscription);
     if (!keys) return "error";
 
-    const { registrarPushSubscription, removerPushSubscription } = await import(
-      "@/lib/push-subscriptions.functions"
-    );
+    const { registrarPushSubscription, removerPushSubscription } =
+      await import("@/lib/push-subscriptions.functions");
     await registrarPushSubscription({
       data: {
         endpoint: subscription.endpoint,

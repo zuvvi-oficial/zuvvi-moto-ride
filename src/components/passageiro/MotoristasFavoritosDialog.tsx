@@ -1,6 +1,9 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listarMotoristasFavoritos, removerMotoristaFavorito } from "@/lib/motoristas-favoritos.functions";
+import {
+  listarMotoristasFavoritos,
+  removerMotoristaFavorito,
+} from "@/lib/motoristas-favoritos.functions";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -48,8 +51,8 @@ export function MotoristasFavoritosDialog({ open, onOpenChange }: MotoristasFavo
             Meus motoristas favoritos
           </DialogTitle>
           <DialogDescription>
-            Favorite motoristas com quem você já andou logo após a corrida. Em breve eles terão prioridade
-            quando você chamar uma nova viagem.
+            Favorite motoristas com quem você já andou logo após a corrida. Em breve eles terão
+            prioridade quando você chamar uma nova viagem.
           </DialogDescription>
         </DialogHeader>
 
@@ -61,24 +64,26 @@ export function MotoristasFavoritosDialog({ open, onOpenChange }: MotoristasFavo
               Nenhum motorista favoritado ainda. Favorite alguém ao final de uma corrida.
             </p>
           ) : (
-            favoritos.map((favorito: { motoristaId: string; nome: string; favoritadoEm: string }) => (
-              <div
-                key={favorito.motoristaId}
-                className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              >
-                <p className="min-w-0 truncate text-sm font-semibold">{favorito.nome}</p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removerMutation.mutate(favorito.motoristaId)}
-                  disabled={removerMutation.isPending}
-                  aria-label={`Remover ${favorito.nome} dos favoritos`}
+            favoritos.map(
+              (favorito: { motoristaId: string; nome: string; favoritadoEm: string }) => (
+                <div
+                  key={favorito.motoristaId}
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
                 >
-                  <Trash2 className="h-4 w-4 text-red-400" />
-                </Button>
-              </div>
-            ))
+                  <p className="min-w-0 truncate text-sm font-semibold">{favorito.nome}</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removerMutation.mutate(favorito.motoristaId)}
+                    disabled={removerMutation.isPending}
+                    aria-label={`Remover ${favorito.nome} dos favoritos`}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-400" />
+                  </Button>
+                </div>
+              ),
+            )
           )}
         </div>
       </DialogContent>

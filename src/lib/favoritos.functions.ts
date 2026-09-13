@@ -13,7 +13,7 @@ export const listarFavoritos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+
     // Resolve usuario.id
     const { data: usuario, error: userError } = await supabaseAdmin
       .from("usuarios")
@@ -33,7 +33,7 @@ export const listarFavoritos = createServerFn({ method: "GET" })
 
     if (error) throw error;
 
-    return (data || []).map(fav => ({
+    return (data || []).map((fav) => ({
       ...fav,
       latitude: Number(fav.latitude),
       longitude: Number(fav.longitude),
@@ -45,7 +45,7 @@ export const criarFavorito = createServerFn({ method: "POST" })
   .validator((data) => favoritoSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+
     // Resolve usuario.id
     const { data: usuario, error: userError } = await supabaseAdmin
       .from("usuarios")
@@ -64,9 +64,11 @@ export const criarFavorito = createServerFn({ method: "POST" })
       .eq("usuario_id", usuario.id);
 
     if (countError) throw countError;
-    
+
     if (count !== null && count >= 10) {
-      throw new Error("Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.");
+      throw new Error(
+        "Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.",
+      );
     }
 
     // Check for duplicate name (case insensitive)
@@ -81,20 +83,20 @@ export const criarFavorito = createServerFn({ method: "POST" })
       throw new Error("Você já possui um favorito com esse nome.");
     }
 
-    const { error } = await supabaseAdmin
-      .from("enderecos_favoritos")
-      .insert({
-        usuario_id: usuario.id,
-        nome: data.nome,
-        endereco: data.endereco,
-        latitude: data.latitude,
-        longitude: data.longitude,
-      });
+    const { error } = await supabaseAdmin.from("enderecos_favoritos").insert({
+      usuario_id: usuario.id,
+      nome: data.nome,
+      endereco: data.endereco,
+      latitude: data.latitude,
+      longitude: data.longitude,
+    });
 
     if (error) {
       // PART 3: Database error translation
-      if (error.code === '23514' || error.message?.includes('limite de 10')) {
-        throw new Error("Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.");
+      if (error.code === "23514" || error.message?.includes("limite de 10")) {
+        throw new Error(
+          "Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.",
+        );
       }
       throw error;
     }
@@ -107,7 +109,7 @@ export const excluirFavorito = createServerFn({ method: "POST" })
   .validator((data) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+
     // Resolve usuario.id
     const { data: usuario, error: userError } = await supabaseAdmin
       .from("usuarios")

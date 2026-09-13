@@ -4,8 +4,7 @@ import {
   type PixTokenRefreshDependencies,
 } from "./pagamento.server";
 
-const OAUTH_REDIRECT_URI =
-  "https://zuvvi-moto-ride.lovable.app/motorista/mercadopago-callback";
+const OAUTH_REDIRECT_URI = "https://zuvvi-moto-ride.lovable.app/motorista/mercadopago-callback";
 const ENCRYPTION_VERSION = 1;
 
 export type PixPaymentSyncResult = "pendente" | "pago" | "falhou" | "estornado" | null;
@@ -57,9 +56,7 @@ function readCredentialRow(data: unknown): PixCredentialSnapshot | null {
   });
 }
 
-async function createRefreshDependencies(
-  supabaseAdmin: any,
-): Promise<PixTokenRefreshDependencies> {
+async function createRefreshDependencies(supabaseAdmin: any): Promise<PixTokenRefreshDependencies> {
   const [{ decryptOAuthSecret, encryptOAuthSecret }, { createMercadoPagoOAuthClient }] =
     await Promise.all([
       import("./pix-oauth-crypto.server"),
@@ -117,10 +114,7 @@ async function getDriverAccessToken(
 
 function sameCurrencyAmount(actual: unknown, expected: number): boolean {
   const parsed = Number(actual);
-  return (
-    Number.isFinite(parsed) &&
-    Math.round(parsed * 100) === Math.round(Number(expected) * 100)
-  );
+  return Number.isFinite(parsed) && Math.round(parsed * 100) === Math.round(Number(expected) * 100);
 }
 
 export async function sincronizarPagamentoPixComMercadoPago(

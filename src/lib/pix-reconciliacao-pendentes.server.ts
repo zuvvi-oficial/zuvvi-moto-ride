@@ -37,7 +37,9 @@ export async function reconciliarTentativasPixPendentes(): Promise<ResumoReconci
 
   const { data: tentativas, error } = await supabaseAdmin
     .from("pagamentos_pix_tentativas")
-    .select("id, motorista_id, idempotency_key, mercadopago_payment_id, valor_total, created_at, expires_at")
+    .select(
+      "id, motorista_id, idempotency_key, mercadopago_payment_id, valor_total, created_at, expires_at",
+    )
     .eq("estado_interno", "criando")
     .order("created_at", { ascending: true })
     .limit(BATCH_LIMIT);
@@ -53,7 +55,11 @@ export async function reconciliarTentativasPixPendentes(): Promise<ResumoReconci
   verificadas = candidatas.length;
 
   for (const tentativa of candidatas) {
-    const deadlineAt = calcularDeadlinePix(tentativa.created_at, tentativa.expires_at, timeoutSeconds);
+    const deadlineAt = calcularDeadlinePix(
+      tentativa.created_at,
+      tentativa.expires_at,
+      timeoutSeconds,
+    );
     const deadlineMs = deadlineAt ? Date.parse(deadlineAt) : NaN;
     if (!Number.isFinite(deadlineMs) || nowMs < deadlineMs) continue;
 

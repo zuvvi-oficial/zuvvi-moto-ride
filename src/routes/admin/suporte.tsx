@@ -1,13 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { getChamadosSuporte } from '@/lib/suporte.functions';
-import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
-import { DetalheChamado } from '@/components/admin/DetalheChamado';
-import { Card } from '@/components/ui/card';
-import { AlertCircle, MessageSquare, ChevronRight, Search, X, Filter } from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { Input } from '@/components/ui/input';
+import { createFileRoute } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { getChamadosSuporte } from "@/lib/suporte.functions";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminBottomNav } from "@/components/admin/AdminBottomNav";
+import { DetalheChamado } from "@/components/admin/DetalheChamado";
+import { Card } from "@/components/ui/card";
+import { AlertCircle, MessageSquare, ChevronRight, Search, X, Filter } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -15,9 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute('/admin/suporte')({
+export const Route = createFileRoute("/admin/suporte")({
   component: SuporteAdmin,
 });
 
@@ -28,23 +28,24 @@ function SuporteAdmin() {
   const [chamadoSelecionado, setChamadoSelecionado] = useState<any | null>(null);
 
   const { data: chamados } = useSuspenseQuery({
-    queryKey: ['suporte-chamados', tipo],
-    queryFn: () => getChamadosSuporte({ data: { tipo: tipo === 'todos' ? undefined : tipo } }),
+    queryKey: ["suporte-chamados", tipo],
+    queryFn: () => getChamadosSuporte({ data: { tipo: tipo === "todos" ? undefined : tipo } }),
   });
 
   const filteredChamados = useMemo(() => {
     if (!chamados) return [];
 
-    const filtrados = chamados.filter(chamado => {
+    const filtrados = chamados.filter((chamado) => {
       // Filtro por Status
-      if (status !== 'todos' && chamado.status !== status) return false;
+      if (status !== "todos" && chamado.status !== status) return false;
 
       // Filtro por Busca
       if (busca) {
         const termo = busca.toLowerCase();
         const naDescricao = chamado.descricao?.toLowerCase().includes(termo);
-        const noUsuario = chamado.usuarios?.nome?.toLowerCase().includes(termo) ||
-                          chamado.usuarios?.email?.toLowerCase().includes(termo);
+        const noUsuario =
+          chamado.usuarios?.nome?.toLowerCase().includes(termo) ||
+          chamado.usuarios?.email?.toLowerCase().includes(termo);
         const noProtocolo = chamado.id.toLowerCase().includes(termo);
 
         if (!naDescricao && !noUsuario && !noProtocolo) return false;
@@ -63,8 +64,8 @@ function SuporteAdmin() {
     // estável (ES2019+), então a ordem por data mais recente é preservada
     // dentro de cada grupo.
     return [...filtrados].sort((a, b) => {
-      const aUrgente = a.tipo === 'sos' && a.status === 'aberto';
-      const bUrgente = b.tipo === 'sos' && b.status === 'aberto';
+      const aUrgente = a.tipo === "sos" && a.status === "aberto";
+      const bUrgente = b.tipo === "sos" && b.status === "aberto";
       if (aUrgente === bUrgente) return 0;
       return aUrgente ? -1 : 1;
     });
@@ -72,23 +73,23 @@ function SuporteAdmin() {
 
   const uniqueStatus = useMemo(() => {
     if (!chamados) return [];
-    const states = chamados.map(c => c.status);
+    const states = chamados.map((c) => c.status);
     return Array.from(new Set(states));
   }, [chamados]);
 
-  const hasActiveFilters = tipo !== 'todos' || status !== 'todos' || busca !== '';
+  const hasActiveFilters = tipo !== "todos" || status !== "todos" || busca !== "";
 
   const clearFilters = () => {
-    setTipo('todos');
-    setStatus('todos');
-    setBusca('');
+    setTipo("todos");
+    setStatus("todos");
+    setBusca("");
   };
 
   const indicadores = {
-    novos: chamados?.filter(c => c.status === 'aberto').length || 0,
-    atendimento: chamados?.filter(c => c.status === 'em_atendimento').length || 0,
-    sos: chamados?.filter(c => c.tipo === 'sos' && c.status !== 'resolvido').length || 0,
-    resolvidos: chamados?.filter(c => c.status === 'resolvido').length || 0,
+    novos: chamados?.filter((c) => c.status === "aberto").length || 0,
+    atendimento: chamados?.filter((c) => c.status === "em_atendimento").length || 0,
+    sos: chamados?.filter((c) => c.tipo === "sos" && c.status !== "resolvido").length || 0,
+    resolvidos: chamados?.filter((c) => c.status === "resolvido").length || 0,
   };
 
   return (
@@ -122,23 +123,26 @@ function SuporteAdmin() {
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={18} />
-              <Input 
-                placeholder="Buscar chamado..." 
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+                size={18}
+              />
+              <Input
+                placeholder="Buscar chamado..."
                 className="bg-white/[0.05] border-white/10 pl-10 h-11 text-white placeholder:text-white/20 focus:ring-zuvvi-violet"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
               />
               {busca && (
-                <button 
-                  onClick={() => setBusca('')}
+                <button
+                  onClick={() => setBusca("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
                 >
                   <X size={16} />
                 </button>
               )}
             </div>
-            
+
             <div className="w-full md:w-48">
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="bg-white/[0.05] border-white/10 h-11 text-white">
@@ -149,9 +153,9 @@ function SuporteAdmin() {
                 </SelectTrigger>
                 <SelectContent className="bg-zuvvi-indigo border-white/10 text-white">
                   <SelectItem value="todos">Todos os status</SelectItem>
-                  {uniqueStatus.map(s => (
+                  {uniqueStatus.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {s.replace('_', ' ').charAt(0).toUpperCase() + s.replace('_', ' ').slice(1)}
+                      {s.replace("_", " ").charAt(0).toUpperCase() + s.replace("_", " ").slice(1)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -162,21 +166,21 @@ function SuporteAdmin() {
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-2">
-                {(['todos', 'duvida', 'reclamacao', 'sos'] as const).map(t => (
-                  <button 
+                {(["todos", "duvida", "reclamacao", "sos"] as const).map((t) => (
+                  <button
                     key={t}
                     onClick={() => setTipo(t)}
-                    className={`px-4 py-2 rounded-full text-xs uppercase font-bold transition-all whitespace-nowrap ${tipo === t ? 'bg-zuvvi-violet text-white' : 'bg-white/[0.05] text-white/50'}`}
+                    className={`px-4 py-2 rounded-full text-xs uppercase font-bold transition-all whitespace-nowrap ${tipo === t ? "bg-zuvvi-violet text-white" : "bg-white/[0.05] text-white/50"}`}
                   >
-                    {t === 'duvida' ? 'Dúvida' : t === 'reclamacao' ? 'Reclamação' : t}
+                    {t === "duvida" ? "Dúvida" : t === "reclamacao" ? "Reclamação" : t}
                   </button>
                 ))}
               </div>
 
               {hasActiveFilters && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={clearFilters}
                   className="text-white/50 hover:text-white text-xs h-8 px-2 gap-1 ml-auto"
                 >
@@ -194,56 +198,68 @@ function SuporteAdmin() {
                   <Search size={24} className="text-white/20" />
                 </div>
                 <h3 className="text-white font-bold mb-1">Nenhum chamado encontrado</h3>
-                <p className="text-white/30 text-xs italic">Não existem registros para o filtro selecionado no momento.</p>
+                <p className="text-white/30 text-xs italic">
+                  Não existem registros para o filtro selecionado no momento.
+                </p>
               </div>
             ) : (
-              filteredChamados.map(chamado => {
-                const urgente = chamado.tipo === 'sos' && chamado.status === 'aberto';
+              filteredChamados.map((chamado) => {
+                const urgente = chamado.tipo === "sos" && chamado.status === "aberto";
                 return (
-                <Card
-                  key={chamado.id}
-                  onClick={() => setChamadoSelecionado(chamado)}
-                  className={`p-4 rounded-xl flex items-center gap-4 transition-all cursor-pointer active:scale-[0.98] ${
-                    urgente
-                      ? 'bg-red-500/10 border-red-500/50 hover:bg-red-500/15'
-                      : 'bg-white/[0.025] border-white/10 hover:bg-white/[0.05]'
-                  }`}
-                >
-                  <div className={`p-2 rounded-lg ${chamado.tipo === 'sos' ? 'bg-red-500 text-white' : 'bg-white/5 text-white/50'}`}>
-                    {chamado.tipo === 'sos' ? <AlertCircle size={20} /> : <MessageSquare size={20} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm truncate">
-                      {chamado.usuarios?.nome || 'Usuário'}
-                      {urgente && (
-                        <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-red-400">
-                          SOS não atendido
-                        </span>
+                  <Card
+                    key={chamado.id}
+                    onClick={() => setChamadoSelecionado(chamado)}
+                    className={`p-4 rounded-xl flex items-center gap-4 transition-all cursor-pointer active:scale-[0.98] ${
+                      urgente
+                        ? "bg-red-500/10 border-red-500/50 hover:bg-red-500/15"
+                        : "bg-white/[0.025] border-white/10 hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-lg ${chamado.tipo === "sos" ? "bg-red-500 text-white" : "bg-white/5 text-white/50"}`}
+                    >
+                      {chamado.tipo === "sos" ? (
+                        <AlertCircle size={20} />
+                      ) : (
+                        <MessageSquare size={20} />
                       )}
                     </div>
-                    <div className="flex gap-2 text-[10px] text-white/50 uppercase font-bold">
-                      <span className={chamado.tipo === 'sos' ? 'text-red-400' : ''}>
-                        {chamado.tipo === 'duvida' ? 'Dúvida' : chamado.tipo === 'reclamacao' ? 'Reclamação' : chamado.tipo}
-                      </span>
-                      <span>•</span>
-                      <span>{chamado.status.replace('_', ' ')}</span>
-                      <span>•</span>
-                      <span>{new Date(chamado.created_at).toLocaleDateString()}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm truncate">
+                        {chamado.usuarios?.nome || "Usuário"}
+                        {urgente && (
+                          <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-red-400">
+                            SOS não atendido
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 text-[10px] text-white/50 uppercase font-bold">
+                        <span className={chamado.tipo === "sos" ? "text-red-400" : ""}>
+                          {chamado.tipo === "duvida"
+                            ? "Dúvida"
+                            : chamado.tipo === "reclamacao"
+                              ? "Reclamação"
+                              : chamado.tipo}
+                        </span>
+                        <span>•</span>
+                        <span>{chamado.status.replace("_", " ")}</span>
+                        <span>•</span>
+                        <span>{new Date(chamado.created_at).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                  </div>
-                  <ChevronRight size={16} className="text-white/30" />
-                </Card>
+                    <ChevronRight size={16} className="text-white/30" />
+                  </Card>
                 );
               })
             )}
           </div>
         </div>
       </main>
-      
-      <DetalheChamado 
-        chamado={chamadoSelecionado} 
-        isOpen={!!chamadoSelecionado} 
-        onClose={() => setChamadoSelecionado(null)} 
+
+      <DetalheChamado
+        chamado={chamadoSelecionado}
+        isOpen={!!chamadoSelecionado}
+        onClose={() => setChamadoSelecionado(null)}
       />
 
       <AdminBottomNav isHidden={!!chamadoSelecionado} />

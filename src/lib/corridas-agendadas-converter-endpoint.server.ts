@@ -1,7 +1,10 @@
 // Endpoint interno chamado pela GitHub Action agendada (ver
 // .github/workflows/corridas-agendadas-converter.yml). Protegido por
 // segredo compartilhado, nunca exposto sem autenticação.
-import { converterCorridasAgendadasVencidas, enviarLembretesCorridasAgendadas } from "./corridas-agendadas-engine.server";
+import {
+  converterCorridasAgendadasVencidas,
+  enviarLembretesCorridasAgendadas,
+} from "./corridas-agendadas-engine.server";
 
 const ENDPOINT_PATH = "/api/internal/corridas-agendadas-converter";
 
@@ -29,7 +32,12 @@ export async function handleCorridasAgendadasConverterRequest(request: Request):
 
   const secret = process.env["CORRIDAS_AGENDADAS_CRON_SECRET"];
   const providedSecret = request.headers.get("x-cron-secret");
-  if (!secret || !providedSecret || providedSecret.length !== secret.length || !timingSafeEqualString(providedSecret, secret)) {
+  if (
+    !secret ||
+    !providedSecret ||
+    providedSecret.length !== secret.length ||
+    !timingSafeEqualString(providedSecret, secret)
+  ) {
     return new Response("Unauthorized", { status: 401 });
   }
 

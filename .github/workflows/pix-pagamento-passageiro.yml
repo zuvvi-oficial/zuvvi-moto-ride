@@ -65,9 +65,9 @@ jobs:
           grep -q 'QRCodeSVG' src/routes/pagamento-pix.tsx
           grep -q 'useOnlineStatus' src/routes/pagamento-pix.tsx
           grep -q 'Já paguei' src/routes/pagamento-pix.tsx
-          grep -q "to: '/pagamento-pix'" src/routes/procurando-motorista.tsx
-          grep -q "to: '/acompanhamento'" src/routes/procurando-motorista.tsx
-          grep -q "formaPagamento === 'pix'" src/routes/procurando-motorista.tsx
+          grep -Eq "to: [\"']/pagamento-pix[\"']" src/routes/procurando-motorista.tsx
+          grep -Eq "to: [\"']/acompanhamento[\"']" src/routes/procurando-motorista.tsx
+          grep -Eq "formaPagamento === [\"']pix[\"']" src/routes/procurando-motorista.tsx
           grep -q 'pagamento.status === "pago"' src/lib/pagamento-pix-status.functions.ts
           ! grep -q 'pagamentos_pix_tentativas' src/routes/pagamento-pix.tsx
           ! grep -Eq 'MERCADOPAGO_CLIENT_SECRET|PIX_OAUTH_ENCRYPTION_KEY|SUPABASE_SERVICE_ROLE_KEY' src/routes/pagamento-pix.tsx

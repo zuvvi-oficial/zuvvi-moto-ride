@@ -92,7 +92,8 @@ export const getGamificacaoMotorista = createServerFn({ method: "GET" })
 
     const totalCorridas = corridasResult.count ?? 0;
     const totalAvaliacoesRecebidas = avaliacoesResult.count ?? 0;
-    const notaMedia = motoristaResult.data?.nota_media != null ? Number(motoristaResult.data.nota_media) : null;
+    const notaMedia =
+      motoristaResult.data?.nota_media != null ? Number(motoristaResult.data.nota_media) : null;
 
     const { nivel, proximoNivel, corridasParaProximoNivel } = calcularNivel(totalCorridas);
 
@@ -119,7 +120,9 @@ export const getGamificacaoMotorista = createServerFn({ method: "GET" })
         id: "nota_excelencia",
         titulo: "Excelência",
         descricao: `Nota média acima de ${NOTA_MINIMA_EXCELENCIA.toFixed(1)} (mínimo ${AMOSTRA_MINIMA_NOTA} avaliações recebidas).`,
-        conquistada: totalAvaliacoesRecebidas >= AMOSTRA_MINIMA_NOTA && (notaMedia ?? 0) > NOTA_MINIMA_EXCELENCIA,
+        conquistada:
+          totalAvaliacoesRecebidas >= AMOSTRA_MINIMA_NOTA &&
+          (notaMedia ?? 0) > NOTA_MINIMA_EXCELENCIA,
       },
     ];
 

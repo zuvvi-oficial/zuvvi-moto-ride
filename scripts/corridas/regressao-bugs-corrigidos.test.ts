@@ -22,7 +22,7 @@ const motoristaFunctionsSource = readFileSync("src/lib/motorista.functions.ts", 
 
   assert.match(
     cancelarCorridaSource,
-    /\.in\("status",\s*\[\s*'solicitada',\s*'buscando_motorista',\s*'aceita',\s*'motorista_a_caminho'\s*\]\)/,
+    /\.in\("status",\s*\[\s*["']solicitada["'],\s*["']buscando_motorista["'],\s*["']aceita["'],\s*["']motorista_a_caminho["']\s*\]\)/,
     "G1: cancelarCorrida deve continuar restrita aos status anteriores ao embarque",
   );
   assert.doesNotMatch(
@@ -44,12 +44,12 @@ const motoristaFunctionsSource = readFileSync("src/lib/motorista.functions.ts", 
 
   assert.match(
     criarVeiculoSource,
-    /const dadosInalterados = !!veiculoExistente &&/,
+    /const dadosInalterados =\s*!!veiculoExistente &&/,
     "G5: criarVeiculo deve continuar detectando reenvio idêntico do veículo",
   );
   assert.match(
     criarVeiculoSource,
-    /const statusAprovacao = dadosInalterados \? veiculoExistente\.status_aprovacao : 'em_preenchimento';/,
+    /const statusAprovacao = dadosInalterados\s*\?\s*veiculoExistente\.status_aprovacao\s*:\s*["']em_preenchimento["'];/,
     "G5: reenvio idêntico não deve resetar status_aprovacao",
   );
 }

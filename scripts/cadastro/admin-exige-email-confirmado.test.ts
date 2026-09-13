@@ -103,7 +103,11 @@ function extrairVarName(expressao: string, origem: string): string {
   // (Só casa `isAdmin: await ...` — a declaração de tipo `isAdmin: boolean;`
   // da interface AuthContext não entra aqui, de propósito.)
   const chamadas = [...authStatusServerSource.matchAll(/isAdmin:\s*(await[^\n,]*)/g)];
-  assert.equal(chamadas.length, 2, "auth-status.server.ts deve continuar com as 2 checagens de admin");
+  assert.equal(
+    chamadas.length,
+    2,
+    "auth-status.server.ts deve continuar com as 2 checagens de admin",
+  );
   for (const chamada of chamadas) {
     assert.match(
       chamada[1].trim(),
@@ -146,11 +150,16 @@ function extrairVarName(expressao: string, origem: string): string {
 // sem normalizar) e contra outro e-mail, pra provar que bloqueia só o
 // e-mail certo, não qualquer cadastro.
 {
-  const match = authFunctionsSource.match(/if \(((?:[^{])*?mokahz@gmail\.com(?:[^{])*?)\)\s*\{\s*throw/);
+  const match = authFunctionsSource.match(
+    /if \(((?:[^{])*?mokahz@gmail\.com(?:[^{])*?)\)\s*\{\s*throw/,
+  );
   assert.ok(match, "auth.functions.ts: signUp deve ter um bloqueio explícito pro e-mail do admin");
   const expressao = match![1].trim();
   const varMatch = expressao.match(/(\w+(?:\.\w+)*)\.trim\(\)\.toLowerCase\(\)/);
-  assert.ok(varMatch, `auth.functions.ts: não foi possível identificar a variável normalizada na expressão: ${expressao}`);
+  assert.ok(
+    varMatch,
+    `auth.functions.ts: não foi possível identificar a variável normalizada na expressão: ${expressao}`,
+  );
 
   const avaliarComEmail = (email: string): unknown => {
     const data = { email };
@@ -159,9 +168,21 @@ function extrairVarName(expressao: string, origem: string): string {
   };
 
   assert.equal(avaliarComEmail("mokahz@gmail.com"), true, "deve bloquear o e-mail exato do admin");
-  assert.equal(avaliarComEmail("MOKAHZ@GMAIL.COM"), true, "deve bloquear ignorando maiúsculas/minúsculas");
-  assert.equal(avaliarComEmail("  mokahz@gmail.com  "), true, "deve bloquear ignorando espaços nas bordas");
-  assert.equal(avaliarComEmail("outro@example.com"), false, "não deve bloquear outro e-mail qualquer");
+  assert.equal(
+    avaliarComEmail("MOKAHZ@GMAIL.COM"),
+    true,
+    "deve bloquear ignorando maiúsculas/minúsculas",
+  );
+  assert.equal(
+    avaliarComEmail("  mokahz@gmail.com  "),
+    true,
+    "deve bloquear ignorando espaços nas bordas",
+  );
+  assert.equal(
+    avaliarComEmail("outro@example.com"),
+    false,
+    "não deve bloquear outro e-mail qualquer",
+  );
 }
 
 console.log(

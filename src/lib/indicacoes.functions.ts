@@ -23,7 +23,9 @@ export const getProgramaIndicacao = createServerFn({ method: "GET" })
 
     const { data: indicacoes, error: indicacoesError } = await supabaseAdmin
       .from("indicacoes")
-      .select("id, status, created_at, concluida_at, indicado:usuarios!indicacoes_indicado_id_fkey(nome)")
+      .select(
+        "id, status, created_at, concluida_at, indicado:usuarios!indicacoes_indicado_id_fkey(nome)",
+      )
       .eq("indicador_id", usuario.id)
       .order("created_at", { ascending: false });
 

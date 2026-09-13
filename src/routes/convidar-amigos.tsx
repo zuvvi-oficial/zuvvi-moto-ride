@@ -19,14 +19,18 @@ export const Route = createFileRoute("/convidar-amigos")({
       throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
     }
 
-    return { voltarPara: (ehMotorista ? "/perfil-motorista" : "/perfil") as "/perfil" | "/perfil-motorista" };
+    return {
+      voltarPara: (ehMotorista ? "/perfil-motorista" : "/perfil") as
+        "/perfil" | "/perfil-motorista",
+    };
   },
   head: () => ({
     meta: [
       { title: "Convide amigos — Zuvvi" },
       {
         name: "description",
-        content: "Compartilhe seu código e ganhe cupons de desconto quando seus amigos usarem o Zuvvi.",
+        content:
+          "Compartilhe seu código e ganhe cupons de desconto quando seus amigos usarem o Zuvvi.",
       },
     ],
   }),
@@ -102,13 +106,16 @@ function ConvidarAmigos() {
               <div>
                 <p className="font-bold text-lg">Ganhe R$ 10 por indicação</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Compartilhe seu código. Quando seu amigo se cadastrar e completar a primeira corrida, vocês dois ganham um cupom de R$ 10.
+                  Compartilhe seu código. Quando seu amigo se cadastrar e completar a primeira
+                  corrida, vocês dois ganham um cupom de R$ 10.
                 </p>
               </div>
 
               {codigo ? (
                 <div className="bg-zuvvi-indigo/60 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                  <span className="font-mono font-black text-xl tracking-[0.15em] text-white">{codigo}</span>
+                  <span className="font-mono font-black text-xl tracking-[0.15em] text-white">
+                    {codigo}
+                  </span>
                   <button
                     onClick={handleCopiar}
                     aria-label="Copiar código"

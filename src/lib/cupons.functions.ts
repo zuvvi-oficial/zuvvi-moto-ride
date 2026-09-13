@@ -184,7 +184,9 @@ export const listarCuponsAdmin = createServerFn({ method: "GET" })
 
 export const atualizarStatusCupomAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ cupomId: z.string().uuid(), ativo: z.boolean() }).parse(data))
+  .inputValidator((data: unknown) =>
+    z.object({ cupomId: z.string().uuid(), ativo: z.boolean() }).parse(data),
+  )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -235,8 +237,10 @@ type CupomElegibilidade = Readonly<{
 }>;
 
 function calcularValorDesconto(cupom: CupomElegibilidade, valorCorrida: number): number {
-  const base = cupom.tipo_desconto === "percentual" ? valorCorrida * (cupom.valor / 100) : cupom.valor;
-  const comTeto = cupom.valor_maximo_desconto != null ? Math.min(base, cupom.valor_maximo_desconto) : base;
+  const base =
+    cupom.tipo_desconto === "percentual" ? valorCorrida * (cupom.valor / 100) : cupom.valor;
+  const comTeto =
+    cupom.valor_maximo_desconto != null ? Math.min(base, cupom.valor_maximo_desconto) : base;
   const semUltrapassarCorrida = Math.min(comTeto, valorCorrida);
   return Math.round(semUltrapassarCorrida * 100) / 100;
 }
@@ -324,7 +328,8 @@ export async function avaliarCupomParaCorrida(
     .select("comissao_pct")
     .eq("id", params.cidadeId)
     .maybeSingle();
-  if (cidadeError || !cidade) throw new Error("Não foi possível verificar o cupom. Tente novamente.");
+  if (cidadeError || !cidade)
+    throw new Error("Não foi possível verificar o cupom. Tente novamente.");
 
   const comissaoPct = Number(cidade.comissao_pct || 0);
   const comissaoDaCorrida = Math.round(params.valorCorrida * (comissaoPct / 100) * 100) / 100;

@@ -1,27 +1,37 @@
-import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router';
-import { useServerFn } from '@tanstack/react-start';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { getAdminStats } from '@/lib/admin.functions';
-import { Users, Bike, MapPin, CheckCircle, Clock, AlertCircle, LogOut, Wallet, Tag } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { queryOptions } from '@tanstack/react-query';
+import { getAdminStats } from "@/lib/admin.functions";
+import {
+  Users,
+  Bike,
+  MapPin,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  LogOut,
+  Wallet,
+  Tag,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminBottomNav } from "@/components/admin/AdminBottomNav";
 
 const adminStatsOptions = queryOptions({
-  queryKey: ['admin-stats'],
+  queryKey: ["admin-stats"],
   queryFn: () => getAdminStats(),
 });
 
-export const Route = createFileRoute('/admin/')({
+export const Route = createFileRoute("/admin/")({
   loader: async ({ context }) => {
     try {
       await context.queryClient.ensureQueryData(adminStatsOptions);
     } catch (e) {
-      throw redirect({ to: '/' });
+      throw redirect({ to: "/" });
     }
   },
   component: AdminDashboard,
@@ -33,51 +43,51 @@ function AdminDashboard() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate({ to: '/auth/login' });
+    navigate({ to: "/auth/login" });
   };
 
   const statCards = [
     {
-      title: 'Motoristas Pendentes',
+      title: "Motoristas Pendentes",
       value: stats.motoristasPendentes,
-      description: 'Aguardando preenchimento',
+      description: "Aguardando preenchimento",
       icon: Clock,
-      color: 'text-amber-500',
+      color: "text-amber-500",
     },
     {
-      title: 'Em Análise',
+      title: "Em Análise",
       value: stats.motoristasEmAnalise,
-      description: 'Documentos sendo validados',
+      description: "Documentos sendo validados",
       icon: AlertCircle,
-      color: 'text-blue-500',
+      color: "text-blue-500",
     },
     {
-      title: 'Aprovados',
+      title: "Aprovados",
       value: stats.motoristasAprovados,
-      description: 'Motoristas ativos',
+      description: "Motoristas ativos",
       icon: CheckCircle,
-      color: 'text-green-500',
+      color: "text-green-500",
     },
     {
-      title: 'Veículos Pendentes',
+      title: "Veículos Pendentes",
       value: stats.veiculosPendentes,
-      description: 'Aguardando aprovação',
+      description: "Aguardando aprovação",
       icon: Bike,
-      color: 'text-purple-500',
+      color: "text-purple-500",
     },
     {
-      title: 'Corridas Abertas (BSB)',
+      title: "Corridas Abertas (BSB)",
       value: stats.corridasAbertasBSB,
-      description: 'Solicitadas agora',
+      description: "Solicitadas agora",
       icon: MapPin,
-      color: 'text-indigo-500',
+      color: "text-indigo-500",
     },
     {
-      title: 'Motoristas Online',
+      title: "Motoristas Online",
       value: stats.motoristasOnline,
-      description: 'Disponíveis no mapa',
+      description: "Disponíveis no mapa",
       icon: Users,
-      color: 'text-volt',
+      color: "text-volt",
     },
   ];
 
@@ -97,14 +107,17 @@ function AdminDashboard() {
               <div className="w-1.5 h-1.5 rounded-full bg-zuvvi-volt animate-pulse shadow-[0_0_8px_rgba(198,255,61,0.5)]" />
             </div>
             <span className="text-[10px] sm:text-xs text-white/30 font-semibold tracking-wider uppercase">
-              Última atualização: {new Date(stats.lastUpdate).toLocaleString('pt-BR')}
+              Última atualização: {new Date(stats.lastUpdate).toLocaleString("pt-BR")}
             </span>
           </div>
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {statCards.map((stat) => (
-            <Card key={stat.title} className="bg-white/[0.025] border-white/10 text-white rounded-2xl min-w-0 transition-all hover:bg-white/[0.04] hover:border-white/20">
+            <Card
+              key={stat.title}
+              className="bg-white/[0.025] border-white/10 text-white rounded-2xl min-w-0 transition-all hover:bg-white/[0.04] hover:border-white/20"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
                 <CardTitle className="text-sm sm:text-base font-semibold text-white/70">
                   {stat.title}
@@ -112,38 +125,56 @@ function AdminDashboard() {
                 <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-                <div className="text-2xl sm:text-3xl font-bold tracking-tight text-white">{stat.value}</div>
-                <p className="text-sm text-white/40 mt-1 font-medium">
-                  {stat.description}
-                </p>
+                <div className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                  {stat.value}
+                </div>
+                <p className="text-sm text-white/40 mt-1 font-medium">{stat.description}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pb-10">
-          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+          <Button
+            asChild
+            className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10"
+          >
             <Link to="/admin/motoristas">Gerenciar Motoristas</Link>
           </Button>
-          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+          <Button
+            asChild
+            className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10"
+          >
             <Link to="/admin/veiculos">Gerenciar Veículos</Link>
           </Button>
-          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+          <Button
+            asChild
+            className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10"
+          >
             <Link to="/admin/cidades">Gerenciar Cidades</Link>
           </Button>
-          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+          <Button
+            asChild
+            className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10"
+          >
             <Link to="/admin/financeiro" className="flex items-center gap-2">
               <Wallet className="w-4 h-4" />
               Controle Financeiro
             </Link>
           </Button>
-          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10">
+          <Button
+            asChild
+            className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide bg-zuvvi-violet hover:bg-zuvvi-violet/90 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-zuvvi-violet/10"
+          >
             <Link to="/admin/cupons" className="flex items-center gap-2">
               <Tag className="w-4 h-4" />
               Cupons de Desconto
             </Link>
           </Button>
-          <Button asChild className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide border-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-red-500/10">
+          <Button
+            asChild
+            className="w-full h-14 sm:h-14 rounded-2xl font-bold text-sm tracking-wide border-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all hover:translate-y-[-1px] active:translate-y-[1px] shadow-lg shadow-red-500/10"
+          >
             <Link to="/admin/suporte" className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
               Central de Suporte

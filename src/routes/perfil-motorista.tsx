@@ -131,7 +131,8 @@ function PerfilMotorista() {
                   {favoritado && favoritado.total > 0 && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-zuvvi-volt/20 bg-zuvvi-volt/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-zuvvi-volt">
                       <Heart className="h-3 w-3 fill-zuvvi-volt" />
-                      Favorito de {favoritado.total} {favoritado.total === 1 ? "passageiro" : "passageiros"}
+                      Favorito de {favoritado.total}{" "}
+                      {favoritado.total === 1 ? "passageiro" : "passageiros"}
                     </span>
                   )}
                 </div>
@@ -158,7 +159,8 @@ function PerfilMotorista() {
                     Nível {NIVEL_LABEL[gamificacao.nivel]}
                   </p>
                   <p className="text-sm text-white/60">
-                    {gamificacao.totalCorridas} corrida{gamificacao.totalCorridas !== 1 ? "s" : ""} concluída
+                    {gamificacao.totalCorridas} corrida{gamificacao.totalCorridas !== 1 ? "s" : ""}{" "}
+                    concluída
                     {gamificacao.totalCorridas !== 1 ? "s" : ""}
                   </p>
                 </div>
@@ -188,7 +190,9 @@ function PerfilMotorista() {
                       )}
                       <p className="text-[11px] font-black leading-tight">{conquista.titulo}</p>
                     </div>
-                    <p className="mt-1 text-[10px] leading-snug text-white/40">{conquista.descricao}</p>
+                    <p className="mt-1 text-[10px] leading-snug text-white/40">
+                      {conquista.descricao}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -213,7 +217,9 @@ function PerfilMotorista() {
               </div>
               <div>
                 <p className="font-black">Ganhe cupons indicando o Zuvvi</p>
-                <p className="text-[11px] text-white/45">Compartilhe seu código e acompanhe suas indicações</p>
+                <p className="text-[11px] text-white/45">
+                  Compartilhe seu código e acompanhe suas indicações
+                </p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-white/20" />
@@ -253,7 +259,9 @@ function PerfilMotorista() {
                 </div>
                 <div>
                   <p className="font-black">Meus chamados</p>
-                  <p className="text-[11px] text-white/45">Acompanhe suas conversas com o suporte</p>
+                  <p className="text-[11px] text-white/45">
+                    Acompanhe suas conversas com o suporte
+                  </p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-white/20" />
@@ -269,7 +277,9 @@ function PerfilMotorista() {
                 </div>
                 <div>
                   <p className="font-black">Preciso de ajuda</p>
-                  <p className="text-[11px] text-white/45">Dúvida, reclamação ou SOS de emergência</p>
+                  <p className="text-[11px] text-white/45">
+                    Dúvida, reclamação ou SOS de emergência
+                  </p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-white/20" />

@@ -3,10 +3,7 @@ type ZuvviLogoProps = {
   className?: string;
 };
 
-export function ZuvviLogo({
-  surface = "dark",
-  className,
-}: ZuvviLogoProps) {
+export function ZuvviLogo({ surface = "dark", className }: ZuvviLogoProps) {
   return (
     <img
       src={surface === "dark" ? "/brand/zuvvi-logo-dark.svg" : "/brand/zuvvi-logo-light.svg"}

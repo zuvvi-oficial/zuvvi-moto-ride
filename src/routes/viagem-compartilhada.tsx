@@ -152,7 +152,10 @@ function ViagemCompartilhadaPublica() {
         <div className="h-72 overflow-hidden rounded-2xl border border-white/10">
           {temPosicao && mapboxToken ? (
             <MapView
-              center={{ lat: snapshot.motoristaLat as number, lng: snapshot.motoristaLng as number }}
+              center={{
+                lat: snapshot.motoristaLat as number,
+                lng: snapshot.motoristaLng as number,
+              }}
               token={mapboxToken}
               zoom={14}
               className="h-full w-full"

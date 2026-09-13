@@ -1,7 +1,7 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router';
-import { ZuvviLogo } from '@/components/brand/ZuvviLogo';
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
 
-export const Route = createFileRoute('/auth')({
+export const Route = createFileRoute("/auth")({
   component: AuthLayout,
 });
 

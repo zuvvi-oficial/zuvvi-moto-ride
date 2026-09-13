@@ -1,9 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useSuspenseQuery, useQueryClient, queryOptions } from '@tanstack/react-query';
-import { listarCuponsAdmin, criarCupomAdmin, atualizarStatusCupomAdmin } from '@/lib/cupons.functions';
-import { useState } from 'react';
-import { useServerFn } from '@tanstack/react-start';
-import { toast } from 'sonner';
+import { createFileRoute } from "@tanstack/react-router";
+import { useSuspenseQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
+import {
+  listarCuponsAdmin,
+  criarCupomAdmin,
+  atualizarStatusCupomAdmin,
+} from "@/lib/cupons.functions";
+import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -11,14 +15,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -26,34 +30,34 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Tag, Plus, Loader2, Power } from 'lucide-react';
-import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Tag, Plus, Loader2, Power } from "lucide-react";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminBottomNav } from "@/components/admin/AdminBottomNav";
 
 const cuponsQueryOptions = queryOptions({
-  queryKey: ['admin-cupons'],
+  queryKey: ["admin-cupons"],
   queryFn: () => listarCuponsAdmin(),
 });
 
-export const Route = createFileRoute('/admin/cupons')({
+export const Route = createFileRoute("/admin/cupons")({
   component: CuponsAdmin,
 });
 
 const formInicial = {
-  codigo: '',
-  tipoDesconto: 'percentual' as 'percentual' | 'fixo',
-  valor: '',
-  valorMaximoDesconto: '',
-  valorMinimoCorrida: '',
-  limiteUsoTotal: '',
-  limiteUsoPorUsuario: '1',
-  descricao: '',
-  validoAte: '',
+  codigo: "",
+  tipoDesconto: "percentual" as "percentual" | "fixo",
+  valor: "",
+  valorMaximoDesconto: "",
+  valorMinimoCorrida: "",
+  limiteUsoTotal: "",
+  limiteUsoPorUsuario: "1",
+  descricao: "",
+  validoAte: "",
 };
 
 function CuponsAdmin() {
@@ -76,8 +80,12 @@ function CuponsAdmin() {
           codigo: form.codigo.trim(),
           tipoDesconto: form.tipoDesconto,
           valor: Number(form.valor),
-          ...(form.valorMaximoDesconto ? { valorMaximoDesconto: Number(form.valorMaximoDesconto) } : {}),
-          ...(form.valorMinimoCorrida ? { valorMinimoCorrida: Number(form.valorMinimoCorrida) } : {}),
+          ...(form.valorMaximoDesconto
+            ? { valorMaximoDesconto: Number(form.valorMaximoDesconto) }
+            : {}),
+          ...(form.valorMinimoCorrida
+            ? { valorMinimoCorrida: Number(form.valorMinimoCorrida) }
+            : {}),
           ...(form.limiteUsoTotal ? { limiteUsoTotal: Number(form.limiteUsoTotal) } : {}),
           limiteUsoPorUsuario: Number(form.limiteUsoPorUsuario || 1),
           ...(form.descricao.trim() ? { descricao: form.descricao.trim() } : {}),
@@ -85,11 +93,11 @@ function CuponsAdmin() {
         },
       });
       toast.success(`Cupom ${form.codigo.trim().toUpperCase()} criado!`);
-      queryClient.invalidateQueries({ queryKey: ['admin-cupons'] });
+      queryClient.invalidateQueries({ queryKey: ["admin-cupons"] });
       setCriarAberto(false);
       setForm(formInicial);
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao criar cupom.');
+      toast.error(error.message || "Erro ao criar cupom.");
     } finally {
       setIsSubmitting(false);
     }
@@ -98,15 +106,15 @@ function CuponsAdmin() {
   const handleToggleAtivo = async (cupomId: string, ativo: boolean) => {
     try {
       await atualizarStatusFn({ data: { cupomId, ativo } });
-      toast.success(ativo ? 'Cupom ativado.' : 'Cupom desativado.');
-      queryClient.invalidateQueries({ queryKey: ['admin-cupons'] });
+      toast.success(ativo ? "Cupom ativado." : "Cupom desativado.");
+      queryClient.invalidateQueries({ queryKey: ["admin-cupons"] });
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao atualizar cupom.');
+      toast.error(error.message || "Erro ao atualizar cupom.");
     }
   };
 
   const formatDesconto = (c: (typeof cupons)[number]) =>
-    c.tipoDesconto === 'percentual' ? `${c.valor}%` : `R$ ${c.valor.toFixed(2)}`;
+    c.tipoDesconto === "percentual" ? `${c.valor}%` : `R$ ${c.valor.toFixed(2)}`;
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo text-white flex flex-col">
@@ -148,17 +156,25 @@ function CuponsAdmin() {
                   <TableCell>
                     {formatDesconto(c)}
                     {c.valorMaximoDesconto != null && (
-                      <span className="text-white/40 text-xs"> (até R$ {c.valorMaximoDesconto.toFixed(2)})</span>
+                      <span className="text-white/40 text-xs">
+                        {" "}
+                        (até R$ {c.valorMaximoDesconto.toFixed(2)})
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell>{c.valorMinimoCorrida != null ? `R$ ${c.valorMinimoCorrida.toFixed(2)}` : '—'}</TableCell>
+                  <TableCell>
+                    {c.valorMinimoCorrida != null ? `R$ ${c.valorMinimoCorrida.toFixed(2)}` : "—"}
+                  </TableCell>
                   <TableCell>
                     {c.totalUsos}
-                    {c.limiteUsoTotal != null ? ` / ${c.limiteUsoTotal}` : ''}
-                    <span className="text-white/40 text-xs"> · {c.limiteUsoPorUsuario}/usuário</span>
+                    {c.limiteUsoTotal != null ? ` / ${c.limiteUsoTotal}` : ""}
+                    <span className="text-white/40 text-xs">
+                      {" "}
+                      · {c.limiteUsoPorUsuario}/usuário
+                    </span>
                   </TableCell>
                   <TableCell className="text-xs text-white/60">
-                    {c.validoAte ? new Date(c.validoAte).toLocaleDateString('pt-BR') : 'Sem prazo'}
+                    {c.validoAte ? new Date(c.validoAte).toLocaleDateString("pt-BR") : "Sem prazo"}
                   </TableCell>
                   <TableCell>
                     {c.ativo ? (
@@ -175,7 +191,7 @@ function CuponsAdmin() {
                       onClick={() => handleToggleAtivo(c.id, !c.ativo)}
                     >
                       <Power className="w-3.5 h-3.5 mr-1.5" />
-                      {c.ativo ? 'Desativar' : 'Ativar'}
+                      {c.ativo ? "Desativar" : "Ativar"}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -219,7 +235,9 @@ function CuponsAdmin() {
               <label className="text-xs font-medium text-gray-400 uppercase">Tipo</label>
               <Select
                 value={form.tipoDesconto}
-                onValueChange={(val) => setForm({ ...form, tipoDesconto: val as 'percentual' | 'fixo' })}
+                onValueChange={(val) =>
+                  setForm({ ...form, tipoDesconto: val as "percentual" | "fixo" })
+                }
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white">
                   <SelectValue />
@@ -232,7 +250,7 @@ function CuponsAdmin() {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-400 uppercase">
-                Valor {form.tipoDesconto === 'percentual' ? '(%)' : '(R$)'}
+                Valor {form.tipoDesconto === "percentual" ? "(%)" : "(R$)"}
               </label>
               <Input
                 type="number"
@@ -244,7 +262,9 @@ function CuponsAdmin() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-400 uppercase">Teto de desconto (R$, opcional)</label>
+              <label className="text-xs font-medium text-gray-400 uppercase">
+                Teto de desconto (R$, opcional)
+              </label>
               <Input
                 type="number"
                 step="0.01"
@@ -255,7 +275,9 @@ function CuponsAdmin() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-400 uppercase">Corrida mínima (R$, opcional)</label>
+              <label className="text-xs font-medium text-gray-400 uppercase">
+                Corrida mínima (R$, opcional)
+              </label>
               <Input
                 type="number"
                 step="0.01"
@@ -267,7 +289,9 @@ function CuponsAdmin() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-400 uppercase">Limite total de usos (opcional)</label>
+              <label className="text-xs font-medium text-gray-400 uppercase">
+                Limite total de usos (opcional)
+              </label>
               <Input
                 type="number"
                 placeholder="Ilimitado"
@@ -277,7 +301,9 @@ function CuponsAdmin() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-400 uppercase">Limite por usuário</label>
+              <label className="text-xs font-medium text-gray-400 uppercase">
+                Limite por usuário
+              </label>
               <Input
                 type="number"
                 min={1}
@@ -288,7 +314,9 @@ function CuponsAdmin() {
             </div>
 
             <div className="col-span-2 space-y-2">
-              <label className="text-xs font-medium text-gray-400 uppercase">Válido até (opcional)</label>
+              <label className="text-xs font-medium text-gray-400 uppercase">
+                Válido até (opcional)
+              </label>
               <Input
                 type="datetime-local"
                 value={form.validoAte}
@@ -298,7 +326,9 @@ function CuponsAdmin() {
             </div>
 
             <div className="col-span-2 space-y-2">
-              <label className="text-xs font-medium text-gray-400 uppercase">Descrição interna (opcional)</label>
+              <label className="text-xs font-medium text-gray-400 uppercase">
+                Descrição interna (opcional)
+              </label>
               <Textarea
                 placeholder="Só pra referência da equipe — não aparece pro passageiro."
                 value={form.descricao}

@@ -1,29 +1,29 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from 'sonner';
-import { useServerFn } from '@tanstack/react-start';
-import { signUp } from '@/lib/auth.functions';
-import { Eye, EyeOff, Check, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { GoogleLoginButton, AuthSeparator } from '@/components/auth/SocialLogin';
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { signUp } from "@/lib/auth.functions";
+import { Eye, EyeOff, Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { GoogleLoginButton, AuthSeparator } from "@/components/auth/SocialLogin";
 
 const titleCase = (str: string) => {
   return str
     .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
 const validateCPF = (cpf: string) => {
-  const cleanCPF = cpf.replace(/\D/g, '');
+  const cleanCPF = cpf.replace(/\D/g, "");
   if (cleanCPF.length !== 11) return false;
   if (/^(\d)\1+$/.test(cleanCPF)) return false;
   let sum = 0;
@@ -40,61 +40,58 @@ const validateCPF = (cpf: string) => {
 };
 
 const formatCPF = (value: string) => {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   return digits
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 };
 
 const formatPhone = (value: string) => {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 10) {
-    return digits
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{4})(\d{1,4})$/, '$1-$2');
+    return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d{1,4})$/, "$1-$2");
   }
-  return digits
-    .replace(/(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+  return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d{1,4})$/, "$1-$2");
 };
 
-const cadastroSchema = z.object({
-  nome: z
-    .string()
-    .min(3, "O nome deve ter pelo menos 3 caracteres")
-    .transform((val) => titleCase(val.trim().replace(/\s+/g, ' '))),
-  email: z
-    .string()
-    .email("E-mail inválido")
-    .transform((val) => val.trim().toLowerCase()),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string(),
-  cpf: z
-    .string()
-    .transform((val) => val.replace(/\D/g, ''))
-    .refine((val) => val.length === 11, "CPF deve conter 11 números")
-    .refine(validateCPF, "CPF inválido"),
-  celular: z
-    .string()
-    .transform((val) => val.replace(/\D/g, ''))
-    .refine((val) => val.length >= 10 && val.length <= 11, "Celular inválido"),
-  codigoIndicacao: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .max(20, "Código inválido")
-    .optional()
-    .transform((val) => (val ? val : undefined)),
-
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-});
+const cadastroSchema = z
+  .object({
+    nome: z
+      .string()
+      .min(3, "O nome deve ter pelo menos 3 caracteres")
+      .transform((val) => titleCase(val.trim().replace(/\s+/g, " "))),
+    email: z
+      .string()
+      .email("E-mail inválido")
+      .transform((val) => val.trim().toLowerCase()),
+    password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+    confirmPassword: z.string(),
+    cpf: z
+      .string()
+      .transform((val) => val.replace(/\D/g, ""))
+      .refine((val) => val.length === 11, "CPF deve conter 11 números")
+      .refine(validateCPF, "CPF inválido"),
+    celular: z
+      .string()
+      .transform((val) => val.replace(/\D/g, ""))
+      .refine((val) => val.length >= 10 && val.length <= 11, "Celular inválido"),
+    codigoIndicacao: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .max(20, "Código inválido")
+      .optional()
+      .transform((val) => (val ? val : undefined)),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
 
 type CadastroForm = z.infer<typeof cadastroSchema>;
 
-export const Route = createFileRoute('/auth/cadastro')({
+export const Route = createFileRoute("/auth/cadastro")({
   component: CadastroPage,
 });
 
@@ -112,27 +109,30 @@ function CadastroPage() {
     if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++;
     if (/\d/.test(pwd)) score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    
+
     if (score <= 1) return { score: 1, label: "Fraca", color: "bg-red-500" };
     if (score <= 3) return { score: 2, label: "Média", color: "bg-amber-500" };
     return { score: 3, label: "Forte", color: "bg-green-500" };
   };
 
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors }, 
-    setValue, 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
     watch,
-    control
+    control,
   } = useForm<CadastroForm>({
     resolver: zodResolver(cadastroSchema),
-    defaultValues: {}
+    defaultValues: {},
   });
 
   const passwordValue = watch("password");
 
-  const passwordStrength = useMemo(() => calculatePasswordStrength(passwordValue || ""), [passwordValue]);
+  const passwordStrength = useMemo(
+    () => calculatePasswordStrength(passwordValue || ""),
+    [passwordValue],
+  );
 
   const onSubmit = async (formData: CadastroForm) => {
     setIsLoading(true);
@@ -142,11 +142,11 @@ function CadastroPage() {
       toast.success("Cadastro realizado com sucesso!");
       navigate({ to: "/auth/completar-cadastro" });
     } catch (error: any) {
-      const userFriendlyMessage = error.message?.includes('violates unique constraint')
+      const userFriendlyMessage = error.message?.includes("violates unique constraint")
         ? "Este e-mail, CPF ou celular já está cadastrado."
-        : error.message?.includes('Faça login com o Google')
-        ? error.message
-        : "Ocorreu um erro ao processar seu cadastro. Tente novamente.";
+        : error.message?.includes("Faça login com o Google")
+          ? error.message
+          : "Ocorreu um erro ao processar seu cadastro. Tente novamente.";
       toast.error(userFriendlyMessage);
     } finally {
       setIsLoading(false);
@@ -165,10 +165,12 @@ function CadastroPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="nome" className="text-white/80">Nome Completo</Label>
-          <Input 
-            id="nome" 
-            placeholder="Ex: João Silva" 
+          <Label htmlFor="nome" className="text-white/80">
+            Nome Completo
+          </Label>
+          <Input
+            id="nome"
+            placeholder="Ex: João Silva"
             className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
             {...register("nome")}
           />
@@ -177,15 +179,17 @@ function CadastroPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="cpf" className="text-white/80">CPF</Label>
+            <Label htmlFor="cpf" className="text-white/80">
+              CPF
+            </Label>
             <Controller
               name="cpf"
               control={control}
               render={({ field }) => (
-                <Input 
+                <Input
                   {...field}
-                  id="cpf" 
-                  placeholder="000.000.000-00" 
+                  id="cpf"
+                  placeholder="000.000.000-00"
                   className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
                   onChange={(e) => field.onChange(formatCPF(e.target.value))}
                 />
@@ -194,15 +198,17 @@ function CadastroPage() {
             {errors.cpf && <p className="text-red-500 text-xs">{errors.cpf.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="celular" className="text-white/80">Celular</Label>
+            <Label htmlFor="celular" className="text-white/80">
+              Celular
+            </Label>
             <Controller
               name="celular"
               control={control}
               render={({ field }) => (
-                <Input 
+                <Input
                   {...field}
-                  id="celular" 
-                  placeholder="(00) 00000-0000" 
+                  id="celular"
+                  placeholder="(00) 00000-0000"
                   className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
                   onChange={(e) => field.onChange(formatPhone(e.target.value))}
                 />
@@ -213,11 +219,13 @@ function CadastroPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-white/80">E-mail</Label>
-          <Input 
-            id="email" 
-            type="email" 
-            placeholder="seu@email.com" 
+          <Label htmlFor="email" className="text-white/80">
+            E-mail
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="seu@email.com"
             className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
             {...register("email")}
           />
@@ -225,12 +233,14 @@ function CadastroPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-white/80">Senha</Label>
+          <Label htmlFor="password" className="text-white/80">
+            Senha
+          </Label>
           <div className="relative">
-            <Input 
-              id="password" 
-              type={showPassword ? "text" : "password"} 
-              placeholder="••••••••" 
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
               className="bg-zuvvi-indigo border-white/10 text-white pr-10 focus:border-zuvvi-volt"
               {...register("password")}
             />
@@ -245,13 +255,28 @@ function CadastroPage() {
           {passwordValue && (
             <div className="space-y-1.5 pt-1">
               <div className="flex gap-1 h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                <div className={cn("h-full transition-all duration-300", passwordStrength.score >= 1 ? passwordStrength.color : "w-0", passwordStrength.score === 1 ? "w-1/3" : passwordStrength.score === 2 ? "w-2/3" : "w-full")} />
+                <div
+                  className={cn(
+                    "h-full transition-all duration-300",
+                    passwordStrength.score >= 1 ? passwordStrength.color : "w-0",
+                    passwordStrength.score === 1
+                      ? "w-1/3"
+                      : passwordStrength.score === 2
+                        ? "w-2/3"
+                        : "w-full",
+                  )}
+                />
               </div>
-              <p className={cn("text-[10px] font-medium uppercase tracking-wider", 
-                passwordStrength.score === 1 ? "text-red-500" : 
-                passwordStrength.score === 2 ? "text-amber-500" : 
-                "text-green-500"
-              )}>
+              <p
+                className={cn(
+                  "text-[10px] font-medium uppercase tracking-wider",
+                  passwordStrength.score === 1
+                    ? "text-red-500"
+                    : passwordStrength.score === 2
+                      ? "text-amber-500"
+                      : "text-green-500",
+                )}
+              >
                 Senha {passwordStrength.label}
               </p>
             </div>
@@ -260,12 +285,14 @@ function CadastroPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-white/80">Confirmar Senha</Label>
+          <Label htmlFor="confirmPassword" className="text-white/80">
+            Confirmar Senha
+          </Label>
           <div className="relative">
-            <Input 
-              id="confirmPassword" 
-              type={showConfirmPassword ? "text" : "password"} 
-              placeholder="••••••••" 
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="••••••••"
               className="bg-zuvvi-indigo border-white/10 text-white pr-10 focus:border-zuvvi-volt"
               {...register("confirmPassword")}
             />
@@ -277,22 +304,28 @@ function CadastroPage() {
               {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword.message}</p>}
+          {errors.confirmPassword && (
+            <p className="text-red-500 text-xs">{errors.confirmPassword.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="codigoIndicacao" className="text-white/80">Código de indicação (opcional)</Label>
+          <Label htmlFor="codigoIndicacao" className="text-white/80">
+            Código de indicação (opcional)
+          </Label>
           <Input
             id="codigoIndicacao"
             placeholder="Ex: AB12CD"
             className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt uppercase"
             {...register("codigoIndicacao")}
           />
-          {errors.codigoIndicacao && <p className="text-red-500 text-xs">{errors.codigoIndicacao.message}</p>}
+          {errors.codigoIndicacao && (
+            <p className="text-red-500 text-xs">{errors.codigoIndicacao.message}</p>
+          )}
         </div>
 
         <Button
-          type="submit" 
+          type="submit"
           disabled={isLoading}
           className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-12 text-lg mt-4 transition-all active:scale-[0.98]"
         >
@@ -300,7 +333,10 @@ function CadastroPage() {
         </Button>
 
         <p className="text-center text-muted-foreground text-sm mt-4">
-          Já tem uma conta? <Link to="/auth/login" className="volt-text cursor-pointer hover:underline">Fazer login</Link>
+          Já tem uma conta?{" "}
+          <Link to="/auth/login" className="volt-text cursor-pointer hover:underline">
+            Fazer login
+          </Link>
         </p>
       </form>
     </div>

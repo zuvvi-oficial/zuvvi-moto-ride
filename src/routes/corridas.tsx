@@ -12,8 +12,9 @@ import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
 export const Route = createFileRoute("/corridas")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
-    const canAccess = dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
-    
+    const canAccess =
+      dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
+
     if (!canAccess) {
       throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
     }
@@ -29,7 +30,11 @@ function HistoricoCorridas() {
     setIsHydrated(true);
   }, []);
 
-  const { data: corridas, isLoading, error } = useQuery({
+  const {
+    data: corridas,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["historico-corridas"],
     queryFn: () => getHistoricoFn(),
     enabled: isHydrated,
@@ -61,17 +66,20 @@ function HistoricoCorridas() {
     return label.charAt(0).toUpperCase() + label.slice(1);
   };
 
-  const grupos = ((corridas as any[]) || []).reduce((acc: { chave: string; label: string; itens: any[] }[], corrida) => {
-    const data = new Date(corrida.created_at);
-    const chave = format(data, "yyyy-MM-dd");
-    const ultimoGrupo = acc[acc.length - 1];
-    if (ultimoGrupo && ultimoGrupo.chave === chave) {
-      ultimoGrupo.itens.push(corrida);
-    } else {
-      acc.push({ chave, label: getDayLabel(data), itens: [corrida] });
-    }
-    return acc;
-  }, []);
+  const grupos = ((corridas as any[]) || []).reduce(
+    (acc: { chave: string; label: string; itens: any[] }[], corrida) => {
+      const data = new Date(corrida.created_at);
+      const chave = format(data, "yyyy-MM-dd");
+      const ultimoGrupo = acc[acc.length - 1];
+      if (ultimoGrupo && ultimoGrupo.chave === chave) {
+        ultimoGrupo.itens.push(corrida);
+      } else {
+        acc.push({ chave, label: getDayLabel(data), itens: [corrida] });
+      }
+      return acc;
+    },
+    [],
+  );
 
   return (
     <div className="min-h-screen bg-zuvvi-indigo-dark text-foreground flex flex-col pb-28">
@@ -112,7 +120,8 @@ function HistoricoCorridas() {
               </p>
               <div className="space-y-4">
                 {grupo.itens.map((corrida: any) => {
-                  const isCancelada = corrida.status === "cancelada" || corrida.status === "sem_motorista";
+                  const isCancelada =
+                    corrida.status === "cancelada" || corrida.status === "sem_motorista";
                   return (
                     <div
                       key={corrida.id}
@@ -123,7 +132,9 @@ function HistoricoCorridas() {
                           <Clock className="w-3 h-3" />
                           {format(new Date(corrida.created_at), "HH:mm", { locale: ptBR })}
                         </div>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${getStatusColor(corrida.status)}`}>
+                        <span
+                          className={`text-[10px] font-black uppercase tracking-widest ${getStatusColor(corrida.status)}`}
+                        >
                           {getStatusLabel(corrida.status)}
                         </span>
                       </div>
@@ -136,8 +147,12 @@ function HistoricoCorridas() {
                             <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Destino</p>
-                            <p className="text-sm font-bold truncate">{corrida.destino_nome || "Destino não informado"}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                              Destino
+                            </p>
+                            <p className="text-sm font-bold truncate">
+                              {corrida.destino_nome || "Destino não informado"}
+                            </p>
                           </div>
                         </div>
 
@@ -168,14 +183,26 @@ function HistoricoCorridas() {
                               <CreditCard className="w-4 h-4 text-muted-foreground" />
                             </div>
                             <div>
-                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Pagamento</p>
-                              <p className="text-[11px] font-bold uppercase">{corrida.forma_pagamento}</p>
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">
+                                Pagamento
+                              </p>
+                              <p className="text-[11px] font-bold uppercase">
+                                {corrida.forma_pagamento}
+                              </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Valor</p>
-                            <p className={`text-lg font-black ${isCancelada ? "text-muted-foreground/70" : "text-zuvvi-volt"}`}>
-                              R$ {(corrida.valor_final || corrida.valor_estimado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">
+                              Valor
+                            </p>
+                            <p
+                              className={`text-lg font-black ${isCancelada ? "text-muted-foreground/70" : "text-zuvvi-volt"}`}
+                            >
+                              R${" "}
+                              {(corrida.valor_final || corrida.valor_estimado || 0).toLocaleString(
+                                "pt-BR",
+                                { minimumFractionDigits: 2 },
+                              )}
                             </p>
                           </div>
                         </div>
@@ -187,7 +214,10 @@ function HistoricoCorridas() {
                             <User className="w-3 h-3 text-zuvvi-volt" />
                           </div>
                           <p className="text-[11px] text-muted-foreground">
-                            Motorista: <span className="text-foreground font-bold">{corrida.nome_motorista}</span>
+                            Motorista:{" "}
+                            <span className="text-foreground font-bold">
+                              {corrida.nome_motorista}
+                            </span>
                           </p>
                         </div>
                       )}
