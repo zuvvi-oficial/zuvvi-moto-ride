@@ -291,11 +291,22 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
     },
   });
 
-  const playNotification = () => {
+  // Esses tipos já disparam um padrão de vibração próprio e mais longo na
+  // tela de acompanhamento (um por marco da corrida) — uma segunda chamada
+  // a navigator.vibrate() interrompe a que já está tocando, então aqui só
+  // o som toca; a vibração genérica fica para os demais tipos de aviso.
+  const TIPOS_COM_VIBRACAO_PROPRIA = new Set([
+    "motorista_a_caminho",
+    "motorista_chegou",
+    "corrida_iniciada",
+    "corrida_concluida",
+  ]);
+
+  const playNotification = (tipo?: string) => {
     playSound("/sounds/zuvvi_volt_ping.mp3").catch((e: any) =>
       console.error("[NotificationBell] Audio play failed", e),
     );
-    if ("vibrate" in navigator) {
+    if ("vibrate" in navigator && !(tipo && TIPOS_COM_VIBRACAO_PROPRIA.has(tipo))) {
       navigator.vibrate([200]);
     }
   };
@@ -328,7 +339,7 @@ export function NotificationBell({ onImportantNotification }: NotificationBellPr
             });
           }
 
-          playNotification();
+          playNotification(newNotif.tipo);
         },
       )
       .subscribe();
