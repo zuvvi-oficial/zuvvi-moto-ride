@@ -10,6 +10,7 @@ import {
   Heart,
   LifeBuoy,
   Loader2,
+  FileText,
   Lock,
   LogOut,
   Trophy,
@@ -305,6 +306,21 @@ function PerfilMotorista() {
               <div>
                 <p className="font-black">Política de Privacidade</p>
                 <p className="text-[11px] text-white/45">Como usamos e protegemos seus dados</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-white/20" />
+          </Link>
+          <Link
+            to="/termos"
+            className="flex min-h-16 w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.045] px-5 text-left transition-colors hover:bg-white/10"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zuvvi-volt/20 bg-zuvvi-volt/10">
+                <FileText className="h-5 w-5 text-zuvvi-volt" />
+              </div>
+              <div>
+                <p className="font-black">Termos de Uso</p>
+                <p className="text-[11px] text-white/45">Regras de uso da plataforma</p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-white/20" />
