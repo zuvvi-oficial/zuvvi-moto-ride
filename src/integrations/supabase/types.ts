@@ -1371,6 +1371,8 @@ export type Database = {
           is_passageiro: boolean | null;
           nome: string;
           perfil_ativo: Database["public"]["Enums"]["user_profile_type"];
+          termos_aceitos_em: string | null;
+          termos_versao: string | null;
           updated_at: string;
         };
         Insert: {
@@ -1388,6 +1390,8 @@ export type Database = {
           is_passageiro?: boolean | null;
           nome: string;
           perfil_ativo?: Database["public"]["Enums"]["user_profile_type"];
+          termos_aceitos_em?: string | null;
+          termos_versao?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -1405,6 +1409,8 @@ export type Database = {
           is_passageiro?: boolean | null;
           nome?: string;
           perfil_ativo?: Database["public"]["Enums"]["user_profile_type"];
+          termos_aceitos_em?: string | null;
+          termos_versao?: string | null;
           updated_at?: string;
         };
         Relationships: [

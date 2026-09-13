@@ -98,6 +98,7 @@ function CompletarCadastroPage() {
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   const [selectedUF, setSelectedUF] = useState("");
+  const [aceiteTermos, setAceiteTermos] = useState(false);
 
   const {
     handleSubmit,
@@ -213,6 +214,11 @@ function CompletarCadastroPage() {
       return;
     }
 
+    if (!aceiteTermos) {
+      toast.error("É preciso aceitar os Termos de Uso e a Política de Privacidade");
+      return;
+    }
+
     setIsLoading(true);
     setErrorMsg(null);
     try {
@@ -220,6 +226,7 @@ function CompletarCadastroPage() {
         data: {
           ...formData,
           data_nascimento,
+          aceiteTermos,
         },
       });
 
@@ -441,9 +448,39 @@ function CompletarCadastroPage() {
           </div>
         </div>
 
+        <label className="flex items-start gap-3 text-sm text-white/70 font-poppins">
+          <input
+            type="checkbox"
+            checked={aceiteTermos}
+            onChange={(e) => setAceiteTermos(e.target.checked)}
+            className="mt-1 h-4 w-4 shrink-0 rounded border-white/20 bg-zuvvi-indigo accent-zuvvi-volt"
+          />
+          <span>
+            Li e aceito os{" "}
+            <a
+              href="/termos"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-zuvvi-volt underline"
+            >
+              Termos de Uso
+            </a>{" "}
+            e a{" "}
+            <a
+              href="/privacidade"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-zuvvi-volt underline"
+            >
+              Política de Privacidade
+            </a>{" "}
+            do Zuvvi
+          </span>
+        </label>
+
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || !aceiteTermos}
           className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-14 text-lg mt-2 transition-all active:scale-[0.98] font-poppins"
         >
           {isLoading ? "Salvando..." : "CONCLUIR CADASTRO"}

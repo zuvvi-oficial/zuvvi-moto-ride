@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
 import { LegalPageShell, Secao, Lista } from "@/components/legal/LegalPage";
+import { TERMOS_VERSAO } from "@/lib/legal-versions";
 
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
@@ -15,7 +16,12 @@ export const Route = createFileRoute("/privacidade")({
   component: PoliticaDePrivacidade,
 });
 
-const ULTIMA_ATUALIZACAO = "13 de setembro de 2026";
+const ULTIMA_ATUALIZACAO = new Date(TERMOS_VERSAO).toLocaleDateString("pt-BR", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
 function PoliticaDePrivacidade() {
   return (

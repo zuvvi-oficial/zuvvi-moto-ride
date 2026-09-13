@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { validarCpfBrasileiro } from "./pix-cpf";
+import { TERMOS_VERSAO } from "./legal-versions";
 
 export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -29,6 +30,12 @@ export const updateUserInfo = createServerFn({ method: "POST" })
         celular: z.string().min(10).max(11, "Celular deve ter 10 ou 11 dígitos"),
         data_nascimento: z.string().min(10, "Data de nascimento inválida"),
         cidade_id: z.string().uuid("Cidade inválida"),
+        aceiteTermos: z
+          .boolean()
+          .refine(
+            (v) => v === true,
+            "É preciso aceitar os Termos de Uso e a Política de Privacidade",
+          ),
       })
       .parse(data),
   )
@@ -60,6 +67,8 @@ export const updateUserInfo = createServerFn({ method: "POST" })
         celular: data.celular,
         data_nascimento: data.data_nascimento,
         cidade_id: data.cidade_id,
+        termos_aceitos_em: new Date().toISOString(),
+        termos_versao: TERMOS_VERSAO,
       })
       .eq("auth_user_id", userId)
       .select("id");
