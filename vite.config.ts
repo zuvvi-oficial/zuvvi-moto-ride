@@ -5,16 +5,23 @@
 //     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import netlify from "@netlify/vite-plugin-tanstack-start";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
-  tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
-  },
-  plugins: [
-    VitePWA({
+export default defineConfig(() => {
+  const isNetlifyBuild = process.env.NETLIFY === "true";
+
+  return {
+    // Netlify's official adapter packages the TanStack Start server itself.
+    // Lovable builds keep their existing Nitro target unchanged.
+    nitro: isNetlifyBuild ? false : undefined,
+    tanstackStart: {
+      // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
+      server: { entry: "server" },
+    },
+    plugins: [
+      ...(isNetlifyBuild ? netlify() : []),
+      VitePWA({
       strategies: "generateSW",
       // "prompt": the reload is user-triggered so an active ride is never
       // interrupted by a destructive automatic refresh.
@@ -68,6 +75,7 @@ export default defineConfig({
           },
         ],
       },
-    }),
-  ],
+      }),
+    ],
+  };
 });
