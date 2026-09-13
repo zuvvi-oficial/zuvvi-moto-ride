@@ -1,12 +1,13 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronLeft, Copy, Gift, Hourglass, Loader2, Share2, UserCheck } from "lucide-react";
+import { ChevronLeft, Copy, Gift, Hourglass, Share2, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { getProgramaIndicacao } from "@/lib/indicacoes.functions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/convidar-amigos")({
   loader: async () => {
@@ -94,9 +95,28 @@ function ConvidarAmigos() {
 
       <main className="flex-1 max-w-md mx-auto w-full px-5 py-8 space-y-6 animate-rise">
         {isLoading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-zuvvi-volt" />
-          </div>
+          <>
+            <div className="sr-only" aria-live="polite">
+              Carregando programa de indicação...
+            </div>
+            <div aria-hidden="true" className="space-y-6">
+              <div className="rounded-2xl bg-zuvvi-indigo/40 border border-white/10 p-6 space-y-4 text-center">
+                <Skeleton className="w-14 h-14 mx-auto rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-48 mx-auto" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-5/6 mx-auto" />
+                </div>
+                <Skeleton className="h-14 w-full rounded-xl" />
+                <Skeleton className="h-12 w-full rounded-xl" />
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-16 w-full rounded-2xl" />
+                <Skeleton className="h-16 w-full rounded-2xl" />
+              </div>
+            </div>
+          </>
         ) : (
           <>
             <div className="rounded-2xl bg-gradient-to-br from-zuvvi-volt/15 to-zuvvi-volt/5 border border-zuvvi-volt/20 p-6 text-center space-y-4">
