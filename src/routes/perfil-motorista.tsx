@@ -19,6 +19,7 @@ import { useState } from "react";
 import MercadoPagoConnect from "@/components/motorista/MercadoPagoConnect";
 import { MotoristaBottomNav } from "@/components/motorista/MotoristaBottomNav";
 import { MotoristaProfilePhoto } from "@/components/motorista/MotoristaProfilePhoto";
+import { ExcluirContaDialog } from "@/components/perfil/ExcluirContaDialog";
 import { SupportDialog } from "@/components/suporte/SupportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
@@ -345,6 +346,8 @@ function PerfilMotorista() {
               </div>
             </div>
           </button>
+
+          <ExcluirContaDialog />
         </section>
       </main>
 

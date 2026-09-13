@@ -1,0 +1,43 @@
+name: Perfil — exclusão de conta (LGPD)
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/lib/exclusao-conta.functions.ts"
+      - "src/components/perfil/ExcluirContaDialog.tsx"
+      - "src/routes/perfil.tsx"
+      - "src/routes/perfil-motorista.tsx"
+      - "supabase/migrations/20260913130000_lgpd_exclusao_conta.sql"
+      - "scripts/cadastro/exclusao-conta-lgpd.test.ts"
+      - ".github/workflows/perfil-exclusao-conta-lgpd.yml"
+      - "package.json"
+      - "bun.lock"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perfil-exclusao-conta-lgpd-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  exclusao-conta-lgpd:
+    name: Travar exclusão de conta (dados pessoais x histórico financeiro)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Instalar Bun fixado
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Executar teste de regressão
+        run: bun scripts/cadastro/exclusao-conta-lgpd.test.ts

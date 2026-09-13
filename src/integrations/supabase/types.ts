@@ -1559,6 +1559,12 @@ export type Database = {
             };
             Returns: string;
           };
+      excluir_conta_usuario: {
+        Args: { p_usuario_id: string };
+        Returns: {
+          documento_storage_path: string;
+        }[];
+      };
       get_admin_id_by_auth: { Args: { auth_id: string }; Returns: string };
       get_distinct_ufs: {
         Args: never;

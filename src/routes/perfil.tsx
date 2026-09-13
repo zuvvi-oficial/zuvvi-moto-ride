@@ -26,6 +26,7 @@ import { ContatosConfiancaDialog } from "@/components/passageiro/ContatosConfian
 import { MotoristasFavoritosDialog } from "@/components/passageiro/MotoristasFavoritosDialog";
 import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
 import { PassengerProfilePhoto } from "@/components/passageiro/PassengerProfilePhoto";
+import { ExcluirContaDialog } from "@/components/perfil/ExcluirContaDialog";
 import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -394,6 +395,8 @@ function PerfilPassageiro() {
               </div>
             </div>
           </button>
+
+          <ExcluirContaDialog />
         </div>
 
         <div className="text-center">
