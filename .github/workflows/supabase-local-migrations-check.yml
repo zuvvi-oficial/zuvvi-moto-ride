@@ -51,17 +51,17 @@ jobs:
       # por engano se alguém rodar isso localmente) — sem essa flag, o
       # Prettier 3 respeita .gitignore por padrão e pularia a formatação
       # silenciosamente, fazendo o diff abaixo sempre acusar divergência.
+      # A comparação em si roda por scripts/ci/comparar-tipos-supabase.mjs
+      # em vez de "diff" puro: "--local" (usado aqui) e a API hospedada
+      # (usada para gerar o arquivo versionado) produzem metadados de
+      # geração diferentes que não refletem o schema real — ver o comentário
+      # no topo daquele script para o porquê exato.
       - name: Gerar tipos TypeScript do schema local e comparar com o versionado
         run: |
           set -euo pipefail
           npx supabase@2.111.0 gen types typescript --local > src/integrations/supabase/types.generated.ts
           bunx prettier --ignore-path .prettierignore --write src/integrations/supabase/types.generated.ts
-          if ! diff -q src/integrations/supabase/types.generated.ts src/integrations/supabase/types.ts > /dev/null; then
-            echo "src/integrations/supabase/types.ts está desatualizado em relação às migrations."
-            echo "Rode localmente: npx supabase gen types typescript --local > src/integrations/supabase/types.ts && bunx prettier --write src/integrations/supabase/types.ts"
-            diff src/integrations/supabase/types.generated.ts src/integrations/supabase/types.ts || true
-            exit 1
-          fi
+          node scripts/ci/comparar-tipos-supabase.mjs src/integrations/supabase/types.generated.ts src/integrations/supabase/types.ts
           rm -f src/integrations/supabase/types.generated.ts
 
       - name: Stop Supabase
