@@ -1419,20 +1419,6 @@ function HomeMotorista() {
         </div>
         
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={alternarVoz}
-            aria-label={vozLigada ? "Desativar alertas de voz" : "Ativar alertas de voz"}
-            aria-pressed={vozLigada}
-            title={vozLigada ? "Desativar alertas de voz" : "Ativar alertas de voz"}
-            className={`flex h-9 w-9 items-center justify-center rounded-full border transition-all active:scale-95 ${
-              vozLigada
-                ? "border-white/10 bg-white/5 text-white/70"
-                : "border-white/10 bg-white/5 text-white/30"
-            }`}
-          >
-            {vozLigada ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
           <NotificationBell onImportantNotification={handleImportantNotification} />
           {activeRide ? (
             <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo">
@@ -1457,6 +1443,21 @@ function HomeMotorista() {
           )}
         </div>
       </header>
+
+      <button
+        type="button"
+        onClick={alternarVoz}
+        aria-label={vozLigada ? "Desativar alertas de voz" : "Ativar alertas de voz"}
+        aria-pressed={vozLigada}
+        title={vozLigada ? "Desativar alertas de voz" : "Ativar alertas de voz"}
+        className={`fixed right-6 top-24 z-40 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-xl transition-all active:scale-95 ${
+          vozLigada
+            ? "border-white/10 bg-zuvvi-indigo/80 text-white/70"
+            : "border-white/10 bg-zuvvi-indigo/80 text-white/30"
+        }`}
+      >
+        {vozLigada ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+      </button>
 
       <main className="p-6 max-w-md mx-auto">
         {activeRide ? (
