@@ -13,7 +13,9 @@ function normalizeDeviceId(value: unknown): string | null {
 
 function readMercadoPagoDeviceId(): string | null {
   if (typeof window === "undefined") return null;
-  return normalizeDeviceId((window as Window & { MP_DEVICE_SESSION_ID?: unknown }).MP_DEVICE_SESSION_ID);
+  return normalizeDeviceId(
+    (window as Window & { MP_DEVICE_SESSION_ID?: unknown }).MP_DEVICE_SESSION_ID,
+  );
 }
 
 function ensureSecurityScript(): HTMLScriptElement {
@@ -29,9 +31,7 @@ function ensureSecurityScript(): HTMLScriptElement {
   return script;
 }
 
-export async function ensureMercadoPagoDeviceId(
-  timeoutMs = DEFAULT_TIMEOUT_MS,
-): Promise<string> {
+export async function ensureMercadoPagoDeviceId(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
   if (typeof window === "undefined" || typeof document === "undefined") {
     throw new Error("Não foi possível preparar a segurança do Pix.");
   }

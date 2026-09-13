@@ -34,19 +34,17 @@ export const registrarPushSubscription = createServerFn({ method: "POST" })
     if (userError || !usuario) throw new Error("Usuário não encontrado.");
 
     // A tabela push_subscriptions ainda não está nos tipos gerados do projeto.
-    const { error } = await (supabaseAdmin as any)
-      .from("push_subscriptions")
-      .upsert(
-        {
-          usuario_id: usuario.id,
-          endpoint: data.endpoint,
-          p256dh: data.p256dh,
-          auth: data.auth,
-          user_agent: data.userAgent || null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "endpoint" },
-      );
+    const { error } = await (supabaseAdmin as any).from("push_subscriptions").upsert(
+      {
+        usuario_id: usuario.id,
+        endpoint: data.endpoint,
+        p256dh: data.p256dh,
+        auth: data.auth,
+        user_agent: data.userAgent || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "endpoint" },
+    );
 
     if (error) throw new Error("Não foi possível ativar as notificações neste dispositivo.");
     return { success: true };

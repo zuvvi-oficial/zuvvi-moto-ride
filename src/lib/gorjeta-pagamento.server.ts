@@ -1,5 +1,10 @@
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import { obterAccessTokenValido, montarCorpoCobrancaPix, normalizeMercadoPagoTicketUrl, type PixChargeResult } from "./pagamento.server";
+import {
+  obterAccessTokenValido,
+  montarCorpoCobrancaPix,
+  normalizeMercadoPagoTicketUrl,
+  type PixChargeResult,
+} from "./pagamento.server";
 
 /**
  * Gorjeta digital — Etapa 2: motor de cobrança Pix de verdade. Reaproveita
@@ -52,7 +57,9 @@ async function carregarGorjeta(
 ): Promise<GorjetaRow> {
   const { data: gorjeta, error } = await supabaseAdmin
     .from("gorjetas")
-    .select("id, passageiro_id, motorista_id, valor, status, id_transacao_mercadopago, tentativa_pix_id")
+    .select(
+      "id, passageiro_id, motorista_id, valor, status, id_transacao_mercadopago, tentativa_pix_id",
+    )
     .eq("id", gorjetaId)
     .maybeSingle();
 
@@ -73,8 +80,7 @@ async function buscarCobrancaPixExistente(
   if (!response.ok) throw new Error(GENERIC_ERROR);
 
   const provider = (await response.json()) as Record<string, unknown>;
-  const qrCode =
-    (provider["point_of_interaction"] as any)?.transaction_data?.qr_code ?? null;
+  const qrCode = (provider["point_of_interaction"] as any)?.transaction_data?.qr_code ?? null;
   const qrCodeBase64 =
     (provider["point_of_interaction"] as any)?.transaction_data?.qr_code_base64 ?? null;
   const ticketUrl = normalizeMercadoPagoTicketUrl(
@@ -140,13 +146,17 @@ export async function criarCobrancaPixGorjeta(
       } as any)
       .eq("id", gorjeta.id)
       .eq("status", "falhou")
-      .select("id, passageiro_id, motorista_id, valor, status, id_transacao_mercadopago, tentativa_pix_id")
+      .select(
+        "id, passageiro_id, motorista_id, valor, status, id_transacao_mercadopago, tentativa_pix_id",
+      )
       .maybeSingle();
 
     if (resetError) throw new Error(GENERIC_ERROR);
     // Se nada voltou, outra chamada concorrente já reabriu essa gorjeta —
     // recarrega o estado atual (deve estar 'pendente' agora) e segue.
-    gorjeta = (resetado as GorjetaRow | null) ?? (await carregarGorjeta(supabaseAdmin, gorjetaId, passageiroId));
+    gorjeta =
+      (resetado as GorjetaRow | null) ??
+      (await carregarGorjeta(supabaseAdmin, gorjetaId, passageiroId));
   }
 
   if (gorjeta.status !== "pendente") throw new Error(GENERIC_ERROR);
@@ -158,7 +168,10 @@ export async function criarCobrancaPixGorjeta(
   if (!tentativaPixId) {
     const { data: reservado, error: reservaError } = await supabaseAdmin
       .from("gorjetas")
-      .update({ tentativa_pix_id: crypto.randomUUID(), updated_at: new Date().toISOString() } as any)
+      .update({
+        tentativa_pix_id: crypto.randomUUID(),
+        updated_at: new Date().toISOString(),
+      } as any)
       .eq("id", gorjeta.id)
       .eq("status", "pendente")
       .is("tentativa_pix_id", null)
@@ -291,7 +304,8 @@ export async function sincronizarGorjetaPixComMercadoPago(
 
   const provider = (await response.json()) as Record<string, unknown>;
   const providerId = provider["id"] != null ? String(provider["id"]) : null;
-  const providerCollectorId = provider["collector_id"] != null ? String(provider["collector_id"]) : null;
+  const providerCollectorId =
+    provider["collector_id"] != null ? String(provider["collector_id"]) : null;
   const providerExternalReference =
     typeof provider["external_reference"] === "string" ? provider["external_reference"] : null;
 

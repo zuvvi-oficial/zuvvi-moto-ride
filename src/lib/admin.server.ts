@@ -45,7 +45,7 @@ export async function createAuditLog({
   justificativa?: string | null;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  
+
   const { error } = await supabaseAdmin.from("admin_audit_logs").insert({
     admin_auth_id: adminId,
     acao,
@@ -58,6 +58,8 @@ export async function createAuditLog({
 
   if (error) {
     console.error(`[AuditLog] Erro ao gravar auditoria para ${entidade}:${entidadeId}:`, error);
-    throw new Error(`Falha crítica: Ação realizada mas o registro de auditoria falhou. (${error.message})`);
+    throw new Error(
+      `Falha crítica: Ação realizada mas o registro de auditoria falhou. (${error.message})`,
+    );
   }
 }

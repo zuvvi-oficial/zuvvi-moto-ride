@@ -9,12 +9,14 @@ import { z } from "zod";
 
 export const criarAvaliacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => 
-    z.object({
-      rideId: z.string(),
-      nota: z.number().int().min(1).max(5),
-      comentario: z.string().max(500).optional()
-    }).parse(data)
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        rideId: z.string(),
+        nota: z.number().int().min(1).max(5),
+        comentario: z.string().max(500).optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -44,7 +46,7 @@ export const criarAvaliacao = createServerFn({ method: "POST" })
     }
 
     // 3. Validações de estado
-    if (ride.status !== 'concluida') {
+    if (ride.status !== "concluida") {
       throw new Error("Esta corrida ainda não pode ser avaliada.");
     }
 
@@ -60,18 +62,16 @@ export const criarAvaliacao = createServerFn({ method: "POST" })
     }
 
     // 5. Inserir avaliação
-    const { error: insertError } = await supabaseAdmin
-      .from("avaliacoes")
-      .insert({
-        corrida_id: data.rideId,
-        avaliador_id: usuarioId,
-        avaliado_id: avaliadoId,
-        nota: data.nota,
-        comentario: data.comentario
-      } as any);
+    const { error: insertError } = await supabaseAdmin.from("avaliacoes").insert({
+      corrida_id: data.rideId,
+      avaliador_id: usuarioId,
+      avaliado_id: avaliadoId,
+      nota: data.nota,
+      comentario: data.comentario,
+    } as any);
 
     if (insertError) {
-      if ((insertError as any).code === '23505') {
+      if ((insertError as any).code === "23505") {
         throw new Error("Você já avaliou esta corrida.");
       }
       throw new Error("Erro ao salvar avaliação.");
@@ -82,10 +82,12 @@ export const criarAvaliacao = createServerFn({ method: "POST" })
 
 export const getAvaliacaoStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => 
-    z.object({
-      rideId: z.string()
-    }).parse(data)
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        rideId: z.string(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

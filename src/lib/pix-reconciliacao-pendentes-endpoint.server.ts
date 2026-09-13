@@ -29,7 +29,12 @@ export async function handlePixReconciliacaoPendentesRequest(request: Request): 
 
   const secret = process.env["PIX_RECONCILIACAO_CRON_SECRET"];
   const providedSecret = request.headers.get("x-cron-secret");
-  if (!secret || !providedSecret || providedSecret.length !== secret.length || !timingSafeEqualString(providedSecret, secret)) {
+  if (
+    !secret ||
+    !providedSecret ||
+    providedSecret.length !== secret.length ||
+    !timingSafeEqualString(providedSecret, secret)
+  ) {
     return new Response("Unauthorized", { status: 401 });
   }
 

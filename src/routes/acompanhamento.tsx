@@ -12,7 +12,19 @@ import {
   atualizarPresencaChat,
 } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Bike, Loader2, ChevronLeft, User, Star, XCircle, MessageCircle, Send, ShieldAlert, Share2, Heart } from "lucide-react";
+import {
+  Bike,
+  Loader2,
+  ChevronLeft,
+  User,
+  Star,
+  XCircle,
+  MessageCircle,
+  Send,
+  ShieldAlert,
+  Share2,
+  Heart,
+} from "lucide-react";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
 import { ChatConversation } from "@/components/chat/ChatConversation";
@@ -73,38 +85,38 @@ interface ChatData {
 
 function formatarTempoNaZuvvi(dataISO: string | null) {
   if (!dataISO) return "";
-  
+
   const dataCriacao = new Date(dataISO);
   const hoje = new Date();
-  
+
   // Diferença em milissegundos
   const diffMs = hoje.getTime() - dataCriacao.getTime();
   // Diferença em dias (arredondado para baixo)
   const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDias === 0) return "Hoje";
-  
+
   if (diffDias < 30) {
-    return `há ${diffDias} ${diffDias === 1 ? 'dia' : 'dias'}`;
+    return `há ${diffDias} ${diffDias === 1 ? "dia" : "dias"}`;
   }
-  
+
   if (diffDias < 365) {
     const meses = Math.floor(diffDias / 30);
     const diasRestantes = diffDias % 30;
-    
-    let texto = `há ${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+
+    let texto = `há ${meses} ${meses === 1 ? "mês" : "meses"}`;
     if (diasRestantes > 0) {
-      texto += ` e ${diasRestantes} ${diasRestantes === 1 ? 'dia' : 'dias'}`;
+      texto += ` e ${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"}`;
     }
     return texto;
   }
-  
+
   const anos = Math.floor(diffDias / 365);
   const mesesRestantes = Math.floor((diffDias % 365) / 30);
-  
-  let texto = `há ${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+
+  let texto = `há ${anos} ${anos === 1 ? "ano" : "anos"}`;
   if (mesesRestantes > 0) {
-    texto += ` e ${mesesRestantes} ${mesesRestantes === 1 ? 'mês' : 'meses'}`;
+    texto += ` e ${mesesRestantes} ${mesesRestantes === 1 ? "mês" : "meses"}`;
   }
   return texto;
 }
@@ -120,7 +132,6 @@ function AcompanhamentoCorrida() {
   } | null>(null);
   const [rideSyncing, setRideSyncing] = useState(false);
   const syncCounterRef = useRef(0);
-
 
   const [motorista, setMotorista] = useState<{
     id?: string;
@@ -190,8 +201,6 @@ function AcompanhamentoCorrida() {
   const [ehFavorito, setEhFavorito] = useState<boolean | null>(null);
   const [alternandoFavorito, setAlternandoFavorito] = useState(false);
 
-
-
   const handleChatOpenChange = React.useCallback(
     (open: boolean) => {
       chatOpenRef.current = open;
@@ -250,7 +259,7 @@ function AcompanhamentoCorrida() {
   useEffect(() => {
     // Inicialização independente: falha do mapa não bloqueia a corrida
     void syncRide();
-    
+
     async function loadMapToken() {
       try {
         const token = await getMapboxTokenFn();
@@ -263,15 +272,15 @@ function AcompanhamentoCorrida() {
     void loadMapToken();
   }, [syncRide, getMapboxTokenFn]);
 
-
-
   useEffect(() => {
     if (!rideId) return;
 
     let channel: any;
 
     async function setupRealtime() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.access_token) {
         await supabase.realtime.setAuth(session.access_token);
       }
@@ -336,7 +345,9 @@ function AcompanhamentoCorrida() {
     let motoristaChannel: any;
 
     const setupMotoristaRealtime = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.access_token) {
         await supabase.realtime.setAuth(session.access_token);
       }
@@ -353,13 +364,17 @@ function AcompanhamentoCorrida() {
           },
           (payload: { new: { ultima_lat: number; ultima_lng: number } }) => {
             if (payload.new?.ultima_lat && payload.new?.ultima_lng) {
-              setMotorista(prev => prev ? {
-                ...prev,
-                ultima_lat: payload.new.ultima_lat,
-                ultima_lng: payload.new.ultima_lng
-              } : null);
+              setMotorista((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      ultima_lat: payload.new.ultima_lat,
+                      ultima_lng: payload.new.ultima_lng,
+                    }
+                  : null,
+              );
             }
-          }
+          },
         )
         .subscribe();
     };
@@ -669,7 +684,8 @@ function AcompanhamentoCorrida() {
             center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }}
             token={mapboxToken}
             secondaryMarker={
-              motorista?.ultima_lat && motorista?.ultima_lng && 
+              motorista?.ultima_lat &&
+              motorista?.ultima_lng &&
               ["motorista_a_caminho", "motorista_chegou", "em_andamento"].includes(corrida.status)
                 ? { lat: motorista.ultima_lat, lng: motorista.ultima_lng }
                 : undefined
@@ -693,14 +709,14 @@ function AcompanhamentoCorrida() {
               {corrida.status === "aceita"
                 ? "Motorista Aceitou"
                 : corrida.status === "motorista_a_caminho"
-                ? "Motorista a Caminho"
-                : corrida.status === "motorista_chegou"
-                ? "Motorista Chegou"
-                : corrida.status === "em_andamento"
-                ? "Corrida em Andamento"
-                : corrida.status === "concluida"
-                ? "Corrida Concluída"
-                : "Atualizando corrida"}
+                  ? "Motorista a Caminho"
+                  : corrida.status === "motorista_chegou"
+                    ? "Motorista Chegou"
+                    : corrida.status === "em_andamento"
+                      ? "Corrida em Andamento"
+                      : corrida.status === "concluida"
+                        ? "Corrida Concluída"
+                        : "Atualizando corrida"}
             </p>
           </div>
         </div>
@@ -734,9 +750,9 @@ function AcompanhamentoCorrida() {
                   </div>
                   <div className="mt-1 space-y-0.5">
                     <p className="text-[10px] text-muted-foreground font-medium">
-                      {motorista.total_corridas === 0 
-                        ? "Primeira corrida" 
-                        : `${motorista.total_corridas} ${motorista.total_corridas === 1 ? 'corrida' : 'corridas'} na Zuvvi`}
+                      {motorista.total_corridas === 0
+                        ? "Primeira corrida"
+                        : `${motorista.total_corridas} ${motorista.total_corridas === 1 ? "corrida" : "corridas"} na Zuvvi`}
                     </p>
                     {motorista.membro_desde && (
                       <p className="text-[10px] text-muted-foreground font-medium">
@@ -839,7 +855,6 @@ function AcompanhamentoCorrida() {
                 )}
               </div>
             )}
-
           </div>
         </div>
       )}
@@ -898,19 +913,19 @@ function AcompanhamentoCorrida() {
                     <CheckCircle2 className="w-10 h-10 text-zuvvi-volt" />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
                     CORRIDA CONCLUÍDA
                   </h2>
-                  <p className="text-white/60 text-base">
-                    Você chegou ao seu destino.
-                  </p>
+                  <p className="text-white/60 text-base">Você chegou ao seu destino.</p>
                 </div>
 
                 <div className="bg-white/5 rounded-3xl p-6 space-y-4 border border-white/5">
-                  <p className="text-xs font-bold text-zuvvi-volt uppercase tracking-widest">Como foi sua viagem?</p>
-                  
+                  <p className="text-xs font-bold text-zuvvi-volt uppercase tracking-widest">
+                    Como foi sua viagem?
+                  </p>
+
                   <div className="flex justify-center gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
@@ -918,8 +933,8 @@ function AcompanhamentoCorrida() {
                         onClick={() => setNotaAvaliacao(star)}
                         className="p-1 transition-transform active:scale-90"
                       >
-                        <Star 
-                          className={`w-8 h-8 ${notaAvaliacao >= star ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/20"}`} 
+                        <Star
+                          className={`w-8 h-8 ${notaAvaliacao >= star ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/20"}`}
                         />
                       </button>
                     ))}
@@ -937,7 +952,11 @@ function AcompanhamentoCorrida() {
                     disabled={notaAvaliacao === 0 || enviandoAvaliacao}
                     className="w-full py-4 rounded-2xl bg-zuvvi-volt text-zuvvi-indigo text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-[0_0_40px_rgba(198,255,61,0.2)] disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
                   >
-                    {enviandoAvaliacao ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    {enviandoAvaliacao ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Send className="w-3 h-3" />
+                    )}
                     ENVIAR AVALIAÇÃO
                   </button>
                 </div>
@@ -956,14 +975,14 @@ function AcompanhamentoCorrida() {
                     <CheckCircle2 className="w-12 h-12 text-zuvvi-volt" />
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <h2 className="text-3xl font-black text-white uppercase tracking-tighter">
                     {avaliacaoSucesso || jaAvaliado === true ? "OBRIGADO!" : "CORRIDA CONCLUÍDA"}
                   </h2>
                   <p className="text-white/60 text-lg">
-                    {avaliacaoSucesso || jaAvaliado === true 
-                      ? "Sua avaliação ajuda a manter a qualidade do Zuvvi." 
+                    {avaliacaoSucesso || jaAvaliado === true
+                      ? "Sua avaliação ajuda a manter a qualidade do Zuvvi."
                       : "Você chegou ao seu destino."}
                   </p>
                 </div>
@@ -977,7 +996,9 @@ function AcompanhamentoCorrida() {
                     {alternandoFavorito ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <Heart className={`w-4 h-4 ${ehFavorito ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/60"}`} />
+                      <Heart
+                        className={`w-4 h-4 ${ehFavorito ? "text-zuvvi-volt fill-zuvvi-volt" : "text-white/60"}`}
+                      />
                     )}
                     {ehFavorito ? "Motorista favoritado" : `Favoritar ${motorista.nome}`}
                   </button>
@@ -1001,19 +1022,19 @@ function AcompanhamentoCorrida() {
 }
 
 const CheckCircle2 = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="24" 
-    height="24" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
   >
-    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
-    <path d="m9 12 2 2 4-4"/>
+    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+    <path d="m9 12 2 2 4-4" />
   </svg>
 );

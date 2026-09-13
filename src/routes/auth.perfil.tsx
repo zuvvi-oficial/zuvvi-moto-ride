@@ -1,13 +1,13 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { selectPassageiroPerfil, selectMotoristaPerfil } from '@/lib/perfil.functions';
-import { useServerFn } from '@tanstack/react-start';
-import { checkUserProfileStatus, resolveDestinationForLoader } from '@/lib/auth-status.functions';
-import { redirect } from '@tanstack/react-router';
-import { Bike, User } from 'lucide-react';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { selectPassageiroPerfil, selectMotoristaPerfil } from "@/lib/perfil.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { checkUserProfileStatus, resolveDestinationForLoader } from "@/lib/auth-status.functions";
+import { redirect } from "@tanstack/react-router";
+import { Bike, User } from "lucide-react";
 
-export const Route = createFileRoute('/auth/perfil')({
+export const Route = createFileRoute("/auth/perfil")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
     if (dest.redirectTo && dest.redirectTo !== "/auth/perfil") {

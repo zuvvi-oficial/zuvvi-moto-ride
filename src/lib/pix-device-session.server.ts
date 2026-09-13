@@ -19,7 +19,9 @@ export async function obterPixDeviceIdValido(
     .maybeSingle();
 
   if (passageiroError || !passageiro) {
-    throw new Error("Não foi possível validar a segurança do Pix. Tente solicitar a corrida novamente.");
+    throw new Error(
+      "Não foi possível validar a segurança do Pix. Tente solicitar a corrida novamente.",
+    );
   }
 
   exigirCpfValidoParaPix(passageiro.cpf);
@@ -33,7 +35,9 @@ export async function obterPixDeviceIdValido(
 
   const deviceId = normalizePixDeviceId(data?.device_id);
   if (error || !deviceId) {
-    throw new Error("Não foi possível validar a segurança do Pix. Tente solicitar a corrida novamente.");
+    throw new Error(
+      "Não foi possível validar a segurança do Pix. Tente solicitar a corrida novamente.",
+    );
   }
 
   return deviceId;

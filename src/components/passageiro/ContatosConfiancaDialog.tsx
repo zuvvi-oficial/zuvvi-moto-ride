@@ -77,7 +77,8 @@ export function ContatosConfiancaDialog({ open, onOpenChange }: ContatosConfianc
             Contatos de confiança
           </DialogTitle>
           <DialogDescription>
-            Quem você adicionar aqui pode acompanhar suas corridas em tempo real quando você compartilhar uma viagem.
+            Quem você adicionar aqui pode acompanhar suas corridas em tempo real quando você
+            compartilhar uma viagem.
           </DialogDescription>
         </DialogHeader>
 
@@ -97,8 +98,16 @@ export function ContatosConfiancaDialog({ open, onOpenChange }: ContatosConfianc
             inputMode="tel"
             disabled={criarMutation.isPending}
           />
-          <Button type="submit" size="icon" disabled={criarMutation.isPending || contatos.length >= 5}>
-            {criarMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          <Button
+            type="submit"
+            size="icon"
+            disabled={criarMutation.isPending || contatos.length >= 5}
+          >
+            {criarMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
           </Button>
         </form>
 

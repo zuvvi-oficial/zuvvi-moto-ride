@@ -32,7 +32,8 @@ export const criarGorjeta = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => criarGorjetaSchema.parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getPixMercadoPagoSecureConnectionStatus } = await import("./pix-mercadopago-account.server");
+    const { getPixMercadoPagoSecureConnectionStatus } =
+      await import("./pix-mercadopago-account.server");
     const usuario = await resolverUsuario(supabaseAdmin, context.userId);
 
     const { data: corrida, error: corridaError } = await supabaseAdmin
@@ -54,7 +55,10 @@ export const criarGorjeta = createServerFn({ method: "POST" })
     // A cobrança de verdade (Etapa 2) só sabe pagar via Pix pra uma conta
     // Mercado Pago conectada — não faz sentido registrar a intenção de
     // gorjeta pra um motorista que ainda não tem como recebê-la.
-    const { conectado } = await getPixMercadoPagoSecureConnectionStatus(supabaseAdmin as any, corrida.motorista_id);
+    const { conectado } = await getPixMercadoPagoSecureConnectionStatus(
+      supabaseAdmin as any,
+      corrida.motorista_id,
+    );
     if (!conectado) {
       throw new Error("Este motorista ainda não está apto a receber gorjetas digitais.");
     }

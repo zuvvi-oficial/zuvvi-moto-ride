@@ -1,64 +1,60 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import { useServerFn } from '@tanstack/react-start';
-import { updateUserInfo } from '@/lib/auth-google.functions';
-import { checkUserProfileStatus, resolveDestinationForLoader } from '@/lib/auth-status.functions';
-import { redirect } from '@tanstack/react-router';
-import { getUFsDisponiveis, getCitiesDisponiveisByUF } from '@/lib/locations.functions';
-import { validarCpfBrasileiro } from '@/lib/pix-cpf';
-import { supabase } from '@/integrations/supabase/client';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { updateUserInfo } from "@/lib/auth-google.functions";
+import { checkUserProfileStatus, resolveDestinationForLoader } from "@/lib/auth-status.functions";
+import { redirect } from "@tanstack/react-router";
+import { getUFsDisponiveis, getCitiesDisponiveisByUF } from "@/lib/locations.functions";
+import { validarCpfBrasileiro } from "@/lib/pix-cpf";
+import { supabase } from "@/integrations/supabase/client";
 
 const formatCPF = (value: string) => {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   return digits
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 };
 
 const formatPhone = (value: string) => {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 10) {
-    return digits
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{4})(\d{1,4})$/, '$1-$2');
+    return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d{1,4})$/, "$1-$2");
   }
-  return digits
-    .replace(/(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+  return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d{1,4})$/, "$1-$2");
 };
 
 // 2. O schema Zod do formulário passa a ter apenas: cpf, celular, cidade_id.
 const completionSchema = z.object({
   cpf: z
     .string()
-    .transform((val) => val.replace(/\D/g, ''))
+    .transform((val) => val.replace(/\D/g, ""))
     .refine((val) => val.length === 11, "CPF deve conter 11 números")
     .refine(validarCpfBrasileiro, "CPF inválido"),
   celular: z
     .string()
-    .transform((val) => val.replace(/\D/g, ''))
+    .transform((val) => val.replace(/\D/g, ""))
     .refine((val) => val.length >= 10 && val.length <= 11, "Celular inválido"),
   cidade_id: z.string().uuid("Cidade é obrigatória"),
 });
 
 type CompletionForm = z.infer<typeof completionSchema>;
 
-export const Route = createFileRoute('/auth/completar-cadastro')({
+export const Route = createFileRoute("/auth/completar-cadastro")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
     if (dest.redirectTo && dest.redirectTo !== "/auth/completar-cadastro") {
@@ -69,18 +65,18 @@ export const Route = createFileRoute('/auth/completar-cadastro')({
 });
 
 const meses = [
-  { value: '01', label: 'Janeiro' },
-  { value: '02', label: 'Fevereiro' },
-  { value: '03', label: 'Março' },
-  { value: '04', label: 'Abril' },
-  { value: '05', label: 'Maio' },
-  { value: '06', label: 'Junho' },
-  { value: '07', label: 'Julho' },
-  { value: '08', label: 'Agosto' },
-  { value: '09', label: 'Setembro' },
-  { value: '10', label: 'Outubro' },
-  { value: '11', label: 'Novembro' },
-  { value: '12', label: 'Dezembro' },
+  { value: "01", label: "Janeiro" },
+  { value: "02", label: "Fevereiro" },
+  { value: "03", label: "Março" },
+  { value: "04", label: "Abril" },
+  { value: "05", label: "Maio" },
+  { value: "06", label: "Junho" },
+  { value: "07", label: "Julho" },
+  { value: "08", label: "Agosto" },
+  { value: "09", label: "Setembro" },
+  { value: "10", label: "Outubro" },
+  { value: "11", label: "Novembro" },
+  { value: "12", label: "Dezembro" },
 ];
 
 function CompletarCadastroPage() {
@@ -89,7 +85,7 @@ function CompletarCadastroPage() {
   const checkStatus = useServerFn(checkUserProfileStatus);
   const fetchUFs = useServerFn(getUFsDisponiveis);
   const fetchCities = useServerFn(getCitiesDisponiveisByUF);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [ufs, setUfs] = useState<string[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -98,23 +94,23 @@ function CompletarCadastroPage() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Estados locais para os seletores de data e UF (agora manuais)
-  const [day, setDay] = useState('');
-  const [month, setMonth] = useState('');
-  const [year, setYear] = useState('');
-  const [selectedUF, setSelectedUF] = useState('');
+  const [day, setDay] = useState("");
+  const [month, setMonth] = useState("");
+  const [year, setYear] = useState("");
+  const [selectedUF, setSelectedUF] = useState("");
 
-  const { 
-    handleSubmit, 
-    formState: { errors }, 
+  const {
+    handleSubmit,
+    formState: { errors },
     control,
-    setValue
+    setValue,
   } = useForm<CompletionForm>({
     resolver: zodResolver(completionSchema),
     defaultValues: {
-      cpf: '',
-      celular: '',
-      cidade_id: '',
-    }
+      cpf: "",
+      celular: "",
+      cidade_id: "",
+    },
   });
 
   const lastSelectedUF = useRef(selectedUF);
@@ -141,7 +137,7 @@ function CompletarCadastroPage() {
         setCities([]);
         return;
       }
-      
+
       setIsLoadingCities(true);
       try {
         const data = await fetchCities({ data: selectedUF });
@@ -152,10 +148,10 @@ function CompletarCadastroPage() {
         setIsLoadingCities(false);
       }
     };
-    
+
     // Só limpa a cidade e recarrega se o UF realmente mudou
     if (selectedUF !== lastSelectedUF.current) {
-      setValue('cidade_id', '');
+      setValue("cidade_id", "");
       lastSelectedUF.current = selectedUF;
       loadCities();
     } else if (cities.length === 0 && selectedUF) {
@@ -175,24 +171,24 @@ function CompletarCadastroPage() {
 
   const dias = useMemo(() => {
     if (!month) return Array.from({ length: 31 }, (_, i) => (i + 1).toString());
-    
+
     let daysInMonth = 31;
     const m = parseInt(month);
-    
+
     if ([4, 6, 9, 11].includes(m)) {
       daysInMonth = 30;
     } else if (m === 2) {
       const y = parseInt(year);
-      const isLeapYear = y ? (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0) : false;
+      const isLeapYear = y ? (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 : false;
       daysInMonth = isLeapYear ? 29 : 28;
     }
-    
+
     return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
   }, [month, year]);
 
   useEffect(() => {
     if (day && parseInt(day) > dias.length) {
-      setDay('');
+      setDay("");
     }
   }, [dias, day]);
 
@@ -208,10 +204,10 @@ function CompletarCadastroPage() {
       return;
     }
 
-    const data_nascimento = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const data_nascimento = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
     const birthDate = new Date(data_nascimento);
     const today = new Date();
-    
+
     if (birthDate > today) {
       toast.error("Data de nascimento não pode ser no futuro.");
       return;
@@ -220,21 +216,21 @@ function CompletarCadastroPage() {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const response = await executeUpdate({ 
+      const response = await executeUpdate({
         data: {
           ...formData,
-          data_nascimento
-        } 
+          data_nascimento,
+        },
       });
-      
+
       if (!response.success) {
         throw new Error("Resposta inesperada do servidor.");
       }
 
       toast.success("Informações atualizadas!");
-      
+
       const status = await checkStatus();
-      
+
       if (status.isAdmin || (status as any).redirectTo) {
         const dest = (status as any).redirectTo || (status.isAdmin ? "/admin" : "/");
         navigate({ to: dest });
@@ -259,11 +255,11 @@ function CompletarCadastroPage() {
   const onInvalid = (errors: any) => {
     console.log("Validation errors:", errors);
     toast.error("Por favor, preencha todos os campos obrigatórios corretamente.");
-    
+
     const firstError = Object.keys(errors)[0];
     const element = firstError ? document.getElementById(firstError) : null;
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
       element.focus();
     }
   };
@@ -272,7 +268,9 @@ function CompletarCadastroPage() {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-semibold text-white font-poppins">Quase lá!</h2>
-        <p className="text-muted-foreground text-sm mt-1 font-poppins">Precisamos de mais alguns dados para sua segurança</p>
+        <p className="text-muted-foreground text-sm mt-1 font-poppins">
+          Precisamos de mais alguns dados para sua segurança
+        </p>
       </div>
 
       <div className="text-center">
@@ -293,10 +291,14 @@ function CompletarCadastroPage() {
         )}
 
         <div className="bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 space-y-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Documento e Contato</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Documento e Contato
+          </p>
 
           <div className="space-y-2">
-            <Label htmlFor="cpf" className="text-white/80 font-poppins text-sm">CPF</Label>
+            <Label htmlFor="cpf" className="text-white/80 font-poppins text-sm">
+              CPF
+            </Label>
             <Controller
               name="cpf"
               control={control}
@@ -310,11 +312,15 @@ function CompletarCadastroPage() {
                 />
               )}
             />
-            {errors.cpf && <p className="text-red-500 text-xs font-poppins">{errors.cpf.message}</p>}
+            {errors.cpf && (
+              <p className="text-red-500 text-xs font-poppins">{errors.cpf.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="celular" className="text-white/80 font-poppins text-sm">Celular</Label>
+            <Label htmlFor="celular" className="text-white/80 font-poppins text-sm">
+              Celular
+            </Label>
             <Controller
               name="celular"
               control={control}
@@ -328,12 +334,16 @@ function CompletarCadastroPage() {
                 />
               )}
             />
-            {errors.celular && <p className="text-red-500 text-xs font-poppins">{errors.celular.message}</p>}
+            {errors.celular && (
+              <p className="text-red-500 text-xs font-poppins">{errors.celular.message}</p>
+            )}
           </div>
         </div>
 
         <div className="bg-zuvvi-indigo/40 border border-white/5 rounded-2xl p-5 space-y-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Nascimento e Localização</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Nascimento e Localização
+          </p>
 
           <div className="space-y-2">
             <Label className="text-white/80 font-poppins text-sm">Data de Nascimento</Label>
@@ -343,8 +353,10 @@ function CompletarCadastroPage() {
                   <SelectValue placeholder="Dia" />
                 </SelectTrigger>
                 <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                  {dias.map(d => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  {dias.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -354,8 +366,10 @@ function CompletarCadastroPage() {
                   <SelectValue placeholder="Mês" />
                 </SelectTrigger>
                 <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                  {meses.map(m => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  {meses.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -365,8 +379,10 @@ function CompletarCadastroPage() {
                   <SelectValue placeholder="Ano" />
                 </SelectTrigger>
                 <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                  {anos.map(y => (
-                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  {anos.map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -375,25 +391,27 @@ function CompletarCadastroPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="uf" className="text-white/80 font-poppins text-sm">Estado</Label>
-              <Select
-                onValueChange={setSelectedUF}
-                value={selectedUF}
-                disabled={isLoadingUfs}
-              >
+              <Label htmlFor="uf" className="text-white/80 font-poppins text-sm">
+                Estado
+              </Label>
+              <Select onValueChange={setSelectedUF} value={selectedUF} disabled={isLoadingUfs}>
                 <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt h-12">
                   <SelectValue placeholder={isLoadingUfs ? "..." : "UF"} />
                 </SelectTrigger>
                 <SelectContent className="bg-zuvvi-indigo border-white/10 text-white pointer-events-auto touch-pan-y">
-                  {ufs.map(uf => (
-                    <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                  {ufs.map((uf) => (
+                    <SelectItem key={uf} value={uf}>
+                      {uf}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cidade_id" className="text-white/80 font-poppins text-sm">Cidade</Label>
+              <Label htmlFor="cidade_id" className="text-white/80 font-poppins text-sm">
+                Cidade
+              </Label>
               <Controller
                 name="cidade_id"
                 control={control}
@@ -407,14 +425,18 @@ function CompletarCadastroPage() {
                       <SelectValue placeholder={isLoadingCities ? "Carregando..." : "Cidade"} />
                     </SelectTrigger>
                     <SelectContent className="bg-zuvvi-indigo border-white/10 text-white max-h-60">
-                      {cities.map(cidade => (
-                        <SelectItem key={cidade.id} value={cidade.id}>{cidade.nome}</SelectItem>
+                      {cities.map((cidade) => (
+                        <SelectItem key={cidade.id} value={cidade.id}>
+                          {cidade.nome}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.cidade_id && <p className="text-red-500 text-xs font-poppins">{errors.cidade_id.message}</p>}
+              {errors.cidade_id && (
+                <p className="text-red-500 text-xs font-poppins">{errors.cidade_id.message}</p>
+              )}
             </div>
           </div>
         </div>

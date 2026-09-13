@@ -44,16 +44,18 @@ export type PixTokenRefreshDependencies = Readonly<{
   decryptSecret(envelope: string, encryptionKey: string): Promise<string>;
   encryptSecret(secret: string, encryptionKey: string): Promise<string>;
   refreshAccessToken(refreshToken: string): Promise<PixRefreshedTokenSet>;
-  persistRefreshedCredentials(input: Readonly<{
-    motoristaId: string;
-    mercadoPagoUserId: string;
-    encryptedAccessToken: string;
-    encryptedRefreshToken: string;
-    encryptionVersion: number;
-    expiresAt: string;
-    scope?: string;
-    tokenType?: string;
-  }>): Promise<void>;
+  persistRefreshedCredentials(
+    input: Readonly<{
+      motoristaId: string;
+      mercadoPagoUserId: string;
+      encryptedAccessToken: string;
+      encryptedRefreshToken: string;
+      encryptionVersion: number;
+      expiresAt: string;
+      scope?: string;
+      tokenType?: string;
+    }>,
+  ): Promise<void>;
 }>;
 
 export type PixPaymentBodyInput = Readonly<{
@@ -123,7 +125,9 @@ export function normalizeMercadoPagoTicketUrl(value: unknown): string | null {
   }
 }
 
-function splitPassengerName(value: string | null): Readonly<{ firstName: string; lastName?: string }> {
+function splitPassengerName(
+  value: string | null,
+): Readonly<{ firstName: string; lastName?: string }> {
   const normalized = value?.trim().replace(/\s+/gu, " ") ?? "";
   const parts = normalized.split(" ").filter(Boolean);
   const firstName = parts[0] || "Passageiro";
@@ -506,11 +510,7 @@ export async function prepararCobrancaPixAntesAceiteServer(
     .maybeSingle();
   if (motoristaError || !motorista) throw new Error(INVALID_ACCOUNT_ERROR);
 
-  await obterAccessTokenValido(
-    supabaseAdmin as any,
-    motoristaId,
-    motorista.conta_mercado_pago_id,
-  );
+  await obterAccessTokenValido(supabaseAdmin as any, motoristaId, motorista.conta_mercado_pago_id);
   return Object.freeze({ isPix: true });
 }
 

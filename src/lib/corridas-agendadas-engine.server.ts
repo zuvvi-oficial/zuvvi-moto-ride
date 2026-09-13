@@ -115,9 +115,12 @@ export async function enviarLembretesCorridasAgendadas(): Promise<ResumoLembrete
       // Seguro reverter incondicionalmente por id: nenhuma outra execução
       // pode ter voltado a disputar esta linha enquanto lembrete_enviado_at
       // segue não-nulo.
-      console.error("[CorridasAgendadasEngine] Notificação de lembrete não foi criada; revertendo reserva.", {
-        id: agendamento.id,
-      });
+      console.error(
+        "[CorridasAgendadasEngine] Notificação de lembrete não foi criada; revertendo reserva.",
+        {
+          id: agendamento.id,
+        },
+      );
       await supabaseAdmin
         .from("corridas_agendadas")
         .update({ lembrete_enviado_at: null } as any)
@@ -200,7 +203,8 @@ export async function converterCorridasAgendadasVencidas(): Promise<ResumoConver
         usuario_id: agendamento.passageiro_id,
         tipo: "corrida_agendada_falhou",
         titulo: "⚠️ Sua corrida agendada expirou",
-        mensagem: "Não conseguimos solicitar sua corrida agendada a tempo. Peça manualmente pelo app.",
+        mensagem:
+          "Não conseguimos solicitar sua corrida agendada a tempo. Peça manualmente pelo app.",
         corrida_id: null,
       });
       continue;
@@ -223,7 +227,9 @@ export async function converterCorridasAgendadasVencidas(): Promise<ResumoConver
         .maybeSingle();
 
       if (reservaError) {
-        console.error("[CorridasAgendadasEngine] Falha ao reservar agendamento.", { id: agendamento.id });
+        console.error("[CorridasAgendadasEngine] Falha ao reservar agendamento.", {
+          id: agendamento.id,
+        });
         falharam += 1;
         continue;
       }
@@ -295,7 +301,8 @@ export async function converterCorridasAgendadasVencidas(): Promise<ResumoConver
       convertidos += 1;
     } catch (err) {
       falharam += 1;
-      const motivo = err instanceof Error ? err.message : "Erro desconhecido ao converter agendamento.";
+      const motivo =
+        err instanceof Error ? err.message : "Erro desconhecido ao converter agendamento.";
       console.error("[CorridasAgendadasEngine] Falha ao converter agendamento.", {
         id: agendamento.id,
         motivo,
@@ -307,7 +314,11 @@ export async function converterCorridasAgendadasVencidas(): Promise<ResumoConver
       // outra coisa nesse intervalo, não sobrescreve.
       await supabaseAdmin
         .from("corridas_agendadas")
-        .update({ status: "falhou", motivo_falha: motivo, updated_at: new Date().toISOString() } as any)
+        .update({
+          status: "falhou",
+          motivo_falha: motivo,
+          updated_at: new Date().toISOString(),
+        } as any)
         .eq("id", agendamento.id)
         .eq("status", "convertida")
         .is("corrida_id", null);
@@ -316,7 +327,8 @@ export async function converterCorridasAgendadasVencidas(): Promise<ResumoConver
         usuario_id: agendamento.passageiro_id,
         tipo: "corrida_agendada_falhou",
         titulo: "⚠️ Não conseguimos pedir sua corrida agendada",
-        mensagem: "Não foi possível solicitar sua corrida agendada automaticamente. Peça manualmente pelo app.",
+        mensagem:
+          "Não foi possível solicitar sua corrida agendada automaticamente. Peça manualmente pelo app.",
         corrida_id: null,
       });
     }

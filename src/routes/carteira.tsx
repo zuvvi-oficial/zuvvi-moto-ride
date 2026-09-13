@@ -9,7 +9,8 @@ import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
 export const Route = createFileRoute("/carteira")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
-    const canAccess = dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
+    const canAccess =
+      dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
 
     if (!canAccess) {
       throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
@@ -19,13 +20,17 @@ export const Route = createFileRoute("/carteira")({
 });
 
 function formatarMoeda(valor: number) {
-  return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  return `R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
 
 function Carteira() {
   const getResumoFn = useServerFn(getResumoCarteira);
 
-  const { data: resumo, isLoading, error } = useQuery({
+  const {
+    data: resumo,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["resumo-carteira"],
     queryFn: () => getResumoFn(),
   });
@@ -62,7 +67,9 @@ function Carteira() {
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
                 <Receipt className="w-3.5 h-3.5" />
-                {resumo?.quantidadeCorridas || 0} corrida{(resumo?.quantidadeCorridas || 0) !== 1 ? "s" : ""} concluída{(resumo?.quantidadeCorridas || 0) !== 1 ? "s" : ""}
+                {resumo?.quantidadeCorridas || 0} corrida
+                {(resumo?.quantidadeCorridas || 0) !== 1 ? "s" : ""} concluída
+                {(resumo?.quantidadeCorridas || 0) !== 1 ? "s" : ""}
               </div>
             </div>
 
@@ -73,7 +80,9 @@ function Carteira() {
                   <Banknote className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Dinheiro</p>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">
+                    Dinheiro
+                  </p>
                   <p className="text-lg font-black">{formatarMoeda(resumo?.totalDinheiro || 0)}</p>
                 </div>
               </div>
@@ -83,7 +92,9 @@ function Carteira() {
                   <QrCode className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Pix</p>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">
+                    Pix
+                  </p>
                   <p className="text-lg font-black">{formatarMoeda(resumo?.totalPix || 0)}</p>
                 </div>
               </div>

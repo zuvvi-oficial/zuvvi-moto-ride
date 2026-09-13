@@ -23,7 +23,8 @@ interface CompartilharViagemDialogProps {
 }
 
 function buildShareUrl(linkPublico: string): string {
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://zuvvi-moto-ride.lovable.app";
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://zuvvi-moto-ride.lovable.app";
   return `${origin}/viagem-compartilhada?token=${encodeURIComponent(linkPublico)}`;
 }
 
@@ -47,7 +48,11 @@ function copyWithFallback(text: string, container?: HTMLElement | null) {
   if (!ok) throw new Error("execCommand copy failed");
 }
 
-export function CompartilharViagemDialog({ open, onOpenChange, rideId }: CompartilharViagemDialogProps) {
+export function CompartilharViagemDialog({
+  open,
+  onOpenChange,
+  rideId,
+}: CompartilharViagemDialogProps) {
   const compartilharFn = useServerFn(compartilharCorrida);
   const encerrarFn = useServerFn(encerrarCompartilhamentoCorrida);
   const [shareUrl, setShareUrl] = React.useState<string | null>(null);
@@ -104,7 +109,11 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
   const handleWhatsapp = () => {
     if (!shareUrl) return;
     const mensagem = `Estou numa corrida Zuvvi. Acompanhe em tempo real: ${shareUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(mensagem)}`, "_blank", "noopener,noreferrer");
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(mensagem)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   return (
@@ -120,7 +129,8 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
           <div className="space-y-1">
             <DialogTitle className="text-white text-lg font-bold">Compartilhar viagem</DialogTitle>
             <DialogDescription className="text-white/60 text-sm leading-relaxed">
-              Quem receber o link acompanha sua corrida em tempo real, sem precisar de conta na Zuvvi.
+              Quem receber o link acompanha sua corrida em tempo real, sem precisar de conta na
+              Zuvvi.
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -132,7 +142,9 @@ export function CompartilharViagemDialog({ open, onOpenChange, rideId }: Compart
         ) : shareUrl ? (
           <div className="space-y-4 min-w-0">
             <div className="flex items-center justify-between gap-3 min-w-0 rounded-xl bg-zuvvi-indigo/60 border border-white/10 px-4 py-3">
-              <span className="min-w-0 flex-1 truncate font-mono text-xs text-white/80">{shareUrl}</span>
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-white/80">
+                {shareUrl}
+              </span>
               <button
                 type="button"
                 onClick={handleCopy}

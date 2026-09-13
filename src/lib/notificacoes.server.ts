@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-type TipoNotificacao = 
+type TipoNotificacao =
   | "motorista_aceitou"
   | "motorista_a_caminho"
   | "motorista_chegou"
@@ -33,21 +33,19 @@ export async function criarNotificacao(
     // Só é usado na notificação do sistema; sem ele, o service worker usa o
     // logo padrão da Zuvvi.
     icon?: string | null;
-  }
+  },
 ): Promise<{ inserted: boolean }> {
   let inserted = false;
 
   try {
-    const { error } = await supabase
-      .from("notificacoes")
-      .insert({
-        usuario_id: params.usuario_id,
-        tipo: params.tipo,
-        titulo: params.titulo,
-        mensagem: params.mensagem,
-        corrida_id: params.corrida_id || null,
-        lida: false
-      });
+    const { error } = await supabase.from("notificacoes").insert({
+      usuario_id: params.usuario_id,
+      tipo: params.tipo,
+      titulo: params.titulo,
+      mensagem: params.mensagem,
+      corrida_id: params.corrida_id || null,
+      lida: false,
+    });
 
     if (error) {
       console.error("Erro ao criar notificação:", error);
@@ -101,33 +99,35 @@ async function enviarPushParaUsuario(
   const { sendWebPushNotification } = await import("./web-push.server");
 
   await Promise.allSettled(
-    subscriptions.map(async (sub: { id: string; endpoint: string; p256dh: string; auth: string }) => {
-      try {
-        const result = await sendWebPushNotification(
-          { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
-          {
-            title: params.titulo,
-            body: params.mensagem,
-            tipo: params.tipo,
-            corridaId: params.corrida_id ?? null,
-            url: params.url ?? null,
-            icon: params.icon ?? null,
-          },
-        );
-        if (result.outcome === "gone") {
-          await supabase.from("push_subscriptions").delete().eq("id", sub.id);
-        } else if (result.outcome === "error") {
-          // Antes disso o resultado de erro era descartado em silêncio: uma
-          // falha aqui (ex.: 403 por chave VAPID incompatível) nunca aparecia
-          // em lugar nenhum, então uma notificação podia simplesmente sumir
-          // sem deixar rastro.
-          console.error(
-            `Falha ao enviar push (status ${result.status}) para a inscrição ${sub.id}.`,
+    subscriptions.map(
+      async (sub: { id: string; endpoint: string; p256dh: string; auth: string }) => {
+        try {
+          const result = await sendWebPushNotification(
+            { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+            {
+              title: params.titulo,
+              body: params.mensagem,
+              tipo: params.tipo,
+              corridaId: params.corrida_id ?? null,
+              url: params.url ?? null,
+              icon: params.icon ?? null,
+            },
           );
+          if (result.outcome === "gone") {
+            await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+          } else if (result.outcome === "error") {
+            // Antes disso o resultado de erro era descartado em silêncio: uma
+            // falha aqui (ex.: 403 por chave VAPID incompatível) nunca aparecia
+            // em lugar nenhum, então uma notificação podia simplesmente sumir
+            // sem deixar rastro.
+            console.error(
+              `Falha ao enviar push (status ${result.status}) para a inscrição ${sub.id}.`,
+            );
+          }
+        } catch (err) {
+          console.error("Erro ao enviar push para uma inscrição:", err);
         }
-      } catch (err) {
-        console.error("Erro ao enviar push para uma inscrição:", err);
-      }
-    }),
+      },
+    ),
   );
 }

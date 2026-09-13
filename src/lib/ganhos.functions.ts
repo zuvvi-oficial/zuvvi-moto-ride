@@ -46,20 +46,23 @@ export const getResumoGanhos = createServerFn({ method: "GET" })
       }
 
       // 4. Calcular totais (somente leitura, em memória)
-      return (pagamentos || []).reduce((acc, p: any) => {
-        const valor = Number(p.valor_motorista ?? 0);
+      return (pagamentos || []).reduce(
+        (acc, p: any) => {
+          const valor = Number(p.valor_motorista ?? 0);
 
-        acc.totalGanhoMes += valor;
-        acc.quantidadeCorridas += 1;
+          acc.totalGanhoMes += valor;
+          acc.quantidadeCorridas += 1;
 
-        if (p.meio === "dinheiro") {
-          acc.totalDinheiro += valor;
-        } else if (p.meio === "pix") {
-          acc.totalPix += valor;
-        }
+          if (p.meio === "dinheiro") {
+            acc.totalDinheiro += valor;
+          } else if (p.meio === "pix") {
+            acc.totalPix += valor;
+          }
 
-        return acc;
-      }, { ...vazio });
+          return acc;
+        },
+        { ...vazio },
+      );
     } catch (err) {
       console.error("Falha catastrófica no resumo de ganhos:", err);
       return vazio;

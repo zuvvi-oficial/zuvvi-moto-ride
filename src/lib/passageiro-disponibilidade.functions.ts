@@ -26,11 +26,7 @@ export type PassageiroDriverAvailability = {
   cityUf: string | null;
   cityStatus: string | null;
   reason:
-    | "available"
-    | "not_passenger"
-    | "city_not_configured"
-    | "city_unavailable"
-    | "no_driver_online";
+    "available" | "not_passenger" | "city_not_configured" | "city_unavailable" | "no_driver_online";
 };
 
 function unavailable(
@@ -191,19 +187,21 @@ export const checkPassageiroDriverAvailability = createServerFn({ method: "GET" 
       .map((id) => vehiclesByDriver.get(id)?.[0])
       .filter((id): id is string => Boolean(id));
 
-    const [{ data: driverDocs, error: driverDocsError }, { data: vehicleDocs, error: vehicleDocsError }] =
-      await Promise.all([
-        supabaseAdmin
-          .from("documentos_motorista")
-          .select("motorista_id, tipo_documento")
-          .in("motorista_id", vehicleEligibleDrivers)
-          .eq("status_analise", "aprovado"),
-        supabaseAdmin
-          .from("documentos_motorista")
-          .select("veiculo_id, tipo_documento")
-          .in("veiculo_id", vehicleIds)
-          .eq("status_analise", "aprovado"),
-      ]);
+    const [
+      { data: driverDocs, error: driverDocsError },
+      { data: vehicleDocs, error: vehicleDocsError },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("documentos_motorista")
+        .select("motorista_id, tipo_documento")
+        .in("motorista_id", vehicleEligibleDrivers)
+        .eq("status_analise", "aprovado"),
+      supabaseAdmin
+        .from("documentos_motorista")
+        .select("veiculo_id, tipo_documento")
+        .in("veiculo_id", vehicleIds)
+        .eq("status_analise", "aprovado"),
+    ]);
 
     if (driverDocsError || vehicleDocsError) {
       throw new Error("Não foi possível verificar a disponibilidade de mototaxistas.");

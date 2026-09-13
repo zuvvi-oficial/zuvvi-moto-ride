@@ -1,17 +1,17 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { Eye, EyeOff } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { GoogleLoginButton, AppleLoginButton, AuthSeparator } from '@/components/auth/SocialLogin';
-import { useServerFn } from '@tanstack/react-start';
-import { resolvePostLoginDestination } from '@/lib/auth-status.functions';
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { GoogleLoginButton, AppleLoginButton, AuthSeparator } from "@/components/auth/SocialLogin";
+import { useServerFn } from "@tanstack/react-start";
+import { resolvePostLoginDestination } from "@/lib/auth-status.functions";
 
 const loginSchema = z.object({
   email: z
@@ -23,7 +23,7 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export const Route = createFileRoute('/auth/login')({
+export const Route = createFileRoute("/auth/login")({
   component: LoginPage,
 });
 
@@ -33,10 +33,10 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const resolveDestination = useServerFn(resolvePostLoginDestination);
 
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors } 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
@@ -55,7 +55,7 @@ function LoginPage() {
       }
 
       toast.success("Login realizado com sucesso!");
-      
+
       // Decisão server-side unificada
       const result = await resolveDestination();
       navigate({ to: result.redirectTo as any });
@@ -70,9 +70,11 @@ function LoginPage() {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-semibold text-white">Entrar no Zuvvi</h2>
-        <p className="text-muted-foreground text-sm mt-1">Bem-vindo de volta, piloto ou passageiro</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          Bem-vindo de volta, piloto ou passageiro
+        </p>
       </div>
-      
+
       <div className="space-y-3">
         <GoogleLoginButton />
         <AppleLoginButton />
@@ -81,11 +83,13 @@ function LoginPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-white/80">E-mail</Label>
-          <Input 
-            id="email" 
-            type="email" 
-            placeholder="seu@email.com" 
+          <Label htmlFor="email" className="text-white/80">
+            E-mail
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="seu@email.com"
             className="bg-zuvvi-indigo border-white/10 text-white focus:border-zuvvi-volt"
             {...register("email")}
           />
@@ -105,10 +109,10 @@ function LoginPage() {
             </Link>
           </div>
           <div className="relative">
-            <Input 
-              id="password" 
-              type={showPassword ? "text" : "password"} 
-              placeholder="••••••••" 
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
               className="bg-zuvvi-indigo border-white/10 text-white pr-10 focus:border-zuvvi-volt"
               {...register("password")}
             />
@@ -123,8 +127,8 @@ function LoginPage() {
           {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
         </div>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={isLoading}
           className="w-full bg-zuvvi-volt hover:bg-zuvvi-volt/90 text-zuvvi-indigo font-bold h-12 text-lg mt-4 transition-all active:scale-[0.98]"
         >
@@ -141,4 +145,3 @@ function LoginPage() {
     </div>
   );
 }
-

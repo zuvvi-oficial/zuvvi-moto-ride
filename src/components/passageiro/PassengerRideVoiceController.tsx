@@ -173,12 +173,9 @@ export function PassengerRideVoiceController() {
               codigo_embarque?: unknown;
             };
 
-            const nextStatus =
-              typeof updatedRide.status === "string" ? updatedRide.status : null;
+            const nextStatus = typeof updatedRide.status === "string" ? updatedRide.status : null;
             const nextBoardingCode =
-              typeof updatedRide.codigo_embarque === "string"
-                ? updatedRide.codigo_embarque
-                : null;
+              typeof updatedRide.codigo_embarque === "string" ? updatedRide.codigo_embarque : null;
 
             // Atualiza status/código direto do evento Realtime para a voz reagir
             // imediatamente, sem esperar uma segunda ida ao servidor.
@@ -256,9 +253,7 @@ export function PassengerRideVoiceController() {
       const key = "motorista_a_caminho";
       if (announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
-      speak(
-        "Tudo certo. Seu motorista está a caminho. Acompanhe a aproximação pelo mapa.",
-      );
+      speak("Tudo certo. Seu motorista está a caminho. Acompanhe a aproximação pelo mapa.");
       return;
     }
 

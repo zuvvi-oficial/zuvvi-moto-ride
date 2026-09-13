@@ -1,8 +1,12 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
-import { queryOptions, useQuery } from '@tanstack/react-query';
-import { useServerFn } from '@tanstack/react-start';
-import { getResumoFinanceiroAdmin, getCidadesOperacionaisAdmin, getCorridasFinanceiroAdmin } from '@/lib/financeiro.functions';
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { queryOptions, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  getResumoFinanceiroAdmin,
+  getCidadesOperacionaisAdmin,
+  getCorridasFinanceiroAdmin,
+} from "@/lib/financeiro.functions";
 import {
   Table,
   TableBody,
@@ -10,32 +14,44 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Wallet, Percent, Banknote, Receipt, MapPin, Users, Loader2, Eye, ChevronLeft, ChevronRight, Download } from 'lucide-react';
-import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminBottomNav } from '@/components/admin/AdminBottomNav';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Wallet,
+  Percent,
+  Banknote,
+  Receipt,
+  MapPin,
+  Users,
+  Loader2,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+} from "lucide-react";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminBottomNav } from "@/components/admin/AdminBottomNav";
+import { toast } from "sonner";
 
 function toLocalDateInputValue(date: Date) {
   const ano = date.getFullYear();
-  const mes = String(date.getMonth() + 1).padStart(2, '0');
-  const dia = String(date.getDate()).padStart(2, '0');
+  const mes = String(date.getMonth() + 1).padStart(2, "0");
+  const dia = String(date.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
 }
 
@@ -68,9 +84,13 @@ function paraIntervaloISO(dataInicio: string, dataFim: string) {
 // A chave da query usa as datas "AAAA-MM-DD" cruas, não o ISO já convertido
 // — mantém a chave estável e legível; a conversão determinística (fuso
 // fixo) fica isolada dentro do queryFn.
-const financeiroQueryOptions = (params: { dataInicio: string; dataFim: string; cidadeId: string | undefined }) =>
+const financeiroQueryOptions = (params: {
+  dataInicio: string;
+  dataFim: string;
+  cidadeId: string | undefined;
+}) =>
   queryOptions({
-    queryKey: ['admin-financeiro-resumo', params],
+    queryKey: ["admin-financeiro-resumo", params],
     queryFn: () => {
       const { dataInicio, dataFim } = paraIntervaloISO(params.dataInicio, params.dataFim);
       return getResumoFinanceiroAdmin({ data: { dataInicio, dataFim, cidadeId: params.cidadeId } });
@@ -78,7 +98,7 @@ const financeiroQueryOptions = (params: { dataInicio: string; dataFim: string; c
   });
 
 const cidadesFiltroOptions = queryOptions({
-  queryKey: ['admin-financeiro-cidades'],
+  queryKey: ["admin-financeiro-cidades"],
   queryFn: () => getCidadesOperacionaisAdmin(),
 });
 
@@ -92,7 +112,7 @@ const corridasFinanceiroQueryOptions = (params: {
   pagina: number;
 }) =>
   queryOptions({
-    queryKey: ['admin-financeiro-corridas', params],
+    queryKey: ["admin-financeiro-corridas", params],
     queryFn: () => {
       const { dataInicio, dataFim } = paraIntervaloISO(params.dataInicio, params.dataFim);
       return getCorridasFinanceiroAdmin({
@@ -108,19 +128,21 @@ const corridasFinanceiroQueryOptions = (params: {
     },
   });
 
-export const Route = createFileRoute('/admin/financeiro')({
+export const Route = createFileRoute("/admin/financeiro")({
   loader: async ({ context }) => {
     try {
-      await context.queryClient.ensureQueryData(financeiroQueryOptions({ ...periodoPadrao(), cidadeId: undefined }));
+      await context.queryClient.ensureQueryData(
+        financeiroQueryOptions({ ...periodoPadrao(), cidadeId: undefined }),
+      );
     } catch (e) {
-      throw redirect({ to: '/' });
+      throw redirect({ to: "/" });
     }
   },
   component: FinanceiroAdmin,
 });
 
 function formatarMoeda(valor: number) {
-  return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  return `R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
 
 // Achado do Codex no PR #57: toLocaleString sem timeZone usa o fuso do
@@ -129,11 +151,11 @@ function formatarMoeda(valor: number) {
 // mesmo pagamento. Fixamos o fuso de negócio explicitamente na exibição,
 // igual já fizemos no cálculo do intervalo (paraIntervaloISO).
 function formatarDataHoraNegocio(iso: string) {
-  return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
 function formatarDataBR(dataISO: string) {
-  const [ano, mes, dia] = dataISO.split('-');
+  const [ano, mes, dia] = dataISO.split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
@@ -142,7 +164,7 @@ type DadosImpressao = {
   subtitulo: string;
   colunas: string[];
   linhas: (string | number)[][];
-  orientacao?: 'retrato' | 'paisagem';
+  orientacao?: "retrato" | "paisagem";
 };
 
 // Etapa 4 (revisada a pedido do usuário: PDF em vez de CSV, mais legível
@@ -171,8 +193,8 @@ function FinanceiroAdmin() {
 
   useEffect(() => {
     const limparAposImprimir = () => setImpressao(null);
-    window.addEventListener('afterprint', limparAposImprimir);
-    return () => window.removeEventListener('afterprint', limparAposImprimir);
+    window.addEventListener("afterprint", limparAposImprimir);
+    return () => window.removeEventListener("afterprint", limparAposImprimir);
   }, []);
 
   const { data: cidades = [] } = useQuery({
@@ -180,14 +202,18 @@ function FinanceiroAdmin() {
     queryFn: () => getCidadesFn(),
   });
 
-  const params = { dataInicio, dataFim, cidadeId: cidadeId === 'all' ? undefined : cidadeId };
+  const params = { dataInicio, dataFim, cidadeId: cidadeId === "all" ? undefined : cidadeId };
   const { data: resumo, isLoading, error } = useQuery(financeiroQueryOptions(params));
 
-  const [drill, setDrill] = useState<{ tipo: 'cidade' | 'motorista'; id: string; label: string } | null>(null);
+  const [drill, setDrill] = useState<{
+    tipo: "cidade" | "motorista";
+    id: string;
+    label: string;
+  } | null>(null);
   const [drillPagina, setDrillPagina] = useState(0);
 
-  const drillCidadeId = drill?.tipo === 'cidade' ? drill.id : params.cidadeId;
-  const drillMotoristaId = drill?.tipo === 'motorista' ? drill.id : undefined;
+  const drillCidadeId = drill?.tipo === "cidade" ? drill.id : params.cidadeId;
+  const drillMotoristaId = drill?.tipo === "motorista" ? drill.id : undefined;
 
   const { data: drillResult, isLoading: drillLoading } = useQuery({
     ...corridasFinanceiroQueryOptions({
@@ -200,7 +226,7 @@ function FinanceiroAdmin() {
     enabled: !!drill,
   });
 
-  function abrirDrill(novo: { tipo: 'cidade' | 'motorista'; id: string; label: string }) {
+  function abrirDrill(novo: { tipo: "cidade" | "motorista"; id: string; label: string }) {
     setDrill(novo);
     setDrillPagina(0);
   }
@@ -211,15 +237,22 @@ function FinanceiroAdmin() {
     const cidadeLabel =
       params.cidadeId && cidades.find((c: any) => c.id === params.cidadeId)
         ? ` · Cidade: ${cidades.find((c: any) => c.id === params.cidadeId)?.nome}`
-        : ' · Todas as cidades';
+        : " · Todas as cidades";
     return `Período: ${formatarDataBR(dataInicio)} a ${formatarDataBR(dataFim)}${cidadeLabel}`;
   }
 
   function exportarPorCidadePDF() {
     setImpressao({
-      titulo: 'Zuvvi — Resumo Financeiro por Cidade',
+      titulo: "Zuvvi — Resumo Financeiro por Cidade",
       subtitulo: periodoLabel(),
-      colunas: ['Cidade', 'UF', 'Total Faturado', 'Comissão Zuvvi', 'Repasse aos Motoristas', 'Corridas Pagas'],
+      colunas: [
+        "Cidade",
+        "UF",
+        "Total Faturado",
+        "Comissão Zuvvi",
+        "Repasse aos Motoristas",
+        "Corridas Pagas",
+      ],
       linhas: (resumo?.porCidade || []).map((c) => [
         c.cidadeNome,
         c.estadoUf,
@@ -233,9 +266,15 @@ function FinanceiroAdmin() {
 
   function exportarPorMotoristaPDF() {
     setImpressao({
-      titulo: 'Zuvvi — Resumo Financeiro por Motorista',
+      titulo: "Zuvvi — Resumo Financeiro por Motorista",
       subtitulo: periodoLabel(),
-      colunas: ['Motorista', 'Total Faturado', 'Comissão Zuvvi', 'Valor Recebido pelo Motorista', 'Corridas Pagas'],
+      colunas: [
+        "Motorista",
+        "Total Faturado",
+        "Comissão Zuvvi",
+        "Valor Recebido pelo Motorista",
+        "Corridas Pagas",
+      ],
       linhas: (resumo?.porMotorista || []).map((m) => [
         m.nome,
         formatarMoeda(m.totalFaturado),
@@ -261,7 +300,7 @@ function FinanceiroAdmin() {
     try {
       const { dataInicio: inicioISO, dataFim: fimISO } = paraIntervaloISO(dataInicio, dataFim);
       const TAMANHO_PAGINA = 200;
-      const todas: NonNullable<typeof drillResult>['corridas'] = [];
+      const todas: NonNullable<typeof drillResult>["corridas"] = [];
       let cursorFim = fimISO;
       for (;;) {
         const resultado = await getCorridasFn({
@@ -285,33 +324,33 @@ function FinanceiroAdmin() {
       }
 
       if (todas.length === 0) {
-        toast.info('Nenhuma corrida encontrada no período selecionado.');
+        toast.info("Nenhuma corrida encontrada no período selecionado.");
         return;
       }
 
       setImpressao({
-        titulo: 'Zuvvi — Detalhe de Corridas Pagas',
+        titulo: "Zuvvi — Detalhe de Corridas Pagas",
         subtitulo: `${periodoLabel()} · ${todas.length} corrida(s)`,
-        orientacao: 'paisagem',
+        orientacao: "paisagem",
         colunas: [
-          'Data e Hora do Pagamento',
-          'Passageiro',
-          'Motorista',
-          'Origem',
-          'Destino',
-          'Distância',
-          'Forma de Pagamento',
-          'Valor Total',
-          'Comissão Zuvvi',
-          'Valor do Motorista',
+          "Data e Hora do Pagamento",
+          "Passageiro",
+          "Motorista",
+          "Origem",
+          "Destino",
+          "Distância",
+          "Forma de Pagamento",
+          "Valor Total",
+          "Comissão Zuvvi",
+          "Valor do Motorista",
         ],
         linhas: todas.map((c) => [
           formatarDataHoraNegocio(c.pagoEm),
           c.passageiroNome,
           c.motoristaNome,
-          c.origemNome ?? '—',
-          c.destinoNome ?? '—',
-          c.distanciaKm != null ? `${c.distanciaKm.toFixed(1)} km` : '—',
+          c.origemNome ?? "—",
+          c.destinoNome ?? "—",
+          c.distanciaKm != null ? `${c.distanciaKm.toFixed(1)} km` : "—",
           c.meio,
           formatarMoeda(c.valorTotal),
           formatarMoeda(c.valorComissao),
@@ -319,8 +358,8 @@ function FinanceiroAdmin() {
         ]),
       });
     } catch (e) {
-      console.error('Erro ao exportar corridas:', e);
-      toast.error('Erro ao exportar corridas.');
+      console.error("Erro ao exportar corridas:", e);
+      toast.error("Erro ao exportar corridas.");
     } finally {
       setExportandoCorridas(false);
     }
@@ -355,7 +394,9 @@ function FinanceiroAdmin() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Data Início</label>
+            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              Data Início
+            </label>
             <Input
               type="date"
               value={dataInicio}
@@ -366,7 +407,9 @@ function FinanceiroAdmin() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Data Fim</label>
+            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              Data Fim
+            </label>
             <Input
               type="date"
               value={dataFim}
@@ -377,8 +420,10 @@ function FinanceiroAdmin() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Cidade</label>
-            <Select value={cidadeId || 'all'} onValueChange={setCidadeId}>
+            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              Cidade
+            </label>
+            <Select value={cidadeId || "all"} onValueChange={setCidadeId}>
               <SelectTrigger className="bg-zuvvi-indigo border-white/10 text-white">
                 <SelectValue placeholder="Todas as cidades" />
               </SelectTrigger>
@@ -411,7 +456,9 @@ function FinanceiroAdmin() {
                   <Wallet className="w-3.5 h-3.5" />
                   Total Faturado
                 </div>
-                <p className="text-2xl font-black text-zuvvi-volt">{formatarMoeda(resumo?.totalGeral.totalFaturado || 0)}</p>
+                <p className="text-2xl font-black text-zuvvi-volt">
+                  {formatarMoeda(resumo?.totalGeral.totalFaturado || 0)}
+                </p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-2">
@@ -419,7 +466,9 @@ function FinanceiroAdmin() {
                   <Percent className="w-3.5 h-3.5" />
                   Comissão Zuvvi
                 </div>
-                <p className="text-2xl font-black">{formatarMoeda(resumo?.totalGeral.totalComissao || 0)}</p>
+                <p className="text-2xl font-black">
+                  {formatarMoeda(resumo?.totalGeral.totalComissao || 0)}
+                </p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-2">
@@ -427,7 +476,9 @@ function FinanceiroAdmin() {
                   <Banknote className="w-3.5 h-3.5" />
                   Repasse aos Motoristas
                 </div>
-                <p className="text-2xl font-black">{formatarMoeda(resumo?.totalGeral.totalMotorista || 0)}</p>
+                <p className="text-2xl font-black">
+                  {formatarMoeda(resumo?.totalGeral.totalMotorista || 0)}
+                </p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-2">
@@ -470,13 +521,22 @@ function FinanceiroAdmin() {
                   </TableHeader>
                   <TableBody>
                     {(resumo?.porCidade || []).map((cidade) => (
-                      <TableRow key={cidade.cidadeId} className="border-white/10 hover:bg-white/5 transition-colors">
+                      <TableRow
+                        key={cidade.cidadeId}
+                        className="border-white/10 hover:bg-white/5 transition-colors"
+                      >
                         <TableCell className="font-medium">
                           {cidade.cidadeNome} - {cidade.estadoUf}
                         </TableCell>
-                        <TableCell className="text-right">{formatarMoeda(cidade.totalFaturado)}</TableCell>
-                        <TableCell className="text-right">{formatarMoeda(cidade.totalComissao)}</TableCell>
-                        <TableCell className="text-right">{formatarMoeda(cidade.totalMotorista)}</TableCell>
+                        <TableCell className="text-right">
+                          {formatarMoeda(cidade.totalFaturado)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatarMoeda(cidade.totalComissao)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatarMoeda(cidade.totalMotorista)}
+                        </TableCell>
                         <TableCell className="text-right">{cidade.qtdCorridas}</TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -485,7 +545,11 @@ function FinanceiroAdmin() {
                             className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2"
                             aria-label={`Ver corridas de ${cidade.cidadeNome}`}
                             onClick={() =>
-                              abrirDrill({ tipo: 'cidade', id: cidade.cidadeId, label: `${cidade.cidadeNome} - ${cidade.estadoUf}` })
+                              abrirDrill({
+                                tipo: "cidade",
+                                id: cidade.cidadeId,
+                                label: `${cidade.cidadeNome} - ${cidade.estadoUf}`,
+                              })
                             }
                           >
                             <Eye className="w-4 h-4" />
@@ -506,7 +570,10 @@ function FinanceiroAdmin() {
 
               <div className="md:hidden space-y-3">
                 {(resumo?.porCidade || []).map((cidade) => (
-                  <div key={cidade.cidadeId} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+                  <div
+                    key={cidade.cidadeId}
+                    className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-sm">
                         {cidade.cidadeNome} - {cidade.estadoUf}
@@ -517,7 +584,11 @@ function FinanceiroAdmin() {
                         className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2 shrink-0"
                         aria-label={`Ver corridas de ${cidade.cidadeNome}`}
                         onClick={() =>
-                          abrirDrill({ tipo: 'cidade', id: cidade.cidadeId, label: `${cidade.cidadeNome} - ${cidade.estadoUf}` })
+                          abrirDrill({
+                            tipo: "cidade",
+                            id: cidade.cidadeId,
+                            label: `${cidade.cidadeNome} - ${cidade.estadoUf}`,
+                          })
                         }
                       >
                         <Eye className="w-4 h-4" />
@@ -525,26 +596,36 @@ function FinanceiroAdmin() {
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       <div>
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Faturado</p>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">
+                          Faturado
+                        </p>
                         <p className="text-sm font-bold">{formatarMoeda(cidade.totalFaturado)}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Comissão</p>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">
+                          Comissão
+                        </p>
                         <p className="text-sm font-bold">{formatarMoeda(cidade.totalComissao)}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Repasse</p>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">
+                          Repasse
+                        </p>
                         <p className="text-sm font-bold">{formatarMoeda(cidade.totalMotorista)}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Corridas</p>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">
+                          Corridas
+                        </p>
                         <p className="text-sm font-bold">{cidade.qtdCorridas}</p>
                       </div>
                     </div>
                   </div>
                 ))}
                 {(resumo?.porCidade || []).length === 0 && (
-                  <p className="text-center py-10 text-gray-500 text-sm">Nenhum pagamento no período selecionado.</p>
+                  <p className="text-center py-10 text-gray-500 text-sm">
+                    Nenhum pagamento no período selecionado.
+                  </p>
                 )}
               </div>
             </div>
@@ -580,11 +661,20 @@ function FinanceiroAdmin() {
                   </TableHeader>
                   <TableBody>
                     {(resumo?.porMotorista || []).map((motorista) => (
-                      <TableRow key={motorista.motoristaId} className="border-white/10 hover:bg-white/5 transition-colors">
+                      <TableRow
+                        key={motorista.motoristaId}
+                        className="border-white/10 hover:bg-white/5 transition-colors"
+                      >
                         <TableCell className="font-medium">{motorista.nome}</TableCell>
-                        <TableCell className="text-right">{formatarMoeda(motorista.totalFaturado)}</TableCell>
-                        <TableCell className="text-right">{formatarMoeda(motorista.totalComissao)}</TableCell>
-                        <TableCell className="text-right">{formatarMoeda(motorista.totalMotorista)}</TableCell>
+                        <TableCell className="text-right">
+                          {formatarMoeda(motorista.totalFaturado)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatarMoeda(motorista.totalComissao)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatarMoeda(motorista.totalMotorista)}
+                        </TableCell>
                         <TableCell className="text-right">{motorista.qtdCorridas}</TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -592,7 +682,13 @@ function FinanceiroAdmin() {
                             variant="outline"
                             className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2"
                             aria-label={`Ver corridas de ${motorista.nome}`}
-                            onClick={() => abrirDrill({ tipo: 'motorista', id: motorista.motoristaId, label: motorista.nome })}
+                            onClick={() =>
+                              abrirDrill({
+                                tipo: "motorista",
+                                id: motorista.motoristaId,
+                                label: motorista.nome,
+                              })
+                            }
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -612,7 +708,10 @@ function FinanceiroAdmin() {
 
               <div className="md:hidden space-y-3">
                 {(resumo?.porMotorista || []).map((motorista) => (
-                  <div key={motorista.motoristaId} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+                  <div
+                    key={motorista.motoristaId}
+                    className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-sm">{motorista.nome}</span>
                       <Button
@@ -620,26 +719,46 @@ function FinanceiroAdmin() {
                         variant="outline"
                         className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 h-8 px-2 shrink-0"
                         aria-label={`Ver corridas de ${motorista.nome}`}
-                        onClick={() => abrirDrill({ tipo: 'motorista', id: motorista.motoristaId, label: motorista.nome })}
+                        onClick={() =>
+                          abrirDrill({
+                            tipo: "motorista",
+                            id: motorista.motoristaId,
+                            label: motorista.nome,
+                          })
+                        }
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       <div>
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Faturado</p>
-                        <p className="text-sm font-bold">{formatarMoeda(motorista.totalFaturado)}</p>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">
+                          Faturado
+                        </p>
+                        <p className="text-sm font-bold">
+                          {formatarMoeda(motorista.totalFaturado)}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Comissão</p>
-                        <p className="text-sm font-bold">{formatarMoeda(motorista.totalComissao)}</p>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">
+                          Comissão
+                        </p>
+                        <p className="text-sm font-bold">
+                          {formatarMoeda(motorista.totalComissao)}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Recebeu</p>
-                        <p className="text-sm font-bold">{formatarMoeda(motorista.totalMotorista)}</p>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">
+                          Recebeu
+                        </p>
+                        <p className="text-sm font-bold">
+                          {formatarMoeda(motorista.totalMotorista)}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">Corridas</p>
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-white/30">
+                          Corridas
+                        </p>
                         <p className="text-sm font-bold">{motorista.qtdCorridas}</p>
                       </div>
                     </div>
@@ -665,7 +784,7 @@ function FinanceiroAdmin() {
             </DialogTitle>
             <DialogDescription className="text-gray-400">
               Mesmo período selecionado na tela
-              {drill?.tipo === 'motorista' && params.cidadeId ? ' · cidade filtrada' : ''}
+              {drill?.tipo === "motorista" && params.cidadeId ? " · cidade filtrada" : ""}
             </DialogDescription>
           </DialogHeader>
 
@@ -692,20 +811,33 @@ function FinanceiroAdmin() {
                   </TableHeader>
                   <TableBody>
                     {(drillResult?.corridas || []).map((corrida) => (
-                      <TableRow key={corrida.pagamentoId} className="border-white/10 hover:bg-white/5 transition-colors">
-                        <TableCell className="text-xs">{formatarDataHoraNegocio(corrida.pagoEm)}</TableCell>
+                      <TableRow
+                        key={corrida.pagamentoId}
+                        className="border-white/10 hover:bg-white/5 transition-colors"
+                      >
+                        <TableCell className="text-xs">
+                          {formatarDataHoraNegocio(corrida.pagoEm)}
+                        </TableCell>
                         <TableCell className="text-xs">{corrida.passageiroNome}</TableCell>
                         <TableCell className="text-xs">{corrida.motoristaNome}</TableCell>
                         <TableCell className="text-xs max-w-[220px] truncate">
-                          {corrida.origemNome || '—'} → {corrida.destinoNome || '—'}
+                          {corrida.origemNome || "—"} → {corrida.destinoNome || "—"}
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
-                          {corrida.distanciaKm != null ? `${corrida.distanciaKm.toFixed(1)} km` : '—'}
+                          {corrida.distanciaKm != null
+                            ? `${corrida.distanciaKm.toFixed(1)} km`
+                            : "—"}
                         </TableCell>
                         <TableCell className="text-xs uppercase">{corrida.meio}</TableCell>
-                        <TableCell className="text-right text-xs">{formatarMoeda(corrida.valorTotal)}</TableCell>
-                        <TableCell className="text-right text-xs">{formatarMoeda(corrida.valorComissao)}</TableCell>
-                        <TableCell className="text-right text-xs">{formatarMoeda(corrida.valorMotorista)}</TableCell>
+                        <TableCell className="text-right text-xs">
+                          {formatarMoeda(corrida.valorTotal)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">
+                          {formatarMoeda(corrida.valorComissao)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">
+                          {formatarMoeda(corrida.valorMotorista)}
+                        </TableCell>
                       </TableRow>
                     ))}
                     {(drillResult?.corridas || []).length === 0 && (
@@ -720,7 +852,9 @@ function FinanceiroAdmin() {
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-xs text-gray-400">{drillResult?.total ?? 0} corrida(s) no total</span>
+                <span className="text-xs text-gray-400">
+                  {drillResult?.total ?? 0} corrida(s) no total
+                </span>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -762,13 +896,17 @@ function FinanceiroAdmin() {
           <h1 className="text-xl font-bold mb-1">{impressao.titulo}</h1>
           <p className="text-sm mb-1">{impressao.subtitulo}</p>
           <p className="text-xs text-gray-500 mb-4">
-            Gerado em {new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (horário de Brasília)
+            Gerado em {new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}{" "}
+            (horário de Brasília)
           </p>
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr>
                 {impressao.colunas.map((coluna) => (
-                  <th key={coluna} className="border border-gray-300 bg-gray-100 text-left p-2 font-bold">
+                  <th
+                    key={coluna}
+                    className="border border-gray-300 bg-gray-100 text-left p-2 font-bold"
+                  >
                     {coluna}
                   </th>
                 ))}
@@ -791,7 +929,7 @@ function FinanceiroAdmin() {
 
       <style>{`
         @media print {
-          @page { size: ${impressao?.orientacao === 'paisagem' ? 'landscape' : 'portrait'}; margin: 16mm; }
+          @page { size: ${impressao?.orientacao === "paisagem" ? "landscape" : "portrait"}; margin: 16mm; }
           body * { visibility: hidden; }
           #zuvvi-impressao, #zuvvi-impressao * { visibility: visible; }
           #zuvvi-impressao { position: absolute; top: 0; left: 0; width: 100%; }

@@ -60,7 +60,12 @@ function totaisVazios(): Totais {
   return { totalFaturado: 0, totalComissao: 0, totalMotorista: 0, qtdCorridas: 0 };
 }
 
-function somarTotais(acc: Totais, valorTotal: number, valorComissao: number, valorMotorista: number): Totais {
+function somarTotais(
+  acc: Totais,
+  valorTotal: number,
+  valorComissao: number,
+  valorMotorista: number,
+): Totais {
   return {
     totalFaturado: acc.totalFaturado + valorTotal,
     totalComissao: acc.totalComissao + valorComissao,
@@ -87,7 +92,8 @@ export const getResumoFinanceiroAdmin = createServerFn({ method: "GET" })
     // Período padrão: mês atual (mesma convenção já usada em getResumoCarteira
     // e getResumoGanhos), sobrescrevível pelo chamador.
     const agora = new Date();
-    const inicio = data.dataInicio || new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
+    const inicio =
+      data.dataInicio || new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
     const fim = data.dataFim || agora.toISOString();
 
     // 1 e 2. Pagamentos já pagos no período, com o vínculo mínimo à corrida
@@ -106,7 +112,9 @@ export const getResumoFinanceiroAdmin = createServerFn({ method: "GET" })
     for (;;) {
       let query = supabaseAdmin
         .from("pagamentos")
-        .select("valor_total, valor_comissao, valor_motorista, corridas!inner(cidade_id, motorista_id)")
+        .select(
+          "valor_total, valor_comissao, valor_motorista, corridas!inner(cidade_id, motorista_id)",
+        )
         .eq("status", "pago")
         .gte("pago_at", inicio)
         .lte("pago_at", fim)
@@ -132,14 +140,24 @@ export const getResumoFinanceiroAdmin = createServerFn({ method: "GET" })
         if (cidadeId) {
           porCidadeMap.set(
             cidadeId,
-            somarTotais(porCidadeMap.get(cidadeId) ?? totaisVazios(), valorTotal, valorComissao, valorMotorista),
+            somarTotais(
+              porCidadeMap.get(cidadeId) ?? totaisVazios(),
+              valorTotal,
+              valorComissao,
+              valorMotorista,
+            ),
           );
         }
 
         if (motoristaId) {
           porMotoristaMap.set(
             motoristaId,
-            somarTotais(porMotoristaMap.get(motoristaId) ?? totaisVazios(), valorTotal, valorComissao, valorMotorista),
+            somarTotais(
+              porMotoristaMap.get(motoristaId) ?? totaisVazios(),
+              valorTotal,
+              valorComissao,
+              valorMotorista,
+            ),
           );
         }
       }
@@ -252,9 +270,11 @@ export const getCorridasFinanceiroAdmin = createServerFn({ method: "GET" })
       query = query.eq("corridas.motorista_id", data.motoristaId);
     }
 
-    const { data: pagamentos, count, error } = await query
-      .order("pago_at", { ascending: false })
-      .range(offset, offset + data.limite - 1);
+    const {
+      data: pagamentos,
+      count,
+      error,
+    } = await query.order("pago_at", { ascending: false }).range(offset, offset + data.limite - 1);
 
     if (error) {
       console.error("Erro ao carregar corridas do financeiro:", error);
@@ -268,7 +288,9 @@ export const getCorridasFinanceiroAdmin = createServerFn({ method: "GET" })
     // são resolvidos na mesma tabela — mesmo padrão de nomes do resumo.
     const usuarioIds = Array.from(
       new Set(
-        linhas.flatMap((linha) => [linha.corridas?.passageiro_id, linha.corridas?.motorista_id].filter(Boolean)),
+        linhas.flatMap((linha) =>
+          [linha.corridas?.passageiro_id, linha.corridas?.motorista_id].filter(Boolean),
+        ),
       ),
     );
 
@@ -294,7 +316,8 @@ export const getCorridasFinanceiroAdmin = createServerFn({ method: "GET" })
       valorMotorista: Number(linha.valor_motorista ?? 0),
       origemNome: (linha.corridas?.origem_nome as string | null) ?? null,
       destinoNome: (linha.corridas?.destino_nome as string | null) ?? null,
-      distanciaKm: linha.corridas?.distancia_km != null ? Number(linha.corridas.distancia_km) : null,
+      distanciaKm:
+        linha.corridas?.distancia_km != null ? Number(linha.corridas.distancia_km) : null,
       passageiroNome: nomeMap.get(linha.corridas?.passageiro_id) ?? "Desconhecido",
       motoristaNome: nomeMap.get(linha.corridas?.motorista_id) ?? "Desconhecido",
     }));

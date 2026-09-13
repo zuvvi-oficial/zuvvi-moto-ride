@@ -1,18 +1,40 @@
-
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-
-
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { NotificationBell } from "@/components/NotificationBell";
 import { getAuthStatus } from "@/lib/auth-status.functions";
-import { getPassengerProfilePhoto, PASSENGER_PROFILE_PHOTO_QUERY_KEY } from "@/lib/passenger-profile-photo.functions";
+import {
+  getPassengerProfilePhoto,
+  PASSENGER_PROFILE_PHOTO_QUERY_KEY,
+} from "@/lib/passenger-profile-photo.functions";
 import heroMoto from "@/assets/hero-moto.jpg";
-import { User, MapPin, Clock, Star, Shield, Bike, FileText, CreditCard, ChevronRight, LocateFixed, AlertTriangle, Loader2, Trash2, X, ChevronLeft, Plus } from "lucide-react";
+import {
+  User,
+  MapPin,
+  Clock,
+  Star,
+  Shield,
+  Bike,
+  FileText,
+  CreditCard,
+  ChevronRight,
+  LocateFixed,
+  AlertTriangle,
+  Loader2,
+  Trash2,
+  X,
+  ChevronLeft,
+  Plus,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ZuvviLogo } from "@/components/brand/ZuvviLogo";
-import { getMapboxToken, checkCityAvailability, getReverseGeocoding, getRetomadaCorridaPassageiro } from "@/lib/user.functions";
+import {
+  getMapboxToken,
+  checkCityAvailability,
+  getReverseGeocoding,
+  getRetomadaCorridaPassageiro,
+} from "@/lib/user.functions";
 import { listarFavoritos, criarFavorito, excluirFavorito } from "@/lib/favoritos.functions";
 import { listarDestinosRecentes } from "@/lib/recentes.functions";
 import { toast } from "sonner";
@@ -23,7 +45,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -38,7 +59,7 @@ export const Route = createFileRoute("/")({
 function UnifiedIndex() {
   const getAuthStatusFn = useServerFn(getAuthStatus);
   const navigate = useNavigate();
-  
+
   const { data: auth, isLoading } = useQuery({
     queryKey: ["auth-status"],
     queryFn: () => getAuthStatusFn(),
@@ -63,7 +84,7 @@ function UnifiedIndex() {
       navigate({ to: "/onboarding-motorista" });
       return null;
     }
-    
+
     if (auth.isPassageiro) {
       return <HomePassageiro nome={auth.nome || ""} />;
     }
@@ -155,22 +176,28 @@ function HomePassageiro({ nome }: { nome: string }) {
     // que já foi visto), então a catraca ignora esse encolhimento e a
     // altura fica travada no maior valor real já observado.
     const updateSeMaior = () => {
-      setFrozenHeight((atual) => (atual === null || window.innerHeight > atual ? window.innerHeight : atual));
+      setFrozenHeight((atual) =>
+        atual === null || window.innerHeight > atual ? window.innerHeight : atual,
+      );
     };
     updateSeMaior();
-    window.addEventListener('resize', updateSeMaior);
-    return () => window.removeEventListener('resize', updateSeMaior);
+    window.addEventListener("resize", updateSeMaior);
+    return () => window.removeEventListener("resize", updateSeMaior);
   }, []);
 
   useEffect(() => {
     const headerEl = headerRef.current;
     const navEl = navRef.current;
-    if (!headerEl || !navEl || typeof ResizeObserver === 'undefined') return;
+    if (!headerEl || !navEl || typeof ResizeObserver === "undefined") return;
 
     // getBoundingClientRect (não contentRect) porque header/nav têm padding
     // direto neles — contentRect exclui o padding e sub-mediria a altura.
-    const headerObserver = new ResizeObserver(() => setHeaderHeight(headerEl.getBoundingClientRect().height));
-    const navObserver = new ResizeObserver(() => setNavHeight(navEl.getBoundingClientRect().height));
+    const headerObserver = new ResizeObserver(() =>
+      setHeaderHeight(headerEl.getBoundingClientRect().height),
+    );
+    const navObserver = new ResizeObserver(() =>
+      setNavHeight(navEl.getBoundingClientRect().height),
+    );
     headerObserver.observe(headerEl);
     navObserver.observe(navEl);
     return () => {
@@ -179,15 +206,13 @@ function HomePassageiro({ nome }: { nome: string }) {
     };
   }, []);
 
-
   const getMapboxTokenFn = useServerFn(getMapboxToken);
   const checkCityAvailabilityFn = useServerFn(checkCityAvailability);
   const getReverseGeocodingFn = useServerFn(getReverseGeocoding);
 
-
   const requestLocation = () => {
     if (isUpdatingLocation) return;
-    
+
     setIsUpdatingLocation(true);
     setIsLocating(true);
     setLocationError(null);
@@ -195,7 +220,7 @@ function HomePassageiro({ nome }: { nome: string }) {
     setManualLocation(null);
     setManualAddress(null);
     setIsEditingOrigin(false);
-    
+
     if (!navigator.geolocation) {
       setLocationError("Geolocalização não é suportada pelo seu navegador.");
       setIsLocating(false);
@@ -207,24 +232,25 @@ function HomePassageiro({ nome }: { nome: string }) {
       (position) => {
         const newCoords = {
           lat: position.coords.latitude,
-          lng: position.coords.longitude
+          lng: position.coords.longitude,
         };
         setLocation(newCoords);
         setIsLocating(false);
         setIsUpdatingLocation(false);
-
       },
       (error) => {
         console.error("Erro GPS:", error);
         if (error.code === error.PERMISSION_DENIED) {
-          setLocationError("Permissão de localização negada. Por favor, ative o GPS para usar o app.");
+          setLocationError(
+            "Permissão de localização negada. Por favor, ative o GPS para usar o app.",
+          );
         } else {
           setLocationError("Não foi possível obter sua localização. Tente novamente.");
         }
         setIsLocating(false);
         setIsUpdatingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   };
 
@@ -239,9 +265,9 @@ function HomePassageiro({ nome }: { nome: string }) {
           // Dispara as duas chamadas em paralelo
           const [availabilityResult, addressResult] = await Promise.all([
             checkCityAvailabilityFn({ data: { coords: location } }),
-            getReverseGeocodingFn({ data: { lat: location.lat, lng: location.lng } })
+            getReverseGeocodingFn({ data: { lat: location.lat, lng: location.lng } }),
           ]);
-          
+
           setIsCityAvailable(availabilityResult.isAvailable);
           setCityName(availabilityResult.cityName);
           setOriginAddress(addressResult.address);
@@ -267,31 +293,28 @@ function HomePassageiro({ nome }: { nome: string }) {
 
     if (currentOrigin && currentOriginName) {
       navigate({
-        to: '/confirmar-corrida',
+        to: "/confirmar-corrida",
         search: {
           originLat: currentOrigin.lat,
           originLng: currentOrigin.lng,
           destLat: dest.latitude,
           destLng: dest.longitude,
-          destName: dest.endereco.split(',')[0] || '',
-          originName: (currentOriginName.split(',')[0] || '') + (currentOriginName.split(',')[1] ? ', ' + currentOriginName.split(',')[1] : '')
-
-        }
+          destName: dest.endereco.split(",")[0] || "",
+          originName:
+            (currentOriginName.split(",")[0] || "") +
+            (currentOriginName.split(",")[1] ? ", " + currentOriginName.split(",")[1] : ""),
+        },
       });
     }
   };
 
   return (
-
     <div
       className="relative bg-zuvvi-indigo text-foreground"
-      style={{ height: frozenHeight ? `${frozenHeight}px` : '100dvh', width: '100vw' }}
+      style={{ height: frozenHeight ? `${frozenHeight}px` : "100dvh", width: "100vw" }}
     >
       {/* 1. Fundo (Z-INDEX 0) */}
-      <div
-        style={{ position: 'fixed', inset: 0, zIndex: 0 }}
-        className="bg-zuvvi-indigo-dark"
-      />
+      <div style={{ position: "fixed", inset: 0, zIndex: 0 }} className="bg-zuvvi-indigo-dark" />
 
       {/* 2. Conteúdo — ocupa a faixa entre o header e o menu fixos. Altura
           calculada a partir da altura congelada, não da tela atual, pra
@@ -305,7 +328,6 @@ function HomePassageiro({ nome }: { nome: string }) {
         }
       >
         <div className="min-h-full flex flex-col px-5 pb-4 mx-auto w-full max-w-md space-y-4">
-
           {isLocating && (
             <div className="bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-4 shadow-2xl pointer-events-auto animate-rise">
               <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
@@ -322,7 +344,7 @@ function HomePassageiro({ nome }: { nome: string }) {
                 <h2 className="text-xl font-bold mb-2">GPS Necessário</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">{locationError}</p>
               </div>
-              <button 
+              <button
                 onClick={requestLocation}
                 className="w-full bg-zuvvi-volt text-zuvvi-indigo py-4 rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-transform active:scale-95"
               >
@@ -337,9 +359,14 @@ function HomePassageiro({ nome }: { nome: string }) {
                 <Bike className="text-zuvvi-volt w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold mb-2">Zuvvi ainda não chegou <br/><span className="volt-text">até aqui</span></h2>
+                <h2 className="text-2xl font-bold mb-2">
+                  Zuvvi ainda não chegou <br />
+                  <span className="volt-text">até aqui</span>
+                </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {cityName ? `Estamos trabalhando para liberar as corridas em ${cityName} em breve.` : "Sua localização atual ainda não está coberta pela nossa rede."}
+                  {cityName
+                    ? `Estamos trabalhando para liberar as corridas em ${cityName} em breve.`
+                    : "Sua localização atual ainda não está coberta pela nossa rede."}
                 </p>
                 <p className="text-[10px] text-zuvvi-volt/60 font-bold uppercase tracking-widest mt-4">
                   Você será avisado quando liberarmos
@@ -357,29 +384,33 @@ function HomePassageiro({ nome }: { nome: string }) {
                     <div className="w-8 h-8 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
                       <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
                     </div>
-                    <div 
+                    <div
                       className="flex-1 min-w-0 cursor-pointer"
                       onClick={() => setIsEditingOrigin(!isEditingOrigin)}
                     >
-                      <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.2em] mb-0.5">Origem</p>
+                      <p className="text-[10px] text-zuvvi-volt font-black uppercase tracking-[0.2em] mb-0.5">
+                        Origem
+                      </p>
                       <p className="text-sm font-bold truncate pr-2">
                         {isManualOrigin ? manualAddress : originAddress}
                       </p>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={requestLocation}
                     disabled={isUpdatingLocation}
-                    className={`w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-all hover:bg-white/10 active:scale-95 ${isUpdatingLocation ? 'opacity-50' : ''}`}
+                    className={`w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-all hover:bg-white/10 active:scale-95 ${isUpdatingLocation ? "opacity-50" : ""}`}
                   >
-                    <LocateFixed className={`w-4 h-4 text-zuvvi-volt ${isUpdatingLocation ? 'animate-spin' : ''}`} />
+                    <LocateFixed
+                      className={`w-4 h-4 text-zuvvi-volt ${isUpdatingLocation ? "animate-spin" : ""}`}
+                    />
                   </button>
                 </div>
 
                 {isEditingOrigin && (
                   <div className="pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <DestinoSearch 
-                      location={location} 
+                    <DestinoSearch
+                      location={location}
                       placeholder="Pesquisar nova origem..."
                       autoFocus={true}
                       onSelect={(res) => {
@@ -387,7 +418,6 @@ function HomePassageiro({ nome }: { nome: string }) {
                         setManualLocation({ lat: res.center[1], lng: res.center[0] });
                         setManualAddress(res.place_name);
                         setIsEditingOrigin(false);
-
                       }}
                     />
                   </div>
@@ -401,14 +431,13 @@ function HomePassageiro({ nome }: { nome: string }) {
                   handleDestinationSelected({
                     latitude: dest.center[1],
                     longitude: dest.center[0],
-                    endereco: dest.place_name
+                    endereco: dest.place_name,
                   });
                 }}
               />
 
-              
               <div className="grid grid-cols-2 gap-3 pb-4">
-                <button 
+                <button
                   onClick={() => setFavoritosOpen(true)}
                   className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]"
                 >
@@ -418,7 +447,7 @@ function HomePassageiro({ nome }: { nome: string }) {
                   <span className="text-[10px] font-bold uppercase tracking-widest">Favoritos</span>
                 </button>
 
-                <button 
+                <button
                   onClick={() => setRecentesOpen(true)}
                   className="bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-transform active:scale-[0.98]"
                 >
@@ -438,7 +467,7 @@ function HomePassageiro({ nome }: { nome: string }) {
               handleDestinationSelected({
                 latitude: Number(fav.latitude),
                 longitude: Number(fav.longitude),
-                endereco: fav.endereco
+                endereco: fav.endereco,
               });
             }}
           />
@@ -450,7 +479,7 @@ function HomePassageiro({ nome }: { nome: string }) {
               handleDestinationSelected({
                 latitude: Number(recente.latitude),
                 longitude: Number(recente.longitude),
-                endereco: recente.nome
+                endereco: recente.nome,
               });
             }}
           />
@@ -469,7 +498,9 @@ function HomePassageiro({ nome }: { nome: string }) {
               )}
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Olá, {nome.split(" ")[0]}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                Olá, {nome.split(" ")[0]}
+              </p>
               <ZuvviLogo surface="dark" className="h-auto w-[82px]" />
             </div>
           </div>
@@ -483,39 +514,48 @@ function HomePassageiro({ nome }: { nome: string }) {
       <nav
         ref={navRef}
         className="fixed inset-x-0 z-20 bg-zuvvi-indigo/80 backdrop-blur-xl border-t border-white/10 px-5 py-4 pointer-events-auto"
-        style={frozenHeight ? { top: frozenHeight - navHeight, bottom: 'auto' } : { bottom: 0 }}
+        style={frozenHeight ? { top: frozenHeight - navHeight, bottom: "auto" } : { bottom: 0 }}
       >
-          <div className="mx-auto max-w-md flex items-center justify-around">
-            <button className="flex flex-col items-center gap-1 volt-text">
-              <Bike className="w-6 h-6" strokeWidth={2.5} />
-              <span className="text-[9px] font-black uppercase tracking-wider">Início</span>
-            </button>
-            <Link to="/corridas" className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
-              <Clock className="w-6 h-6" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Corridas</span>
-            </Link>
-            <Link to="/carteira" className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
-              <CreditCard className="w-6 h-6" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Carteira</span>
-            </Link>
-            <Link to="/perfil" className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground">
-              <User className="w-6 h-6" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>
-            </Link>
-          </div>
+        <div className="mx-auto max-w-md flex items-center justify-around">
+          <button className="flex flex-col items-center gap-1 volt-text">
+            <Bike className="w-6 h-6" strokeWidth={2.5} />
+            <span className="text-[9px] font-black uppercase tracking-wider">Início</span>
+          </button>
+          <Link
+            to="/corridas"
+            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Clock className="w-6 h-6" />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Corridas</span>
+          </Link>
+          <Link
+            to="/carteira"
+            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <CreditCard className="w-6 h-6" />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Carteira</span>
+          </Link>
+          <Link
+            to="/perfil"
+            className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <User className="w-6 h-6" />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>
+          </Link>
+        </div>
       </nav>
     </div>
   );
 }
 
-function FavoritosDialog({ 
-  open, 
-  onOpenChange, 
+function FavoritosDialog({
+  open,
+  onOpenChange,
   location,
-  onSelectFavorite
-}: { 
-  open: boolean; 
-  onOpenChange: (open: boolean) => void; 
+  onSelectFavorite,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   location: { lat: number; lng: number } | null;
   onSelectFavorite: (fav: {
     nome: string;
@@ -524,7 +564,6 @@ function FavoritosDialog({
     longitude: number;
   }) => void;
 }) {
-
   const [mode, setMode] = useState<"list" | "add">("list");
   const [nome, setNome] = useState("");
   const [selectedAddress, setSelectedAddress] = useState<{
@@ -540,13 +579,10 @@ function FavoritosDialog({
     offsetLeft: number;
   } | null>(null);
 
-  const isMobileAdd =
-    mode === "add" &&
-    typeof window !== "undefined" &&
-    window.innerWidth < 640;
+  const isMobileAdd = mode === "add" && typeof window !== "undefined" && window.innerWidth < 640;
 
   useEffect(() => {
-    if (!open || !isMobileAdd || typeof window === 'undefined' || !window.visualViewport) {
+    if (!open || !isMobileAdd || typeof window === "undefined" || !window.visualViewport) {
       if (!open) setViewport(null);
       return;
     }
@@ -558,29 +594,33 @@ function FavoritosDialog({
           height: vv.height,
           width: vv.width,
           offsetTop: vv.offsetTop,
-          offsetLeft: vv.offsetLeft
+          offsetLeft: vv.offsetLeft,
         });
       }
     };
 
     const vv = window.visualViewport;
-    vv.addEventListener('resize', syncViewport);
-    vv.addEventListener('scroll', syncViewport);
+    vv.addEventListener("resize", syncViewport);
+    vv.addEventListener("scroll", syncViewport);
     syncViewport();
 
     return () => {
-      vv.removeEventListener('resize', syncViewport);
-      vv.removeEventListener('scroll', syncViewport);
+      vv.removeEventListener("resize", syncViewport);
+      vv.removeEventListener("scroll", syncViewport);
     };
   }, [open, isMobileAdd]);
-
 
   const listarFavoritosFn = useServerFn(listarFavoritos);
   const criarFavoritoFn = useServerFn(criarFavorito);
   const excluirFavoritoFn = useServerFn(excluirFavorito);
   const queryClient = useQueryClient();
 
-  const { data: favoritos = [], isLoading, isError, refetch } = useQuery({
+  const {
+    data: favoritos = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["favoritos-passageiro"],
     queryFn: () => listarFavoritosFn(),
     enabled: open,
@@ -603,13 +643,15 @@ function FavoritosDialog({
     onError: (error: any) => {
       const message = error.message || "";
       if (message.includes("Você atingiu o limite de 10 favoritos")) {
-        toast.error("Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.");
+        toast.error(
+          "Você atingiu o limite de 10 favoritos. Exclua um favorito para adicionar outro.",
+        );
       } else if (message.includes("Você já possui um favorito com esse nome.")) {
         toast.error("Você já possui um favorito com esse nome.");
       } else {
         toast.error("Não foi possível salvar o favorito.");
       }
-    }
+    },
   });
 
   const deleteMutation = useMutation({
@@ -621,51 +663,51 @@ function FavoritosDialog({
     },
     onError: () => {
       toast.error("Não foi possível excluir o favorito.");
-    }
+    },
   });
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onOpenChange={(val) => {
         if (!val) resetForm();
         onOpenChange(val);
       }}
     >
-      <DialogContent 
+      <DialogContent
         overlayClassName="bg-black/[0.86]"
         className={`bg-zuvvi-indigo/95 backdrop-blur-2xl border-white/10 shadow-2xl transition-all duration-300 rounded-[2rem] max-w-[calc(100vw-2rem)] sm:max-w-md ${
-          mode === "add" 
-            ? "sm:top-1/2 sm:-translate-y-1/2 p-4 sm:p-6" 
-            : "p-6 overflow-hidden"
+          mode === "add" ? "sm:top-1/2 sm:-translate-y-1/2 p-4 sm:p-6" : "p-6 overflow-hidden"
         } ${isMobileAdd ? "flex flex-col" : ""}`}
 
         style={
           isMobileAdd
-            ? (viewport ? {
-                position: 'fixed',
-                top: `${viewport.offsetTop + 88}px`,
-                left: `${viewport.offsetLeft + viewport.width / 2}px`,
-                width: `${Math.min(viewport.width - 32, 448)}px`,
-                maxHeight: `${viewport.height - 100}px`,
-                transform: 'translateX(-50%)',
-                translate: 'none',
-              } : {
-                position: 'fixed',
-                top: '88px',
-                left: '50%',
-                width: 'calc(100vw - 32px)',
-                maxHeight: 'calc(100dvh - 100px)',
-                transform: 'translateX(-50%)',
-                translate: 'none',
-              })
+            ? viewport
+              ? {
+                  position: "fixed",
+                  top: `${viewport.offsetTop + 88}px`,
+                  left: `${viewport.offsetLeft + viewport.width / 2}px`,
+                  width: `${Math.min(viewport.width - 32, 448)}px`,
+                  maxHeight: `${viewport.height - 100}px`,
+                  transform: "translateX(-50%)",
+                  translate: "none",
+                }
+              : {
+                  position: "fixed",
+                  top: "88px",
+                  left: "50%",
+                  width: "calc(100vw - 32px)",
+                  maxHeight: "calc(100dvh - 100px)",
+                  transform: "translateX(-50%)",
+                  translate: "none",
+                }
             : undefined
         }
       >
         <DialogHeader className={`${isMobileAdd ? "mb-3 shrink-0" : "mb-4"}`}>
           <div className="flex items-center gap-3">
             {mode === "add" && (
-              <button 
+              <button
                 onClick={() => setMode("list")}
                 aria-label="Voltar para favoritos"
                 className="w-11 h-11 min-w-11 min-h-11 rounded-full bg-white/5 flex items-center justify-center border border-white/10 transition-all active:scale-95"
@@ -674,24 +716,26 @@ function FavoritosDialog({
               </button>
             )}
 
-            <div className={`rounded-xl bg-zuvvi-volt/10 flex items-center justify-center shrink-0 ${
-              isMobileAdd ? "w-9 h-9" : "w-10 h-10"
-            }`}>
-              <Star className={`text-zuvvi-volt ${
-                isMobileAdd ? "w-[18px] h-[18px]" : "w-5 h-5"
-              }`} />
+            <div
+              className={`rounded-xl bg-zuvvi-volt/10 flex items-center justify-center shrink-0 ${
+                isMobileAdd ? "w-9 h-9" : "w-10 h-10"
+              }`}
+            >
+              <Star
+                className={`text-zuvvi-volt ${isMobileAdd ? "w-[18px] h-[18px]" : "w-5 h-5"}`}
+              />
             </div>
             <div className="min-w-0">
-              <DialogTitle className={`font-bold truncate ${
-                isMobileAdd ? "text-lg" : "text-xl"
-              }`}>
+              <DialogTitle className={`font-bold truncate ${isMobileAdd ? "text-lg" : "text-xl"}`}>
                 {mode === "list" ? "Seus favoritos" : "Novo favorito"}
               </DialogTitle>
-              <DialogDescription className={`text-muted-foreground leading-snug ${
-                isMobileAdd ? "text-xs" : "text-sm"
-              }`}>
-                {mode === "list" 
-                  ? "Salve lugares para chegar mais rápido." 
+              <DialogDescription
+                className={`text-muted-foreground leading-snug ${
+                  isMobileAdd ? "text-xs" : "text-sm"
+                }`}
+              >
+                {mode === "list"
+                  ? "Salve lugares para chegar mais rápido."
                   : "Adicione um nome e escolha o local."}
               </DialogDescription>
             </div>
@@ -701,18 +745,21 @@ function FavoritosDialog({
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 text-zuvvi-volt animate-spin" />
-            <p className="text-xs font-medium text-muted-foreground">Carregando seus favoritos...</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              Carregando seus favoritos...
+            </p>
           </div>
         ) : isError ? (
           <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
-            <p className="text-sm font-medium text-muted-foreground">Não foi possível carregar seus favoritos.</p>
-            <button 
+            <p className="text-sm font-medium text-muted-foreground">
+              Não foi possível carregar seus favoritos.
+            </p>
+            <button
               onClick={() => refetch()}
               className="px-6 py-4 min-h-[44px] bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors"
             >
               TENTAR NOVAMENTE
             </button>
-
           </div>
         ) : mode === "list" ? (
           <div className="space-y-4">
@@ -723,9 +770,11 @@ function FavoritosDialog({
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-lg font-bold">Nenhum favorito ainda</h3>
-                  <p className="text-xs text-muted-foreground px-4">Salve Casa, Trabalho ou qualquer lugar importante.</p>
+                  <p className="text-xs text-muted-foreground px-4">
+                    Salve Casa, Trabalho ou qualquer lugar importante.
+                  </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setMode("add")}
                   className="w-full max-w-full box-border bg-zuvvi-volt text-zuvvi-indigo py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest zuvvi-glow transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                 >
@@ -735,11 +784,15 @@ function FavoritosDialog({
               </div>
             ) : favoritos.length >= 10 ? (
               <div className="py-6 flex flex-col items-center justify-center text-center space-y-2 bg-white/5 rounded-2xl border border-white/10 px-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] volt-text">LIMITE DE 10 FAVORITOS</h3>
-                <p className="text-[10px] text-muted-foreground">Exclua um favorito para adicionar outro.</p>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] volt-text">
+                  LIMITE DE 10 FAVORITOS
+                </h3>
+                <p className="text-[10px] text-muted-foreground">
+                  Exclua um favorito para adicionar outro.
+                </p>
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => setMode("add")}
                 className="w-full max-w-full box-border bg-white/5 border border-white/10 text-foreground py-4 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
               >
@@ -750,11 +803,11 @@ function FavoritosDialog({
 
             <div className="max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain space-y-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full min-w-0 max-w-full overflow-x-hidden">
               {favoritos.map((fav: any) => (
-                <div 
+                <div
                   key={fav.id}
                   className={`bg-white/5 border border-white/10 rounded-2xl overflow-hidden box-border w-full min-w-0 max-w-full grid ${
-                    confirmDeleteId === fav.id 
-                      ? "grid-cols-[minmax(0,1fr)_6rem] gap-1" 
+                    confirmDeleteId === fav.id
+                      ? "grid-cols-[minmax(0,1fr)_6rem] gap-1"
                       : "grid-cols-[minmax(0,1fr)_3.25rem]"
                   }`}
                 >
@@ -773,29 +826,39 @@ function FavoritosDialog({
                     </div>
                     <div className="min-w-0 overflow-hidden">
                       {confirmDeleteId === fav.id ? (
-                        <p className="text-xs font-bold volt-text truncate block w-full min-w-0">Excluir este favorito?</p>
+                        <p className="text-xs font-bold volt-text truncate block w-full min-w-0">
+                          Excluir este favorito?
+                        </p>
                       ) : (
                         <>
-                          <p className="text-sm font-bold truncate block w-full min-w-0">{fav.nome}</p>
-                          <p className="text-[10px] text-muted-foreground block w-full min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">{fav.endereco}</p>
+                          <p className="text-sm font-bold truncate block w-full min-w-0">
+                            {fav.nome}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground block w-full min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+                            {fav.endereco}
+                          </p>
                         </>
                       )}
                     </div>
                   </button>
-                  
-                  <div className={`flex items-center justify-center overflow-hidden ${
-                    confirmDeleteId === fav.id ? "w-[6rem] min-w-[6rem] gap-1" : "w-[3.25rem] min-w-[3.25rem]"
-                  }`}>
+
+                  <div
+                    className={`flex items-center justify-center overflow-hidden ${
+                      confirmDeleteId === fav.id
+                        ? "w-[6rem] min-w-[6rem] gap-1"
+                        : "w-[3.25rem] min-w-[3.25rem]"
+                    }`}
+                  >
                     {confirmDeleteId === fav.id ? (
                       <>
-                        <button 
+                        <button
                           onClick={() => setConfirmDeleteId(null)}
                           aria-label="Cancelar exclusão"
                           className="w-11 h-11 min-w-11 min-h-11 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center shrink-0"
                         >
                           <X className="w-5 h-5 text-muted-foreground" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => deleteMutation.mutate(fav.id)}
                           disabled={deleteMutation.isPending}
                           aria-label={`Confirmar exclusão de ${fav.nome}`}
@@ -809,7 +872,7 @@ function FavoritosDialog({
                         </button>
                       </>
                     ) : (
-                      <button 
+                      <button
                         onClick={() => setConfirmDeleteId(fav.id)}
                         aria-label={`Excluir favorito ${fav.nome}`}
                         className="w-11 h-11 min-w-11 min-h-11 rounded-full flex items-center justify-center hover:bg-white/5 transition-all shrink-0"
@@ -824,12 +887,16 @@ function FavoritosDialog({
           </div>
         ) : (
           <>
-            <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-              isMobileAdd ? "space-y-4" : "space-y-6"
-            }`}>
+            <div
+              className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+                isMobileAdd ? "space-y-4" : "space-y-6"
+              }`}
+            >
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Nome do lugar</label>
-                <input 
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">
+                  Nome do lugar
+                </label>
+                <input
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
@@ -842,38 +909,48 @@ function FavoritosDialog({
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">Endereço</label>
-                <DestinoSearch 
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zuvvi-volt pl-1">
+                  Endereço
+                </label>
+                <DestinoSearch
                   location={location}
                   placeholder="Buscar endereço..."
                   compact={!!isMobileAdd}
-                  onSelect={(res) => setSelectedAddress({
-                    endereco: res.place_name,
-                    latitude: res.center[1],
-                    longitude: res.center[0]
-                  })}
+                  onSelect={(res) =>
+                    setSelectedAddress({
+                      endereco: res.place_name,
+                      latitude: res.center[1],
+                      longitude: res.center[0],
+                    })
+                  }
                 />
               </div>
 
               {selectedAddress && (
-                <div className={`bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
-                  isMobileAdd ? "p-3" : "p-4"
-                }`}>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-zuvvi-volt mb-1">ENDEREÇO SELECIONADO</p>
+                <div
+                  className={`bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
+                    isMobileAdd ? "p-3" : "p-4"
+                  }`}
+                >
+                  <p className="text-[8px] font-black uppercase tracking-widest text-zuvvi-volt mb-1">
+                    ENDEREÇO SELECIONADO
+                  </p>
                   <p className="text-xs font-bold leading-tight">{selectedAddress.endereco}</p>
                 </div>
               )}
             </div>
 
             <div className={`${isMobileAdd ? "shrink-0 pt-3" : ""}`}>
-              <button 
+              <button
                 disabled={!nome.trim() || !selectedAddress || createMutation.isPending}
-                onClick={() => createMutation.mutate({
-                  nome: nome.trim(),
-                  endereco: selectedAddress?.endereco,
-                  latitude: selectedAddress?.latitude,
-                  longitude: selectedAddress?.longitude
-                })}
+                onClick={() =>
+                  createMutation.mutate({
+                    nome: nome.trim(),
+                    endereco: selectedAddress?.endereco,
+                    latitude: selectedAddress?.latitude,
+                    longitude: selectedAddress?.longitude,
+                  })
+                }
                 className={`w-full bg-zuvvi-volt text-zuvvi-indigo rounded-2xl font-black uppercase tracking-widest text-xs zuvvi-glow transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 ${
                   isMobileAdd ? "h-12" : "py-4"
                 }`}
@@ -893,20 +970,19 @@ function FavoritosDialog({
 }
 
 function DestinoSearch({
-
   location,
   onSelect,
   placeholder = "Para onde vamos?",
   autoFocus = false,
-  compact = false
+  compact = false,
 }: {
-  location: { lat: number; lng: number } | null,
-  onSelect: (dest: any) => void,
-  placeholder?: string,
-  autoFocus?: boolean,
-  compact?: boolean
+  location: { lat: number; lng: number } | null;
+  onSelect: (dest: any) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+  compact?: boolean;
 }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const getMapboxTokenFn = useServerFn(getMapboxToken);
@@ -921,11 +997,11 @@ function DestinoSearch({
       const token = await getMapboxTokenFn();
       if (!token) return;
 
-      const proximity = location ? `&proximity=${location.lng},${location.lat}` : '';
+      const proximity = location ? `&proximity=${location.lng},${location.lat}` : "";
       // Limitando a busca ao Brasil e usando proximity com a localização atual do usuário.
       // Adicionamos limit=5 para focar em resultados mais relevantes.
       const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=br&language=pt&types=address,poi,place${proximity}&limit=5`;
-      
+
       try {
         const response = await fetch(url);
         const data = await response.json();
@@ -942,7 +1018,9 @@ function DestinoSearch({
 
   return (
     <div className="relative group">
-      <div className={`absolute inset-y-0 left-6 flex items-center pointer-events-none ${compact ? 'left-5' : ''}`}>
+      <div
+        className={`absolute inset-y-0 left-6 flex items-center pointer-events-none ${compact ? "left-5" : ""}`}
+      >
         <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
       </div>
       <input
@@ -952,22 +1030,26 @@ function DestinoSearch({
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
         className={`w-full bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 focus:ring-2 focus:ring-zuvvi-volt/50 focus:border-zuvvi-volt outline-none transition-all shadow-2xl font-bold placeholder:text-muted-foreground/50 ${
-          compact 
-            ? "h-12 py-0 pl-12 pr-4 rounded-2xl text-sm" 
+          compact
+            ? "h-12 py-0 pl-12 pr-4 rounded-2xl text-sm"
             : "py-6 pl-14 pr-4 rounded-[2rem] text-base"
         }`}
       />
-      
+
       {isOpen && results.length > 0 && (
-        <div className={`absolute top-full left-0 right-0 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300 ${
-          compact ? "mt-2 rounded-2xl" : "mt-3 rounded-[2rem]"
-        }`}>
-          <div className={`max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain ${compact ? "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "custom-scrollbar"}`}>
+        <div
+          className={`absolute top-full left-0 right-0 bg-zuvvi-indigo/95 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300 ${
+            compact ? "mt-2 rounded-2xl" : "mt-3 rounded-[2rem]"
+          }`}
+        >
+          <div
+            className={`max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain ${compact ? "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "custom-scrollbar"}`}
+          >
             {results.map((result) => {
               // Somente no modo compact para exibição, remover do início de place_name a repetição de result.text
               let secondaryText = result.place_name;
               if (compact && result.text && secondaryText.startsWith(result.text)) {
-                secondaryText = secondaryText.substring(result.text.length).replace(/^[, ]+/, '');
+                secondaryText = secondaryText.substring(result.text.length).replace(/^[, ]+/, "");
               }
 
               return (
@@ -976,15 +1058,17 @@ function DestinoSearch({
                   onClick={() => {
                     onSelect(result);
                     setIsOpen(false);
-                    setQuery('');
+                    setQuery("");
                   }}
                   className={`w-full text-left flex items-start gap-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 ${
                     compact ? "px-4 py-3 gap-3" : "px-6 py-4"
                   }`}
                 >
-                  <div className={`rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0 mt-0.5 ${
-                    compact ? "w-7 h-7" : "w-8 h-8"
-                  }`}>
+                  <div
+                    className={`rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0 mt-0.5 ${
+                      compact ? "w-7 h-7" : "w-8 h-8"
+                    }`}
+                  >
                     <MapPin className={`text-zuvvi-volt ${compact ? "w-3.5 h-3.5" : "w-4 h-4"}`} />
                   </div>
                   <div className="min-w-0">
@@ -1009,9 +1093,14 @@ function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <ZuvviLogo surface="dark" className="h-auto w-[116px]" />
           <div className="flex items-center gap-4">
-            <Link to="/auth/login" className="text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">Entrar</Link>
-            <Link 
-              to="/auth/cadastro" 
+            <Link
+              to="/auth/login"
+              className="text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Entrar
+            </Link>
+            <Link
+              to="/auth/cadastro"
               className="rounded-full bg-zuvvi-volt px-6 py-2 text-xs font-bold text-zuvvi-indigo shadow-lg shadow-zuvvi-volt/20 hover:scale-[1.02] transition-transform"
             >
               CADASTRAR
@@ -1029,23 +1118,28 @@ function LandingPage() {
             Moto-táxi no Brasil
           </div>
           <h1 className="text-5xl font-bold leading-[1.05] sm:text-7xl lg:text-8xl">
-            Mobilidade urbana na <br/><span className="volt-text">velocidade da moto</span>.
+            Mobilidade urbana na <br />
+            <span className="volt-text">velocidade da moto</span>.
           </h1>
           <p className="mt-8 text-lg text-muted-foreground max-w-xl mx-auto">
-            O Zuvvi conecta você a mototaxistas verificados para cruzar a cidade com agilidade, segurança e preço justo.
+            O Zuvvi conecta você a mototaxistas verificados para cruzar a cidade com agilidade,
+            segurança e preço justo.
           </p>
           <div className="mt-12 flex flex-wrap justify-center gap-4">
-            <Link to="/auth/cadastro" className="rounded-full bg-primary px-10 py-5 text-sm font-bold text-primary-foreground zuvvi-glow hover:scale-[1.02] transition-transform flex items-center gap-2">
+            <Link
+              to="/auth/cadastro"
+              className="rounded-full bg-primary px-10 py-5 text-sm font-bold text-primary-foreground zuvvi-glow hover:scale-[1.02] transition-transform flex items-center gap-2"
+            >
               COMEÇAR AGORA
               <ChevronRight size={18} />
             </Link>
           </div>
         </div>
-        
+
         <div className="mt-20 max-w-5xl mx-auto rounded-[2rem] overflow-hidden border border-border/80 zuvvi-glow relative">
-          <img 
-            src={heroMoto} 
-            alt="Mototaxista Zuvvi" 
+          <img
+            src={heroMoto}
+            alt="Mototaxista Zuvvi"
             className="w-full aspect-[21/9] object-cover opacity-90"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-zuvvi-indigo-dark via-transparent to-transparent opacity-60" />
@@ -1056,13 +1150,21 @@ function LandingPage() {
       <footer className="border-t border-border/60 py-12 bg-black/20">
         <div className="mx-auto max-w-6xl px-5 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
-             <ZuvviLogo surface="dark" className="h-auto w-[128px]" />
-             <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Zuvvi Mobilidade · Brasil</p>
+            <ZuvviLogo surface="dark" className="h-auto w-[128px]" />
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} Zuvvi Mobilidade · Brasil
+            </p>
           </div>
           <div className="flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            <a href="#" className="hover:text-zuvvi-volt transition-colors">Privacidade</a>
-            <a href="#" className="hover:text-zuvvi-volt transition-colors">Termos</a>
-            <a href="#" className="hover:text-zuvvi-volt transition-colors">Contato</a>
+            <a href="#" className="hover:text-zuvvi-volt transition-colors">
+              Privacidade
+            </a>
+            <a href="#" className="hover:text-zuvvi-volt transition-colors">
+              Termos
+            </a>
+            <a href="#" className="hover:text-zuvvi-volt transition-colors">
+              Contato
+            </a>
           </div>
           <div className="px-4 py-2 rounded-full border border-zuvvi-volt/30 bg-zuvvi-volt/5 text-[10px] font-black uppercase tracking-widest volt-text">
             Em breve em todo o Brasil
@@ -1072,22 +1174,22 @@ function LandingPage() {
     </div>
   );
 }
-function RecentesDialog({ 
-  open, 
-  onOpenChange, 
-  onSelectRecente 
-}: { 
-  open: boolean; 
-  onOpenChange: (open: boolean) => void; 
-  onSelectRecente: (recente: { 
-    nome: string; 
-    latitude: number; 
-    longitude: number; 
-  }) => void; 
+function RecentesDialog({
+  open,
+  onOpenChange,
+  onSelectRecente,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelectRecente: (recente: { nome: string; latitude: number; longitude: number }) => void;
 }) {
   const listarDestinosRecentesFn = useServerFn(listarDestinosRecentes);
 
-  const { data: recentes, isLoading, error } = useQuery({
+  const {
+    data: recentes,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["destinos-recentes-passageiro"],
     queryFn: () => listarDestinosRecentesFn(),
     enabled: open,
@@ -1095,11 +1197,10 @@ function RecentesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
         overlayClassName="bg-black/[0.86]"
         className="max-w-[92vw] w-full sm:max-w-[400px] rounded-[2rem] border-white/10 bg-zuvvi-indigo-dark p-6 shadow-2xl overflow-hidden overscroll-none animate-in fade-in zoom-in-95 duration-200"
       >
-        
         <DialogHeader className="mb-6">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Clock className="w-5 h-5 text-zuvvi-volt" />
@@ -1114,14 +1215,18 @@ function RecentesDialog({
           {isLoading ? (
             <div className="py-20 flex flex-col items-center justify-center space-y-4 animate-pulse">
               <Loader2 className="w-8 h-8 text-zuvvi-volt/40 animate-spin" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Carregando destinos...</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                Carregando destinos...
+              </p>
             </div>
           ) : error ? (
             <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
               <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
                 <AlertTriangle className="w-6 h-6 text-red-500/60" />
               </div>
-              <p className="text-sm font-medium text-white/60">Não foi possível carregar seus destinos recentes.</p>
+              <p className="text-sm font-medium text-white/60">
+                Não foi possível carregar seus destinos recentes.
+              </p>
             </div>
           ) : recentes && recentes.length > 0 ? (
             recentes.map((recente, idx) => (
@@ -1141,10 +1246,10 @@ function RecentesDialog({
                     {recente.nome}
                   </p>
                   <p className="text-[10px] text-white/30 font-medium uppercase tracking-wider mt-0.5">
-                    {new Date(recente.usadoEm).toLocaleDateString('pt-BR', { 
-                      day: '2-digit', 
-                      month: '2-digit',
-                      year: '2-digit'
+                    {new Date(recente.usadoEm).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
                     })}
                   </p>
                 </div>

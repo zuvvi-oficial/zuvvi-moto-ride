@@ -13,21 +13,17 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
   const request = getRequest();
   if (!request) return null;
 
-  const SUPABASE_URL = process.env['SUPABASE_URL'] as string;
-  const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'] as string;
+  const SUPABASE_URL = process.env["SUPABASE_URL"] as string;
+  const SUPABASE_PUBLISHABLE_KEY = process.env["SUPABASE_PUBLISHABLE_KEY"] as string;
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return null;
 
-  const supabase = createServerClient<Database>(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY,
-    {
-      cookies: {
-        getAll: () => parseCookieHeader(request.headers.get('Cookie') ?? ''),
-        setAll: () => {}, // Read-only for this check
-      },
-    }
-  );
+  const supabase = createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    cookies: {
+      getAll: () => parseCookieHeader(request.headers.get("Cookie") ?? ""),
+      setAll: () => {}, // Read-only for this check
+    },
+  });
 
   try {
     // Priority 1: Authorization Header (from server functions)
@@ -39,15 +35,15 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
         const user = authData.user;
         return {
           userId: user.id,
-          email: user.email || '',
+          email: user.email || "",
           isAdmin: await isAdminUser(user.id),
         };
       }
     }
 
     // Priority 2: Session from Cookies (from SSR loaders)
-    const cookies = parseCookieHeader(request.headers.get('Cookie') ?? '');
-    const accessToken = cookies.find(c => c.name === 'sb-access-token')?.value;
+    const cookies = parseCookieHeader(request.headers.get("Cookie") ?? "");
+    const accessToken = cookies.find((c) => c.name === "sb-access-token")?.value;
 
     if (accessToken) {
       const { data: authData, error: userError } = await supabase.auth.getUser(accessToken);
@@ -55,7 +51,7 @@ export async function getAuthContextFromRequest(): Promise<AuthContext | null> {
         const user = authData.user;
         return {
           userId: user.id,
-          email: user.email || '',
+          email: user.email || "",
           isAdmin: await isAdminUser(user.id),
         };
       }

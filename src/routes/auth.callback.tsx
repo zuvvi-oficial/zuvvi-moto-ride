@@ -1,12 +1,12 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
-import { useServerFn } from '@tanstack/react-start';
-import { handleGoogleAuthRedirect } from '@/lib/auth-google.functions';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { handleGoogleAuthRedirect } from "@/lib/auth-google.functions";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute('/auth/callback')({
+export const Route = createFileRoute("/auth/callback")({
   component: AuthCallbackPage,
 });
 
@@ -46,7 +46,9 @@ function AuthCallbackPage() {
         if (oauthErrorCode) {
           const oauthErrorDescription =
             searchParams.get("error_description") || hashParams.get("error_description");
-          console.log(`[GoogleAuth] oauth_error=${oauthErrorCode} description=${oauthErrorDescription}`);
+          console.log(
+            `[GoogleAuth] oauth_error=${oauthErrorCode} description=${oauthErrorDescription}`,
+          );
           if (cancelled) return;
           setDebugError(
             `error=${oauthErrorCode}${oauthErrorDescription ? ` | ${oauthErrorDescription}` : ""}`,
@@ -61,17 +63,17 @@ function AuthCallbackPage() {
 
         let session = await waitForSession();
         if (cancelled) return;
-        
+
         if (!session) {
           console.log("[GoogleAuth] session_found=false - trying refresh");
           const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          
+
           if (refreshError || !refreshData.session) {
             console.log("[GoogleAuth] refresh_failed, falling back to home");
             navigate({ to: "/" });
             return;
           }
-          
+
           session = refreshData.session;
           console.log("[GoogleAuth] session_recovered_via_refresh");
         }
@@ -82,16 +84,16 @@ function AuthCallbackPage() {
         const currentSession = await supabase.auth.getSession();
         const activeToken = currentSession.data.session?.access_token || session?.access_token;
         console.log("[GoogleAuth] access_token_present=" + !!activeToken);
-        
+
         const result = await executeRedirectLogic({
           data: undefined, // Ensure no body interference
           headers: {
-            Authorization: `Bearer ${activeToken}`
-          }
+            Authorization: `Bearer ${activeToken}`,
+          },
         });
-        
+
         if (cancelled) return;
-        
+
         console.log("[GoogleAuth] redirect_logic_result_received");
 
         if ((result as any)?.error) {
@@ -101,10 +103,9 @@ function AuthCallbackPage() {
           toast.error("Erro na autenticação social.");
           return;
         }
-        
-        
+
         console.log("[GoogleAuth] redirect_logic_success to=" + result.redirectTo);
-        
+
         // Final redirection
         const dest = result.redirectTo || "/";
         console.log("[GoogleAuth] navigating_to=" + dest);
@@ -112,12 +113,13 @@ function AuthCallbackPage() {
       } catch (err: any) {
         console.error("[GoogleAuth] unexpected_error:", err);
         if (cancelled) return;
-        
+
         const errorMessage = err?.message || String(err);
-        const fullErrorInfo = err && typeof err === 'object' ? JSON.stringify(err, null, 2) : String(err);
+        const fullErrorInfo =
+          err && typeof err === "object" ? JSON.stringify(err, null, 2) : String(err);
         console.log(`[GoogleAuth] error_details: ${errorMessage}`);
         setDebugError(fullErrorInfo);
-        
+
         // Provide more specific feedback for common auth failures
         if (errorMessage.includes("Unauthorized")) {
           setError("Sessão não autorizada. Por favor, tente o login novamente.");
@@ -140,25 +142,41 @@ function AuthCallbackPage() {
     return (
       <div className="flex flex-col items-center justify-center p-6 space-y-6 text-center animate-in fade-in duration-500">
         <div className="bg-red-500/10 p-4 rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-red-500"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         </div>
         <div className="space-y-2">
           <h2 className="text-xl font-bold text-white">Falha na Autenticação</h2>
-          <p className="text-muted-foreground text-sm max-w-[280px]">
-            {error}
-          </p>
+          <p className="text-muted-foreground text-sm max-w-[280px]">{error}</p>
           {debugError && (
             <div className="mt-4 p-2 bg-white/5 rounded border border-white/10 text-left overflow-auto max-h-[150px]">
-              <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Diagnóstico</p>
+              <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">
+                Diagnóstico
+              </p>
               <pre className="text-[10px] font-mono text-white/60 whitespace-pre-wrap break-all">
                 {debugError}
               </pre>
             </div>
           )}
         </div>
-        <Button asChild className="w-full bg-zuvvi-volt text-zuvvi-indigo hover:bg-zuvvi-volt/90 font-bold">
+        <Button
+          asChild
+          className="w-full bg-zuvvi-volt text-zuvvi-indigo hover:bg-zuvvi-volt/90 font-bold"
+        >
           <Link to="/auth/login">Voltar ao Login</Link>
         </Button>
       </div>

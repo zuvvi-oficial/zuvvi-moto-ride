@@ -1,21 +1,21 @@
-import { createMiddleware } from '@tanstack/react-start'
-import { supabase } from './client'
+import { createMiddleware } from "@tanstack/react-start";
+import { supabase } from "./client";
 
 // Nomes de cookies padronizados para Supabase Auth via @supabase/ssr
-const ACCESS_TOKEN_COOKIE = 'sb-access-token';
-const REFRESH_TOKEN_COOKIE = 'sb-refresh-token';
+const ACCESS_TOKEN_COOKIE = "sb-access-token";
+const REFRESH_TOKEN_COOKIE = "sb-refresh-token";
 
 /**
  * Utilitário para gerenciar cookies no navegador.
  */
 function setCookie(name: string, value: string, maxAge: number) {
-  if (typeof document === 'undefined') return;
+  if (typeof document === "undefined") return;
   const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
   document.cookie = `${name}=${value}; path=/; expires=${expires}; SameSite=Lax; Secure`;
 }
 
 function removeCookie(name: string) {
-  if (typeof document === 'undefined') return;
+  if (typeof document === "undefined") return;
   document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax; Secure`;
 }
 
@@ -40,7 +40,7 @@ export function syncAuthSessionToCookies(session: any) {
 /**
  * Middleware para anexar o token de autorização em chamadas de função de servidor (RPC).
  */
-export const attachSupabaseAuth = createMiddleware({ type: 'function' }).client(
+export const attachSupabaseAuth = createMiddleware({ type: "function" }).client(
   async ({ next }) => {
     const { data } = await supabase.auth.getSession();
     const session = data.session;
@@ -48,7 +48,7 @@ export const attachSupabaseAuth = createMiddleware({ type: 'function' }).client(
 
     // Sincronização proativa
     syncAuthSessionToCookies(session);
-    
+
     return next({
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

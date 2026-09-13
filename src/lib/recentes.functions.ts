@@ -38,29 +38,29 @@ export const listarDestinosRecentes = createServerFn({ method: "GET" })
       longitude: number;
       usadoEm: string;
     }> = [];
-    
+
     const seenCoordinates = new Set<string>();
 
-    for (const corrida of (corridas || [])) {
+    for (const corrida of corridas || []) {
       const nomeTrim = (corrida.destino_nome || "").trim();
       if (!nomeTrim || corrida.destino_lat === null || corrida.destino_lng === null) continue;
-      
+
       const lat = Number(corrida.destino_lat);
       const lng = Number(corrida.destino_lng);
-      
+
       // Validação de finitude e ranges lat/lng
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
       if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
 
       const coordKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-      
+
       if (!seenCoordinates.has(coordKey)) {
         seenCoordinates.add(coordKey);
         distinctDestinos.push({
           nome: nomeTrim,
           latitude: lat,
           longitude: lng,
-          usadoEm: corrida.created_at || new Date().toISOString()
+          usadoEm: corrida.created_at || new Date().toISOString(),
         });
       }
 

@@ -23,15 +23,10 @@ export type PixCanonicalLookupInput = Readonly<{
   paymentId?: string | null;
 }>;
 
-type FetchLike = (
-  input: string | URL | Request,
-  init?: RequestInit,
-) => Promise<Response>;
+type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : null;
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
 }
 
 function asNonBlankString(value: unknown): string | null {
@@ -68,9 +63,7 @@ function cents(value: number): number {
 
 function asHttpStatus(value: unknown): number | null {
   const normalized =
-    typeof value === "string" && /^[1-5]\d{2}$/u.test(value.trim())
-      ? Number(value.trim())
-      : value;
+    typeof value === "string" && /^[1-5]\d{2}$/u.test(value.trim()) ? Number(value.trim()) : value;
 
   return typeof normalized === "number" &&
     Number.isInteger(normalized) &&
@@ -108,11 +101,7 @@ export function obterStatusHttpErroMercadoPago(error: unknown): number | null {
   );
 }
 
-async function requestJson(
-  url: URL,
-  accessToken: string,
-  fetchImpl: FetchLike,
-): Promise<unknown> {
+async function requestJson(url: URL, accessToken: string, fetchImpl: FetchLike): Promise<unknown> {
   const response = await fetchImpl(url, {
     method: "GET",
     headers: {
@@ -196,12 +185,7 @@ export function falhaCriacaoMercadoPagoPermiteCompensacao(error: unknown): boole
   // Rejeições 4xx definitivas significam que a criação foi recusada e podem fechar
   // a tentativa imediatamente. Estados potencialmente processados/retryable ficam
   // para reconciliação para não abrir risco de cobrança duplicada em um novo retry.
-  return (
-    status !== null &&
-    status >= 400 &&
-    status < 500 &&
-    !REJEICOES_HTTP_INCERTAS.has(status)
-  );
+  return status !== null && status >= 400 && status < 500 && !REJEICOES_HTTP_INCERTAS.has(status);
 }
 
 export async function buscarPagamentoPixCanonico(

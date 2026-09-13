@@ -24,20 +24,24 @@ assert.doesNotMatch(sessionFnSource, /return[^;]*deviceId/);
 assert.match(sessionServerSource, /\.gt\("expires_at", new Date\(\)\.toISOString\(\)\)/);
 assert.match(paymentSource, /obterPixDeviceIdValido/);
 assert.match(paymentSource, /meliSessionId:\s*deviceId/);
-assert.match(paymentSource, /requestOptions:\s*\{\s*idempotencyKey,\s*meliSessionId:\s*deviceId\s*\}/);
+assert.match(
+  paymentSource,
+  /requestOptions:\s*\{\s*idempotencyKey,\s*meliSessionId:\s*deviceId\s*\}/,
+);
 
 const pixGuardStart = confirmSource.indexOf("if (metodoPagamento === 'pix')");
 const createRideStart = confirmSource.indexOf("const result = await criarCorridaFn");
 assert.ok(pixGuardStart >= 0, "Device ID deve ser exclusivo do Pix");
 assert.ok(createRideStart > pixGuardStart, "Device ID deve ser registrado antes da corrida Pix");
-assert.match(
-  confirmSource.slice(pixGuardStart, createRideStart),
-  /registrarPixDeviceSessionFn/,
-);
+assert.match(confirmSource.slice(pixGuardStart, createRideStart), /registrarPixDeviceSessionFn/);
 
 assert.equal(validarCpfBrasileiro("529.982.247-25"), true, "CPF válido com máscara deve passar");
 assert.equal(validarCpfBrasileiro("12345678909"), true, "CPF válido sem máscara deve passar");
-assert.equal(validarCpfBrasileiro("529.982.247-24"), false, "dígito verificador incorreto deve falhar");
+assert.equal(
+  validarCpfBrasileiro("529.982.247-24"),
+  false,
+  "dígito verificador incorreto deve falhar",
+);
 assert.equal(validarCpfBrasileiro("111.111.111-11"), false, "sequência repetida deve falhar");
 assert.equal(validarCpfBrasileiro("123.456.789-0"), false, "CPF incompleto deve falhar");
 assert.equal(validarCpfBrasileiro(null), false, "CPF ausente deve falhar");
@@ -51,7 +55,10 @@ assert.throws(
 assert.match(sessionFnSource, /\.select\("id, cpf"\)/);
 const sessionCpfGuard = sessionFnSource.indexOf("exigirCpfValidoParaPix(usuario.cpf)");
 const sessionUpsert = sessionFnSource.indexOf('.from("pagamentos_pix_device_sessions")');
-assert.ok(sessionCpfGuard >= 0 && sessionCpfGuard < sessionUpsert, "CPF deve ser validado antes da sessão Pix");
+assert.ok(
+  sessionCpfGuard >= 0 && sessionCpfGuard < sessionUpsert,
+  "CPF deve ser validado antes da sessão Pix",
+);
 
 const serverCpfGuard = sessionServerSource.indexOf("exigirCpfValidoParaPix(passageiro.cpf)");
 const serverDeviceLookup = sessionServerSource.indexOf('.from("pagamentos_pix_device_sessions")');
@@ -62,7 +69,10 @@ assert.ok(
 
 assert.match(paymentSource, /exigirCpfValidoParaPix\(input\.passageiroCpf\)/);
 assert.doesNotMatch(paymentSource, /passageiroCpf\.length\s*===\s*11/);
-assert.match(paymentSource, /identification:\s*\{\s*type:\s*"CPF"\s+as const,\s*number:\s*passageiroCpf\s*\}/);
+assert.match(
+  paymentSource,
+  /identification:\s*\{\s*type:\s*"CPF"\s+as const,\s*number:\s*passageiroCpf\s*\}/,
+);
 
 const chargeStart = paymentSource.indexOf("export async function criarCobrancaPixAposAceiteServer");
 const chargeSource = paymentSource.slice(chargeStart);

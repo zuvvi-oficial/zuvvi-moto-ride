@@ -23,7 +23,8 @@ export const getHistoricoCorridas = createServerFn({ method: "GET" })
       // 2. Buscar corridas usando o ID da tabela usuarios
       const { data: corridas, error } = await context.supabase
         .from("corridas")
-        .select(`
+        .select(
+          `
           id,
           status,
           origem_nome,
@@ -40,7 +41,8 @@ export const getHistoricoCorridas = createServerFn({ method: "GET" })
               nome
             )
           )
-        `)
+        `,
+        )
         .eq("passageiro_id", passageiroId)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -55,7 +57,7 @@ export const getHistoricoCorridas = createServerFn({ method: "GET" })
         ...c,
         nome_motorista: c.motorista?.usuario?.nome || null,
         // Remover o objeto motorista original para limpar o retorno
-        motorista: undefined
+        motorista: undefined,
       }));
     } catch (err) {
       console.error("Falha catastrófica no histórico:", err);

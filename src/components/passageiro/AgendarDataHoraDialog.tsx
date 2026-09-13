@@ -100,7 +100,9 @@ export function AgendarDataHoraDialog({ value, onChange, min, max }: AgendarData
         className="w-full flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-left hover:bg-white/10 transition-colors focus:outline-none focus:border-zuvvi-volt/50"
       >
         <CalendarClock className="w-4 h-4 text-zuvvi-volt shrink-0" />
-        <span className={`flex-1 text-sm truncate ${displayLabel ? "font-bold text-white" : "text-white/40"}`}>
+        <span
+          className={`flex-1 text-sm truncate ${displayLabel ? "font-bold text-white" : "text-white/40"}`}
+        >
           {displayLabel ?? "Toque para escolher o dia e o horário"}
         </span>
         <ChevronDown className="w-4 h-4 text-white/40 shrink-0" />
@@ -112,7 +114,9 @@ export function AgendarDataHoraDialog({ value, onChange, min, max }: AgendarData
             <div className="w-12 h-12 rounded-2xl bg-zuvvi-volt/15 border border-zuvvi-volt/30 flex items-center justify-center">
               <CalendarClock className="h-5 w-5 text-zuvvi-volt" />
             </div>
-            <DialogTitle className="text-white text-lg font-bold">Escolha o dia e o horário</DialogTitle>
+            <DialogTitle className="text-white text-lg font-bold">
+              Escolha o dia e o horário
+            </DialogTitle>
             <DialogDescription className="text-white/60 text-sm leading-relaxed">
               Selecione o dia no calendário e depois o horário da corrida.
             </DialogDescription>
@@ -133,13 +137,16 @@ export function AgendarDataHoraDialog({ value, onChange, min, max }: AgendarData
               classNames={{
                 root: "w-full",
                 month: "w-full",
-                month_caption: "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size) text-white font-bold text-sm",
+                month_caption:
+                  "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size) text-white font-bold text-sm",
                 nav: "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
                 weekdays: "flex",
-                weekday: "flex-1 select-none rounded-md text-[11px] uppercase text-white/40 font-normal",
+                weekday:
+                  "flex-1 select-none rounded-md text-[11px] uppercase text-white/40 font-normal",
                 week: "mt-2 flex w-full",
                 day: "group/day relative aspect-square h-full w-full select-none p-0 text-center text-white/80",
-                today: "bg-white/10 text-zuvvi-volt rounded-md data-[selected=true]:rounded-none font-bold",
+                today:
+                  "bg-white/10 text-zuvvi-volt rounded-md data-[selected=true]:rounded-none font-bold",
                 outside: "text-white/20 aria-selected:text-white/20",
                 disabled: "text-white/15 opacity-100",
                 button_previous:
@@ -155,7 +162,9 @@ export function AgendarDataHoraDialog({ value, onChange, min, max }: AgendarData
 
           {selectedDate && (
             <div className="space-y-2">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">Horário</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">
+                Horário
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="relative">
                   <select
@@ -166,9 +175,13 @@ export function AgendarDataHoraDialog({ value, onChange, min, max }: AgendarData
                     }}
                     className="w-full appearance-none bg-white/5 border border-white/10 rounded-2xl pl-4 pr-9 py-3 text-sm font-bold text-white focus:outline-none focus:border-zuvvi-volt/50 [color-scheme:dark]"
                   >
-                    <option value="" disabled>Hora</option>
+                    <option value="" disabled>
+                      Hora
+                    </option>
                     {horasDisponiveis.map((h) => (
-                      <option key={h} value={h}>{String(h).padStart(2, "0")} h</option>
+                      <option key={h} value={h}>
+                        {String(h).padStart(2, "0")} h
+                      </option>
                     ))}
                   </select>
                   <ChevronDown className="w-4 h-4 text-white/40 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -180,9 +193,13 @@ export function AgendarDataHoraDialog({ value, onChange, min, max }: AgendarData
                     disabled={hour == null}
                     className="w-full appearance-none bg-white/5 border border-white/10 rounded-2xl pl-4 pr-9 py-3 text-sm font-bold text-white focus:outline-none focus:border-zuvvi-volt/50 disabled:opacity-40 [color-scheme:dark]"
                   >
-                    <option value="" disabled>Min</option>
+                    <option value="" disabled>
+                      Min
+                    </option>
                     {minutosDisponiveis.map((m) => (
-                      <option key={m} value={m}>{String(m).padStart(2, "0")} min</option>
+                      <option key={m} value={m}>
+                        {String(m).padStart(2, "0")} min
+                      </option>
                     ))}
                   </select>
                   <ChevronDown className="w-4 h-4 text-white/40 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />

@@ -3,7 +3,14 @@ import { Database } from "@/integrations/supabase/types";
 
 export type EligibilityResult = {
   eligible: boolean;
-  reasonCode: "status_nao_aprovado" | "cnh_incompleta" | "cnh_categoria_invalida" | "cnh_vencida" | "veiculo_invalido" | "documentos_invalidos" | null;
+  reasonCode:
+    | "status_nao_aprovado"
+    | "cnh_incompleta"
+    | "cnh_categoria_invalida"
+    | "cnh_vencida"
+    | "veiculo_invalido"
+    | "documentos_invalidos"
+    | null;
   message: string | null;
   isDisponivel: boolean;
 };
@@ -15,12 +22,13 @@ export type EligibilityResult = {
  */
 export async function evaluateMotoristaOperationalEligibility(
   supabase: SupabaseClient<Database>,
-  userId: string
+  userId: string,
 ): Promise<EligibilityResult> {
   // 1. Obter dados básicos do motorista e status atual de disponibilidade
   const { data: usuario, error: uError } = await supabase
     .from("usuarios")
-    .select(`
+    .select(
+      `
       id,
       motoristas!inner(
         id,
@@ -30,7 +38,8 @@ export async function evaluateMotoristaOperationalEligibility(
         cnh_validade,
         is_disponivel
       )
-    `)
+    `,
+    )
     .eq("auth_user_id", userId)
     .single();
 
@@ -38,7 +47,7 @@ export async function evaluateMotoristaOperationalEligibility(
     throw new Error("Erro técnico: Perfil de motorista não encontrado.");
   }
 
-  const motorista = (usuario.motoristas as any);
+  const motorista = usuario.motoristas as any;
   const motoristaId = motorista.id;
   const currentIsDisponivel = !!motorista.is_disponivel;
 
@@ -48,7 +57,7 @@ export async function evaluateMotoristaOperationalEligibility(
       eligible: false,
       reasonCode: "status_nao_aprovado",
       message: "Seu perfil não está aprovado.",
-      isDisponivel: false
+      isDisponivel: false,
     });
   }
 
@@ -58,7 +67,7 @@ export async function evaluateMotoristaOperationalEligibility(
       eligible: false,
       reasonCode: "cnh_incompleta",
       message: "Dados da CNH incompletos.",
-      isDisponivel: false
+      isDisponivel: false,
     });
   }
 
@@ -69,7 +78,7 @@ export async function evaluateMotoristaOperationalEligibility(
       eligible: false,
       reasonCode: "cnh_categoria_invalida",
       message: "Categoria de CNH inválida para mototáxi.",
-      isDisponivel: false
+      isDisponivel: false,
     });
   }
 
@@ -87,7 +96,7 @@ export async function evaluateMotoristaOperationalEligibility(
       eligible: false,
       reasonCode: "cnh_vencida",
       message: "Sua CNH está vencida.",
-      isDisponivel: false
+      isDisponivel: false,
     });
   }
 
@@ -109,7 +118,7 @@ export async function evaluateMotoristaOperationalEligibility(
       eligible: false,
       reasonCode: "veiculo_invalido",
       message: "Veículo não aprovado ou inativo.",
-      isDisponivel: false
+      isDisponivel: false,
     });
   }
 
@@ -120,7 +129,7 @@ export async function evaluateMotoristaOperationalEligibility(
     "comprovante_residencia",
     "crlv",
     "foto_veiculo",
-    "foto_placa"
+    "foto_placa",
   ];
 
   const { data: documentos, error: dError } = await supabase
@@ -133,15 +142,15 @@ export async function evaluateMotoristaOperationalEligibility(
     throw new Error("Erro técnico ao validar documentos.");
   }
 
-  const docsAprovados = (documentos || []).map(d => String(d.tipo_documento));
-  const temTodos = tiposObrigatorios.every(t => docsAprovados.includes(t));
+  const docsAprovados = (documentos || []).map((d) => String(d.tipo_documento));
+  const temTodos = tiposObrigatorios.every((t) => docsAprovados.includes(t));
 
   if (!temTodos) {
     return await reconcileOffline(supabase, motoristaId, currentIsDisponivel, {
       eligible: false,
       reasonCode: "documentos_invalidos",
       message: "Documentos obrigatórios pendentes.",
-      isDisponivel: false
+      isDisponivel: false,
     });
   }
 
@@ -150,7 +159,7 @@ export async function evaluateMotoristaOperationalEligibility(
     eligible: true,
     reasonCode: null,
     message: null,
-    isDisponivel: currentIsDisponivel
+    isDisponivel: currentIsDisponivel,
   };
 }
 
@@ -162,7 +171,7 @@ async function reconcileOffline(
   supabase: SupabaseClient<Database>,
   motoristaId: string,
   currentIsDisponivel: boolean,
-  result: EligibilityResult
+  result: EligibilityResult,
 ): Promise<EligibilityResult> {
   if (currentIsDisponivel) {
     const { error } = await supabase

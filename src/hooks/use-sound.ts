@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface SoundState {
   audioElement: HTMLAudioElement | null;
@@ -15,41 +15,42 @@ export const useSoundStore = create<SoundState>((set: any, get: any) => ({
   unlock: () => {
     const { audioElement, isUnlocked } = get();
     if (!audioElement || isUnlocked) return;
-    
+
     // Silent play to unlock
-    audioElement.play()
+    audioElement
+      .play()
       .then(() => {
         audioElement.pause();
         audioElement.currentTime = 0;
         set({ isUnlocked: true });
-        console.log('[SoundStore] Audio unlocked successfully');
+        console.log("[SoundStore] Audio unlocked successfully");
       })
       .catch((err: any) => {
-        console.error('[SoundStore] Audio unlock failed', err);
+        console.error("[SoundStore] Audio unlock failed", err);
       });
   },
   play: async (src: string) => {
     const { audioElement } = get();
     if (!audioElement) {
-      console.error('[SoundStore] No audio element found');
+      console.error("[SoundStore] No audio element found");
       return;
     }
 
     try {
       // Resolve path
-      const finalSrc = src.startsWith('/') ? src : `/${src}`;
-      
+      const finalSrc = src.startsWith("/") ? src : `/${src}`;
+
       // If src changes, we update it
       if (!audioElement.src.includes(finalSrc)) {
         audioElement.src = finalSrc;
         audioElement.load();
       }
-      
+
       audioElement.currentTime = 0;
       await audioElement.play();
     } catch (err: any) {
-      console.error('[SoundStore] Play failed:', err);
+      console.error("[SoundStore] Play failed:", err);
       throw err;
     }
-  }
+  },
 }));

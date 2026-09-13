@@ -7,8 +7,10 @@ export const selectPassageiroPerfil = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
-    if (authUser?.email === 'mokahz@gmail.com' && !!authUser?.email_confirmed_at) {
+    const {
+      data: { user: authUser },
+    } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (authUser?.email === "mokahz@gmail.com" && !!authUser?.email_confirmed_at) {
       throw new Error("Administradores não devem selecionar perfil de passageiro.");
     }
 
@@ -16,7 +18,7 @@ export const selectPassageiroPerfil = createServerFn({ method: "POST" })
       .from("usuarios")
       .update({
         is_passageiro: true,
-        perfil_ativo: 'passageiro'
+        perfil_ativo: "passageiro",
       })
       .eq("auth_user_id", userId);
 
@@ -30,8 +32,10 @@ export const selectMotoristaPerfil = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
-    const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
-    if (authUser?.email === 'mokahz@gmail.com' && !!authUser?.email_confirmed_at) {
+    const {
+      data: { user: authUser },
+    } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (authUser?.email === "mokahz@gmail.com" && !!authUser?.email_confirmed_at) {
       throw new Error("Administradores não devem selecionar perfil de motorista.");
     }
 
@@ -47,19 +51,20 @@ export const selectMotoristaPerfil = createServerFn({ method: "POST" })
       .from("usuarios")
       .update({
         is_motorista: true,
-        perfil_ativo: 'motorista'
+        perfil_ativo: "motorista",
       })
       .eq("id", user.id);
 
     if (updateError) throw new Error(updateError.message);
 
-    const { error: motoristaError } = await supabaseAdmin
-      .from("motoristas")
-      .upsert({
+    const { error: motoristaError } = await supabaseAdmin.from("motoristas").upsert(
+      {
         id: user.id,
-        status_aprovacao: 'em_preenchimento',
-        nota_media: 0
-      }, { onConflict: 'id' });
+        status_aprovacao: "em_preenchimento",
+        nota_media: 0,
+      },
+      { onConflict: "id" },
+    );
 
     if (motoristaError) throw new Error(motoristaError.message);
 

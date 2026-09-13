@@ -11,7 +11,7 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
     if (!userId) {
       return { redirectTo: "/auth/login", error: "Usuário não identificado pelo servidor." };
     }
-    
+
     // Obter e importar a lógica interna diretamente para evitar chamada de createServerFn encadeada
     const { resolveDestinationInternal } = await import("./auth-status.functions");
     return await resolveDestinationInternal(userId);
@@ -19,12 +19,19 @@ export const handleGoogleAuthRedirect = createServerFn({ method: "POST" })
 
 export const updateUserInfo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({
-    cpf: z.string().length(11, "CPF deve ter 11 dígitos").refine(validarCpfBrasileiro, "CPF inválido"),
-    celular: z.string().min(10).max(11, "Celular deve ter 10 ou 11 dígitos"),
-    data_nascimento: z.string().min(10, "Data de nascimento inválida"),
-    cidade_id: z.string().uuid("Cidade inválida"),
-  }).parse(data))
+  .inputValidator((data) =>
+    z
+      .object({
+        cpf: z
+          .string()
+          .length(11, "CPF deve ter 11 dígitos")
+          .refine(validarCpfBrasileiro, "CPF inválido"),
+        celular: z.string().min(10).max(11, "Celular deve ter 10 ou 11 dígitos"),
+        data_nascimento: z.string().min(10, "Data de nascimento inválida"),
+        cidade_id: z.string().uuid("Cidade inválida"),
+      })
+      .parse(data),
+  )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
@@ -52,23 +59,23 @@ export const updateUserInfo = createServerFn({ method: "POST" })
         cpf: data.cpf,
         celular: data.celular,
         data_nascimento: data.data_nascimento,
-        cidade_id: data.cidade_id
+        cidade_id: data.cidade_id,
       })
       .eq("auth_user_id", userId)
       .select("id");
 
     if (updateError) {
       console.error("[updateUserInfo] Error updating user info:", updateError);
-      
-      if (updateError.code === '23505') {
-        if (updateError.message?.includes('usuarios_cpf_key')) {
+
+      if (updateError.code === "23505") {
+        if (updateError.message?.includes("usuarios_cpf_key")) {
           throw new Error("Este CPF já está cadastrado em outra conta.");
         }
-        if (updateError.message?.includes('usuarios_celular_key')) {
+        if (updateError.message?.includes("usuarios_celular_key")) {
           throw new Error("Este número de celular já está cadastrado em outra conta.");
         }
       }
-      
+
       throw new Error("Erro ao salvar informações. Tente novamente.");
     }
 

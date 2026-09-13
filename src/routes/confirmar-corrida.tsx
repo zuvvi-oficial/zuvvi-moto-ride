@@ -1,17 +1,31 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
-import { useServerFn } from '@tanstack/react-start';
-import { getMapboxToken, cotarCorrida, criarCorrida } from '@/lib/user.functions';
-import { criarCorridaAgendada } from '@/lib/corridas-agendadas.functions';
-import { validarCupom } from '@/lib/cupons.functions';
-import { ensureMercadoPagoDeviceId } from '@/lib/pix-device-id';
-import { registrarPixDeviceSession } from '@/lib/pix-device-session.functions';
-import { AgendarDataHoraDialog } from '@/components/passageiro/AgendarDataHoraDialog';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { ChevronLeft, Bike, Clock, Navigation, CheckCircle2, Loader2, MapPin, CreditCard, Banknote, QrCode, CalendarClock, Tag, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { z } from 'zod';
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getMapboxToken, cotarCorrida, criarCorrida } from "@/lib/user.functions";
+import { criarCorridaAgendada } from "@/lib/corridas-agendadas.functions";
+import { validarCupom } from "@/lib/cupons.functions";
+import { ensureMercadoPagoDeviceId } from "@/lib/pix-device-id";
+import { registrarPixDeviceSession } from "@/lib/pix-device-session.functions";
+import { AgendarDataHoraDialog } from "@/components/passageiro/AgendarDataHoraDialog";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import {
+  ChevronLeft,
+  Bike,
+  Clock,
+  Navigation,
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  CreditCard,
+  Banknote,
+  QrCode,
+  CalendarClock,
+  Tag,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const searchSchema = z.object({
   originLat: z.number(),
@@ -22,7 +36,7 @@ const searchSchema = z.object({
   originName: z.string().optional(),
 });
 
-export const Route = createFileRoute('/confirmar-corrida')({
+export const Route = createFileRoute("/confirmar-corrida")({
   validateSearch: (search) => searchSchema.parse(search),
   component: ConfirmarCorrida,
 });
@@ -32,7 +46,7 @@ function ConfirmarCorrida() {
   const navigate = useNavigate();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  
+
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
   const [quotationSignature, setQuotationSignature] = useState<string | null>(null);
@@ -45,11 +59,16 @@ function ConfirmarCorrida() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao' | 'dinheiro' | null>(null);
-  const [modo, setModo] = useState<'agora' | 'agendar'>('agora');
-  const [horarioAgendado, setHorarioAgendado] = useState('');
-  const [cupomInput, setCupomInput] = useState('');
-  const [cupomAplicado, setCupomAplicado] = useState<{ codigo: string; valorDesconto: number } | null>(null);
+  const [metodoPagamento, setMetodoPagamento] = useState<"pix" | "cartao" | "dinheiro" | null>(
+    null,
+  );
+  const [modo, setModo] = useState<"agora" | "agendar">("agora");
+  const [horarioAgendado, setHorarioAgendado] = useState("");
+  const [cupomInput, setCupomInput] = useState("");
+  const [cupomAplicado, setCupomAplicado] = useState<{
+    codigo: string;
+    valorDesconto: number;
+  } | null>(null);
   const [validandoCupom, setValidandoCupom] = useState(false);
 
   const getMapboxTokenFn = useServerFn(getMapboxToken);
@@ -71,10 +90,12 @@ function ConfirmarCorrida() {
     try {
       const res = await validarCupomFn({ data: { codigo, valorCorrida: estimatedFare } });
       setCupomAplicado({ codigo: res.codigo, valorDesconto: res.valorDesconto });
-      toast.success(`Cupom aplicado: -R$ ${res.valorDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      toast.success(
+        `Cupom aplicado: -R$ ${res.valorDesconto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      );
     } catch (err: any) {
       setCupomAplicado(null);
-      toast.error(err.message || 'Cupom inválido.');
+      toast.error(err.message || "Cupom inválido.");
     } finally {
       setValidandoCupom(false);
     }
@@ -82,7 +103,7 @@ function ConfirmarCorrida() {
 
   const handleRemoverCupom = () => {
     setCupomAplicado(null);
-    setCupomInput('');
+    setCupomInput("");
   };
 
   // Mesma janela aplicada no servidor (criarCorridaAgendada): pelo menos 30min
@@ -102,7 +123,7 @@ function ConfirmarCorrida() {
       return;
     }
 
-    if (modo === 'agendar') {
+    if (modo === "agendar") {
       if (!horarioAgendado) {
         toast.error("Escolha o dia e horário da corrida agendada.");
         return;
@@ -116,18 +137,18 @@ function ConfirmarCorrida() {
           data: {
             origemLat: originLat,
             origemLng: originLng,
-            origemNome: originName || 'Sua localização',
+            origemNome: originName || "Sua localização",
             destinoLat: destLat,
             destinoLng: destLng,
             destinoNome: destName,
             formaPagamento: metodoPagamento,
             horarioAgendado: new Date(horarioAgendado).toISOString(),
-          }
+          },
         });
 
         if (result.success) {
           toast.success("Corrida agendada com sucesso!");
-          navigate({ to: '/corridas-agendadas' });
+          navigate({ to: "/corridas-agendadas" });
         }
       } catch (err: any) {
         console.error(err);
@@ -149,7 +170,7 @@ function ConfirmarCorrida() {
     setIsCreating(true);
 
     try {
-      if (metodoPagamento === 'pix') {
+      if (metodoPagamento === "pix") {
         const deviceId = await ensureMercadoPagoDeviceId();
         await registrarPixDeviceSessionFn({ data: { deviceId } });
       }
@@ -158,7 +179,7 @@ function ConfirmarCorrida() {
         data: {
           origemLat: originLat,
           origemLng: originLng,
-          origemNome: originName || 'Sua localização',
+          origemNome: originName || "Sua localização",
           destinoLat: destLat,
           destinoLng: destLng,
           destinoNome: destName,
@@ -172,14 +193,14 @@ function ConfirmarCorrida() {
           tarifaMinima: quotationTarifas.tarifaMinima,
           assinaturaCotacao: quotationSignature,
           ...(cupomAplicado ? { cupomCodigo: cupomAplicado.codigo } : {}),
-        }
+        },
       });
 
       if (result.success) {
         toast.success("Corrida solicitada com sucesso!");
         navigate({
-          to: '/procurando-motorista',
-          search: { rideId: result.rideId }
+          to: "/procurando-motorista",
+          search: { rideId: result.rideId },
         });
       }
     } catch (err: any) {
@@ -192,7 +213,6 @@ function ConfirmarCorrida() {
       setIsCreating(false);
     }
   };
-
 
   useEffect(() => {
     // Sinaliza que esta execução do efeito foi substituída por outra (origem/
@@ -222,8 +242,8 @@ function ConfirmarCorrida() {
             origemLat: originLat,
             origemLng: originLng,
             destinoLat: destLat,
-            destinoLng: destLng
-          }
+            destinoLng: destLng,
+          },
         });
         if (cancelado) return;
 
@@ -236,42 +256,49 @@ function ConfirmarCorrida() {
         if (mapContainer.current) {
           map.current = new mapboxgl.Map({
             container: mapContainer.current,
-            style: 'mapbox://styles/mapbox/dark-v11',
-            center: [ (originLng + destLng) / 2, (originLat + destLat) / 2 ],
+            style: "mapbox://styles/mapbox/dark-v11",
+            center: [(originLng + destLng) / 2, (originLat + destLat) / 2],
             zoom: 12,
             attributionControl: false,
           });
 
-          map.current.on('load', () => {
+          map.current.on("load", () => {
             // Desenhar a rota
             if (cancelado || !map.current || !quotation) return;
 
-            map.current.addSource('route', {
-              type: 'geojson',
+            map.current.addSource("route", {
+              type: "geojson",
               data: {
-                type: 'Feature',
+                type: "Feature",
                 properties: {},
-                geometry: quotation.geometry
-              }
+                geometry: quotation.geometry,
+              },
             });
 
             map.current.addLayer({
-              id: 'route',
-              type: 'line',
-              source: 'route',
-              layout: { 'line-join': 'round', 'line-cap': 'round' },
-              paint: { 'line-color': '#C6FF3D', 'line-width': 5, 'line-opacity': 0.8 }
+              id: "route",
+              type: "line",
+              source: "route",
+              layout: { "line-join": "round", "line-cap": "round" },
+              paint: { "line-color": "#C6FF3D", "line-width": 5, "line-opacity": 0.8 },
             });
 
             // Marcadores
-            new mapboxgl.Marker({ color: "#FFFFFF" }).setLngLat([originLng, originLat]).addTo(map.current);
-            new mapboxgl.Marker({ color: "#C6FF3D" }).setLngLat([destLng, destLat]).addTo(map.current);
+            new mapboxgl.Marker({ color: "#FFFFFF" })
+              .setLngLat([originLng, originLat])
+              .addTo(map.current);
+            new mapboxgl.Marker({ color: "#C6FF3D" })
+              .setLngLat([destLng, destLat])
+              .addTo(map.current);
 
             // Ajustar bounds para caber a rota
             const coordinates = quotation.geometry.coordinates;
-            const bounds = coordinates.reduce((acc: mapboxgl.LngLatBounds, coord: [number, number]) => {
-              return acc.extend(coord);
-            }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+            const bounds = coordinates.reduce(
+              (acc: mapboxgl.LngLatBounds, coord: [number, number]) => {
+                return acc.extend(coord);
+              },
+              new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]),
+            );
 
             map.current.fitBounds(bounds, { padding: 80 });
             setIsLoading(false);
@@ -282,7 +309,7 @@ function ConfirmarCorrida() {
         if (cancelado) return;
         console.error(err);
         toast.error("Erro ao carregar detalhes da corrida");
-        navigate({ to: '/' });
+        navigate({ to: "/" });
       }
     }
 
@@ -305,7 +332,7 @@ function ConfirmarCorrida() {
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zuvvi-indigo to-transparent pointer-events-none" />
 
         <button
-          onClick={() => navigate({ to: '/' })}
+          onClick={() => navigate({ to: "/" })}
           className="absolute top-6 left-5 z-20 w-11 h-11 bg-zuvvi-indigo/80 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center transition-transform active:scale-90"
         >
           <ChevronLeft className="w-5 h-5 text-white" />
@@ -322,171 +349,195 @@ function ConfirmarCorrida() {
                 pequenas — preço e botão de confirmar ficam fora daqui,
                 sempre visíveis, pra nunca sumir de vista. */}
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4 -mx-1 px-1">
-            {/* Resumo da Rota */}
-            <div className="space-y-3">
-              <div className="flex items-start gap-4">
-                <div className="flex flex-col items-center py-1">
-                  <div className="w-2 h-2 rounded-full bg-white/40" />
-                  <div className="w-0.5 h-8 border-l border-dashed border-white/20 my-1" />
-                  <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
-                </div>
-                <div className="flex-1 space-y-3 min-w-0">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Origem</p>
-                    <p className="text-sm font-medium truncate opacity-60">{originName || 'Sua localização atual'}</p>
+              {/* Resumo da Rota */}
+              <div className="space-y-3">
+                <div className="flex items-start gap-4">
+                  <div className="flex flex-col items-center py-1">
+                    <div className="w-2 h-2 rounded-full bg-white/40" />
+                    <div className="w-0.5 h-8 border-l border-dashed border-white/20 my-1" />
+                    <div className="w-2 h-2 rounded-full bg-zuvvi-volt zuvvi-glow" />
                   </div>
-                  <div>
-                    <p className="text-[10px] text-zuvvi-volt uppercase tracking-widest mb-1">Destino</p>
-                    <p className="text-sm font-bold truncate">{destName}</p>
-                  </div>
-                </div>
-              </div>
-
-              {routeInfo && (
-                <div className="flex items-center justify-center gap-4 p-2.5 bg-white/5 rounded-2xl border border-white/5">
-                  <div className="flex items-center gap-2">
-                    <Navigation className="w-3 h-3 text-zuvvi-volt" />
-                    <span className="text-xs font-bold">{routeInfo.distance.toFixed(1)} km</span>
-                  </div>
-                  <div className="w-1 h-1 rounded-full bg-white/20" />
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3 h-3 text-zuvvi-volt" />
-                    <span className="text-xs font-bold">{Math.round(routeInfo.duration)} min</span>
+                  <div className="flex-1 space-y-3 min-w-0">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                        Origem
+                      </p>
+                      <p className="text-sm font-medium truncate opacity-60">
+                        {originName || "Sua localização atual"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-zuvvi-volt uppercase tracking-widest mb-1">
+                        Destino
+                      </p>
+                      <p className="text-sm font-bold truncate">{destName}</p>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Agora vs Agendar */}
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'agora' as const, label: 'Agora' },
-                { id: 'agendar' as const, label: 'Agendar' },
-              ].map((item) => {
-                const isSelected = modo === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setModo(item.id);
-                      if (item.id === 'agendar') {
-                        if (metodoPagamento === 'pix') setMetodoPagamento(null);
-                        // Cupom só se aplica em corrida ao vivo (Etapa 2 do
-                        // diferencial): o preço de uma corrida agendada só é
-                        // calculado de verdade na conversão, minutos ou dias
-                        // depois.
-                        handleRemoverCupom();
-                      }
-                    }}
-                    className={`flex items-center justify-center gap-2 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all ${
-                      isSelected
-                        ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo'
-                        : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {item.id === 'agendar' && <CalendarClock className="w-4 h-4" />}
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {modo === 'agendar' && (
-              <div className="space-y-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">Data e horário</p>
-                <AgendarDataHoraDialog
-                  value={horarioAgendado}
-                  onChange={setHorarioAgendado}
-                  min={agendamentoMin}
-                  max={agendamentoMax}
-                />
-                <p className="text-[10px] text-muted-foreground px-1">
-                  Pelo menos 30 min de antecedência. Pix não está disponível para corridas agendadas.
-                </p>
+                {routeInfo && (
+                  <div className="flex items-center justify-center gap-4 p-2.5 bg-white/5 rounded-2xl border border-white/5">
+                    <div className="flex items-center gap-2">
+                      <Navigation className="w-3 h-3 text-zuvvi-volt" />
+                      <span className="text-xs font-bold">{routeInfo.distance.toFixed(1)} km</span>
+                    </div>
+                    <div className="w-1 h-1 rounded-full bg-white/20" />
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3 h-3 text-zuvvi-volt" />
+                      <span className="text-xs font-bold">
+                        {Math.round(routeInfo.duration)} min
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* Forma de Pagamento */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Forma de pagamento</p>
-                <button
-                  onClick={() => setShowPaymentModal(true)}
-                  className="text-[10px] text-zuvvi-volt font-bold uppercase tracking-widest hover:underline"
-                >
-                  Alterar
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
+              {/* Agora vs Agendar */}
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'pix', label: 'Pix', icon: QrCode },
-                  { id: 'cartao', label: 'Cartão', icon: CreditCard },
-                  { id: 'dinheiro', label: 'Dinheiro', icon: Banknote },
-                ].filter((item) => modo === 'agora' || item.id !== 'pix').map((item) => {
-                  const Icon = item.icon;
-                  const isSelected = metodoPagamento === item.id;
+                  { id: "agora" as const, label: "Agora" },
+                  { id: "agendar" as const, label: "Agendar" },
+                ].map((item) => {
+                  const isSelected = modo === item.id;
                   return (
                     <button
                       key={item.id}
                       onClick={() => {
-                        setMetodoPagamento(item.id as any);
-                        setShowPaymentModal(false);
+                        setModo(item.id);
+                        if (item.id === "agendar") {
+                          if (metodoPagamento === "pix") setMetodoPagamento(null);
+                          // Cupom só se aplica em corrida ao vivo (Etapa 2 do
+                          // diferencial): o preço de uma corrida agendada só é
+                          // calculado de verdade na conversão, minutos ou dias
+                          // depois.
+                          handleRemoverCupom();
+                        }
                       }}
-                      className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${
+                      className={`flex items-center justify-center gap-2 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all ${
                         isSelected
-                          ? 'bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo'
-                          : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                          ? "bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo"
+                          : "bg-white/5 border-white/10 text-white hover:bg-white/10"
                       }`}
                     >
-                      <Icon className={`w-5 h-5 ${isSelected ? 'text-zuvvi-indigo' : 'text-zuvvi-volt'}`} />
-                      <span className="text-[10px] font-bold uppercase">{item.label}</span>
+                      {item.id === "agendar" && <CalendarClock className="w-4 h-4" />}
+                      {item.label}
                     </button>
                   );
                 })}
               </div>
-            </div>
 
-            {/* Cupom de desconto — só em corrida ao vivo (Etapa 2) */}
-            {modo === 'agora' && (
-              <div className="space-y-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">Cupom de desconto</p>
-                {cupomAplicado ? (
-                  <div className="flex items-center justify-between gap-2 bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl px-4 py-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Tag className="w-4 h-4 text-zuvvi-volt shrink-0" />
-                      <span className="text-sm font-black text-zuvvi-volt truncate">{cupomAplicado.codigo}</span>
-                      <span className="text-xs text-white/60 shrink-0">
-                        -R$ {cupomAplicado.valorDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleRemoverCupom}
-                      className="shrink-0 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
-                      aria-label="Remover cupom"
-                    >
-                      <X className="w-3.5 h-3.5 text-white/60" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={cupomInput}
-                      onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
-                      placeholder="Código do cupom"
-                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-zuvvi-volt/50 uppercase"
-                    />
-                    <button
-                      onClick={handleAplicarCupom}
-                      disabled={!cupomInput.trim() || validandoCupom || !estimatedFare}
-                      className="shrink-0 px-5 rounded-2xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest disabled:opacity-40 hover:bg-white/10 transition-colors flex items-center justify-center"
-                    >
-                      {validandoCupom ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
-                    </button>
-                  </div>
-                )}
+              {modo === "agendar" && (
+                <div className="space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">
+                    Data e horário
+                  </p>
+                  <AgendarDataHoraDialog
+                    value={horarioAgendado}
+                    onChange={setHorarioAgendado}
+                    min={agendamentoMin}
+                    max={agendamentoMax}
+                  />
+                  <p className="text-[10px] text-muted-foreground px-1">
+                    Pelo menos 30 min de antecedência. Pix não está disponível para corridas
+                    agendadas.
+                  </p>
+                </div>
+              )}
+
+              {/* Forma de Pagamento */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    Forma de pagamento
+                  </p>
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="text-[10px] text-zuvvi-volt font-bold uppercase tracking-widest hover:underline"
+                  >
+                    Alterar
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "pix", label: "Pix", icon: QrCode },
+                    { id: "cartao", label: "Cartão", icon: CreditCard },
+                    { id: "dinheiro", label: "Dinheiro", icon: Banknote },
+                  ]
+                    .filter((item) => modo === "agora" || item.id !== "pix")
+                    .map((item) => {
+                      const Icon = item.icon;
+                      const isSelected = metodoPagamento === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setMetodoPagamento(item.id as any);
+                            setShowPaymentModal(false);
+                          }}
+                          className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${
+                            isSelected
+                              ? "bg-zuvvi-volt border-zuvvi-volt text-zuvvi-indigo"
+                              : "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                          }`}
+                        >
+                          <Icon
+                            className={`w-5 h-5 ${isSelected ? "text-zuvvi-indigo" : "text-zuvvi-volt"}`}
+                          />
+                          <span className="text-[10px] font-bold uppercase">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
-            )}
+
+              {/* Cupom de desconto — só em corrida ao vivo (Etapa 2) */}
+              {modo === "agora" && (
+                <div className="space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1">
+                    Cupom de desconto
+                  </p>
+                  {cupomAplicado ? (
+                    <div className="flex items-center justify-between gap-2 bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-2xl px-4 py-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Tag className="w-4 h-4 text-zuvvi-volt shrink-0" />
+                        <span className="text-sm font-black text-zuvvi-volt truncate">
+                          {cupomAplicado.codigo}
+                        </span>
+                        <span className="text-xs text-white/60 shrink-0">
+                          -R${" "}
+                          {cupomAplicado.valorDesconto.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleRemoverCupom}
+                        className="shrink-0 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+                        aria-label="Remover cupom"
+                      >
+                        <X className="w-3.5 h-3.5 text-white/60" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={cupomInput}
+                        onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
+                        placeholder="Código do cupom"
+                        className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-zuvvi-volt/50 uppercase"
+                      />
+                      <button
+                        onClick={handleAplicarCupom}
+                        disabled={!cupomInput.trim() || validandoCupom || !estimatedFare}
+                        className="shrink-0 px-5 rounded-2xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest disabled:opacity-40 hover:bg-white/10 transition-colors flex items-center justify-center"
+                      >
+                        {validandoCupom ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Valor e Ação */}
@@ -494,17 +545,20 @@ function ConfirmarCorrida() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                    {modo === 'agendar' ? 'Valor Estimado (recalculado na hora)' : 'Valor Estimado'}
+                    {modo === "agendar" ? "Valor Estimado (recalculado na hora)" : "Valor Estimado"}
                   </p>
                   {cupomAplicado && estimatedFare != null ? (
                     <div className="flex items-baseline gap-2">
                       <span className="text-sm font-bold text-white/40 line-through">
-                        R$ {estimatedFare.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {estimatedFare.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
                       <span className="flex items-baseline gap-1">
                         <span className="text-xs font-bold text-zuvvi-volt">R$</span>
                         <span className="text-3xl font-black text-white">
-                          {valorComDesconto!.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {valorComDesconto!.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
                         </span>
                       </span>
                     </div>
@@ -512,25 +566,37 @@ function ConfirmarCorrida() {
                     <div className="flex items-baseline gap-1">
                       <span className="text-xs font-bold text-zuvvi-volt">R$</span>
                       <span className="text-3xl font-black text-white">
-                        {estimatedFare ? estimatedFare.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--,--'}
+                        {estimatedFare
+                          ? estimatedFare.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "--,--"}
                       </span>
                     </div>
                   )}
                 </div>
                 <div className="bg-zuvvi-volt/10 border border-zuvvi-volt/20 rounded-xl px-3 py-2 flex items-center gap-2">
                   <Bike className="w-4 h-4 text-zuvvi-volt" />
-                  <span className="text-[10px] font-black text-zuvvi-volt uppercase tracking-wider">Zuvvi Moto</span>
+                  <span className="text-[10px] font-black text-zuvvi-volt uppercase tracking-wider">
+                    Zuvvi Moto
+                  </span>
                 </div>
               </div>
 
               <button
                 onClick={handleConfirmarCorrida}
                 className="w-full bg-zuvvi-volt text-zuvvi-indigo py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-sm zuvvi-glow transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
-                disabled={isLoading || isCreating || !metodoPagamento || (modo === 'agendar' && !horarioAgendado)}
+                disabled={
+                  isLoading ||
+                  isCreating ||
+                  !metodoPagamento ||
+                  (modo === "agendar" && !horarioAgendado)
+                }
               >
                 {isLoading || isCreating ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
-                ) : modo === 'agendar' ? (
+                ) : modo === "agendar" ? (
                   <>
                     AGENDAR CORRIDA
                     <CalendarClock className="w-5 h-5" />
@@ -554,7 +620,9 @@ function ConfirmarCorrida() {
       {isLoading && (
         <div className="absolute inset-0 z-50 bg-zuvvi-indigo/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">
           <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
-          <p className="text-sm font-bold uppercase tracking-widest text-zuvvi-volt animate-pulse">Calculando Rota...</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-zuvvi-volt animate-pulse">
+            Calculando Rota...
+          </p>
         </div>
       )}
       {/* Modal de Pagamento */}
@@ -562,7 +630,7 @@ function ConfirmarCorrida() {
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-4">
           {/* Overlay */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          
+
           {/* Conteúdo do Modal */}
           <div className="relative w-full max-w-md bg-zuvvi-indigo border border-white/10 rounded-[2.5rem] p-8 shadow-2xl animate-rise">
             <div className="space-y-8">
@@ -577,27 +645,31 @@ function ConfirmarCorrida() {
 
               <div className="grid gap-3">
                 {[
-                  { id: 'pix', label: 'Pix', icon: QrCode },
-                  { id: 'cartao', label: 'Cartão', icon: CreditCard },
-                  { id: 'dinheiro', label: 'Dinheiro', icon: Banknote },
-                ].filter((item) => modo === 'agora' || item.id !== 'pix').map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setMetodoPagamento(item.id as any);
-                        setShowPaymentModal(false);
-                      }}
-                      className="flex items-center gap-4 w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-[0.98] transition-all group"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center group-hover:bg-zuvvi-volt/20 transition-colors">
-                        <Icon className="w-6 h-6 text-zuvvi-volt" />
-                      </div>
-                      <span className="text-sm font-bold uppercase tracking-[0.1em]">{item.label}</span>
-                    </button>
-                  );
-                })}
+                  { id: "pix", label: "Pix", icon: QrCode },
+                  { id: "cartao", label: "Cartão", icon: CreditCard },
+                  { id: "dinheiro", label: "Dinheiro", icon: Banknote },
+                ]
+                  .filter((item) => modo === "agora" || item.id !== "pix")
+                  .map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setMetodoPagamento(item.id as any);
+                          setShowPaymentModal(false);
+                        }}
+                        className="flex items-center gap-4 w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-[0.98] transition-all group"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-zuvvi-volt/10 flex items-center justify-center group-hover:bg-zuvvi-volt/20 transition-colors">
+                          <Icon className="w-6 h-6 text-zuvvi-volt" />
+                        </div>
+                        <span className="text-sm font-bold uppercase tracking-[0.1em]">
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
           </div>

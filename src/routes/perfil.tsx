@@ -1,6 +1,18 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
-import { Clock, HelpCircle, LifeBuoy, User, ChevronRight, LogOut, IdCard, ShieldCheck, Heart, CalendarClock, Gift } from "lucide-react";
+import {
+  Clock,
+  HelpCircle,
+  LifeBuoy,
+  User,
+  ChevronRight,
+  LogOut,
+  IdCard,
+  ShieldCheck,
+  Heart,
+  CalendarClock,
+  Gift,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -18,11 +30,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const formatCPF = (value: string) => {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   return digits
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 };
 
 const getMeuCpf = createServerFn({ method: "GET" })
@@ -44,9 +56,16 @@ const getMeuCpf = createServerFn({ method: "GET" })
 
 const atualizarCpf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({
-    cpf: z.string().length(11, "CPF deve ter 11 dígitos").refine(validarCpfBrasileiro, "CPF inválido"),
-  }).parse(data))
+  .inputValidator((data) =>
+    z
+      .object({
+        cpf: z
+          .string()
+          .length(11, "CPF deve ter 11 dígitos")
+          .refine(validarCpfBrasileiro, "CPF inválido"),
+      })
+      .parse(data),
+  )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -71,7 +90,7 @@ const atualizarCpf = createServerFn({ method: "POST" })
       .eq("auth_user_id", context.userId);
 
     if (error) {
-      if (error.code === '23505' && error.message?.includes('usuarios_cpf_key')) {
+      if (error.code === "23505" && error.message?.includes("usuarios_cpf_key")) {
         throw new Error("Este CPF já está cadastrado em outra conta.");
       }
       throw new Error("Erro ao atualizar CPF. Tente novamente.");
@@ -83,8 +102,9 @@ const atualizarCpf = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/perfil")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
-    const canAccess = dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
-    
+    const canAccess =
+      dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
+
     if (!canAccess) {
       throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
     }
@@ -152,7 +172,9 @@ function PerfilPassageiro() {
       <header className="sticky top-0 z-50 bg-zuvvi-indigo/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
         <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">Passageiro Zuvvi</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zuvvi-volt">
+              Passageiro Zuvvi
+            </p>
             <h1 className="text-xl font-bold tracking-tight">Perfil</h1>
           </div>
           <ZuvviLogo surface="dark" className="h-auto w-[78px]" />
@@ -228,7 +250,9 @@ function PerfilPassageiro() {
               </div>
               <div className="text-left">
                 <p className="font-bold">Corridas agendadas</p>
-                <p className="text-[11px] text-muted-foreground">Veja e cancele seus agendamentos</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Veja e cancele seus agendamentos
+                </p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
@@ -244,7 +268,9 @@ function PerfilPassageiro() {
               </div>
               <div className="text-left">
                 <p className="font-bold">Meus Chamados</p>
-                <p className="text-[11px] text-muted-foreground">Acompanhe suas conversas com o suporte</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Acompanhe suas conversas com o suporte
+                </p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
@@ -276,7 +302,9 @@ function PerfilPassageiro() {
               </div>
               <div className="text-left">
                 <p className="font-bold">Contatos de confiança</p>
-                <p className="text-[11px] text-muted-foreground">Quem pode acompanhar suas corridas</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Quem pode acompanhar suas corridas
+                </p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
@@ -292,7 +320,9 @@ function PerfilPassageiro() {
               </div>
               <div className="text-left">
                 <p className="font-bold">Meus motoristas favoritos</p>
-                <p className="text-[11px] text-muted-foreground">Motoristas com quem você já andou</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Motoristas com quem você já andou
+                </p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
@@ -314,7 +344,7 @@ function PerfilPassageiro() {
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-zuvvi-volt" />
           </button>
 
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full bg-red-500/5 border border-red-500/10 rounded-2xl p-5 flex items-center justify-between transition-all hover:bg-red-500/10 group"
           >
@@ -331,24 +361,17 @@ function PerfilPassageiro() {
         </div>
 
         <div className="text-center">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em]">Zuvvi Mobilidade v1.0.0</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em]">
+            Zuvvi Mobilidade v1.0.0
+          </p>
         </div>
       </main>
 
       <PassengerBottomNav active="perfil" />
 
-      <SupportDialog
-        open={supportOpen}
-        onOpenChange={setSupportOpen}
-      />
-      <ContatosConfiancaDialog
-        open={contatosOpen}
-        onOpenChange={setContatosOpen}
-      />
-      <MotoristasFavoritosDialog
-        open={favoritosOpen}
-        onOpenChange={setFavoritosOpen}
-      />
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
+      <ContatosConfiancaDialog open={contatosOpen} onOpenChange={setContatosOpen} />
+      <MotoristasFavoritosDialog open={favoritosOpen} onOpenChange={setFavoritosOpen} />
     </div>
   );
 }

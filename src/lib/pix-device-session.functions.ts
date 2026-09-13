@@ -35,17 +35,15 @@ export const registrarPixDeviceSession = createServerFn({ method: "POST" })
     const now = new Date();
     const expiresAt = new Date(now.getTime() + PIX_DEVICE_SESSION_TTL_MS).toISOString();
 
-    const { error } = await (supabaseAdmin as any)
-      .from("pagamentos_pix_device_sessions")
-      .upsert(
-        {
-          passageiro_id: usuario.id,
-          device_id: data.deviceId,
-          expires_at: expiresAt,
-          updated_at: now.toISOString(),
-        },
-        { onConflict: "passageiro_id" },
-      );
+    const { error } = await (supabaseAdmin as any).from("pagamentos_pix_device_sessions").upsert(
+      {
+        passageiro_id: usuario.id,
+        device_id: data.deviceId,
+        expires_at: expiresAt,
+        updated_at: now.toISOString(),
+      },
+      { onConflict: "passageiro_id" },
+    );
 
     if (error) {
       throw new Error("Não foi possível preparar a segurança do Pix.");

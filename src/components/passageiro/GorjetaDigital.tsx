@@ -166,7 +166,9 @@ export function GorjetaDigital({ rideId }: { rideId: string }) {
 
       {fase === "escolher" && (
         <div className="space-y-4">
-          <p className="text-sm text-white/60">Gostou da corrida? Dê uma gorjeta pro motorista, direto por Pix.</p>
+          <p className="text-sm text-white/60">
+            Gostou da corrida? Dê uma gorjeta pro motorista, direto por Pix.
+          </p>
           <div className="flex flex-wrap gap-2">
             {VALORES_SUGERIDOS.map((v) => (
               <button
@@ -257,7 +259,9 @@ export function GorjetaDigital({ rideId }: { rideId: string }) {
 
       {(fase === "falhou" || fase === "erro_temporario") && (
         <div className="space-y-3 text-center">
-          <p className="text-sm text-white/60">Não foi possível confirmar o pagamento da gorjeta.</p>
+          <p className="text-sm text-white/60">
+            Não foi possível confirmar o pagamento da gorjeta.
+          </p>
           <button
             type="button"
             onClick={() => gorjetaId && void gerarCobranca(gorjetaId)}

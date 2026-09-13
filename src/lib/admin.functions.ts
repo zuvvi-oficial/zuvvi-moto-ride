@@ -37,12 +37,30 @@ export const getAdminStats = createServerFn({ method: "GET" })
       { count: corridasAbertasBSB },
       { count: motoristasOnline },
     ] = await Promise.all([
-      supabaseAdmin.from("motoristas").select("*", { count: "exact", head: true }).eq("status_aprovacao", "em_preenchimento"),
-      supabaseAdmin.from("motoristas").select("*", { count: "exact", head: true }).eq("status_aprovacao", "em_analise"),
-      supabaseAdmin.from("motoristas").select("*", { count: "exact", head: true }).eq("status_aprovacao", "aprovado"),
-      supabaseAdmin.from("veiculos").select("*", { count: "exact", head: true }).eq("status_aprovacao", "em_preenchimento"),
-      supabaseAdmin.from("corridas").select("*", { count: "exact", head: true }).eq("status", "solicitada"),
-      supabaseAdmin.from("motoristas").select("*", { count: "exact", head: true }).eq("is_disponivel", true),
+      supabaseAdmin
+        .from("motoristas")
+        .select("*", { count: "exact", head: true })
+        .eq("status_aprovacao", "em_preenchimento"),
+      supabaseAdmin
+        .from("motoristas")
+        .select("*", { count: "exact", head: true })
+        .eq("status_aprovacao", "em_analise"),
+      supabaseAdmin
+        .from("motoristas")
+        .select("*", { count: "exact", head: true })
+        .eq("status_aprovacao", "aprovado"),
+      supabaseAdmin
+        .from("veiculos")
+        .select("*", { count: "exact", head: true })
+        .eq("status_aprovacao", "em_preenchimento"),
+      supabaseAdmin
+        .from("corridas")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "solicitada"),
+      supabaseAdmin
+        .from("motoristas")
+        .select("*", { count: "exact", head: true })
+        .eq("is_disponivel", true),
     ]);
 
     return {
@@ -61,11 +79,13 @@ export const getAdminStats = createServerFn({ method: "GET" })
  */
 export const getMotoristasAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => 
-    z.object({
-      status: z.string().optional(),
-      busca: z.string().optional(),
-    }).parse(data)
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        status: z.string().optional(),
+        busca: z.string().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
@@ -73,11 +93,13 @@ export const getMotoristasAdmin = createServerFn({ method: "GET" })
 
     let query = supabaseAdmin
       .from("usuarios")
-      .select(`
+      .select(
+        `
         id, nome, email, celular, cpf,
         motoristas!inner(id, status_aprovacao, is_disponivel, ultima_localizacao_at),
         cidades(nome, estado_uf)
-      `)
+      `,
+      )
       .eq("is_motorista", true);
 
     if (data.status) {
@@ -95,11 +117,13 @@ export const getMotoristasAdmin = createServerFn({ method: "GET" })
 export const updateStatusMotorista = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      motoristaId: z.string(),
-      novoStatus: z.enum(["aprovado", "recusado", "suspenso", "em_analise"]),
-      justificativa: z.string().optional(),
-    }).parse(data)
+    z
+      .object({
+        motoristaId: z.string(),
+        novoStatus: z.enum(["aprovado", "recusado", "suspenso", "em_analise"]),
+        justificativa: z.string().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
@@ -149,14 +173,14 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
 
       // Regra de Data America/Sao_Paulo (Dia Civil)
       const now = new Date();
-      const formatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Sao_Paulo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
+      const formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       });
       const hojeStr = formatter.format(now); // YYYY-MM-DD
-      
+
       if (motorista.cnh_validade < hojeStr) {
         throw new Error("Bloqueado: CNH vencida.");
       }
@@ -168,21 +192,28 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
         .or(`motorista_id.eq.${data.motoristaId},veiculo_id.eq.${veiculo.id}`);
 
       if (dError) throw new Error("Erro ao validar documentos.");
-      
-      const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
+
+      const tiposObrigatorios = [
+        "identidade",
+        "cnh",
+        "comprovante_residencia",
+        "crlv",
+        "foto_veiculo",
+        "foto_placa",
+      ];
       const docsEnviados = documentos || [];
-      
-      const tiposEnviados = docsEnviados.map(d => d.tipo_documento);
-      const faltantes = tiposObrigatorios.filter(t => !tiposEnviados.includes(t as any));
-      
+
+      const tiposEnviados = docsEnviados.map((d) => d.tipo_documento);
+      const faltantes = tiposObrigatorios.filter((t) => !tiposEnviados.includes(t as any));
+
       if (faltantes.length > 0) {
         throw new Error(`Bloqueado: Faltam documentos (${faltantes.join(", ")}).`);
       }
 
       // Filtro Fail-Closed: Qualquer documento obrigatório que não esteja "aprovado" bloqueia a aprovação final.
-      const obrigatoriosNaoAprovados = docsEnviados.filter(d => 
-        tiposObrigatorios.includes(d.tipo_documento as string) && 
-        d.status_analise !== "aprovado"
+      const obrigatoriosNaoAprovados = docsEnviados.filter(
+        (d) =>
+          tiposObrigatorios.includes(d.tipo_documento as string) && d.status_analise !== "aprovado",
       );
 
       if (obrigatoriosNaoAprovados.length > 0) {
@@ -206,7 +237,10 @@ export const updateStatusMotorista = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!updatedMotorista) throw new Error("Erro ao atualizar motorista: registro não retornado.");
 
-    if (updatedMotorista.status_aprovacao !== data.novoStatus || updatedMotorista.is_disponivel !== false) {
+    if (
+      updatedMotorista.status_aprovacao !== data.novoStatus ||
+      updatedMotorista.is_disponivel !== false
+    ) {
       throw new Error("Erro de integridade: a gravação final do status ou disponibilidade falhou.");
     }
 
@@ -234,12 +268,14 @@ export const getVeiculosAdmin = createServerFn({ method: "GET" })
 
     const { data: veiculos, error } = await supabaseAdmin
       .from("veiculos")
-      .select(`
+      .select(
+        `
         *,
         motoristas(
           usuarios(nome, email, cidades(nome))
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
@@ -249,11 +285,13 @@ export const getVeiculosAdmin = createServerFn({ method: "GET" })
 export const updateStatusVeiculo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      veiculoId: z.string(),
-      novoStatus: z.enum(["aprovado", "recusado", "suspenso"]),
-      justificativa: z.string().optional(),
-    }).parse(data)
+    z
+      .object({
+        veiculoId: z.string(),
+        novoStatus: z.enum(["aprovado", "recusado", "suspenso"]),
+        justificativa: z.string().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
@@ -296,7 +334,7 @@ export const updateStatusVeiculo = createServerFn({ method: "POST" })
       if (mUpdateError || !updatedMotorista) {
         throw new Error("Falha ao retirar motorista de ONLINE. Operação abortada.");
       }
-      
+
       if (updatedMotorista.is_disponivel !== false) {
         throw new Error("Falha crítica ao confirmar status OFFLINE do motorista.");
       }
@@ -335,10 +373,12 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
     // 1. Dados do Motorista e Usuário
     const { data: motorista, error: mError } = await supabaseAdmin
       .from("motoristas")
-      .select(`
+      .select(
+        `
         *,
         usuarios(id, nome, email, celular, cpf, data_nascimento, cidade_id, cidades(nome, estado_uf))
-      `)
+      `,
+      )
       .eq("id", data.motoristaId)
       .maybeSingle();
 
@@ -368,19 +408,19 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
 
     const { data: documentos, error: dError } = await queryDocs;
     if (dError) console.error("Erro ao buscar documentos:", dError);
-    
+
     // As URLs assinadas são geradas sob demanda no frontend via getDocumentoUrlSigned
     const docsSimplificados = documentos || [];
 
     // 4. Auditoria (Logs do motorista, de seus documentos e de seu veículo)
     const logFilter = [`entidade.eq.motoristas,entidade_id.eq.${data.motoristaId}`];
-    
+
     // Incluir logs dos documentos do motorista
     if (documentos && documentos.length > 0) {
-      const docIds = documentos.map(d => d.id).join(',');
+      const docIds = documentos.map((d) => d.id).join(",");
       logFilter.push(`entidade.eq.documentos_motorista,entidade_id.in.(${docIds})`);
     }
-    
+
     // Incluir logs do veículo
     if (veiculo?.id) {
       logFilter.push(`entidade.eq.veiculos,entidade_id.eq.${veiculo.id}`);
@@ -389,19 +429,19 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
     const { data: logs } = await supabaseAdmin
       .from("admin_audit_logs")
       .select("*")
-      .or(logFilter.join(','))
+      .or(logFilter.join(","))
       .order("created_at", { ascending: false })
       .limit(50);
 
     // Mascaramento básico (Admin vê, mas para segurança de log/transmissão básica)
-    // No projeto Zuvvi, o admin autorizado VÊ o dado real na ficha, mas aplicamos 
+    // No projeto Zuvvi, o admin autorizado VÊ o dado real na ficha, mas aplicamos
     // um padrão visual no front. Aqui retornamos o dado real conforme solicitado.
 
     return {
       motorista,
       veiculo,
       documentos: docsSimplificados,
-      logs
+      logs,
     };
   });
 
@@ -411,11 +451,13 @@ export const getMotoristaDetalheAdmin = createServerFn({ method: "GET" })
 export const updateStatusDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      documentoId: z.string(),
-      novoStatus: z.enum(["aprovado", "recusado", "pendente", "correcao_solicitada"]),
-      justificativa: z.string().optional(),
-    }).parse(data)
+    z
+      .object({
+        documentoId: z.string(),
+        novoStatus: z.enum(["aprovado", "recusado", "pendente", "correcao_solicitada"]),
+        justificativa: z.string().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
@@ -432,8 +474,8 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
     if (docError || !doc) throw new Error("Documento não encontrado.");
 
     // BLOQUEIO SERVER-SIDE PARA CNH VENCIDA OU AUSENTE NA APROVAÇÃO
-    if (doc.tipo_documento === 'cnh' && data.novoStatus === 'aprovado') {
-      const motorista = (doc.motoristas as any);
+    if (doc.tipo_documento === "cnh" && data.novoStatus === "aprovado") {
+      const motorista = doc.motoristas as any;
       const cnhValidade = motorista?.cnh_validade;
 
       if (!cnhValidade) {
@@ -442,16 +484,18 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
 
       // Regra de Data America/Sao_Paulo (Dia Civil)
       const now = new Date();
-      const formatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Sao_Paulo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
+      const formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       });
       const hojeStr = formatter.format(now); // YYYY-MM-DD
-      
+
       if (cnhValidade < hojeStr) {
-        throw new Error("Bloqueado: A validade da CNH está vencida. O motorista deve atualizar a CNH antes da aprovação.");
+        throw new Error(
+          "Bloqueado: A validade da CNH está vencida. O motorista deve atualizar a CNH antes da aprovação.",
+        );
       }
     }
 
@@ -470,8 +514,15 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
 
     // MICROETAPA 1.6: FORÇAR OFFLINE QUANDO DOCUMENTO OBRIGATÓRIO PERDE APROVAÇÃO
     if (data.novoStatus !== "aprovado") {
-      const tiposObrigatorios = ['identidade', 'cnh', 'comprovante_residencia', 'crlv', 'foto_veiculo', 'foto_placa'];
-      
+      const tiposObrigatorios = [
+        "identidade",
+        "cnh",
+        "comprovante_residencia",
+        "crlv",
+        "foto_veiculo",
+        "foto_placa",
+      ];
+
       if (tiposObrigatorios.includes(doc.tipo_documento)) {
         let targetMotoristaId = doc.motorista_id;
 
@@ -482,15 +533,19 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
             .select("motorista_id")
             .eq("id", doc.veiculo_id)
             .single();
-          
+
           if (vError || !veiculo) {
-            throw new Error("Erro de integridade: Não foi possível localizar o motorista através do veículo vinculado.");
+            throw new Error(
+              "Erro de integridade: Não foi possível localizar o motorista através do veículo vinculado.",
+            );
           }
           targetMotoristaId = veiculo.motorista_id;
         }
 
         if (!targetMotoristaId) {
-          throw new Error("Erro de integridade: Não foi possível identificar um motorista válido para este documento obrigatório.");
+          throw new Error(
+            "Erro de integridade: Não foi possível identificar um motorista válido para este documento obrigatório.",
+          );
         }
 
         // Definir is_disponivel = false
@@ -504,9 +559,11 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
         if (mUpdateError || !updatedMotorista) {
           throw new Error("Falha ao retirar motorista de ONLINE. Operação abortada.");
         }
-        
+
         if (updatedMotorista.is_disponivel !== false) {
-          throw new Error("Falha crítica ao confirmar status OFFLINE do motorista vinculado ao documento.");
+          throw new Error(
+            "Falha crítica ao confirmar status OFFLINE do motorista vinculado ao documento.",
+          );
         }
       }
     }
@@ -518,7 +575,7 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
         status_analise: data.novoStatus,
         motivo_recusa: data.justificativa || null,
         data_analise: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq("id", data.documentoId);
 
@@ -536,7 +593,9 @@ export const updateStatusDocumento = createServerFn({ method: "POST" })
     }
 
     if (confirmedDoc.status_analise !== data.novoStatus) {
-      throw new Error(`Falha de persistência: O status no banco (${confirmedDoc.status_analise}) não corresponde ao solicitado (${data.novoStatus}).`);
+      throw new Error(
+        `Falha de persistência: O status no banco (${confirmedDoc.status_analise}) não corresponde ao solicitado (${data.novoStatus}).`,
+      );
     }
 
     // 3. Registrar Auditoria
@@ -583,10 +642,10 @@ export const getDocumentoUrlSigned = createServerFn({ method: "POST" })
       throw new Error("Erro ao gerar acesso ao arquivo.");
     }
 
-    return { 
+    return {
       url: signed.signedUrl,
       tipo: doc.tipo_documento,
-      isPdf: doc.storage_path.toLowerCase().endsWith('.pdf')
+      isPdf: doc.storage_path.toLowerCase().endsWith(".pdf"),
     };
   });
 
@@ -603,13 +662,15 @@ export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
     // 1. Dados do Veículo e Proprietário
     const { data: veiculo, error: vError } = await supabaseAdmin
       .from("veiculos")
-      .select(`
+      .select(
+        `
         *,
         motoristas(
           id, status_aprovacao,
           usuarios(nome, email, celular, cidades(nome, estado_uf))
         )
-      `)
+      `,
+      )
       .eq("id", data.veiculoId)
       .maybeSingle();
 
@@ -622,16 +683,18 @@ export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
       .select("*")
       .eq("veiculo_id", data.veiculoId);
 
-    const docsComUrl = await Promise.all((documentos || []).map(async (doc) => {
-      let publicUrl = null;
-      if (doc.storage_path) {
-        const { data: signed } = await supabaseAdmin.storage
-          .from("documentos-motorista")
-          .createSignedUrl(doc.storage_path, 3600);
-        publicUrl = signed?.signedUrl;
-      }
-      return { ...doc, publicUrl };
-    }));
+    const docsComUrl = await Promise.all(
+      (documentos || []).map(async (doc) => {
+        let publicUrl = null;
+        if (doc.storage_path) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from("documentos-motorista")
+            .createSignedUrl(doc.storage_path, 3600);
+          publicUrl = signed?.signedUrl;
+        }
+        return { ...doc, publicUrl };
+      }),
+    );
 
     // 3. Auditoria
     const { data: logs } = await supabaseAdmin
@@ -645,7 +708,7 @@ export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
     return {
       veiculo,
       documentos: docsComUrl,
-      logs
+      logs,
     };
   });
 
@@ -655,13 +718,15 @@ export const getVeiculoDetalheAdmin = createServerFn({ method: "GET" })
 export const getCidadesAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) =>
-    z.object({
-      pagina: z.number().default(0),
-      limite: z.number().default(20),
-      uf: z.string().optional(),
-      status: z.string().optional(),
-      busca: z.string().optional(),
-    }).parse(data)
+    z
+      .object({
+        pagina: z.number().default(0),
+        limite: z.number().default(20),
+        uf: z.string().optional(),
+        status: z.string().optional(),
+        busca: z.string().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
@@ -669,12 +734,13 @@ export const getCidadesAdmin = createServerFn({ method: "GET" })
 
     const offset = data.pagina * data.limite;
 
-    let query = supabaseAdmin
-      .from("cidades")
-      .select(`
+    let query = supabaseAdmin.from("cidades").select(
+      `
         id, nome, estado_uf, status,
         bandeirada, valor_km, valor_min, tarifa_minima, comissao_pct, raio_atuacao_km
-      `, { count: "exact" });
+      `,
+      { count: "exact" },
+    );
 
     if (data.uf) {
       query = query.eq("estado_uf", data.uf);
@@ -686,7 +752,11 @@ export const getCidadesAdmin = createServerFn({ method: "GET" })
       query = query.ilike("nome", `%${data.busca}%`);
     }
 
-    const { data: cidades, count, error } = await query
+    const {
+      data: cidades,
+      count,
+      error,
+    } = await query
       .order("estado_uf", { ascending: true })
       .order("nome", { ascending: true })
       .range(offset, offset + data.limite - 1);
@@ -697,18 +767,20 @@ export const getCidadesAdmin = createServerFn({ method: "GET" })
       cidades: cidades || [],
       total: count || 0,
       pagina: data.pagina,
-      limite: data.limite
+      limite: data.limite,
     };
   });
 
 export const updateStatusCidade = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) =>
-    z.object({
-      cidadeId: z.string(),
-      novoStatus: z.enum(["em_breve", "piloto", "ativa"]),
-      justificativa: z.string().min(3, "Justificativa muito curta"),
-    }).parse(data)
+    z
+      .object({
+        cidadeId: z.string(),
+        novoStatus: z.enum(["em_breve", "piloto", "ativa"]),
+        justificativa: z.string().min(3, "Justificativa muito curta"),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
@@ -736,7 +808,7 @@ export const updateStatusCidade = createServerFn({ method: "POST" })
       "valor_min",
       "tarifa_minima",
       "comissao_pct",
-      "raio_atuacao_km"
+      "raio_atuacao_km",
     ];
 
     for (const campo of tarifasObrigatorias) {
@@ -745,7 +817,7 @@ export const updateStatusCidade = createServerFn({ method: "POST" })
         throw new Error(`Bloqueado: Campo de tarifa '${campo}' está nulo ou inválido.`);
       }
       // Se for comissão, validar se está entre 0 e 100
-      if (campo === "comissao_pct" && (Number(valor) > 100)) {
+      if (campo === "comissao_pct" && Number(valor) > 100) {
         throw new Error("Bloqueado: Comissão percentual inválida.");
       }
     }
@@ -753,9 +825,9 @@ export const updateStatusCidade = createServerFn({ method: "POST" })
     // 11. Executar o UPDATE
     const { error: updateError } = await supabaseAdmin
       .from("cidades")
-      .update({ 
+      .update({
         status: data.novoStatus,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq("id", data.cidadeId);
 
@@ -773,7 +845,9 @@ export const updateStatusCidade = createServerFn({ method: "POST" })
     }
 
     if (confirmedCidade.status !== data.novoStatus) {
-      throw new Error(`Falha de persistência: O status no banco (${confirmedCidade.status}) não corresponde ao solicitado (${data.novoStatus}).`);
+      throw new Error(
+        `Falha de persistência: O status no banco (${confirmedCidade.status}) não corresponde ao solicitado (${data.novoStatus}).`,
+      );
     }
 
     // 14. Registrar auditoria
@@ -787,26 +861,28 @@ export const updateStatusCidade = createServerFn({ method: "POST" })
       justificativa: `Alteração de status da cidade ${cidade.nome}/${cidade.estado_uf}: ${data.justificativa}`,
     });
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       novoStatus: confirmedCidade.status,
-      updatedAt: confirmedCidade.updated_at
+      updatedAt: confirmedCidade.updated_at,
     };
   });
 
 export const updateTarifasCidade = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) =>
-    z.object({
-      cidadeId: z.string(),
-      bandeirada: z.number().min(0),
-      valor_km: z.number().min(0),
-      valor_min: z.number().min(0),
-      tarifa_minima: z.number().min(0),
-      raio_atuacao_km: z.number().min(0),
-      comissao_pct: z.number().min(0).max(100),
-      justificativa: z.string().min(3, "Justificativa obrigatória (mín. 3 caracteres)"),
-    }).parse(data)
+    z
+      .object({
+        cidadeId: z.string(),
+        bandeirada: z.number().min(0),
+        valor_km: z.number().min(0),
+        valor_min: z.number().min(0),
+        tarifa_minima: z.number().min(0),
+        raio_atuacao_km: z.number().min(0),
+        comissao_pct: z.number().min(0).max(100),
+        justificativa: z.string().min(3, "Justificativa obrigatória (mín. 3 caracteres)"),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
@@ -828,7 +904,7 @@ export const updateTarifasCidade = createServerFn({ method: "POST" })
       valor_min: cidade.valor_min,
       tarifa_minima: cidade.tarifa_minima,
       comissao_pct: cidade.comissao_pct,
-      raio_atuacao_km: cidade.raio_atuacao_km
+      raio_atuacao_km: cidade.raio_atuacao_km,
     };
 
     const estadoNovo = {
@@ -837,7 +913,7 @@ export const updateTarifasCidade = createServerFn({ method: "POST" })
       valor_min: data.valor_min,
       tarifa_minima: data.tarifa_minima,
       comissao_pct: data.comissao_pct,
-      raio_atuacao_km: data.raio_atuacao_km
+      raio_atuacao_km: data.raio_atuacao_km,
     };
 
     // 2. Executar UPDATE
@@ -845,7 +921,7 @@ export const updateTarifasCidade = createServerFn({ method: "POST" })
       .from("cidades")
       .update({
         ...estadoNovo,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq("id", data.cidadeId);
 
@@ -861,7 +937,14 @@ export const updateTarifasCidade = createServerFn({ method: "POST" })
     if (confirmError || !confirmed) throw new Error("Erro ao confirmar persistência das tarifas.");
 
     // Comparar valores
-    const campos = ["bandeirada", "valor_km", "valor_min", "tarifa_minima", "comissao_pct", "raio_atuacao_km"];
+    const campos = [
+      "bandeirada",
+      "valor_km",
+      "valor_min",
+      "tarifa_minima",
+      "comissao_pct",
+      "raio_atuacao_km",
+    ];
     for (const campo of campos) {
       if (Number((confirmed as any)[campo]) !== Number((data as any)[campo])) {
         throw new Error(`Falha de persistência no campo ${campo}.`);
@@ -885,14 +968,16 @@ export const updateTarifasCidade = createServerFn({ method: "POST" })
 export const updateDadosVeiculo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      veiculoId: z.string(),
-      placa: z.string().optional(),
-      marca: z.string().optional(),
-      modelo: z.string().optional(),
-      ano: z.number().optional(),
-      cor: z.string().optional(),
-    }).parse(data)
+    z
+      .object({
+        veiculoId: z.string(),
+        placa: z.string().optional(),
+        marca: z.string().optional(),
+        modelo: z.string().optional(),
+        ano: z.number().optional(),
+        cor: z.string().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await checkAdmin(context.userId);
@@ -933,7 +1018,3 @@ export const updateDadosVeiculo = createServerFn({ method: "POST" })
 
     return atualizado;
   });
-
-
-
-

@@ -1,7 +1,10 @@
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listarMinhasCorridasAgendadas, cancelarCorridaAgendada } from "@/lib/corridas-agendadas.functions";
+import {
+  listarMinhasCorridasAgendadas,
+  cancelarCorridaAgendada,
+} from "@/lib/corridas-agendadas.functions";
 import { CalendarClock, MapPin, CreditCard, Loader2, X, ChevronLeft } from "lucide-react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { format } from "date-fns";
@@ -13,7 +16,8 @@ import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
 export const Route = createFileRoute("/corridas-agendadas")({
   loader: async () => {
     const dest = await resolveDestinationForLoader();
-    const canAccess = dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
+    const canAccess =
+      dest.isPassageiro === true && dest.redirectTo === "/" && !dest.isAdmin && !dest.isMotorista;
 
     if (!canAccess) {
       throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
@@ -32,7 +36,11 @@ function MinhasCorridasAgendadas() {
     setIsHydrated(true);
   }, []);
 
-  const { data: agendamentos, isLoading, error } = useQuery({
+  const {
+    data: agendamentos,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["corridas-agendadas"],
     queryFn: () => listarFn(),
     enabled: isHydrated,
@@ -108,9 +116,13 @@ function MinhasCorridasAgendadas() {
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   <CalendarClock className="w-3 h-3" />
-                  {format(new Date(agendamento.horarioAgendado), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
+                  {format(new Date(agendamento.horarioAgendado), "dd 'de' MMMM, HH:mm", {
+                    locale: ptBR,
+                  })}
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-widest ${getStatusColor(agendamento.status)}`}>
+                <span
+                  className={`text-[10px] font-black uppercase tracking-widest ${getStatusColor(agendamento.status)}`}
+                >
                   {getStatusLabel(agendamento.status)}
                 </span>
               </div>
@@ -126,7 +138,9 @@ function MinhasCorridasAgendadas() {
                     <p className="text-sm font-medium truncate opacity-60">
                       {agendamento.origemNome || "Origem"}
                     </p>
-                    <p className="text-sm font-bold truncate">{agendamento.destinoNome || "Destino"}</p>
+                    <p className="text-sm font-bold truncate">
+                      {agendamento.destinoNome || "Destino"}
+                    </p>
                   </div>
                 </div>
 
@@ -136,8 +150,12 @@ function MinhasCorridasAgendadas() {
                       <CreditCard className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Pagamento</p>
-                      <p className="text-[11px] font-bold uppercase">{agendamento.formaPagamento}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-none mb-1">
+                        Pagamento
+                      </p>
+                      <p className="text-[11px] font-bold uppercase">
+                        {agendamento.formaPagamento}
+                      </p>
                     </div>
                   </div>
 

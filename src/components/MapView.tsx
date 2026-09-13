@@ -44,17 +44,17 @@ export function MapView({
 
     try {
       mapboxgl.accessToken = token;
-      
+
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/dark-v11",
         center: [center.lng, center.lat],
         zoom: zoom,
         pitch: pitch,
-        attributionControl: false
+        attributionControl: false,
       });
 
-      map.current.on('load', () => {
+      map.current.on("load", () => {
         map.current?.resize();
         if (onMapInstance && map.current) {
           onMapInstance(map.current);
@@ -66,11 +66,12 @@ export function MapView({
         .addTo(map.current);
 
       if (secondaryMarker) {
-        secondaryMarkerRef.current = new mapboxgl.Marker({ color: secondaryMarker.color || "#6C3CE9" })
+        secondaryMarkerRef.current = new mapboxgl.Marker({
+          color: secondaryMarker.color || "#6C3CE9",
+        })
           .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
           .addTo(map.current);
       }
-
     } catch (err) {
       console.error("Erro ao inicializar mapa:", err);
       toast.error("Falha ao inicializar o mapa.");
@@ -89,9 +90,9 @@ export function MapView({
     if (map.current && center) {
       map.current.flyTo({
         center: [center.lng, center.lat],
-        zoom: zoom
+        zoom: zoom,
       });
-      
+
       if (marker.current) {
         marker.current.setLngLat([center.lng, center.lat]);
       }
@@ -124,8 +125,8 @@ export function MapView({
             "fill-extrusion-color": "#2a2a55",
             "fill-extrusion-height": ["get", "height"],
             "fill-extrusion-base": ["get", "min_height"],
-            "fill-extrusion-opacity": 0.75
-          }
+            "fill-extrusion-opacity": 0.75,
+          },
         });
       } else if (!show3DBuildings && hasLayer) {
         currentMap.removeLayer("zuvvi-3d-buildings");
@@ -150,7 +151,9 @@ export function MapView({
         if (secondaryMarkerRef.current) {
           secondaryMarkerRef.current.setLngLat([secondaryMarker.lng, secondaryMarker.lat]);
         } else {
-          secondaryMarkerRef.current = new mapboxgl.Marker({ color: secondaryMarker.color || "#6C3CE9" })
+          secondaryMarkerRef.current = new mapboxgl.Marker({
+            color: secondaryMarker.color || "#6C3CE9",
+          })
             .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
             .addTo(map.current);
         }

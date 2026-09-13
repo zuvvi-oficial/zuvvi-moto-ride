@@ -2,7 +2,15 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ChevronLeft, LifeBuoy, Loader2, MessageSquare, Send, ShieldAlert, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  LifeBuoy,
+  Loader2,
+  MessageSquare,
+  Send,
+  ShieldAlert,
+  ChevronRight,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -27,7 +35,10 @@ export const Route = createFileRoute("/meus-chamados")({
       throw redirect({ to: (dest.redirectTo || "/auth/login") as any });
     }
 
-    return { voltarPara: (ehMotorista ? "/perfil-motorista" : "/perfil") as "/perfil" | "/perfil-motorista" };
+    return {
+      voltarPara: (ehMotorista ? "/perfil-motorista" : "/perfil") as
+        "/perfil" | "/perfil-motorista",
+    };
   },
   head: () => ({
     meta: [
@@ -161,7 +172,9 @@ function MeusChamados() {
                 </div>
 
                 <p className="text-sm mt-3 line-clamp-2 text-foreground/90">{chamado.descricao}</p>
-                <p className="text-[11px] text-muted-foreground mt-2">{formatarData(chamado.created_at)}</p>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  {formatarData(chamado.created_at)}
+                </p>
               </button>
             );
           })
@@ -250,7 +263,9 @@ function DetalheChamadoPassageiro({
                   {STATUS_LABEL[chamado.status] ?? chamado.status}
                 </span>
               </div>
-              <p className="text-sm mt-3 text-foreground/90 whitespace-pre-wrap">{chamado.descricao}</p>
+              <p className="text-sm mt-3 text-foreground/90 whitespace-pre-wrap">
+                {chamado.descricao}
+              </p>
               <p className="text-[11px] text-muted-foreground mt-2">
                 Aberto em {formatarData(chamado.created_at)}
               </p>

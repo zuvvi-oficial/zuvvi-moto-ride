@@ -168,7 +168,10 @@ function canonicalPayment(overrides: Record<string, unknown> = {}) {
   assert.equal(body.application_fee, 3.7);
   assert.equal(body.payment_method_id, "pix");
   assert.equal(body.external_reference, externalReference);
-  assert.match(body.notification_url, /^https:\/\/zuvvi-moto-ride\.lovable\.app\/api\/mercadopago\/webhook/);
+  assert.match(
+    body.notification_url,
+    /^https:\/\/zuvvi-moto-ride\.lovable\.app\/api\/mercadopago\/webhook/,
+  );
   assert.match(body.notification_url, /source_news=webhooks/);
   assert.equal(body.payer.first_name, "Maria");
   assert.equal(body.payer.last_name, "da Silva");
@@ -212,7 +215,10 @@ function canonicalPayment(overrides: Record<string, unknown> = {}) {
       seenUrls.push(url);
       assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer SELLER-TOKEN");
       if (url.includes("/v1/payments/search")) {
-        assert.match(url, new RegExp(`external_reference=${encodeURIComponent(externalReference)}`));
+        assert.match(
+          url,
+          new RegExp(`external_reference=${encodeURIComponent(externalReference)}`),
+        );
         return jsonResponse({
           paging: { total: 1, limit: 2, offset: 0 },
           results: [{ id: 987654321, external_reference: externalReference }],
@@ -355,15 +361,24 @@ assert.match(pagamentoSource, /external_reference:\s*input\.externalReference/);
 assert.match(pagamentoSource, /notification_url:\s*getPixNotificationUrl\(\)/);
 assert.match(pagamentoSource, /additional_info/);
 assert.match(pagamentoSource, /passageiroCelular/);
-assert.match(pagamentoSource, /requestOptions:\s*\{\s*idempotencyKey,\s*meliSessionId:\s*deviceId\s*\}/);
+assert.match(
+  pagamentoSource,
+  /requestOptions:\s*\{\s*idempotencyKey,\s*meliSessionId:\s*deviceId\s*\}/,
+);
 assert.match(pagamentoSource, /externalReference:\s*idempotencyKey/);
 assert.match(pagamentoSource, /pix_charge_attempt_claim/);
 assert.match(pagamentoSource, /pix_charge_attempt_complete/);
 assert.match(pagamentoSource, /pix_charge_failure_compensate/);
 assert.match(pagamentoSource, /buscarPagamentoPixCanonico/);
 assert.match(pagamentoSource, /falhaCriacaoMercadoPagoPermiteCompensacao/);
-assert.match(pagamentoSource, /Estado da criação Pix incerto; tentativa mantida para reconciliação/);
-assert.match(pagamentoSource, /Falha ao persistir resultado Pix; cobrança mantida para reconciliação/);
+assert.match(
+  pagamentoSource,
+  /Estado da criação Pix incerto; tentativa mantida para reconciliação/,
+);
+assert.match(
+  pagamentoSource,
+  /Falha ao persistir resultado Pix; cobrança mantida para reconciliação/,
+);
 assert.doesNotMatch(
   pagamentoSource,
   /console\.error\([^\n]*error\)/,

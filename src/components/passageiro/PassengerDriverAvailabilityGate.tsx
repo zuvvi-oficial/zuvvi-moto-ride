@@ -151,7 +151,8 @@ export function PassengerDriverAvailabilityGate() {
         </p>
 
         <p className="mt-3 text-xs font-semibold text-zuvvi-volt">
-          Tente novamente em alguns minutos. Assim que um mototaxista ficar online, você poderá pedir sua corrida.
+          Tente novamente em alguns minutos. Assim que um mototaxista ficar online, você poderá
+          pedir sua corrida.
         </p>
 
         <button

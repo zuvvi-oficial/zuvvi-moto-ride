@@ -26,7 +26,11 @@ function formatarMoeda(valor: number) {
 function GanhosMotorista() {
   const getResumoFn = useServerFn(getResumoGanhos);
 
-  const { data: resumo, isLoading, error } = useQuery({
+  const {
+    data: resumo,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["resumo-ganhos"],
     queryFn: () => getResumoFn(),
   });

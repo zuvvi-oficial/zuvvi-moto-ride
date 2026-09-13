@@ -1,4 +1,10 @@
-import { createECDH, createCipheriv, createHmac, randomBytes, sign as cryptoSign } from "node:crypto";
+import {
+  createECDH,
+  createCipheriv,
+  createHmac,
+  randomBytes,
+  sign as cryptoSign,
+} from "node:crypto";
 
 // Implementação própria do Web Push (VAPID — RFC 8292 — e criptografia de
 // mensagem aes128gcm — RFC 8291/8188), sem depender do pacote `web-push`.
@@ -26,7 +32,9 @@ function hkdfExtract(salt: Buffer, ikm: Buffer): Buffer {
 // As mensagens Web Push nunca precisam de mais de 32 bytes de material
 // derivado nesta implementação, então um único bloco HKDF (T(1)) é suficiente.
 function hkdfExpand(prk: Buffer, info: Buffer, length: number): Buffer {
-  const t1 = createHmac("sha256", prk).update(Buffer.concat([info, Buffer.from([0x01])])).digest();
+  const t1 = createHmac("sha256", prk)
+    .update(Buffer.concat([info, Buffer.from([0x01])]))
+    .digest();
   if (length > t1.length) throw new Error("HKDF expand length não suportado nesta implementação.");
   return t1.subarray(0, length);
 }
@@ -164,7 +172,11 @@ export function encryptWebPushPayload(input: {
   const ecdhSecret = localEcdh.computeSecret(uaPublicRaw);
 
   const prkKey = hkdfExtract(authSecret, ecdhSecret);
-  const keyInfo = Buffer.concat([Buffer.from("WebPush: info\0", "utf8"), uaPublicRaw, localPublicRaw]);
+  const keyInfo = Buffer.concat([
+    Buffer.from("WebPush: info\0", "utf8"),
+    uaPublicRaw,
+    localPublicRaw,
+  ]);
   const ikm = hkdfExpand(prkKey, keyInfo, 32);
 
   const salt = randomBytes(16);

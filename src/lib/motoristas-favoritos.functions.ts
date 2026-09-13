@@ -77,7 +77,11 @@ export const adicionarMotoristaFavorito = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const passageiroId = await resolverUsuarioId(supabaseAdmin, context.userId);
 
-    const jaAndouComEle = await passageiroTemCorridaConcluidaCom(supabaseAdmin, passageiroId, data.motoristaId);
+    const jaAndouComEle = await passageiroTemCorridaConcluidaCom(
+      supabaseAdmin,
+      passageiroId,
+      data.motoristaId,
+    );
     if (!jaAndouComEle) {
       throw new Error("Você só pode favoritar um motorista com quem já concluiu uma corrida.");
     }

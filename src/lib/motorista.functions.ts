@@ -18,10 +18,12 @@ export const getOnboardingData = createServerFn({ method: "GET" })
 
     const { data: userData, error: userError } = await supabaseAdmin
       .from("usuarios")
-      .select(`
+      .select(
+        `
         id,
         is_motorista
-      `)
+      `,
+      )
       .eq("auth_user_id", authUserId)
       .single();
 
@@ -74,7 +76,7 @@ export const getOnboardingData = createServerFn({ method: "GET" })
     return {
       motorista: motorista || null,
       veiculo: veiculoData || null,
-      documentos: docsData || []
+      documentos: docsData || [],
     };
   });
 
@@ -135,50 +137,59 @@ export const getMotoristaStatusFeedback = createServerFn({ method: "GET" })
       return {
         status: motorista.status_aprovacao,
         justificativa: auditLog?.justificativa || null,
-        created_at: auditLog?.created_at || null
+        created_at: auditLog?.created_at || null,
       };
     }
 
     return {
       status: motorista.status_aprovacao,
       justificativa: null,
-      created_at: null
+      created_at: null,
     };
   });
 
 export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ 
-    lat: z.number(), 
-    lng: z.number() 
-  }).parse(data))
-
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        lat: z.number(),
+        lng: z.number(),
+      })
+      .parse(data),
+  )
 
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
-    const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
-    
+
+    const { evaluateMotoristaOperationalEligibility } =
+      await import("./motorista-eligibility.server");
+
     // Validar elegibilidade central (garante offline se necessário)
-    const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, context.userId);
-    
+    const eligibility = await evaluateMotoristaOperationalEligibility(
+      supabaseAdmin,
+      context.userId,
+    );
+
     if (!eligibility.eligible) {
       throw new Error(eligibility.message || "Motorista não elegível.");
     }
 
     const { data: motoristaInfo, error: mError } = await supabaseAdmin
       .from("usuarios")
-      .select(`
+      .select(
+        `
         id, 
         motoristas!inner(is_disponivel)
-      `)
+      `,
+      )
       .eq("auth_user_id", context.userId)
       .single();
 
     if (mError || !motoristaInfo) throw new Error("Usuário não encontrado.");
-    
-    const motorista = (motoristaInfo.motoristas as any);
-    
+
+    const motorista = motoristaInfo.motoristas as any;
+
     // Regra consolidada: Disponível OU Possui Corrida Ativa
     if (!motorista.is_disponivel) {
       const { data: activeRides, error: rideError } = await supabaseAdmin
@@ -188,7 +199,7 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
         .in("status", ["aceita", "motorista_a_caminho", "motorista_chegou", "em_andamento"]);
 
       if (rideError) throw new Error("Erro ao validar estado da corrida.");
-      
+
       if (!activeRides || activeRides.length === 0) {
         throw new Error("Motorista deve estar online ou em corrida ativa para enviar GPS.");
       }
@@ -200,10 +211,10 @@ export const updateLocalizacaoMotorista = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin
       .from("motoristas")
-      .update({ 
-        ultima_lat: data.lat, 
-        ultima_lng: data.lng, 
-        ultima_localizacao_at: new Date().toISOString() 
+      .update({
+        ultima_lat: data.lat,
+        ultima_lng: data.lng,
+        ultima_localizacao_at: new Date().toISOString(),
       })
       .eq("id", motoristaInfo.id);
 
@@ -215,32 +226,41 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
+    const { evaluateMotoristaOperationalEligibility } =
+      await import("./motorista-eligibility.server");
 
-    const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, context.userId);
+    const eligibility = await evaluateMotoristaOperationalEligibility(
+      supabaseAdmin,
+      context.userId,
+    );
     if (!eligibility.eligible) return [];
 
     const { data: user, error: uError } = await supabaseAdmin
       .from("usuarios")
-      .select(`
+      .select(
+        `
         id, 
         cidade_id, 
         cidades!inner(status),
         motoristas!inner(is_disponivel, ultima_localizacao_at, ultima_lat, ultima_lng, conta_mercado_pago_id)
-      `)
+      `,
+      )
       .eq("auth_user_id", context.userId)
       .single();
 
     if (uError || !user) return [];
-    
-    const motorista = (user.motoristas as any);
-    const cidade = (user.cidades as any);
+
+    const motorista = user.motoristas as any;
+    const cidade = user.cidades as any;
 
     if (!motorista.is_disponivel) return [];
-    if (cidade.status !== 'piloto' && cidade.status !== 'ativa') return [];
+    if (cidade.status !== "piloto" && cidade.status !== "ativa") return [];
 
     const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
-    if (!motorista.ultima_localizacao_at || new Date(motorista.ultima_localizacao_at) < cincoMinutosAtras) {
+    if (
+      !motorista.ultima_localizacao_at ||
+      new Date(motorista.ultima_localizacao_at) < cincoMinutosAtras
+    ) {
       return [];
     }
 
@@ -250,14 +270,18 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       .from("motorista_recusas")
       .select("corrida_id")
       .eq("motorista_id", user.id);
-    
-    const idsRecusados = (recusas?.map((r: any) => r.corrida_id) || []).filter((id): id is string => id !== null);
+
+    const idsRecusados = (recusas?.map((r: any) => r.corrida_id) || []).filter(
+      (id): id is string => id !== null,
+    );
 
     const { data: allCandidates } = await supabaseAdmin
       .from("corridas")
-      .select("id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, origem_lat, origem_lng, passageiro_id, motorista_favorito_id, prioridade_favorito_expira_em")
+      .select(
+        "id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, origem_lat, origem_lng, passageiro_id, motorista_favorito_id, prioridade_favorito_expira_em",
+      )
       .eq("cidade_id", user.cidade_id)
-      .eq("status", 'solicitada')
+      .eq("status", "solicitada")
       .is("motorista_id", null);
 
     if (!allCandidates || allCandidates.length === 0) return [];
@@ -265,12 +289,11 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
     let pixConectado = false;
     if (allCandidates.some((ride) => ride.forma_pagamento === "pix")) {
       try {
-        const { getPixMercadoPagoSecureConnectionStatus } = await import(
-          "./pix-mercadopago-account.server"
-        );
+        const { getPixMercadoPagoSecureConnectionStatus } =
+          await import("./pix-mercadopago-account.server");
         const statusPix = await getPixMercadoPagoSecureConnectionStatus(
           supabaseAdmin as any,
-          user.id
+          user.id,
         );
         pixConectado = statusPix.conectado;
       } catch {
@@ -279,7 +302,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
     }
 
     // 1. Extrair passageiro_id dos candidatos
-    const uniquePassengerIds = Array.from(new Set(allCandidates.map(c => c.passageiro_id)));
+    const uniquePassengerIds = Array.from(new Set(allCandidates.map((c) => c.passageiro_id)));
 
     // 2. Consultar a corrida MAIS RECENTE ABSOLUTA de cada um desses passageiros
     // Sem filtrar por status, para detectar se a solicitada é obsoleta
@@ -302,11 +325,13 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
 
     const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
       const R = 6371e3;
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δφ = (lat2 - lat1) * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const φ1 = (lat1 * Math.PI) / 180;
+      const φ2 = (lat2 * Math.PI) / 180;
+      const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+      const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
@@ -316,7 +341,7 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
     }
 
     const ofertasFiltradas = allCandidates
-      .filter(ride => {
+      .filter((ride) => {
         // Corridas Pix exigem credencial OAuth privada válida e coerente
         if (ride.forma_pagamento === "pix" && !pixConectado) return false;
 
@@ -346,9 +371,15 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
       })
       .map((ride: any) => ({
         ...ride,
-        distancia_aprox_m: Math.round(haversine(motorista.ultima_lat, motorista.ultima_lng, ride.origem_lat, ride.origem_lng))
+        distancia_aprox_m: Math.round(
+          haversine(motorista.ultima_lat, motorista.ultima_lng, ride.origem_lat, ride.origem_lng),
+        ),
       }))
-      .sort((a, b) => a.distancia_aprox_m - b.distancia_aprox_m || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort(
+        (a, b) =>
+          a.distancia_aprox_m - b.distancia_aprox_m ||
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
       .slice(0, 10);
 
     // Dados do passageiro (nome, foto, nota média) para o card do pedido de
@@ -404,7 +435,16 @@ export const getOfertasDisponiveis = createServerFn({ method: "GET" })
     }
 
     const ofertas = ofertasFiltradas.map(
-      ({ id, origem_nome, destino_nome, valor_estimado, forma_pagamento, created_at, distancia_aprox_m, passageiro_id }) => {
+      ({
+        id,
+        origem_nome,
+        destino_nome,
+        valor_estimado,
+        forma_pagamento,
+        created_at,
+        distancia_aprox_m,
+        passageiro_id,
+      }) => {
         const info = infoPorPassageiro.get(passageiro_id);
         return {
           id,
@@ -434,7 +474,8 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
     const userId = context.userId;
 
     // 1. Validações server-side completas via regra central
-    const { evaluateMotoristaOperationalEligibility } = await import("./motorista-eligibility.server");
+    const { evaluateMotoristaOperationalEligibility } =
+      await import("./motorista-eligibility.server");
     const eligibility = await evaluateMotoristaOperationalEligibility(supabaseAdmin, userId);
 
     if (!eligibility.eligible) {
@@ -462,20 +503,23 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
     }
 
     const cincoMinutosAtras = new Date(Date.now() - 5 * 60 * 1000);
-    if (!motoristaLoc?.ultima_localizacao_at || new Date(motoristaLoc.ultima_localizacao_at) < cincoMinutosAtras) {
-      throw new Error("Sinal de GPS desatualizado. Por favor, aguarde a atualização da localização.");
+    if (
+      !motoristaLoc?.ultima_localizacao_at ||
+      new Date(motoristaLoc.ultima_localizacao_at) < cincoMinutosAtras
+    ) {
+      throw new Error(
+        "Sinal de GPS desatualizado. Por favor, aguarde a atualização da localização.",
+      );
     }
 
-    const {
-      prepararCobrancaPixAntesAceiteServer,
-      criarCobrancaPixAposAceiteServer
-    } = await import("./pagamento.server");
+    const { prepararCobrancaPixAntesAceiteServer, criarCobrancaPixAposAceiteServer } =
+      await import("./pagamento.server");
     const pixPreparation = await prepararCobrancaPixAntesAceiteServer(data.rideId, motoristaId);
 
     // 2. Aceite Atômico via RPC
     const { error: rpcError } = await supabaseAdmin.rpc("accept_corrida_atomic", {
       p_corrida_id: data.rideId,
-      p_motorista_id: motoristaId
+      p_motorista_id: motoristaId,
     });
 
     if (rpcError) {
@@ -490,9 +534,11 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
         throw new Error("Você precisa estar online.");
       }
       if (rpcError.message.includes("Conta Mercado Pago inválida para corrida Pix")) {
-        throw new Error("Sua conta Mercado Pago precisa ser reconectada antes de aceitar corrida Pix.");
+        throw new Error(
+          "Sua conta Mercado Pago precisa ser reconectada antes de aceitar corrida Pix.",
+        );
       }
-      
+
       throw new Error("Falha ao processar o aceite. Tente novamente.");
     }
 
@@ -506,14 +552,14 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
       .select("passageiro_id")
       .eq("id", data.rideId)
       .single();
-    
+
     if (rideData) {
       await criarNotificacao(supabaseAdmin, {
         usuario_id: rideData.passageiro_id,
         tipo: "motorista_aceitou",
         titulo: "🏍️ Motorista a caminho!",
         mensagem: "Seu piloto aceitou a corrida e já está se deslocando.",
-        corrida_id: data.rideId
+        corrida_id: data.rideId,
       });
     }
 
@@ -525,22 +571,24 @@ export const recusarCorrida = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ rideId: z.string() }).parse(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+
     // Validar motorista aprovado e pertencente à cidade da corrida
     const { data: motoristaInfo, error: mError } = await supabaseAdmin
       .from("usuarios")
-      .select(`
+      .select(
+        `
         id, 
         cidade_id,
         motoristas!inner(status_aprovacao)
-      `)
+      `,
+      )
       .eq("auth_user_id", context.userId)
       .single();
 
     if (mError || !motoristaInfo) throw new Error("Motorista não encontrado.");
-    
-    const motorista = (motoristaInfo.motoristas as any);
-    if (motorista.status_aprovacao !== 'aprovado') throw new Error("Motorista não aprovado.");
+
+    const motorista = motoristaInfo.motoristas as any;
+    if (motorista.status_aprovacao !== "aprovado") throw new Error("Motorista não aprovado.");
 
     const { data: corrida, error: cError } = await supabaseAdmin
       .from("corridas")
@@ -549,17 +597,16 @@ export const recusarCorrida = createServerFn({ method: "POST" })
       .single();
 
     if (cError || !corrida) throw new Error("Corrida não encontrada.");
-    if (corrida.cidade_id !== motoristaInfo.cidade_id) throw new Error("Corrida não pertence à sua cidade.");
-    if (corrida.status !== 'solicitada') throw new Error("A corrida não está mais disponível.");
+    if (corrida.cidade_id !== motoristaInfo.cidade_id)
+      throw new Error("Corrida não pertence à sua cidade.");
+    if (corrida.status !== "solicitada") throw new Error("A corrida não está mais disponível.");
 
-    const { error } = await supabaseAdmin
-      .from("motorista_recusas")
-      .insert({
-        motorista_id: motoristaInfo.id,
-        corrida_id: data.rideId
-      });
+    const { error } = await supabaseAdmin.from("motorista_recusas").insert({
+      motorista_id: motoristaInfo.id,
+      corrida_id: data.rideId,
+    });
 
-    if (error && (error as any).code !== '23505') {
+    if (error && (error as any).code !== "23505") {
       throw new Error("Erro ao registrar recusa.");
     }
 
@@ -631,15 +678,15 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
     const { data: corrida, error: updateError } = await supabaseAdmin
       .from("corridas")
       .update({
-        status: 'cancelada',
-        cancelado_por: 'motorista',
-        data_cancelamento: new Date().toISOString()
+        status: "cancelada",
+        cancelado_por: "motorista",
+        data_cancelamento: new Date().toISOString(),
       } as any)
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
       // Regra: motorista só pode cancelar ANTES de iniciar a viagem (em_andamento).
       // A permissão temporária 3.6-C para cancelar em_andamento foi revogada na 3.7.
-      .in("status", ['aceita', 'motorista_a_caminho', 'motorista_chegou'])
+      .in("status", ["aceita", "motorista_a_caminho", "motorista_chegou"])
       .select()
       .maybeSingle();
 
@@ -698,13 +745,12 @@ export const cancelarCorridaMotorista = createServerFn({ method: "POST" })
         tipo: "corrida_cancelada",
         titulo: "❌ Corrida cancelada",
         mensagem: "O motorista precisou cancelar a sua corrida.",
-        corrida_id: data.rideId
+        corrida_id: data.rideId,
       });
     }
 
     return { success: true };
   });
-
 
 export const marcarMotoristaACaminho = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -742,7 +788,9 @@ export const marcarMotoristaACaminho = createServerFn({ method: "POST" })
     }
 
     if (!updatedRide) {
-      throw new Error("Não foi possível iniciar o deslocamento. Verifique o estado atual da corrida.");
+      throw new Error(
+        "Não foi possível iniciar o deslocamento. Verifique o estado atual da corrida.",
+      );
     }
 
     // Notificar Passageiro
@@ -758,16 +806,15 @@ export const marcarMotoristaACaminho = createServerFn({ method: "POST" })
         tipo: "motorista_a_caminho",
         titulo: "📍 Piloto a caminho",
         mensagem: "O motorista iniciou o deslocamento para o seu local.",
-        corrida_id: data.rideId
+        corrida_id: data.rideId,
       });
     }
 
     return {
       success: true,
-      status: updatedRide.status
+      status: updatedRide.status,
     };
   });
-
 
 export const marcarMotoristaChegou = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -791,8 +838,8 @@ export const marcarMotoristaChegou = createServerFn({ method: "POST" })
     const { data: updatedRide, error: updateError } = await supabaseAdmin
       .from("corridas")
       .update({
-        status: 'motorista_chegou',
-        data_chegada_motorista: new Date().toISOString()
+        status: "motorista_chegou",
+        data_chegada_motorista: new Date().toISOString(),
       } as any)
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
@@ -822,19 +869,21 @@ export const marcarMotoristaChegou = createServerFn({ method: "POST" })
         tipo: "motorista_chegou",
         titulo: "🏁 Seu piloto chegou!",
         mensagem: "O motorista já está no local de embarque. Tenha o código de 4 dígitos em mãos.",
-        corrida_id: data.rideId
+        corrida_id: data.rideId,
       });
     }
 
     return {
       success: true,
-      status: updatedRide.status
+      status: updatedRide.status,
     };
   });
 
 export const iniciarCorrida = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ rideId: z.string(), codigo: z.string().length(4) }).parse(data))
+  .inputValidator((data: unknown) =>
+    z.object({ rideId: z.string(), codigo: z.string().length(4) }).parse(data),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { criarNotificacao } = await import("./notificacoes.server");
@@ -859,8 +908,8 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
       .single();
 
     if (corridaError || !corrida) throw new Error("Corrida não encontrada.");
-    
-    if (corrida.status !== 'motorista_chegou') {
+
+    if (corrida.status !== "motorista_chegou") {
       throw new Error("A corrida deve estar no estado 'motorista_chegou' para ser iniciada.");
     }
 
@@ -872,12 +921,12 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
     const { data: updatedRide, error: updateError } = await supabaseAdmin
       .from("corridas")
       .update({
-        status: 'em_andamento',
-        data_inicio: new Date().toISOString()
+        status: "em_andamento",
+        data_inicio: new Date().toISOString(),
       } as any)
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
-      .eq("status", 'motorista_chegou')
+      .eq("status", "motorista_chegou")
       .select("id, status")
       .maybeSingle();
 
@@ -903,23 +952,31 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
         tipo: "corrida_iniciada",
         titulo: "🚀 Corrida iniciada",
         mensagem: "Boa viagem! Você está a caminho do seu destino.",
-        corrida_id: data.rideId
+        corrida_id: data.rideId,
       });
     }
 
     return {
       success: true,
-      status: updatedRide.status
+      status: updatedRide.status,
     };
   });
 
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({
-    tipo: z.string(),
-    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
-    fileSize: z.number().int().positive().max(10 * 1024 * 1024) // 10MB
-  }).parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        tipo: z.string(),
+        mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "application/pdf"]),
+        fileSize: z
+          .number()
+          .int()
+          .positive()
+          .max(10 * 1024 * 1024), // 10MB
+      })
+      .parse(data),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
@@ -928,30 +985,34 @@ export const getUploadUrl = createServerFn({ method: "POST" })
     // Extensão baseada no mimeType para facilitar identificação posterior
     let ext = "";
     if (data.mimeType) {
-      ext = "." + data.mimeType.split('/')[1];
+      ext = "." + data.mimeType.split("/")[1];
     }
 
     const fileName = `${userId}/${tipo}_${Date.now()}${ext}`;
-    
+
     const { data: uploadData, error } = await supabaseAdmin.storage
-      .from('documentos-motorista')
+      .from("documentos-motorista")
       .createSignedUploadUrl(fileName);
 
     if (error) throw new Error("Erro ao gerar URL de upload: " + error.message);
 
-    return { 
-      uploadUrl: uploadData.signedUrl, 
+    return {
+      uploadUrl: uploadData.signedUrl,
       storagePath: uploadData.path,
-      token: uploadData.token 
+      token: uploadData.token,
     };
   });
 
 export const registrarDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ 
-    tipo: z.string(), 
-    storagePath: z.string() 
-  }).parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        tipo: z.string(),
+        storagePath: z.string(),
+      })
+      .parse(data),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
@@ -966,13 +1027,13 @@ export const registrarDocumento = createServerFn({ method: "POST" })
     if (!motorista) throw new Error("Motorista não encontrado.");
 
     // --- Início da Validação de Segurança do Arquivo ---
-    const pathParts = data.storagePath.split('/');
+    const pathParts = data.storagePath.split("/");
     const basename = pathParts[pathParts.length - 1];
 
     if (!basename) throw new Error("Caminho de arquivo inválido.");
 
     const { data: files, error: listError } = await supabaseAdmin.storage
-      .from('documentos-motorista')
+      .from("documentos-motorista")
       .list(userId, { search: basename });
 
     if (listError) throw new Error("Erro ao verificar o arquivo no servidor.");
@@ -982,56 +1043,57 @@ export const registrarDocumento = createServerFn({ method: "POST" })
 
     const realSize = (objeto.metadata as { size?: unknown } | null)?.size;
     if (
-      typeof realSize !== 'number' ||
+      typeof realSize !== "number" ||
       !Number.isFinite(realSize) ||
       realSize <= 0 ||
       realSize > 10 * 1024 * 1024 // 10MB
     ) {
-      await supabaseAdmin.storage.from('documentos-motorista').remove([data.storagePath]);
+      await supabaseAdmin.storage.from("documentos-motorista").remove([data.storagePath]);
       throw new Error("Arquivo possui tamanho inválido ou é muito grande (limite 10MB).");
     }
 
     const { data: blob, error: downloadError } = await supabaseAdmin.storage
-      .from('documentos-motorista')
+      .from("documentos-motorista")
       .download(data.storagePath);
 
     if (downloadError || !blob) {
-      await supabaseAdmin.storage.from('documentos-motorista').remove([data.storagePath]);
+      await supabaseAdmin.storage.from("documentos-motorista").remove([data.storagePath]);
       throw new Error("Erro ao validar o conteúdo do arquivo.");
     }
 
     const head = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
-    
+
     // JPEG: FF D8 FF
     const isJpeg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
-    
+
     // PNG: 89 50 4E 47 0D 0A 1A 0A
     const pngSig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
     const isPng = pngSig.every((b, i) => head[i] === b);
-    
+
     // WEBP: RIFF....WEBP
     const ascii = (start: number, end: number) =>
       String.fromCharCode(...Array.from(head.slice(start, end)));
-    const isWebp = ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
-    
+    const isWebp = ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP";
+
     // PDF: %PDF (25 50 44 46)
     const isPdf = head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46;
 
     if (!isJpeg && !isPng && !isWebp && !isPdf) {
-      await supabaseAdmin.storage.from('documentos-motorista').remove([data.storagePath]);
+      await supabaseAdmin.storage.from("documentos-motorista").remove([data.storagePath]);
       throw new Error("Arquivo inválido. Envie uma imagem (JPEG, PNG, WEBP) ou PDF válido.");
     }
     // --- Fim da Validação de Segurança do Arquivo ---
 
-    const { error } = await supabaseAdmin
-      .from("documentos_motorista")
-      .upsert({
+    const { error } = await supabaseAdmin.from("documentos_motorista").upsert(
+      {
         motorista_id: motorista.id,
         tipo_documento: tipo,
         storage_path: data.storagePath,
-        status_analise: 'pendente',
-        data_envio: new Date().toISOString()
-      }, { onConflict: 'motorista_id,tipo_documento' } as any);
+        status_analise: "pendente",
+        data_envio: new Date().toISOString(),
+      },
+      { onConflict: "motorista_id,tipo_documento" } as any,
+    );
 
     if (error) throw new Error("Erro ao registrar documento: " + error.message);
     return { success: true };
@@ -1039,16 +1101,20 @@ export const registrarDocumento = createServerFn({ method: "POST" })
 
 export const salvarDadosCNH = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({
-    cnh_numero: z.string(),
-    cnh_categoria: z.string(),
-    cnh_validade: z.string(),
-    chave_pix: z.string(),
-    tipo_chave_pix: z.enum(['cpf', 'telefone', 'email', 'aleatoria']).optional()
-  }).parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        cnh_numero: z.string(),
+        cnh_categoria: z.string(),
+        cnh_validade: z.string(),
+        chave_pix: z.string(),
+        tipo_chave_pix: z.enum(["cpf", "telefone", "email", "aleatoria"]).optional(),
+      })
+      .parse(data),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+
     const { data: user } = await supabaseAdmin
       .from("usuarios")
       .select("id")
@@ -1064,7 +1130,7 @@ export const salvarDadosCNH = createServerFn({ method: "POST" })
         cnh_categoria: data.cnh_categoria,
         cnh_validade: data.cnh_validade,
         chave_pix: data.chave_pix,
-        tipo_chave_pix: data.tipo_chave_pix as any
+        tipo_chave_pix: data.tipo_chave_pix as any,
       } as any)
       .eq("id", user.id);
 
@@ -1074,16 +1140,20 @@ export const salvarDadosCNH = createServerFn({ method: "POST" })
 
 export const criarVeiculo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({
-    placa: z.string(),
-    marca: z.string(),
-    modelo: z.string(),
-    ano: z.number(),
-    cor: z.string()
-  }).parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        placa: z.string(),
+        marca: z.string(),
+        modelo: z.string(),
+        ano: z.number(),
+        cor: z.string(),
+      })
+      .parse(data),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+
     const { data: user } = await supabaseAdmin
       .from("usuarios")
       .select("id")
@@ -1099,24 +1169,28 @@ export const criarVeiculo = createServerFn({ method: "POST" })
       .maybeSingle();
 
     // Reenvio idêntico ao veículo já cadastrado não deve derrubar uma aprovação existente.
-    const dadosInalterados = !!veiculoExistente &&
+    const dadosInalterados =
+      !!veiculoExistente &&
       veiculoExistente.placa === data.placa &&
       veiculoExistente.marca === data.marca &&
       veiculoExistente.modelo === data.modelo &&
       veiculoExistente.ano === data.ano &&
       veiculoExistente.cor === data.cor;
 
-    const statusAprovacao = dadosInalterados ? veiculoExistente.status_aprovacao : 'em_preenchimento';
+    const statusAprovacao = dadosInalterados
+      ? veiculoExistente.status_aprovacao
+      : "em_preenchimento";
     const ativo = dadosInalterados ? veiculoExistente.ativo : true;
 
-    const { error } = await supabaseAdmin
-      .from("veiculos")
-      .upsert({
+    const { error } = await supabaseAdmin.from("veiculos").upsert(
+      {
         motorista_id: user.id,
         ...data,
         status_aprovacao: statusAprovacao,
-        ativo
-      }, { onConflict: 'motorista_id' } as any);
+        ativo,
+      },
+      { onConflict: "motorista_id" } as any,
+    );
 
     if (error) throw new Error("Erro ao salvar veículo: " + error.message);
     return { success: true };
@@ -1170,27 +1244,27 @@ export const getCnhCorrectionState = createServerFn({ method: "GET" })
 
     // Regra de Data America/Sao_Paulo (Dia Civil)
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
     const hojeStr = formatter.format(now); // YYYY-MM-DD
-    
+
     const isExpired = !!motorista.cnh_validade && motorista.cnh_validade < hojeStr;
     const documentStatus = doc?.status_analise || null;
-    const needsCorrection = isExpired || documentStatus === 'correcao_solicitada';
-    
+    const needsCorrection = isExpired || documentStatus === "correcao_solicitada";
+
     return {
       status_aprovacao: motorista.status_aprovacao,
       cnh_numero: motorista.cnh_numero,
       cnh_categoria: motorista.cnh_categoria,
       cnh_validade: motorista.cnh_validade,
       document_status: documentStatus,
-      motivo_correcao: documentStatus === 'correcao_solicitada' ? doc?.motivo_recusa : null,
+      motivo_correcao: documentStatus === "correcao_solicitada" ? doc?.motivo_recusa : null,
       is_expired: isExpired,
-      needs_correction: needsCorrection
+      needs_correction: needsCorrection,
     };
   });
 
@@ -1203,8 +1277,8 @@ export const enviarParaAnalise = createServerFn({ method: "POST" })
     console.log(`[ONBOARDING] Iniciando submissão RPC para usuário: ${userId}`);
 
     // Chamada atômica da RPC no servidor
-    const { data, error } = await supabaseAdmin.rpc('submit_motorista_for_analysis', {
-      p_auth_user_id: userId
+    const { data, error } = await supabaseAdmin.rpc("submit_motorista_for_analysis", {
+      p_auth_user_id: userId,
     });
 
     if (error) {
@@ -1214,16 +1288,18 @@ export const enviarParaAnalise = createServerFn({ method: "POST" })
 
     const result = data as any;
     if (!result.success) {
-      console.warn(`[ONBOARDING] Falha na validação da RPC: ${result.error} (etapa: ${result.step})`);
-      
+      console.warn(
+        `[ONBOARDING] Falha na validação da RPC: ${result.error} (etapa: ${result.step})`,
+      );
+
       const mensagensErro: Record<string, string> = {
-        'motorista_nao_encontrado': 'Perfil de motorista não localizado.',
-        'usuario_nao_encontrado': 'Usuário não localizado.',
-        'dados_cnh_pix_incompletos': 'Dados de CNH ou Pix estão incompletos.',
-        'documentos_incompletos': 'Você precisa enviar os 6 documentos obrigatórios.',
-        'veiculo_nao_encontrado': 'Nenhum veículo cadastrado encontrado.',
-        'perfil_motorista_invalido': 'Perfil de motorista inválido.',
-        'estado_bloqueado': 'Este perfil já está aprovado ou suspenso e não pode ser alterado.'
+        motorista_nao_encontrado: "Perfil de motorista não localizado.",
+        usuario_nao_encontrado: "Usuário não localizado.",
+        dados_cnh_pix_incompletos: "Dados de CNH ou Pix estão incompletos.",
+        documentos_incompletos: "Você precisa enviar os 6 documentos obrigatórios.",
+        veiculo_nao_encontrado: "Nenhum veículo cadastrado encontrado.",
+        perfil_motorista_invalido: "Perfil de motorista inválido.",
+        estado_bloqueado: "Este perfil já está aprovado ou suspenso e não pode ser alterado.",
       };
 
       throw new Error(mensagensErro[result.error] || `Falha no cadastro (${result.step}).`);
@@ -1235,10 +1311,19 @@ export const enviarParaAnalise = createServerFn({ method: "POST" })
 
 export const getCnhCorrectionUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({
-    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
-    fileSize: z.number().int().positive().min(1).max(10 * 1024 * 1024) // 10MB
-  }).parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+        fileSize: z
+          .number()
+          .int()
+          .positive()
+          .min(1)
+          .max(10 * 1024 * 1024), // 10MB
+      })
+      .parse(data),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const authUserId = context.userId;
@@ -1260,7 +1345,7 @@ export const getCnhCorrectionUploadUrl = createServerFn({ method: "POST" })
 
     if (motoristaError || !motorista) throw new Error("Motorista não encontrado.");
 
-    if (motorista.status_aprovacao !== 'em_analise') {
+    if (motorista.status_aprovacao !== "em_analise") {
       throw new Error("Envio permitido somente em análise.");
     }
 
@@ -1275,43 +1360,47 @@ export const getCnhCorrectionUploadUrl = createServerFn({ method: "POST" })
     if (!cnhDoc) throw new Error("Documento da CNH não encontrado.");
 
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
     const hojeStr = formatter.format(now);
     const isExpired = motorista.cnh_validade ? motorista.cnh_validade < hojeStr : false;
-    const needsCorrection = cnhDoc.status_analise === 'correcao_solicitada';
+    const needsCorrection = cnhDoc.status_analise === "correcao_solicitada";
 
     if (!isExpired && !needsCorrection) {
       throw new Error("Não há necessidade de correção da CNH.");
     }
 
-    const ext = data.mimeType.split('/')[1];
+    const ext = data.mimeType.split("/")[1];
     const fileName = `${authUserId}/cnh_correction_${Date.now()}.${ext}`;
 
     const { data: uploadData, error } = await supabaseAdmin.storage
-      .from('documentos-motorista')
+      .from("documentos-motorista")
       .createSignedUploadUrl(fileName);
 
     if (error) throw new Error("Erro ao gerar URL de upload.");
 
-    return { 
-      uploadUrl: uploadData.signedUrl, 
-      storagePath: uploadData.path
+    return {
+      uploadUrl: uploadData.signedUrl,
+      storagePath: uploadData.path,
     };
   });
 
 export const submitCnhCorrection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({
-    cnh_numero: z.string().regex(/^\d{11}$/),
-    cnh_categoria: z.enum(['A', 'AB', 'a', 'ab']),
-    cnh_validade: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    storagePath: z.string()
-  }).parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        cnh_numero: z.string().regex(/^\d{11}$/),
+        cnh_categoria: z.enum(["A", "AB", "a", "ab"]),
+        cnh_validade: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        storagePath: z.string(),
+      })
+      .parse(data),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const authUserId = context.userId;
@@ -1332,7 +1421,8 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
       .single();
 
     if (motoristaError || !motorista) throw new Error("Motorista não encontrado.");
-    if (motorista.status_aprovacao !== 'em_analise') throw new Error("Submissão permitida somente em análise.");
+    if (motorista.status_aprovacao !== "em_analise")
+      throw new Error("Submissão permitida somente em análise.");
 
     const { data: cnhDoc, error: cnhDocError } = await supabaseAdmin
       .from("documentos_motorista")
@@ -1345,16 +1435,16 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
     if (!cnhDoc) throw new Error("Documento da CNH não encontrado.");
 
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
     const hojeStr = formatter.format(now);
 
     // Validação de data real (YYYY-MM-DD existente no calendário)
-    const dateParts = data.cnh_validade.split('-');
+    const dateParts = data.cnh_validade.split("-");
     const yearNum = Number(dateParts[0]);
     const monthNum = Number(dateParts[1]);
     const dayNum = Number(dateParts[2]);
@@ -1372,32 +1462,30 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
     }
 
     const isExpired = motorista.cnh_validade ? motorista.cnh_validade < hojeStr : false;
-    const needsCorrection = cnhDoc.status_analise === 'correcao_solicitada';
+    const needsCorrection = cnhDoc.status_analise === "correcao_solicitada";
 
     if (!isExpired && !needsCorrection) {
       throw new Error("A correção já foi processada ou não é necessária.");
     }
 
     // Validação estrita do path: {authUserId}/cnh_correction_{timestamp}.{ext}
-    const pathRegex = new RegExp(
-      `^${authUserId}/cnh_correction_(\\d+)\\.(jpeg|png|webp)$`
-    );
+    const pathRegex = new RegExp(`^${authUserId}/cnh_correction_(\\d+)\\.(jpeg|png|webp)$`);
     const pathMatch = pathRegex.exec(data.storagePath);
     if (
       !pathMatch ||
-      data.storagePath.includes('..') ||
-      data.storagePath.includes('\\') ||
-      data.storagePath.includes('?') ||
-      data.storagePath.includes('#')
+      data.storagePath.includes("..") ||
+      data.storagePath.includes("\\") ||
+      data.storagePath.includes("?") ||
+      data.storagePath.includes("#")
     ) {
       throw new Error("Caminho de arquivo inválido.");
     }
-    const expectedExt = pathMatch[2] as 'jpeg' | 'png' | 'webp';
+    const expectedExt = pathMatch[2] as "jpeg" | "png" | "webp";
     const expectedBasename = `cnh_correction_${pathMatch[1]}.${expectedExt}`;
 
     // Localizar o objeto exato no bucket privado
     const { data: files, error: listError } = await supabaseAdmin.storage
-      .from('documentos-motorista')
+      .from("documentos-motorista")
       .list(authUserId, { search: expectedBasename });
 
     if (listError) throw new Error("Erro ao verificar o arquivo da CNH no servidor.");
@@ -1407,7 +1495,7 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
 
     const realSize = (objeto.metadata as { size?: unknown } | null)?.size;
     if (
-      typeof realSize !== 'number' ||
+      typeof realSize !== "number" ||
       !Number.isFinite(realSize) ||
       realSize <= 0 ||
       realSize > 10 * 1024 * 1024
@@ -1417,7 +1505,7 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
 
     // Validar assinatura binária real do arquivo
     const { data: blob, error: downloadError } = await supabaseAdmin.storage
-      .from('documentos-motorista')
+      .from("documentos-motorista")
       .download(data.storagePath);
 
     if (downloadError || !blob) throw new Error("Erro ao validar o arquivo da CNH.");
@@ -1428,12 +1516,12 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
     const isPng = pngSig.every((b, i) => head[i] === b);
     const ascii = (start: number, end: number) =>
       String.fromCharCode(...Array.from(head.slice(start, end)));
-    const isWebp = ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+    const isWebp = ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP";
 
     const matchesExt =
-      (expectedExt === 'jpeg' && isJpeg) ||
-      (expectedExt === 'png' && isPng) ||
-      (expectedExt === 'webp' && isWebp);
+      (expectedExt === "jpeg" && isJpeg) ||
+      (expectedExt === "png" && isPng) ||
+      (expectedExt === "webp" && isWebp);
 
     if (!matchesExt) {
       throw new Error("O arquivo enviado não é uma imagem de CNH válida.");
@@ -1444,11 +1532,11 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
       .from("documentos_motorista")
       .update({
         storage_path: data.storagePath,
-        status_analise: 'pendente',
+        status_analise: "pendente",
         motivo_recusa: null,
         data_envio: new Date().toISOString(),
         data_analise: null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq("motorista_id", user.id)
       .eq("tipo_documento", "cnh")
@@ -1465,7 +1553,7 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
         cnh_numero: data.cnh_numero,
         cnh_categoria: categoriaNormalizada,
         cnh_validade: data.cnh_validade,
-        is_disponivel: false
+        is_disponivel: false,
       })
       .eq("id", user.id)
       .select("cnh_numero, cnh_categoria, cnh_validade, is_disponivel")
@@ -1486,10 +1574,11 @@ export const submitCnhCorrection = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-
 export const finalizarCorrida = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) => z.object({ rideId: z.string(), recebido: z.boolean().optional() }).parse(data))
+  .validator((data: unknown) =>
+    z.object({ rideId: z.string(), recebido: z.boolean().optional() }).parse(data),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { criarNotificacao } = await import("./notificacoes.server");
@@ -1534,15 +1623,15 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
     const { data: updatedCorrida, error: updateError } = await supabaseAdmin
       .from("corridas")
       .update({
-        status: 'concluida',
+        status: "concluida",
         data_finalizacao: new Date().toISOString(),
-        valor_final: valorFinal
+        valor_final: valorFinal,
       } as any)
       .eq("id", data.rideId)
       .eq("motorista_id", motoristaId)
-      .eq("status", 'em_andamento')
+      .eq("status", "em_andamento")
       .not("data_inicio", "is", null)
-      .select('id, status')
+      .select("id, status")
       .maybeSingle();
 
     if (updateError) {
@@ -1551,7 +1640,9 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
     }
 
     if (!updatedCorrida) {
-      throw new Error("Não foi possível finalizar. A corrida pode ter sido alterada por outro processo.");
+      throw new Error(
+        "Não foi possível finalizar. A corrida pode ter sido alterada por outro processo.",
+      );
     }
 
     // 4. Devolver o motorista para disponível (online) para a próxima corrida
@@ -1593,7 +1684,7 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
         tipo: "corrida_concluida",
         titulo: "✅ Corrida concluída!",
         mensagem: `Obrigado por usar o Zuvvi! O valor final foi R$ ${Number(rideData.valor_final).toFixed(2)}.`,
-        corrida_id: data.rideId
+        corrida_id: data.rideId,
       });
 
       // Notificar Motorista
@@ -1601,10 +1692,11 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
         usuario_id: motoristaId,
         tipo: "corrida_concluida",
         titulo: "💰 Ganho confirmado",
-        mensagem: rideCheck.forma_pagamento === "dinheiro" && data.recebido === false
-          ? `Valor da corrida: R$ ${Number(rideData.valor_final).toFixed(2)} ficou em aberto.`
-          : `Ganho da corrida: R$ ${Number(rideData.valor_final).toFixed(2)}`,
-        corrida_id: data.rideId
+        mensagem:
+          rideCheck.forma_pagamento === "dinheiro" && data.recebido === false
+            ? `Valor da corrida: R$ ${Number(rideData.valor_final).toFixed(2)} ficou em aberto.`
+            : `Ganho da corrida: R$ ${Number(rideData.valor_final).toFixed(2)}`,
+        corrida_id: data.rideId,
       });
     }
 
@@ -1633,7 +1725,10 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
           .maybeSingle();
 
         if (pendenteError) {
-          console.error("[Indicacao] Falha ao verificar indicação pendente na finalização da corrida.", pendenteError);
+          console.error(
+            "[Indicacao] Falha ao verificar indicação pendente na finalização da corrida.",
+            pendenteError,
+          );
         } else if (pendente) {
           const RECOMPENSA_INDICACAO_VALOR = 10;
           const RECOMPENSA_INDICACAO_VALIDADE_DIAS = 30;

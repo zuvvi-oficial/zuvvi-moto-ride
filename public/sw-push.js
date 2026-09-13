@@ -3,7 +3,14 @@
 // pelo bundler, então não pode usar import/export nem sintaxe de módulo.
 
 self.addEventListener("push", function (event) {
-  var payload = { title: "Zuvvi", body: "Você tem uma atualização.", tipo: null, corridaId: null, url: null, icon: null };
+  var payload = {
+    title: "Zuvvi",
+    body: "Você tem uma atualização.",
+    tipo: null,
+    corridaId: null,
+    url: null,
+    icon: null,
+  };
   if (event.data) {
     try {
       var parsed = event.data.json();
@@ -15,7 +22,10 @@ self.addEventListener("push", function (event) {
         url: typeof parsed.url === "string" && parsed.url.charAt(0) === "/" ? parsed.url : null,
         // Só https: é uma URL assinada do próprio Supabase, nunca um esquema
         // arbitrário (javascript:, data:, etc.) vindo de um payload adulterado.
-        icon: typeof parsed.icon === "string" && parsed.icon.indexOf("https://") === 0 ? parsed.icon : null,
+        icon:
+          typeof parsed.icon === "string" && parsed.icon.indexOf("https://") === 0
+            ? parsed.icon
+            : null,
       };
     } catch (e) {
       // Payload não-JSON: mantém o fallback acima em vez de falhar o evento.
@@ -113,15 +123,17 @@ self.addEventListener("notificationclick", function (event) {
   }
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
-      for (var i = 0; i < clientList.length; i++) {
-        var client = clientList[i];
-        if ("focus" in client) {
-          client.navigate(targetUrl);
-          return client.focus();
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(function (clientList) {
+        for (var i = 0; i < clientList.length; i++) {
+          var client = clientList[i];
+          if ("focus" in client) {
+            client.navigate(targetUrl);
+            return client.focus();
+          }
         }
-      }
-      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
-    }),
+        if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+      }),
   );
 });
