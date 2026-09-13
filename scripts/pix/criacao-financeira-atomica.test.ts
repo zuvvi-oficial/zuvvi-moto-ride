@@ -43,7 +43,7 @@ assert.match(
 );
 assert.match(
   criarCorridaSource,
-  /Math\.round\(\(data\.valorCotado \* \(comissaoPct \/ 100\)\) \* 100\) \/ 100/,
+  /Math\.round\(data\.valorCotado \* \(comissaoPct \/ 100\) \* 100\) \/ 100/,
   "cálculo existente da comissão deve ser preservado",
 );
 assert.match(

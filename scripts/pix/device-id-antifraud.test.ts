@@ -29,7 +29,7 @@ assert.match(
   /requestOptions:\s*\{\s*idempotencyKey,\s*meliSessionId:\s*deviceId\s*\}/,
 );
 
-const pixGuardStart = confirmSource.indexOf("if (metodoPagamento === 'pix')");
+const pixGuardStart = confirmSource.indexOf('if (metodoPagamento === "pix")');
 const createRideStart = confirmSource.indexOf("const result = await criarCorridaFn");
 assert.ok(pixGuardStart >= 0, "Device ID deve ser exclusivo do Pix");
 assert.ok(createRideStart > pixGuardStart, "Device ID deve ser registrado antes da corrida Pix");
