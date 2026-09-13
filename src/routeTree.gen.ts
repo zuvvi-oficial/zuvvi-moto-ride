@@ -24,6 +24,7 @@ import { Route as OnboardingMotoristaRouteImport } from './routes/onboarding-mot
 import { Route as PagamentoPixRouteImport } from './routes/pagamento-pix'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PerfilMotoristaRouteImport } from './routes/perfil-motorista'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProcurandoMotoristaRouteImport } from './routes/procurando-motorista'
 import { Route as ViagemCompartilhadaRouteImport } from './routes/viagem-compartilhada'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -115,6 +116,11 @@ const PerfilRoute = PerfilRouteImport.update({
 const PerfilMotoristaRoute = PerfilMotoristaRouteImport.update({
   id: '/perfil-motorista',
   path: '/perfil-motorista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProcurandoMotoristaRoute = ProcurandoMotoristaRouteImport.update({
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -254,6 +261,7 @@ export interface FileRoutesByTo {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/pagamento-pix': typeof PagamentoPixRoute
   '/perfil': typeof PerfilRoute
   '/perfil-motorista': typeof PerfilMotoristaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/procurando-motorista': typeof ProcurandoMotoristaRoute
   '/viagem-compartilhada': typeof ViagemCompartilhadaRoute
   '/admin/cidades': typeof AdminCidadesRoute
@@ -325,6 +334,7 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
     | '/viagem-compartilhada'
     | '/admin/cidades'
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
     | '/viagem-compartilhada'
     | '/admin/cidades'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/pagamento-pix'
     | '/perfil'
     | '/perfil-motorista'
+    | '/privacidade'
     | '/procurando-motorista'
     | '/viagem-compartilhada'
     | '/admin/cidades'
@@ -428,6 +440,7 @@ export interface RootRouteChildren {
   PagamentoPixRoute: typeof PagamentoPixRoute
   PerfilRoute: typeof PerfilRoute
   PerfilMotoristaRoute: typeof PerfilMotoristaRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   ProcurandoMotoristaRoute: typeof ProcurandoMotoristaRoute
   ViagemCompartilhadaRoute: typeof ViagemCompartilhadaRoute
   AdminCidadesRoute: typeof AdminCidadesRoute
@@ -545,6 +558,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil-motorista'
       fullPath: '/perfil-motorista'
       preLoaderRoute: typeof PerfilMotoristaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/procurando-motorista': {
@@ -707,6 +727,7 @@ const rootRouteChildren: RootRouteChildren = {
   PagamentoPixRoute: PagamentoPixRoute,
   PerfilRoute: PerfilRoute,
   PerfilMotoristaRoute: PerfilMotoristaRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   ProcurandoMotoristaRoute: ProcurandoMotoristaRoute,
   ViagemCompartilhadaRoute: ViagemCompartilhadaRoute,
   AdminCidadesRoute: AdminCidadesRoute,
