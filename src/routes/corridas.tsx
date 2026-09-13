@@ -2,12 +2,13 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getHistoricoCorridas } from "@/lib/historico.functions";
-import { Clock, User, CreditCard, Loader2, CalendarClock, Navigation } from "lucide-react";
+import { Clock, User, CreditCard, CalendarClock, Navigation } from "lucide-react";
 import { resolveDestinationForLoader } from "@/lib/auth-status.functions";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { PassengerBottomNav } from "@/components/passageiro/PassengerBottomNav";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/corridas")({
   loader: async () => {
@@ -21,6 +22,45 @@ export const Route = createFileRoute("/corridas")({
   },
   component: HistoricoCorridas,
 });
+
+function CorridaCardSkeleton() {
+  return (
+    <div className="bg-zuvvi-indigo/40 border border-white/5 rounded-3xl p-5 space-y-4">
+      <div className="flex justify-between items-start">
+        <Skeleton className="h-3 w-12" />
+        <Skeleton className="h-3 w-24" />
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="w-5 flex flex-col items-center pt-1 shrink-0">
+            <div className="w-2 h-2 rounded-full bg-zuvvi-volt/40" />
+            <div className="w-[1px] h-4 bg-white/10 my-1" />
+            <div className="w-2 h-2 rounded-full bg-zuvvi-volt" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-2">
+            <Skeleton className="h-2.5 w-14" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+            <div className="space-y-2">
+              <Skeleton className="h-2 w-16" />
+              <Skeleton className="h-2.5 w-12" />
+            </div>
+          </div>
+          <div className="space-y-2 flex flex-col items-end">
+            <Skeleton className="h-2 w-10" />
+            <Skeleton className="h-5 w-16" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function HistoricoCorridas() {
   const getHistoricoFn = useServerFn(getHistoricoCorridas);
@@ -99,10 +139,26 @@ function HistoricoCorridas() {
 
       <main className="flex-1 max-w-md mx-auto w-full px-5 py-6 space-y-8">
         {isLoading || !isHydrated ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-            <Loader2 className="w-10 h-10 text-zuvvi-volt animate-spin" />
-            <p className="text-sm font-medium opacity-60">Carregando suas corridas...</p>
-          </div>
+          <>
+            <div className="sr-only" aria-live="polite">
+              Carregando suas corridas...
+            </div>
+            <div className="space-y-8" aria-hidden="true">
+              <div>
+                <Skeleton className="h-3 w-16 mb-3 ml-1" />
+                <div className="space-y-4">
+                  <CorridaCardSkeleton />
+                  <CorridaCardSkeleton />
+                </div>
+              </div>
+              <div>
+                <Skeleton className="h-3 w-16 mb-3 ml-1" />
+                <div className="space-y-4">
+                  <CorridaCardSkeleton />
+                </div>
+              </div>
+            </div>
+          </>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 text-red-400">
             <p className="text-sm font-medium">Erro ao carregar histórico.</p>
