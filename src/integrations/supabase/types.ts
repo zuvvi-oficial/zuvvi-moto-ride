@@ -1314,6 +1314,51 @@ export type Database = {
           },
         ];
       };
+      push_falhas_envio: {
+        Row: {
+          created_at: string;
+          detalhe: string | null;
+          id: string;
+          motivo: string;
+          push_subscription_id: string | null;
+          tipo_notificacao: string;
+          usuario_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          detalhe?: string | null;
+          id?: string;
+          motivo: string;
+          push_subscription_id?: string | null;
+          tipo_notificacao: string;
+          usuario_id: string;
+        };
+        Update: {
+          created_at?: string;
+          detalhe?: string | null;
+          id?: string;
+          motivo?: string;
+          push_subscription_id?: string | null;
+          tipo_notificacao?: string;
+          usuario_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_falhas_envio_push_subscription_id_fkey";
+            columns: ["push_subscription_id"];
+            isOneToOne: false;
+            referencedRelation: "push_subscriptions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_falhas_envio_usuario_id_fkey";
+            columns: ["usuario_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       push_subscriptions: {
         Row: {
           auth: string;

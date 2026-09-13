@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { Database } from "@/integrations/supabase/types";
 
 type TipoNotificacao =
   | "motorista_aceitou"
@@ -68,6 +69,45 @@ export async function criarNotificacao(
   return { inserted };
 }
 
+// Antes disso, uma falha real de envio (VAPID ausente, chave incompatível,
+// erro HTTP do provedor, exceção na criptografia) só aparecia em
+// console.error do servidor — invisível sem acesso aos logs de runtime da
+// Vercel. push_falhas_envio torna isso consultável direto pelo banco, que é
+// o único acesso disponível para diagnosticar o app em produção nesta sessão.
+async function registrarFalhaEnvioPush(
+  supabase: SupabaseClient<Database>,
+  params: {
+    usuario_id: string;
+    tipo: TipoNotificacao;
+    push_subscription_id?: string | null;
+    motivo: string;
+    detalhe?: string | null;
+  },
+) {
+  try {
+    const { error } = await supabase.from("push_falhas_envio").insert({
+      usuario_id: params.usuario_id,
+      push_subscription_id: params.push_subscription_id ?? null,
+      tipo_notificacao: params.tipo,
+      motivo: params.motivo,
+      detalhe: params.detalhe ?? null,
+    });
+    if (error) console.error("Erro ao registrar falha de envio de push:", error);
+  } catch (err) {
+    console.error("Erro inesperado ao registrar falha de envio de push:", err);
+  }
+}
+
+function descreverErroPush(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
 async function enviarPushParaUsuario(
   supabase: SupabaseClient<any>,
   params: {
@@ -82,6 +122,17 @@ async function enviarPushParaUsuario(
 ) {
   if (!process.env["VAPID_PUBLIC_KEY"] || !process.env["VAPID_PRIVATE_KEY"]) {
     console.error("Push não enviado: VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY ausente no servidor.");
+    await registrarFalhaEnvioPush(supabase, {
+      usuario_id: params.usuario_id,
+      tipo: params.tipo,
+      motivo: "vapid_ausente",
+      detalhe: [
+        !process.env["VAPID_PUBLIC_KEY"] && "VAPID_PUBLIC_KEY",
+        !process.env["VAPID_PRIVATE_KEY"] && "VAPID_PRIVATE_KEY",
+      ]
+        .filter(Boolean)
+        .join(", "),
+    });
     return;
   }
 
@@ -123,9 +174,23 @@ async function enviarPushParaUsuario(
             console.error(
               `Falha ao enviar push (status ${result.status}) para a inscrição ${sub.id}.`,
             );
+            await registrarFalhaEnvioPush(supabase, {
+              usuario_id: params.usuario_id,
+              tipo: params.tipo,
+              push_subscription_id: sub.id,
+              motivo: "http_error",
+              detalhe: `status ${result.status}`,
+            });
           }
         } catch (err) {
           console.error("Erro ao enviar push para uma inscrição:", err);
+          await registrarFalhaEnvioPush(supabase, {
+            usuario_id: params.usuario_id,
+            tipo: params.tipo,
+            push_subscription_id: sub.id,
+            motivo: "excecao",
+            detalhe: descreverErroPush(err),
+          });
         }
       },
     ),
