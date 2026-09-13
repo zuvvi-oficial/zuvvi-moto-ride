@@ -126,6 +126,19 @@ jobs:
           // quando a PR atual não toca em package.json.
           if (base.dependencies) delete base.dependencies['qrcode.react'];
 
+          if (atual.scripts?.build !== 'vite build && node scripts/build/publicar-service-worker.mjs') {
+            throw new Error('scripts.build deve publicar o service worker após vite build (ZV 08)');
+          }
+          delete atual.scripts.build;
+          // A ZV 08 do plano de fechamento mudou scripts.build permanentemente
+          // para copiar sw.js/workbox-*.js ao diretório final de cada preset
+          // depois que `vite build` (incluindo o empacotamento do Nitro) já
+          // terminou — sem isso o service worker nunca chega ao diretório
+          // publicado e o registro de push falha silenciosamente. O lado
+          // "base" também precisa remover a mesma chave antes de comparar,
+          // pelo mesmo motivo do qrcode.react acima.
+          if (base.scripts) delete base.scripts.build;
+
           // Fora de dependencies/devDependencies (scripts, name, etc.), nada
           // pode mudar sem uma decisão consciente nesta checagem.
           const { dependencies: atualDeps, devDependencies: atualDevDeps, ...atualRest } = atual;
