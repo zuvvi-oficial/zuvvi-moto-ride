@@ -26,19 +26,34 @@ export function UpdatePrompt() {
           disabled={isUpdating}
           onClick={async () => {
             setIsUpdating(true);
-            // O recarregamento normal só acontece quando o navegador avisa que
-            // o novo service worker assumiu o controle — em alguns PWAs
-            // instalados esse aviso pode nunca chegar, deixando o botão
-            // girando pra sempre sem nada acontecer. Essa rede de segurança
-            // força o recarregamento se isso não ocorrer sozinho em poucos
-            // segundos; se o caminho normal já tiver recarregado a página
-            // antes disso, este timeout nunca chega a executar.
-            const forcarRecarregamento = window.setTimeout(() => window.location.reload(), 4000);
+
+            // O recarregamento correto só deve acontecer DEPOIS que o novo
+            // service worker realmente assumir o controle da página — esse
+            // evento avisa exatamente esse momento. Um timeout fixo curto
+            // (testado antes) corria à frente dessa troca em vez de esperar
+            // por ela: recarregava a página cedo demais, no meio da troca,
+            // fazendo a atualização nunca "pegar" de verdade e o aviso voltar
+            // a aparecer em seguida. Esperar o evento real evita isso.
+            let jaRecarregou = false;
+            const recarregarUmaVez = () => {
+              if (jaRecarregou) return;
+              jaRecarregou = true;
+              window.location.reload();
+            };
+            navigator.serviceWorker.addEventListener("controllerchange", recarregarUmaVez, {
+              once: true,
+            });
+
+            // Rede de segurança apenas para o caso (raro) de esse evento nunca
+            // chegar a disparar — bem mais folgada que antes, para nunca
+            // atropelar a troca real ainda em andamento.
+            const forcarRecarregamento = window.setTimeout(recarregarUmaVez, 15000);
+
             try {
               await applyUpdate();
             } catch {
               window.clearTimeout(forcarRecarregamento);
-              window.location.reload();
+              recarregarUmaVez();
             }
           }}
           className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary-foreground transition-transform active:scale-95 disabled:opacity-60"
