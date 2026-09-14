@@ -1099,12 +1099,14 @@ function AcompanhamentoCorrida() {
           <MapView
             center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }}
             token={mapboxToken}
-            // Assim que a corrida está em andamento, você e o motorista estão
-            // juntos (acabou de embarcar) — o pino "Você" fica sobre o mesmo
-            // ponto do motorista, então a etiqueta e o pulso "ao vivo" dele
-            // ficam redundantes e só atrapalham a leitura nesse momento.
-            markerLabel={corrida.status === "em_andamento" ? undefined : "Você"}
-            pulsePrimaryMarker={corrida.status !== "em_andamento"}
+            // Quando o motorista chega no embarque (ou depois, já em
+            // andamento), ele fica coladinho no pino "Você" — a etiqueta e o
+            // pulso "ao vivo" dele ficam redundantes e só atrapalham a
+            // leitura nesse momento (achado do Rafael em teste real).
+            markerLabel={
+              ["motorista_chegou", "em_andamento"].includes(corrida.status) ? undefined : "Você"
+            }
+            pulsePrimaryMarker={!["motorista_chegou", "em_andamento"].includes(corrida.status)}
             secondaryMarker={
               motorista?.ultima_lat &&
               motorista?.ultima_lng &&
