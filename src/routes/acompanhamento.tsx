@@ -24,6 +24,8 @@ import {
   ShieldAlert,
   Share2,
   Heart,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { z } from "zod";
 import { MapView } from "@/components/MapView";
@@ -152,6 +154,22 @@ function AcompanhamentoCorrida() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  // Só controla o tamanho de exibição do mapa (mini card <-> tela cheia) —
+  // mesmo padrão já usado na tela do motorista. Não afeta nenhum dado, rota
+  // ou rastreamento: é a mesma instância do MapView, só maior ou menor.
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const passageiroMapInstance = useRef<import("mapbox-gl").Map | null>(null);
+
+  // Redimensiona a instância existente do mapa ao trocar de tamanho — a
+  // mesma instância continua viva (sem recarregar do zero), só o container
+  // muda de tamanho via CSS, então o Mapbox precisa recalcular as dimensões
+  // do canvas depois que o novo tamanho é aplicado.
+  useEffect(() => {
+    const map = passageiroMapInstance.current;
+    if (!map) return;
+    const raf = requestAnimationFrame(() => map.resize());
+    return () => cancelAnimationFrame(raf);
+  }, [isMapFullscreen]);
   const hasHandledCancellation = useRef(false);
   const cancellationRedirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [cancellationNotice, setCancellationNotice] = useState<{
@@ -728,7 +746,17 @@ function AcompanhamentoCorrida() {
 
   return (
     <div className="relative min-h-[100dvh] bg-zuvvi-indigo overflow-hidden font-poppins">
-      <div className="absolute inset-0 z-0">
+      {/* Mapa: mini card por padrão, tela cheia ao expandir — mesma instância
+          o tempo todo (só redimensiona), igual ao padrão já usado na tela do
+          motorista. Em tela cheia fica acima do cabeçalho/cartão (z-[100]),
+          cobrindo a tela toda sem precisar desmontar nada abaixo. */}
+      <div
+        className={
+          isMapFullscreen
+            ? "fixed inset-0 z-[100] overflow-hidden"
+            : "absolute top-24 left-6 right-6 z-10 h-64 rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl shadow-black/40"
+        }
+      >
         {mapboxToken && (
           <MapView
             center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }}
@@ -740,16 +768,29 @@ function AcompanhamentoCorrida() {
                 ? { lat: motorista.ultima_lat, lng: motorista.ultima_lng }
                 : undefined
             }
+            className="w-full h-full"
+            onMapInstance={(map) => {
+              passageiroMapInstance.current = map;
+            }}
           />
         )}
+        <button
+          type="button"
+          onClick={() => setIsMapFullscreen((v) => !v)}
+          aria-label={isMapFullscreen ? "Fechar mapa em tela cheia" : "Ver mapa em tela cheia"}
+          className={
+            isMapFullscreen
+              ? "absolute top-6 right-6 w-11 h-11 rounded-full bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 shadow-lg shadow-black/20 flex items-center justify-center active:scale-95 transition-transform"
+              : "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          }
+        >
+          {isMapFullscreen ? (
+            <Minimize2 className="w-5 h-5 text-white/90" />
+          ) : (
+            <Maximize2 className="w-4 h-4 text-white/90" />
+          )}
+        </button>
       </div>
-
-      {/* Nevoa decorativa atrás do topo/rodapé — só pra manter o texto legível
-          sobre qualquer trecho do mapa, não interfere em nada abaixo dela. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 z-[5] bg-gradient-to-b from-zuvvi-indigo/70 via-zuvvi-indigo/25 to-transparent" />
-      {motorista && veiculo && corrida.status !== "concluida" && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 z-[5] bg-gradient-to-t from-zuvvi-indigo/80 via-zuvvi-indigo/30 to-transparent" />
-      )}
 
       <div className="relative z-10 p-6 flex items-center justify-between pointer-events-auto">
         <button
