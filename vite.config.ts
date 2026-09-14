@@ -7,6 +7,24 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
+// @lovable.dev/vite-tanstack-config forces Nitro's publicDir to "dist/client"
+// specifically when building inside Lovable's own build environment
+// (LOVABLE_SANDBOX=1) — for both of the two presets it can pick there
+// ("cloudflare-module" and "lovable-fetch-bundle", see nitroOpts.output /
+// lovableFetchBundlePreset() in node_modules/@lovable.dev/vite-tanstack-config/dist/index.js).
+// Every other build target (Vercel, Netlify, the plain CI build with no
+// preset env var) uses "dist" directly instead — confirmed empirically by
+// building with each target's own env var and checking where the static
+// assets actually end up. Getting this wrong for one specific target
+// doesn't break the build; it makes vite-plugin-pwa's Workbox precache
+// manifest list files with a "client/" prefix that doesn't exist at the
+// real published root (e.g. "client/sw-push.js" instead of "sw-push.js"),
+// which fails the service worker's own installation — the browser can
+// register it, but it never reaches the "activated" state, so push events
+// never reach a listener even though the server's send to the push
+// provider succeeds without any error.
+const construindoNoSandboxDoLovable = process.env["LOVABLE_SANDBOX"] === "1";
+
 export default defineConfig(() => {
   return {
     tanstackStart: {
@@ -26,17 +44,7 @@ export default defineConfig(() => {
         // The manifest is a static, same-origin file in public/.
         manifest: false,
         filename: "sw.js",
-        // "dist" is the real client output directory Nitro copies from for
-        // every preset used by this project (Vercel, Netlify, Cloudflare) —
-        // confirmed by building with each preset's own env var and checking
-        // where the static assets actually end up. "dist/client" (the
-        // previous value here) is never that directory under any preset:
-        // sw.js used to land in a folder Nitro never publishes, so the
-        // browser's registration request for /sw.js always 404'd, and the
-        // precache manifest below was always computed against an
-        // almost-empty directory (hence "precache 0 entries" in every
-        // build log, however small the app got).
-        outDir: "dist",
+        outDir: construindoNoSandboxDoLovable ? "dist/client" : "dist",
         workbox: {
           globPatterns: ["**/*.{js,css,woff,woff2,png,svg,ico,webmanifest,html}"],
           // Manipuladores de push/notificationclick (public/sw-push.js), importados

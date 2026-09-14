@@ -26,12 +26,21 @@
 import { existsSync, copyFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE_DIR = "dist";
+// Mesma condição usada em vite.config.ts para o outDir do vite-plugin-pwa —
+// precisa ficar em sincronia com aquele arquivo, porque é lá que a decisão
+// real de onde os arquivos são escritos acontece. Dentro do sandbox de build
+// do Lovable, @lovable.dev/vite-tanstack-config força o publicDir do Nitro
+// para "dist/client" (tanto no preset "cloudflare-module" quanto no
+// "lovable-fetch-bundle"); em todo outro alvo (Vercel, Netlify, CI sem
+// preset) o publicDir real é "dist".
+const SOURCE_DIR = process.env["LOVABLE_SANDBOX"] === "1" ? "dist/client" : "dist";
 const SERVICE_WORKER_FILE_PATTERN = /^(sw\.js|workbox-.*\.js)$/;
 
 // Um diretório de destino por preset do Nitro que este projeto realmente usa
 // (Vercel em produção, Cloudflare/generic como padrão local e do CI). O
-// preset Netlify publica "dist" diretamente — já é a origem, nada a copiar.
+// preset Netlify publica "dist" diretamente, e o sandbox do Lovable publica
+// "dist/client" diretamente (ambos já cobertos por SOURCE_DIR acima) — nos
+// dois casos já é a origem, nada a copiar.
 const TARGET_DIRS = [".vercel/output/static", ".output/public"];
 
 function encontrarArquivosDoServiceWorker(dir) {
