@@ -19,7 +19,7 @@ interface MapViewProps {
   // Opt-in: legenda fixa acima do marcador principal/secundário. Quem não
   // passar continua com exatamente os mesmos dois marcadores de sempre —
   // isso só adiciona uma etiqueta extra por cima, nunca troca o pino em si.
-  markerLabel?: string;
+  markerLabel?: string | undefined;
   secondaryMarkerLabel?: string;
   // Opt-in: anel pulsando (radar) atrás do marcador principal, pra indicar
   // "localização ao vivo". Quem não passar continua com o pino de sempre,
