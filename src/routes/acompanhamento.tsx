@@ -695,7 +695,11 @@ function AcompanhamentoCorrida() {
           conteudo,
         },
       });
-      await refreshChat();
+      // Não espera essa recarga: o evento em tempo real de chat_mensagens
+      // (já assinado enquanto o chat está aberto) chama refreshChat() sozinho
+      // assim que a mensagem enviada chega de volta — esperar aqui só
+      // atrasava a liberação do campo sem mudar o resultado final.
+      void refreshChat();
     } catch {
       setChatError("Erro ao enviar mensagem.");
       throw new Error("Erro ao enviar");
