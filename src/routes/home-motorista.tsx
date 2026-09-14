@@ -1463,6 +1463,16 @@ function HomeMotorista() {
             if (routeFittedRideRef.current !== fitKey) {
               map.fitBounds(bounds, { padding: 40, duration: 2000 });
               routeFittedRideRef.current = fitKey;
+            } else if (isMapFullscreen && !showRecenterButton) {
+              // Câmera acompanha o motorista suavemente em tela cheia a cada
+              // atualização de posição — só quando ele não tiver
+              // arrastado/dado zoom manualmente (nesse caso o botão de
+              // recentralizar assume, e o acompanhamento automático só volta
+              // depois que ele toca nele).
+              map.fitBounds(bounds, {
+                padding: { top: 100, bottom: 140, left: 60, right: 60 },
+                duration: 1200,
+              });
             }
 
             lastRouteCoordsRef.current = {
@@ -1507,6 +1517,8 @@ function HomeMotorista() {
     mapboxToken,
     isPickupMapReady,
     driverBearing,
+    isMapFullscreen,
+    showRecenterButton,
   ]);
 
   // Alerta de chuva: consulta a previsão pública do Open-Meteo (gratuita, sem
