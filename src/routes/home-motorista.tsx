@@ -268,7 +268,14 @@ function HomeMotorista() {
         map.resize();
         setMapPitch(isMapFullscreen ? 55 : 0);
         if (!isMapFullscreen && lastRouteBoundsRef.current) {
-          map.fitBounds(lastRouteBoundsRef.current, { padding: 16, duration: 0 });
+          // O cartão pequeno é bem baixo (h-28, 112px) — margem maior em
+          // cima que nos outros lados porque a ponta do pino fica bem acima
+          // da própria coordenada, senão ele saía cortado (achado do
+          // Rafael em teste real).
+          map.fitBounds(lastRouteBoundsRef.current, {
+            padding: { top: 50, bottom: 20, left: 24, right: 24 },
+            duration: 0,
+          });
         }
       }, 260);
     });
