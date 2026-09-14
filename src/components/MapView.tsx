@@ -25,9 +25,14 @@ interface MapViewProps {
   // "localização ao vivo". Quem não passar continua com o pino de sempre,
   // sem nenhum elemento extra.
   pulsePrimaryMarker?: boolean;
+  // Opt-in: troca o pino padrão do marcador secundário por um ícone de moto
+  // que pode girar (secondaryMarkerBearing, em graus). Quem não passar
+  // continua com o pino colorido de sempre.
+  secondaryMarkerIcon?: "motorbike";
+  secondaryMarkerBearing?: number;
 }
 
-function criarEtiquetaMarcador(texto: string, cor: string): mapboxgl.Marker {
+function criarEtiquetaMarcador(texto: string, cor: string, offsetY: number = -38): mapboxgl.Marker {
   const el = document.createElement("div");
   el.style.transform = "translateY(-4px)";
   el.style.padding = "3px 9px";
@@ -45,7 +50,9 @@ function criarEtiquetaMarcador(texto: string, cor: string): mapboxgl.Marker {
   el.textContent = texto;
   // anchor "bottom" posiciona a etiqueta encostada por cima da ponta do
   // pino padrão do Mapbox (que aponta pra baixo a partir do mesmo ponto).
-  return new mapboxgl.Marker({ element: el, anchor: "bottom", offset: [0, -38] });
+  // offsetY é ajustável porque o marcador de moto (badge circular centrado)
+  // tem uma geometria bem diferente do pino padrão.
+  return new mapboxgl.Marker({ element: el, anchor: "bottom", offset: [0, offsetY] });
 }
 
 function criarAnelPulso(cor: string): mapboxgl.Marker {
@@ -63,6 +70,37 @@ function criarAnelPulso(cor: string): mapboxgl.Marker {
   return new mapboxgl.Marker({ element: el, anchor: "center" });
 }
 
+// Ícone de moto (mesmo desenho do "Motorbike" da lucide-react, usado como
+// SVG puro porque este marcador é um elemento de DOM criado à mão, não JSX).
+const MOTORBIKE_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" ' +
+  'fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="m18 14-1-3"/><path d="m3 9 6 2a2 2 0 0 1 2-2h2a2 2 0 0 1 1.99 1.81"/>' +
+  '<path d="M8 17h3a1 1 0 0 0 1-1 6 6 0 0 1 6-6 1 1 0 0 0 1-1v-.75A5 5 0 0 0 17 5"/>' +
+  '<circle cx="19" cy="17" r="3"/><circle cx="5" cy="17" r="3"/></svg>';
+
+function criarMarcadorMoto(cor: string): { marker: mapboxgl.Marker; rotatableEl: HTMLDivElement } {
+  const badge = document.createElement("div");
+  badge.style.width = "36px";
+  badge.style.height = "36px";
+  badge.style.borderRadius = "9999px";
+  badge.style.background = cor;
+  badge.style.display = "flex";
+  badge.style.alignItems = "center";
+  badge.style.justifyContent = "center";
+  badge.style.boxShadow = "0 2px 10px rgba(0,0,0,0.45)";
+  badge.style.border = "2px solid rgba(255,255,255,0.5)";
+  // Transição suave entre um ângulo e outro, em vez do ícone "saltar" pra
+  // nova direção a cada atualização de posição do motorista.
+  badge.style.transition = "transform 0.4s ease";
+  badge.innerHTML = MOTORBIKE_SVG;
+
+  // anchor "center" — o mesmo tratamento de um "puck" de localização (tipo
+  // Uber/Google Maps): o círculo fica centrado exatamente na coordenada.
+  const marker = new mapboxgl.Marker({ element: badge, anchor: "center" });
+  return { marker, rotatableEl: badge };
+}
+
 export function MapView({
   center,
   zoom = 15,
@@ -76,6 +114,8 @@ export function MapView({
   markerLabel,
   secondaryMarkerLabel,
   pulsePrimaryMarker = false,
+  secondaryMarkerIcon,
+  secondaryMarkerBearing,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -84,6 +124,7 @@ export function MapView({
   const markerLabelRef = useRef<mapboxgl.Marker | null>(null);
   const secondaryMarkerLabelRef = useRef<mapboxgl.Marker | null>(null);
   const pulseMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const secondaryMarkerRotateElRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -130,16 +171,29 @@ export function MapView({
       }
 
       if (secondaryMarker) {
-        secondaryMarkerRef.current = new mapboxgl.Marker({
-          color: secondaryMarker.color || "#6C3CE9",
-        })
-          .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
-          .addTo(map.current);
+        if (secondaryMarkerIcon === "motorbike") {
+          const { marker: motoMarker, rotatableEl } = criarMarcadorMoto(
+            secondaryMarker.color || "#6C3CE9",
+          );
+          motoMarker.setLngLat([secondaryMarker.lng, secondaryMarker.lat]).addTo(map.current);
+          secondaryMarkerRef.current = motoMarker;
+          secondaryMarkerRotateElRef.current = rotatableEl;
+          if (secondaryMarkerBearing !== undefined) {
+            rotatableEl.style.transform = `rotate(${secondaryMarkerBearing}deg)`;
+          }
+        } else {
+          secondaryMarkerRef.current = new mapboxgl.Marker({
+            color: secondaryMarker.color || "#6C3CE9",
+          })
+            .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
+            .addTo(map.current);
+        }
 
         if (secondaryMarkerLabel) {
           secondaryMarkerLabelRef.current = criarEtiquetaMarcador(
             secondaryMarkerLabel,
             secondaryMarker.color || "#6C3CE9",
+            secondaryMarkerIcon === "motorbike" ? -22 : -38,
           )
             .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
             .addTo(map.current);
@@ -232,6 +286,16 @@ export function MapView({
           if (secondaryMarkerLabelRef.current) {
             secondaryMarkerLabelRef.current.setLngLat([secondaryMarker.lng, secondaryMarker.lat]);
           }
+        } else if (secondaryMarkerIcon === "motorbike") {
+          const { marker: motoMarker, rotatableEl } = criarMarcadorMoto(
+            secondaryMarker.color || "#6C3CE9",
+          );
+          motoMarker.setLngLat([secondaryMarker.lng, secondaryMarker.lat]).addTo(map.current);
+          secondaryMarkerRef.current = motoMarker;
+          secondaryMarkerRotateElRef.current = rotatableEl;
+          if (secondaryMarkerBearing !== undefined) {
+            rotatableEl.style.transform = `rotate(${secondaryMarkerBearing}deg)`;
+          }
         } else {
           secondaryMarkerRef.current = new mapboxgl.Marker({
             color: secondaryMarker.color || "#6C3CE9",
@@ -243,6 +307,7 @@ export function MapView({
           secondaryMarkerLabelRef.current = criarEtiquetaMarcador(
             secondaryMarkerLabel,
             secondaryMarker.color || "#6C3CE9",
+            secondaryMarkerIcon === "motorbike" ? -22 : -38,
           )
             .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
             .addTo(map.current);
@@ -256,9 +321,24 @@ export function MapView({
           secondaryMarkerLabelRef.current.remove();
           secondaryMarkerLabelRef.current = null;
         }
+        secondaryMarkerRotateElRef.current = null;
       }
     }
-  }, [secondaryMarker?.lat, secondaryMarker?.lng, secondaryMarker?.color, secondaryMarkerLabel]);
+  }, [
+    secondaryMarker?.lat,
+    secondaryMarker?.lng,
+    secondaryMarker?.color,
+    secondaryMarkerLabel,
+    secondaryMarkerIcon,
+  ]);
+
+  // Girar o ícone de moto conforme a direção do motorista, sem mexer na
+  // posição (evita re-flyTo/refazer o marcador a cada leve mudança de rumo).
+  useEffect(() => {
+    if (secondaryMarkerRotateElRef.current && secondaryMarkerBearing !== undefined) {
+      secondaryMarkerRotateElRef.current.style.transform = `rotate(${secondaryMarkerBearing}deg)`;
+    }
+  }, [secondaryMarkerBearing]);
 
   return <div ref={mapContainer} className={className} />;
 }
