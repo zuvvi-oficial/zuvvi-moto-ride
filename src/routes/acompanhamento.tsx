@@ -48,6 +48,26 @@ const searchSchema = z.object({
   rideId: z.string(),
 });
 
+// Sequência de dasharray que, trocada quadro a quadro, cria a sensação de um
+// traço "fluindo" ao longo da linha — mesma técnica do exemplo oficial do
+// Mapbox GL JS ("Animate a line"), só aplicada na rota do passageiro.
+const ROTA_DASH_SEQUENCE: number[][] = [
+  [0, 4, 3],
+  [0.5, 4, 2.5],
+  [1, 4, 2],
+  [1.5, 4, 1.5],
+  [2, 4, 1],
+  [2.5, 4, 0.5],
+  [3, 4, 0],
+  [0, 0.5, 3, 3.5],
+  [0, 1, 3, 3],
+  [0, 1.5, 3, 2.5],
+  [0, 2, 3, 2],
+  [0, 2.5, 3, 1.5],
+  [0, 3, 3, 1],
+  [0, 3.5, 3, 0.5],
+];
+
 export const Route = createFileRoute("/acompanhamento")({
   validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
   component: AcompanhamentoCorrida,
@@ -189,6 +209,11 @@ function AcompanhamentoCorrida() {
     targetLat: number;
     targetLng: number;
   } | null>(null);
+  // Loop de animação do traço "fluindo" da rota — roda por fora do ciclo do
+  // React (requestAnimationFrame se auto-agenda), só cancelado quando a
+  // camada da rota é removida ou o componente desmonta.
+  const passageiroRotaDashFrameRef = useRef<number | null>(null);
+  const passageiroRotaDashStepRef = useRef<number>(-1);
   const [routeError, setRouteError] = useState<string | null>(null);
   // Chip de ETA/distância no mapa — dado que a própria resposta da Directions
   // API já traz (duration/distance), só exibido enquanto a rota é válida.
@@ -308,6 +333,18 @@ function AcompanhamentoCorrida() {
                   "line-width": 4,
                 },
               });
+
+              passageiroRotaDashStepRef.current = -1;
+              const animarTracejado = (timestamp: number) => {
+                if (!map.getLayer(layerId)) return;
+                const passo = Math.floor((timestamp / 60) % ROTA_DASH_SEQUENCE.length);
+                if (passo !== passageiroRotaDashStepRef.current) {
+                  map.setPaintProperty(layerId, "line-dasharray", ROTA_DASH_SEQUENCE[passo]);
+                  passageiroRotaDashStepRef.current = passo;
+                }
+                passageiroRotaDashFrameRef.current = requestAnimationFrame(animarTracejado);
+              };
+              passageiroRotaDashFrameRef.current = requestAnimationFrame(animarTracejado);
             }
 
             const fitKey = `${rideId}:${isTrip ? "destination" : "pickup"}`;
@@ -343,6 +380,10 @@ function AcompanhamentoCorrida() {
         passageiroRouteAbortRef.current.abort();
         passageiroRouteAbortRef.current = null;
       }
+      if (passageiroRotaDashFrameRef.current) {
+        cancelAnimationFrame(passageiroRotaDashFrameRef.current);
+        passageiroRotaDashFrameRef.current = null;
+      }
       if (map.getLayer(layerId)) map.removeLayer(layerId);
       if (map.getSource(sourceId)) map.removeSource(sourceId);
       lastPassageiroRouteCoordsRef.current = null;
@@ -361,6 +402,9 @@ function AcompanhamentoCorrida() {
   useEffect(() => {
     return () => {
       if (passageiroRouteAbortRef.current) passageiroRouteAbortRef.current.abort();
+      if (passageiroRotaDashFrameRef.current) {
+        cancelAnimationFrame(passageiroRotaDashFrameRef.current);
+      }
     };
   }, []);
 
