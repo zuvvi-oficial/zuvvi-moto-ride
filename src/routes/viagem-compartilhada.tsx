@@ -8,6 +8,7 @@ import { MapView } from "@/components/MapView";
 import {
   getViagemCompartilhadaPublica,
   getMapboxTokenParaViagemCompartilhada,
+  criarSosViagemCompartilhada,
 } from "@/lib/viagem-compartilhada.functions";
 
 const searchSchema = z.object({ token: z.string().min(1) });
@@ -86,6 +87,27 @@ function ViagemCompartilhadaPublica() {
   const { token } = Route.useSearch();
   const getViagemFn = useServerFn(getViagemCompartilhadaPublica);
   const getTokenFn = useServerFn(getMapboxTokenParaViagemCompartilhada);
+  const criarSosFn = useServerFn(criarSosViagemCompartilhada);
+
+  // Etapa 3 — botão de SOS: "idle" (botão normal) -> "confirmando" (pede
+  // confirmação antes de agir, pra um toque sem querer não disparar nada)
+  // -> "enviando" -> "enviado"/"erro".
+  const [sosState, setSosState] = useState<
+    "idle" | "confirmando" | "enviando" | "enviado" | "erro"
+  >("idle");
+  const [sosErro, setSosErro] = useState<string | null>(null);
+
+  const handleConfirmarSos = async () => {
+    setSosState("enviando");
+    setSosErro(null);
+    try {
+      await criarSosFn({ data: { linkPublico: token } });
+      setSosState("enviado");
+    } catch (err) {
+      setSosErro(err instanceof Error ? err.message : "Não foi possível enviar o alerta.");
+      setSosState("erro");
+    }
+  };
 
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
@@ -357,6 +379,67 @@ function ViagemCompartilhadaPublica() {
       </header>
 
       <main className="mx-auto w-full max-w-md flex-1 space-y-4 px-5 py-6">
+        <div className="rounded-2xl border border-red-500/25 bg-red-500/5 p-4">
+          {sosState === "enviado" ? (
+            <div className="flex items-start gap-2">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+              <p className="text-xs font-bold text-emerald-300">
+                Alerta enviado. O suporte da Zuvvi foi avisado e vai acompanhar esta corrida.
+              </p>
+            </div>
+          ) : sosState === "confirmando" ? (
+            <div className="space-y-2">
+              <p className="text-xs text-white/80">
+                Isso vai avisar o suporte da Zuvvi agora sobre esta corrida. Só confirme se
+                realmente precisar de ajuda.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSosState("idle")}
+                  className="flex-1 rounded-full border border-white/10 bg-white/5 py-2 text-xs font-bold text-white/70 transition-transform active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmarSos}
+                  className="flex-1 rounded-full bg-red-500 py-2 text-xs font-black text-white transition-transform active:scale-95"
+                >
+                  Confirmar alerta
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSosState("confirmando")}
+              disabled={sosState === "enviando"}
+              className="flex w-full items-center justify-between gap-2 text-left disabled:opacity-60"
+            >
+              <span className="flex items-center gap-2 text-xs font-bold text-red-300">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {sosState === "enviando" ? "Enviando alerta..." : "Precisa de ajuda agora?"}
+              </span>
+              <span className="shrink-0 rounded-full bg-red-500/20 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-red-300">
+                SOS
+              </span>
+            </button>
+          )}
+          {sosState === "erro" && sosErro && (
+            <div className="mt-2 space-y-1">
+              <p className="text-[10px] text-red-300">{sosErro}</p>
+              <button
+                type="button"
+                onClick={handleConfirmarSos}
+                className="text-[10px] font-bold text-red-300 underline"
+              >
+                Tentar de novo
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm font-bold text-white">
             {STATUS_LABEL[snapshot.status] || "Atualizando corrida"}

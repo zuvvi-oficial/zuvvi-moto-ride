@@ -153,3 +153,71 @@ export const getMapboxTokenParaViagemCompartilhada = createServerFn({ method: "G
     await buscarViagemCompartilhadaPublica(data.linkPublico);
     return process.env["MAPBOX_TOKEN"] || null;
   });
+
+// Etapa 3 (segurança ativa): botão de SOS na tela pública. Sem
+// requireSupabaseAuth pelo mesmo motivo das duas funções acima — quem aciona
+// é o contato de confiança, sem conta na Zuvvi. O chamado é registrado em
+// nome do próprio passageiro da corrida (dono legítimo do chamado, já que é
+// a viagem dele) usando o tipo "sos" que o módulo de Suporte já suporta —
+// nenhuma tabela nova, nenhuma alteração no fluxo/telas de suporte
+// existentes, só uma nova forma de criar o mesmo tipo de chamado que já
+// existe.
+export const criarSosViagemCompartilhada = createServerFn({ method: "POST" })
+  .validator((data: unknown) => publicoSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Mesma validação de token/expiração da leitura pública (link_publico
+    // exato, nunca listado), feita direto contra a tabela porque aqui
+    // também precisamos do corrida_id, que a RPC de leitura não devolve.
+    const { data: viagem, error: viagemError } = await supabaseAdmin
+      .from("viagens_compartilhadas")
+      .select("corrida_id")
+      .eq("link_publico", data.linkPublico)
+      .gt("expira_em", new Date().toISOString())
+      .maybeSingle();
+
+    if (viagemError || !viagem) throw new Error("Este link expirou ou não existe mais.");
+
+    const { data: corrida, error: corridaError } = await supabaseAdmin
+      .from("corridas")
+      .select("id, passageiro_id")
+      .eq("id", viagem.corrida_id)
+      .maybeSingle();
+
+    if (corridaError || !corrida) throw new Error("Corrida não encontrada.");
+
+    // Evita duplicar se o contato tocar mais de uma vez: reaproveita um SOS
+    // já aberto/em atendimento recente para esta mesma corrida.
+    const { data: existente } = await supabaseAdmin
+      .from("chamados_suporte")
+      .select("id, status")
+      .eq("corrida_id", corrida.id)
+      .eq("tipo", "sos")
+      .in("status", ["aberto", "em_atendimento"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existente) {
+      return { id: existente.id, status: existente.status as string, jaExistia: true as const };
+    }
+
+    const { data: chamado, error: chamadoError } = await supabaseAdmin
+      .from("chamados_suporte")
+      .insert({
+        usuario_id: corrida.passageiro_id,
+        corrida_id: corrida.id,
+        tipo: "sos",
+        descricao:
+          "Acionado por um contato de confiança pela tela pública de acompanhamento (link de viagem compartilhada).",
+      })
+      .select("id, status")
+      .single();
+
+    if (chamadoError || !chamado) {
+      throw new Error("Não foi possível registrar o alerta. Tente novamente.");
+    }
+
+    return { id: chamado.id, status: chamado.status as string, jaExistia: false as const };
+  });
