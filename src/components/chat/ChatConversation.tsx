@@ -490,7 +490,16 @@ export function ChatConversation({
         )}
 
         <div className="shrink-0 bg-background border-t pb-[env(safe-area-inset-bottom)] z-20">
-          {podeEnviar ? (
+          {loading ? (
+            // Enquanto os dados ainda não chegaram, "podeEnviar" ainda não
+            // reflete a corrida de verdade (só o valor padrão) — mostrar a
+            // mensagem de "chat pausado" nesse instante seria um falso
+            // positivo, dando a entender que a corrida bloqueia o chat
+            // quando na real só estamos esperando a resposta do servidor.
+            <div className="p-6 text-center">
+              <p className="text-xs text-muted-foreground">Carregando conversa...</p>
+            </div>
+          ) : podeEnviar ? (
             <div className="p-3 sm:p-4">
               {respostasRapidas.length > 0 && (
                 <div
