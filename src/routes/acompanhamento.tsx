@@ -456,6 +456,19 @@ function AcompanhamentoCorrida() {
     }
   }, [rideId, carregarChatFn, marcarEntreguesFn, avaliarAlertaChat, handleChatOpenChange]);
 
+  // Reage na hora à mudança de status da corrida (ex.: aceita -> em_andamento),
+  // que muda se pode enviar mensagem — sem isso, quem está com o chat aberto só
+  // via essa mudança no próximo evento de chat ou troca de foco da aba.
+  useEffect(() => {
+    if (!rideId || !corrida?.status) return;
+
+    if (chatOpenRef.current) {
+      void refreshChat();
+    } else {
+      void syncChatFechado();
+    }
+  }, [rideId, corrida?.status, refreshChat, syncChatFechado]);
+
   useEffect(() => {
     if (!rideId) return undefined;
 

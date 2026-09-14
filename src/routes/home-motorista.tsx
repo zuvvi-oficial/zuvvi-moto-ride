@@ -523,6 +523,20 @@ function HomeMotorista() {
     };
   }, [activeRide?.id, refreshChat, syncChatFechado]);
 
+  // Reage na hora à mudança de status da corrida (ex.: aceita -> em_andamento),
+  // que muda se pode enviar mensagem — sem isso, quem está com o chat aberto só
+  // via essa mudança até 10s depois, no próximo tick do safetySyncInterval.
+  useEffect(() => {
+    const corridaId = activeRide?.id;
+    if (!corridaId) return;
+
+    if (chatOpenRef.current && chatSessionRideIdRef.current === corridaId) {
+      void refreshChat();
+    } else if (activeChatRideIdRef.current === corridaId) {
+      void syncChatFechado();
+    }
+  }, [activeRide?.id, activeRide?.status, refreshChat, syncChatFechado]);
+
   useEffect(() => {
     const corridaId = activeRide?.id;
     if (!chatOpen || !corridaId || chatSessionRideIdRef.current !== corridaId) return;
