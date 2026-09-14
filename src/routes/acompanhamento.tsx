@@ -744,17 +744,28 @@ function AcompanhamentoCorrida() {
         )}
       </div>
 
+      {/* Nevoa decorativa atrás do topo/rodapé — só pra manter o texto legível
+          sobre qualquer trecho do mapa, não interfere em nada abaixo dela. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 z-[5] bg-gradient-to-b from-zuvvi-indigo/70 via-zuvvi-indigo/25 to-transparent" />
+      {motorista && veiculo && corrida.status !== "concluida" && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 z-[5] bg-gradient-to-t from-zuvvi-indigo/80 via-zuvvi-indigo/30 to-transparent" />
+      )}
+
       <div className="relative z-10 p-6 flex items-center justify-between pointer-events-auto">
         <button
           onClick={() => void navigate({ to: "/" })}
-          className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform"
+          className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 shadow-lg shadow-black/20 active:scale-95 transition-transform"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
 
         <div className="flex items-center gap-3">
           <NotificationBell />
-          <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 pointer-events-auto overflow-hidden">
+          <div className="flex items-center gap-2 bg-zuvvi-indigo/80 backdrop-blur-md pl-3 pr-4 py-2 rounded-2xl border border-white/10 shadow-lg shadow-black/20 pointer-events-auto overflow-hidden">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zuvvi-volt opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-zuvvi-volt" />
+            </span>
             <p
               key={corrida.status}
               className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-1 duration-300"
@@ -777,76 +788,83 @@ function AcompanhamentoCorrida() {
 
       {motorista && veiculo && corrida.status !== "concluida" && (
         <div className="absolute bottom-0 left-0 right-0 p-6 z-10 pointer-events-none">
-          <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl pointer-events-auto animate-rise space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-zuvvi-volt/20 flex items-center justify-center border border-zuvvi-volt/30 shrink-0">
-                  {motorista.foto_url ? (
-                    <img
-                      src={motorista.foto_url}
-                      alt={`Foto de ${motorista.nome}`}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-zuvvi-volt" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-white font-bold">{motorista.nome}</h3>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
-                    <span className="text-xs text-zuvvi-volt font-bold">
-                      {motorista.nota_media !== null
-                        ? motorista.nota_media.toFixed(1)
-                        : "Novo na Zuvvi"}
-                    </span>
+          <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 ring-1 ring-white/5 rounded-[2.5rem] p-6 shadow-2xl shadow-black/40 pointer-events-auto animate-rise space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="relative shrink-0">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden bg-zuvvi-volt/20 flex items-center justify-center border-2 border-zuvvi-volt/30 shadow-lg shadow-zuvvi-volt/10">
+                    {motorista.foto_url ? (
+                      <img
+                        src={motorista.foto_url}
+                        alt={`Foto de ${motorista.nome}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-8 h-8 text-zuvvi-volt" />
+                    )}
                   </div>
-                  <div className="mt-1 space-y-0.5">
-                    <p className="text-[10px] text-muted-foreground font-medium">
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-400 border-2 border-zuvvi-indigo" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-white font-black text-base truncate">{motorista.nome}</h3>
+                  <div className="flex items-center gap-1 mt-1">
+                    <div className="flex items-center gap-1 bg-zuvvi-volt/10 rounded-full px-2 py-0.5 w-fit">
+                      <Star className="w-3 h-3 text-zuvvi-volt fill-zuvvi-volt" />
+                      <span className="text-[11px] text-zuvvi-volt font-black">
+                        {motorista.nota_media !== null
+                          ? motorista.nota_media.toFixed(1)
+                          : "Novo na Zuvvi"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-1.5 space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground font-medium truncate">
                       {motorista.total_corridas === 0
                         ? "Primeira corrida"
                         : `${motorista.total_corridas} ${motorista.total_corridas === 1 ? "corrida" : "corridas"} na Zuvvi`}
                     </p>
                     {motorista.membro_desde && (
-                      <p className="text-[10px] text-muted-foreground font-medium">
+                      <p className="text-[10px] text-muted-foreground font-medium truncate">
                         Membro {formatarTempoNaZuvvi(motorista.membro_desde)}
                       </p>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Placa</p>
-                <p className="text-sm font-black text-white">{veiculo.placa}</p>
+              <div className="shrink-0 bg-white/5 border border-white/10 rounded-2xl px-3.5 py-2 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Placa</p>
+                <p className="text-sm font-black text-white tracking-wide">{veiculo.placa}</p>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-zuvvi-volt/10 flex items-center justify-center">
+            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-zuvvi-volt/10 flex items-center justify-center shrink-0">
                   <Bike className="w-5 h-5 text-zuvvi-volt" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] text-muted-foreground uppercase tracking-widest">
                     Veículo
                   </p>
-                  <p className="text-xs font-bold text-white">
+                  <p className="text-xs font-bold text-white truncate">
                     {veiculo.marca} {veiculo.modelo}
                     {veiculo.cor ? ` · ${veiculo.cor}` : ""}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setShareOpen(true)}
-                  className="bg-white/5 px-3 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-white/10 min-h-[44px]"
+                  className="bg-white/5 px-3 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-white/10 min-h-[44px] shadow-sm"
                   aria-label="Compartilhar viagem com um contato de confiança"
                 >
                   <Share2 className="w-4 h-4 text-white/70" />
                 </button>
                 <button
                   onClick={() => handleChatOpenChange(true)}
-                  className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px] relative"
+                  className="bg-zuvvi-volt/10 px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-2 border border-zuvvi-volt/20 min-h-[44px] relative shadow-sm shadow-zuvvi-volt/10"
                   aria-label={`Chat com motorista${chatUnreadCount > 0 ? `, ${chatUnreadCount} mensagens não lidas` : ""}`}
                 >
                   <div className="relative">
