@@ -1626,12 +1626,16 @@ export type Database = {
       get_viagem_compartilhada_publica: {
         Args: { p_link_publico: string }
         Returns: {
+          destino_lat: number
+          destino_lng: number
           destino_nome: string
           expira_em: string
           motorista_lat: number
           motorista_lng: number
           motorista_nome: string
           motorista_nota: number
+          origem_lat: number
+          origem_lng: number
           origem_nome: string
           status: Database["public"]["Enums"]["corrida_status"]
           veiculo_cor: string
