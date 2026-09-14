@@ -2,16 +2,7 @@ import * as React from "react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Send,
-  Check,
-  CheckCheck,
-  MessageCircle,
-  ChevronLeft,
-  Loader2,
-  ArrowDown,
-  X,
-} from "lucide-react";
+import { Send, Check, CheckCheck, MessageCircle, Loader2, ArrowDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -424,7 +415,7 @@ export function ChatConversation({
               onClick={() => onOpenChange(false)}
               aria-label="Fechar chat"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <X className="w-6 h-6" />
             </Button>
 
             <div className="flex items-center gap-3 overflow-hidden">
