@@ -14,6 +14,7 @@ import {
   handleCorridasAgendadasConverterRequest,
   isCorridasAgendadasConverterRequest,
 } from "./lib/corridas-agendadas-converter-endpoint.server";
+import { handlePushTesteRequest, isPushTesteRequest } from "./lib/push-teste-endpoint.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -69,6 +70,10 @@ export default {
 
       if (isCorridasAgendadasConverterRequest(request)) {
         return await handleCorridasAgendadasConverterRequest(request);
+      }
+
+      if (isPushTesteRequest(request)) {
+        return await handlePushTesteRequest(request);
       }
 
       const handler = await getServerEntry();
