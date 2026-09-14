@@ -48,6 +48,12 @@ const searchSchema = z.object({
   rideId: z.string(),
 });
 
+// Margem do enquadramento automático (fitBounds) do mapa — mais folga em
+// cima porque o pino e a etiqueta de nome ocupam bem mais espaço acima do
+// ponto real do que abaixo; sem isso, quando o motorista fica perto da
+// borda de cima da rota, a etiqueta saía cortada da área visível.
+const MARGEM_ENQUADRAMENTO_MAPA = { top: 80, bottom: 40, left: 40, right: 40 };
+
 // Sequência de dasharray que, trocada quadro a quadro, cria a sensação de um
 // traço "fluindo" ao longo da linha — mesma técnica do exemplo oficial do
 // Mapbox GL JS ("Animate a line"), só aplicada na rota do passageiro.
@@ -287,7 +293,11 @@ function AcompanhamentoCorrida() {
     const map = passageiroMapInstance.current;
     if (!map || !corrida) return;
     if (lastRouteBoundsRef.current) {
-      map.fitBounds(lastRouteBoundsRef.current, { padding: 40, duration: 1000, maxZoom: 17 });
+      map.fitBounds(lastRouteBoundsRef.current, {
+        padding: MARGEM_ENQUADRAMENTO_MAPA,
+        duration: 1000,
+        maxZoom: 17,
+      });
     } else {
       map.flyTo({ center: [corrida.origem_lng, corrida.origem_lat], zoom: 15 });
     }
@@ -409,7 +419,7 @@ function AcompanhamentoCorrida() {
               // sem isso o enquadramento ficava tão apertado que cortava a
               // etiqueta de nome fora da área visível do mapa.
               map.fitBounds(bounds, {
-                padding: 40,
+                padding: MARGEM_ENQUADRAMENTO_MAPA,
                 duration: mudouDeFase ? 2000 : 1200,
                 maxZoom: 17,
               });
