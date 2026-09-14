@@ -33,6 +33,7 @@ interface ChatConversationProps {
   interlocutor: {
     id: string;
     nome: string;
+    fotoUrl?: string | null;
   };
   mensagens: Mensagem[];
   presenca: {
@@ -427,10 +428,18 @@ export function ChatConversation({
             </Button>
 
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                <span className="text-primary font-bold text-lg">
-                  {interlocutor.nome.charAt(0).toUpperCase()}
-                </span>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
+                {interlocutor.fotoUrl ? (
+                  <img
+                    src={interlocutor.fotoUrl}
+                    alt={interlocutor.nome}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-primary font-bold text-lg">
+                    {interlocutor.nome.charAt(0).toUpperCase()}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col overflow-hidden">
                 <DialogTitle className="text-base font-bold truncate">

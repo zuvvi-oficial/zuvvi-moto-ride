@@ -73,6 +73,7 @@ interface ChatData {
   interlocutor: {
     id: string;
     nome: string;
+    fotoUrl?: string | null;
   };
   mensagens: ChatMensagem[];
   presenca: {

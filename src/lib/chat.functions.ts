@@ -75,10 +75,10 @@ async function resolveParticipanteChat(corridaId: string, authUserId: string) {
 
   const interlocutorId = souPassageiro ? corrida.motorista_id : corrida.passageiro_id;
 
-  // 6. Determinar interlocutor (somente id, nome) e se pode enviar
+  // 6. Determinar interlocutor (id, nome, foto de perfil) e se pode enviar
   const { data: interlocutor, error: intError } = await supabaseAdmin
     .from("usuarios")
-    .select("id, nome")
+    .select("id, nome, foto_perfil_path")
     .eq("id", interlocutorId)
     .single();
 
@@ -199,10 +199,17 @@ export const carregarChat = createServerFn({ method: "GET" })
       throw new Error("Não foi possível carregar as mensagens não lidas.");
     }
 
+    // Mesma assinatura já usada para o ícone do push — nunca expõe o caminho
+    // bruto do Storage para o cliente, só a URL assinada (ou null sem foto).
+    const fotoUrl = await assinarFotoRemetente(
+      supabaseAdmin,
+      typeof interlocutor.foto_perfil_path === "string" ? interlocutor.foto_perfil_path : null,
+    );
+
     return {
       corridaId: input.corridaId,
       meuUsuarioId,
-      interlocutor,
+      interlocutor: { id: interlocutor.id, nome: interlocutor.nome, fotoUrl },
       status,
       podeEnviar,
       naoLidas: naoLidas || 0,
