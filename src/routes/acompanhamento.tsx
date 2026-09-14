@@ -27,6 +27,7 @@ import {
   Maximize2,
   Minimize2,
   Clock,
+  Locate,
 } from "lucide-react";
 import { z } from "zod";
 import mapboxgl from "mapbox-gl";
@@ -194,6 +195,33 @@ function AcompanhamentoCorrida() {
   const [routeInfo, setRouteInfo] = useState<{ etaLabel: string; distanceLabel: string } | null>(
     null,
   );
+  // Botão de recentralizar: só aparece depois que o usuário arrasta o mapa
+  // manualmente (evento "dragstart", que só dispara em interação real —
+  // nunca em flyTo/fitBounds programático). Guarda o último enquadramento
+  // calculado pra poder voltar exatamente pra ele com um toque.
+  const [mapPannedManually, setMapPannedManually] = useState(false);
+  const lastRouteBoundsRef = useRef<mapboxgl.LngLatBounds | null>(null);
+
+  useEffect(() => {
+    const map = passageiroMapInstance.current;
+    if (!map || !isPassageiroMapReady) return;
+    const onDragStart = () => setMapPannedManually(true);
+    map.on("dragstart", onDragStart);
+    return () => {
+      map.off("dragstart", onDragStart);
+    };
+  }, [isPassageiroMapReady]);
+
+  const handleRecentralizarMapa = () => {
+    const map = passageiroMapInstance.current;
+    if (!map || !corrida) return;
+    if (lastRouteBoundsRef.current) {
+      map.fitBounds(lastRouteBoundsRef.current, { padding: 40, duration: 1000 });
+    } else {
+      map.flyTo({ center: [corrida.origem_lng, corrida.origem_lat], zoom: 15 });
+    }
+    setMapPannedManually(false);
+  };
 
   useEffect(() => {
     const map = passageiroMapInstance.current;
@@ -274,6 +302,8 @@ function AcompanhamentoCorrida() {
               route.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
               map.fitBounds(bounds, { padding: 40, duration: 2000 });
               passageiroRouteFittedKeyRef.current = fitKey;
+              lastRouteBoundsRef.current = bounds;
+              setMapPannedManually(false);
             }
 
             lastPassageiroRouteCoordsRef.current = {
@@ -988,6 +1018,16 @@ function AcompanhamentoCorrida() {
               </span>
             </div>
           </div>
+        )}
+        {mapPannedManually && (
+          <button
+            type="button"
+            onClick={handleRecentralizarMapa}
+            aria-label="Recentralizar mapa"
+            className="absolute bottom-3 left-3 w-9 h-9 rounded-full bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 shadow-lg flex items-center justify-center active:scale-95 transition-transform animate-in fade-in zoom-in-95 duration-200"
+          >
+            <Locate className="w-4 h-4 text-white/90" />
+          </button>
         )}
         <button
           type="button"
