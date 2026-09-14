@@ -71,19 +71,30 @@ function criarEtiquetaMarcador(texto: string, cor: string, offsetY: number = -38
 }
 
 function criarAnelPulso(cor: string): mapboxgl.Marker {
-  const el = document.createElement("div");
-  el.style.width = "20px";
-  el.style.height = "20px";
-  el.style.borderRadius = "9999px";
-  el.style.background = cor;
-  el.style.pointerEvents = "none";
+  // Elemento "raiz" fica sem nenhum estilo de animação — é ele que o Mapbox
+  // move via transform (translate) pra acompanhar a coordenada no mapa. Uma
+  // animação de transform (scale) direto nesse mesmo elemento entra em
+  // conflito com esse posicionamento e vence, "grudando" o marcador num
+  // canto fixo do mapa em vez de segui-lo (achado do Rafael em teste real).
+  const raiz = document.createElement("div");
+  raiz.style.width = "20px";
+  raiz.style.height = "20px";
+  raiz.style.pointerEvents = "none";
+
+  const pulso = document.createElement("div");
+  pulso.style.width = "100%";
+  pulso.style.height = "100%";
+  pulso.style.borderRadius = "9999px";
+  pulso.style.background = cor;
   // Reaproveita a mesma animação "pulse-ring" já usada em outros indicadores
   // de "ao vivo" no app (ex.: status do motorista) — nenhuma keyframe nova.
-  el.className = "animate-pulse-ring";
+  pulso.className = "animate-pulse-ring";
+  raiz.appendChild(pulso);
+
   // anchor "bottom" (igual à etiqueta) encosta a BASE do anel exatamente na
   // ponta do pino padrão do Mapbox — com anchor "center" ele ficava metade
-  // atrás do pino e metade flutuando abaixo dele, quase invisível.
-  return new mapboxgl.Marker({ element: el, anchor: "bottom" });
+  // atrás do pino e metade flutuando abaixo dele.
+  return new mapboxgl.Marker({ element: raiz, anchor: "bottom" });
 }
 
 // Ícone de moto (mesmo desenho do "Motorbike" da lucide-react, usado como
