@@ -72,17 +72,18 @@ function criarEtiquetaMarcador(texto: string, cor: string, offsetY: number = -38
 
 function criarAnelPulso(cor: string): mapboxgl.Marker {
   const el = document.createElement("div");
-  el.style.width = "16px";
-  el.style.height = "16px";
+  el.style.width = "20px";
+  el.style.height = "20px";
   el.style.borderRadius = "9999px";
   el.style.background = cor;
   el.style.pointerEvents = "none";
   // Reaproveita a mesma animação "pulse-ring" já usada em outros indicadores
   // de "ao vivo" no app (ex.: status do motorista) — nenhuma keyframe nova.
   el.className = "animate-pulse-ring";
-  // anchor "center" encosta o anel exatamente no ponto onde a ponta do pino
-  // padrão do Mapbox toca o chão (mesma coordenada do marcador principal).
-  return new mapboxgl.Marker({ element: el, anchor: "center" });
+  // anchor "bottom" (igual à etiqueta) encosta a BASE do anel exatamente na
+  // ponta do pino padrão do Mapbox — com anchor "center" ele ficava metade
+  // atrás do pino e metade flutuando abaixo dele, quase invisível.
+  return new mapboxgl.Marker({ element: el, anchor: "bottom" });
 }
 
 // Ícone de moto (mesmo desenho do "Motorbike" da lucide-react, usado como
