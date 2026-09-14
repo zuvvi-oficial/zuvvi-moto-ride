@@ -286,13 +286,27 @@ function AcompanhamentoCorrida() {
             if (source) {
               source.setData(route);
             } else {
-              map.addSource(sourceId, { type: "geojson", data: route });
+              // lineMetrics habilita o line-gradient abaixo — a rota fica
+              // mais opaca perto do motorista (início das coordenadas) e vai
+              // esmaecendo em direção ao ponto de encontro.
+              map.addSource(sourceId, { type: "geojson", lineMetrics: true, data: route });
               map.addLayer({
                 id: layerId,
                 type: "line",
                 source: sourceId,
                 layout: { "line-join": "round", "line-cap": "round" },
-                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
+                paint: {
+                  "line-gradient": [
+                    "interpolate",
+                    ["linear"],
+                    ["line-progress"],
+                    0,
+                    "rgba(198, 255, 61, 0.95)",
+                    1,
+                    "rgba(198, 255, 61, 0.15)",
+                  ],
+                  "line-width": 4,
+                },
               });
             }
 
