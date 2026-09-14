@@ -26,7 +26,20 @@ export function UpdatePrompt() {
           disabled={isUpdating}
           onClick={async () => {
             setIsUpdating(true);
-            await applyUpdate();
+            // O recarregamento normal só acontece quando o navegador avisa que
+            // o novo service worker assumiu o controle — em alguns PWAs
+            // instalados esse aviso pode nunca chegar, deixando o botão
+            // girando pra sempre sem nada acontecer. Essa rede de segurança
+            // força o recarregamento se isso não ocorrer sozinho em poucos
+            // segundos; se o caminho normal já tiver recarregado a página
+            // antes disso, este timeout nunca chega a executar.
+            const forcarRecarregamento = window.setTimeout(() => window.location.reload(), 4000);
+            try {
+              await applyUpdate();
+            } catch {
+              window.clearTimeout(forcarRecarregamento);
+              window.location.reload();
+            }
           }}
           className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary-foreground transition-transform active:scale-95 disabled:opacity-60"
         >
