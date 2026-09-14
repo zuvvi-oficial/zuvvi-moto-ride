@@ -204,6 +204,7 @@ function HomeMotorista() {
   const [avaliacaoSucesso, setAvaliacaoSucesso] = useState(false);
 
   const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
+  const pickupMapWrapperRef = useRef<HTMLDivElement | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
@@ -222,14 +223,20 @@ function HomeMotorista() {
   const MAX_TRAIL_POINTS = 60;
 
   // Tela cheia reaproveita a mesma instância do mapa (não cria um segundo
-  // mapa) — só muda o tamanho do container, então o Mapbox precisa recalcular
-  // as dimensões do canvas depois que o CSS aplicar o novo tamanho.
+  // mapa) — só muda o tamanho do container. Um ResizeObserver garante que o
+  // mapa recalcule o canvas exatamente quando o tamanho real do container
+  // mudar de fato — mais confiável do que esperar só um quadro de animação
+  // (requestAnimationFrame podia disparar antes do layout novo já estar
+  // aplicado, deixando parte da tela cheia sem desenhar nada, achado do
+  // Rafael em teste real).
   useEffect(() => {
+    const wrapper = pickupMapWrapperRef.current;
     const map = pickupMapInstance.current;
-    if (!map) return;
-    const raf = requestAnimationFrame(() => map.resize());
-    return () => cancelAnimationFrame(raf);
-  }, [isMapFullscreen]);
+    if (!wrapper || !map) return;
+    const observer = new ResizeObserver(() => map.resize());
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, [isMapFullscreen, isPickupMapReady]);
 
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -1561,9 +1568,10 @@ function HomeMotorista() {
 
             {activeRide && mapboxToken && activeRide.origem_lat && activeRide.origem_lng ? (
               <div
+                ref={pickupMapWrapperRef}
                 className={
                   isMapFullscreen
-                    ? "fixed inset-0 z-[100] overflow-hidden"
+                    ? "fixed inset-0 z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-300"
                     : "h-28 rounded-2xl overflow-hidden border border-white/10 relative"
                 }
               >
