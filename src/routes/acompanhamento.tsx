@@ -68,6 +68,20 @@ const ROTA_DASH_SEQUENCE: number[][] = [
   [0, 3.5, 3, 0.5],
 ];
 
+// Direção (bearing, em graus, 0 = norte) entre dois pontos — usada pra girar
+// o ícone de moto do motorista na direção real do deslocamento, já que o GPS
+// bruto não traz heading, só lat/lng.
+function calcularBearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const toDeg = (rad: number) => (rad * 180) / Math.PI;
+  const dLng = toRad(lng2 - lng1);
+  const y = Math.sin(dLng) * Math.cos(toRad(lat2));
+  const x =
+    Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+    Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
 export const Route = createFileRoute("/acompanhamento")({
   validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
   component: AcompanhamentoCorrida,
@@ -196,6 +210,27 @@ function AcompanhamentoCorrida() {
     const raf = requestAnimationFrame(() => map.resize());
     return () => cancelAnimationFrame(raf);
   }, [isMapFullscreen]);
+
+  // Direção do ícone de moto do motorista — recalculada só quando ele se
+  // move de fato (limiar ~3m), pra não "tremer" com o ruído normal do GPS
+  // enquanto ele está parado.
+  const [driverBearing, setDriverBearing] = useState(0);
+  const previousDriverPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    const lat = motorista?.ultima_lat;
+    const lng = motorista?.ultima_lng;
+    if (lat == null || lng == null) return;
+
+    const anterior = previousDriverPosRef.current;
+    if (anterior) {
+      const moveu =
+        Math.abs(lat - anterior.lat) > 0.00003 || Math.abs(lng - anterior.lng) > 0.00003;
+      if (moveu) {
+        setDriverBearing(calcularBearing(anterior.lat, anterior.lng, lat, lng));
+      }
+    }
+    previousDriverPosRef.current = { lat, lng };
+  }, [motorista?.ultima_lat, motorista?.ultima_lng]);
 
   // Rota entre o motorista e o ponto de encontro — mesmo padrão (Directions
   // API + fitBounds) já usado e validado na tela do motorista. O alvo é o
@@ -1047,6 +1082,8 @@ function AcompanhamentoCorrida() {
                 : undefined
             }
             secondaryMarkerLabel={motorista?.nome || "Motorista"}
+            secondaryMarkerIcon="motorbike"
+            secondaryMarkerBearing={driverBearing}
             className="w-full h-full"
             onMapInstance={(map) => {
               passageiroMapInstance.current = map;
