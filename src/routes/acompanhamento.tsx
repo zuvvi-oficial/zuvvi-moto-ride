@@ -26,6 +26,7 @@ import {
   Heart,
   Maximize2,
   Minimize2,
+  Clock,
 } from "lucide-react";
 import { z } from "zod";
 import mapboxgl from "mapbox-gl";
@@ -977,9 +978,14 @@ function AcompanhamentoCorrida() {
         {routeInfo && !routeError && (
           <div className="absolute top-3 left-3 pointer-events-none">
             <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg flex items-center gap-1.5">
+              <Clock className="w-3 h-3 text-zuvvi-volt shrink-0" />
               <p className="text-[11px] text-zuvvi-volt font-black">{routeInfo.etaLabel}</p>
               <span className="text-white/30 text-[10px]">•</span>
               <p className="text-[10px] text-white/70 font-bold">{routeInfo.distanceLabel}</p>
+              <span className="relative flex h-1.5 w-1.5 shrink-0 ml-0.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zuvvi-volt opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-zuvvi-volt" />
+              </span>
             </div>
           </div>
         )}
