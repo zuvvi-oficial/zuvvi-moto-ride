@@ -173,6 +173,11 @@ function HomeMotorista() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [codigoEmbarque, setCodigoEmbarque] = useState("");
   const [routeError, setRouteError] = useState<string | null>(null);
+  // ETA/distância até o próximo ponto (embarque ou destino), vindos da mesma
+  // resposta da Directions API já usada para desenhar a linha da rota — sem
+  // nenhuma chamada extra.
+  const [routeEtaMin, setRouteEtaMin] = useState<number | null>(null);
+  const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [rainAlert, setRainAlert] = useState<{ local: string } | null>(null);
@@ -1376,7 +1381,10 @@ function HomeMotorista() {
               return;
             }
             setRouteError(null);
-            const route = data.routes[0].geometry;
+            const routeData = data.routes[0];
+            setRouteEtaMin(Math.round(routeData.duration / 60));
+            setRouteDistanceKm(routeData.distance / 1000);
+            const route = routeData.geometry;
             const sourceId = "zuvvi-driver-pickup-route-source";
             const layerId = "zuvvi-driver-pickup-route-layer";
 
@@ -1438,6 +1446,8 @@ function HomeMotorista() {
       if (map.getSource(sourceId)) map.removeSource(sourceId);
       lastRouteCoordsRef.current = null;
       setRouteError(null);
+      setRouteEtaMin(null);
+      setRouteDistanceKm(null);
     }
   }, [
     status,
@@ -1811,6 +1821,21 @@ function HomeMotorista() {
                       </button>
                     );
                   })()}
+
+                {routeEtaMin !== null && routeDistanceKm !== null && (
+                  <div
+                    className={
+                      isMapFullscreen
+                        ? "absolute bottom-4 left-4 bg-zuvvi-indigo/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-1.5"
+                        : "absolute bottom-2 left-2 bg-zuvvi-indigo/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1.5"
+                    }
+                  >
+                    <Navigation className="w-3 h-3 text-zuvvi-volt" />
+                    <p className="text-[8px] text-white/80 font-bold uppercase tracking-widest">
+                      {routeEtaMin} min · {routeDistanceKm.toFixed(1)} km
+                    </p>
+                  </div>
+                )}
 
                 {(status?.ultima_lat === null || status?.ultima_lng === null) && !routeError && (
                   <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
