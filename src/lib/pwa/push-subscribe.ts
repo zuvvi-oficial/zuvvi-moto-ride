@@ -136,7 +136,24 @@ export async function subscribeToPushNotifications(): Promise<PushSubscribeResul
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    // navigator.serviceWorker.ready só resolve quando existe um service
+    // worker ativo controlando a página — se o registro dele ficar travado
+    // (visto em alguns PWAs instalados), essa promise nunca resolve nem
+    // rejeita, e a inscrição travava pra sempre em silêncio: sem toast, sem
+    // erro, e sem nenhuma linha registrada no servidor pra investigar depois.
+    // Esse timeout transforma essa trava silenciosa num "unavailable"
+    // reportável, que já aciona o toast de erro existente na tela do
+    // motorista.
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+    ]);
+    if (!registration) {
+      return {
+        outcome: "unavailable",
+        detalhe: "Service worker não ficou pronto a tempo (registro travado no aparelho).",
+      };
+    }
     let subscription = await registration.pushManager.getSubscription();
     let endpointRenovado: string | null = null;
     if (subscription && !inscricaoUsaChaveAtual(subscription, vapidPublicKey)) {
