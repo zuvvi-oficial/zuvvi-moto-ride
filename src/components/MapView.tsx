@@ -30,7 +30,22 @@ interface MapViewProps {
   // continua com o pino colorido de sempre.
   secondaryMarkerIcon?: "motorbike";
   secondaryMarkerBearing?: number;
+  // Opt-in: some os rótulos de nome de estabelecimento/transporte/bairro do
+  // estilo padrão do Mapbox, deixando o mapa mais limpo. Quem não passar
+  // continua com o estilo "dark-v11" exatamente como sempre foi.
+  hideClutterLabels?: boolean;
 }
+
+// Camadas de texto do estilo "dark-v11" que mais poluem um mapa pequeno
+// (nome de loja/restaurante, transporte, bairro) — nunca as de rua/cidade,
+// que ajudam a se orientar. Cada uma é checada antes de mexer: se o Mapbox
+// mudar o estilo e alguma sumir, isso é ignorado com segurança.
+const CAMADAS_ROTULO_POLUENTE = [
+  "poi-label",
+  "transit-label",
+  "airport-label",
+  "settlement-subdivision-label",
+];
 
 function criarEtiquetaMarcador(texto: string, cor: string, offsetY: number = -38): mapboxgl.Marker {
   const el = document.createElement("div");
@@ -116,6 +131,7 @@ export function MapView({
   pulsePrimaryMarker = false,
   secondaryMarkerIcon,
   secondaryMarkerBearing,
+  hideClutterLabels = false,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -276,6 +292,36 @@ export function MapView({
       currentMap.off("load", applyCamera);
     };
   }, [pitch, show3DBuildings]);
+
+  // Esconder rótulos de poluição visual (loja, transporte, bairro) do estilo
+  // padrão — mesmo padrão de espera pelo "load" já usado acima pro pitch/
+  // prédios 3D, pro caso do estilo ainda não ter terminado de carregar.
+  useEffect(() => {
+    const currentMap = map.current;
+    if (!currentMap || !hideClutterLabels) return;
+
+    const esconderRotulosPoluentes = () => {
+      CAMADAS_ROTULO_POLUENTE.forEach((id) => {
+        try {
+          if (currentMap.getLayer(id)) {
+            currentMap.setLayoutProperty(id, "visibility", "none");
+          }
+        } catch {
+          // Estilo do Mapbox pode não ter essa camada — ignora com segurança.
+        }
+      });
+    };
+
+    if (currentMap.isStyleLoaded()) {
+      esconderRotulosPoluentes();
+      return;
+    }
+
+    currentMap.once("load", esconderRotulosPoluentes);
+    return () => {
+      currentMap.off("load", esconderRotulosPoluentes);
+    };
+  }, [hideClutterLabels]);
 
   // Atualizar marcador secundário quando a posição mudar
   useEffect(() => {
