@@ -136,6 +136,7 @@ export const getViagemCompartilhadaPublica = createServerFn({ method: "GET" })
       veiculoModelo: linha.veiculo_modelo as string | null,
       motoristaLat: linha.motorista_lat as number | null,
       motoristaLng: linha.motorista_lng as number | null,
+      motoristaUltimaLocalizacaoAt: linha.motorista_ultima_localizacao_at as string | null,
       expiraEm: linha.expira_em as string,
       motoristaNota: linha.motorista_nota as number | null,
       veiculoCor: linha.veiculo_cor as string | null,

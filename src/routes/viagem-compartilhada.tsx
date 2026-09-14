@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import mapboxgl from "mapbox-gl";
-import { Bike, Clock, Loader2, MapPin, ShieldCheck, Star } from "lucide-react";
+import { AlertTriangle, Bike, Clock, Loader2, MapPin, ShieldCheck, Star } from "lucide-react";
 import { MapView } from "@/components/MapView";
 import {
   getViagemCompartilhadaPublica,
@@ -28,6 +28,14 @@ const STATUS_LABEL: Record<string, string> = {
 
 const POLL_INTERVAL_MS = 8000;
 
+// Etapa 2 (segurança passiva): limiares dos avisos automáticos mostrados
+// pro contato de confiança — nada disso cancela ou altera a corrida, é só
+// leitura/alerta visual nesta tela pública.
+const SEM_ATUALIZACAO_LIMIAR_MIN = 2;
+const PARADO_LIMIAR_MIN = 4;
+const PARADO_MOVIMENTO_METROS = 25;
+const PARADO_RAIO_PONTO_METROS = 120;
+
 type Snapshot = Awaited<ReturnType<typeof getViagemCompartilhadaPublica>>;
 
 // Direção (bearing, em graus, 0 = norte) entre dois pontos — usada pra girar
@@ -49,6 +57,20 @@ function calcularBearingViagemCompartilhada(
     Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
     Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng);
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+// Distância aproximada em metros entre dois pontos (haversine) — usada só
+// nos avisos de segurança desta tela (motorista parado fora do
+// embarque/destino), não em nenhum cálculo de tarifa ou rota real.
+function distanciaMetros(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const raioTerraMetros = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * raioTerraMetros * Math.asin(Math.sqrt(a));
 }
 
 function formatarExpiracao(expiraEm: string): string {
@@ -140,12 +162,69 @@ function ViagemCompartilhadaPublica() {
     previousDriverPosRef.current = { lat, lng };
   }, [snapshot?.motoristaLat, snapshot?.motoristaLng]);
 
+  // Aviso de segurança: marca desde quando o motorista está "parado" no
+  // mesmo lugar (só reseta se ele realmente se mover mais que o ruído
+  // normal do GPS) — usado pra avisar o contato de confiança se ele ficar
+  // parado por muito tempo fora do embarque/destino.
+  const stoppedSinceRef = useRef<{ lat: number; lng: number; since: number } | null>(null);
+  useEffect(() => {
+    const lat = snapshot?.motoristaLat;
+    const lng = snapshot?.motoristaLng;
+    if (lat == null || lng == null) {
+      stoppedSinceRef.current = null;
+      return;
+    }
+    const atual = stoppedSinceRef.current;
+    if (!atual || distanciaMetros(atual.lat, atual.lng, lat, lng) > PARADO_MOVIMENTO_METROS) {
+      stoppedSinceRef.current = { lat, lng, since: Date.now() };
+    }
+  }, [snapshot?.motoristaLat, snapshot?.motoristaLng]);
+
   const temPosicao = snapshot?.motoristaLat != null && snapshot?.motoristaLng != null;
   const isTrip = snapshot?.status === "em_andamento";
   const targetLat = isTrip ? snapshot?.destinoLat : snapshot?.origemLat;
   const targetLng = isTrip ? snapshot?.destinoLng : snapshot?.origemLng;
   const hasValidTarget = targetLat != null && targetLng != null;
   const targetLabel = isTrip ? "Destino" : "Embarque";
+
+  // Avisos de segurança (Etapa 2) — recalculados a cada renderização (o
+  // polling a cada 8s já garante isso), nunca em cache, pra "minutos" andar
+  // mesmo quando a posição não muda.
+  const minutosSemAtualizar = snapshot?.motoristaUltimaLocalizacaoAt
+    ? Math.max(
+        0,
+        Math.floor(
+          (Date.now() - new Date(snapshot.motoristaUltimaLocalizacaoAt).getTime()) / 60000,
+        ),
+      )
+    : null;
+
+  const minutosParado = stoppedSinceRef.current
+    ? Math.floor((Date.now() - stoppedSinceRef.current.since) / 60000)
+    : 0;
+
+  const pertoDeUmPonto =
+    temPosicao &&
+    ((snapshot?.origemLat != null &&
+      snapshot?.origemLng != null &&
+      distanciaMetros(
+        snapshot!.motoristaLat as number,
+        snapshot!.motoristaLng as number,
+        snapshot.origemLat,
+        snapshot.origemLng,
+      ) <= PARADO_RAIO_PONTO_METROS) ||
+      (snapshot?.destinoLat != null &&
+        snapshot?.destinoLng != null &&
+        distanciaMetros(
+          snapshot!.motoristaLat as number,
+          snapshot!.motoristaLng as number,
+          snapshot.destinoLat,
+          snapshot.destinoLng,
+        ) <= PARADO_RAIO_PONTO_METROS));
+
+  const mostrarAlertaSemAtualizacao =
+    temPosicao && minutosSemAtualizar !== null && minutosSemAtualizar >= SEM_ATUALIZACAO_LIMIAR_MIN;
+  const mostrarAlertaParado = temPosicao && minutosParado >= PARADO_LIMIAR_MIN && !pertoDeUmPonto;
 
   // Traça a rota do motorista até o ponto de embarque (ou destino, se a
   // corrida já começou) e calcula ETA/distância — mesma chamada à Directions
@@ -289,6 +368,29 @@ function ViagemCompartilhadaPublica() {
             </p>
           )}
         </div>
+
+        {(mostrarAlertaSemAtualizacao || mostrarAlertaParado) && (
+          <div className="space-y-2">
+            {mostrarAlertaSemAtualizacao && (
+              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                <p className="text-xs text-amber-100">
+                  Sem atualização de localização há {minutosSemAtualizar} min. Pode ser
+                  instabilidade de sinal — se persistir, vale tentar contato direto.
+                </p>
+              </div>
+            )}
+            {mostrarAlertaParado && (
+              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                <p className="text-xs text-amber-100">
+                  O motorista está parado há {minutosParado} min fora do ponto de embarque/destino.
+                  Pode ser trânsito — vale ficar de olho.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {snapshot.motoristaNome && (
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
