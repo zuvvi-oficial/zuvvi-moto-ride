@@ -258,23 +258,12 @@ export function ChatConversation({
   const renderMessages = () => {
     if (loading) {
       return (
-        <div className="space-y-4 p-4">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={cn(
-                "flex flex-col gap-1 max-w-[82%]",
-                i % 2 === 0 ? "ml-auto items-end" : "items-start",
-              )}
-            >
-              <div
-                className={cn(
-                  "h-12 w-32 rounded-2xl animate-pulse bg-muted",
-                  i % 2 === 0 ? "rounded-tr-none" : "rounded-tl-none",
-                )}
-              />
-            </div>
-          ))}
+        <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+          <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-none border bg-card px-5 py-3.5 shadow-sm">
+            <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:-0.3s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:-0.15s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70" />
+          </div>
         </div>
       );
     }
@@ -496,8 +485,11 @@ export function ChatConversation({
             // mensagem de "chat pausado" nesse instante seria um falso
             // positivo, dando a entender que a corrida bloqueia o chat
             // quando na real só estamos esperando a resposta do servidor.
-            <div className="p-6 text-center">
-              <p className="text-xs text-muted-foreground">Carregando conversa...</p>
+            <div className="flex items-center justify-center gap-2 p-6">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+              <p className="text-xs font-medium text-muted-foreground">
+                Preparando sua conversa...
+              </p>
             </div>
           ) : podeEnviar ? (
             <div className="p-3 sm:p-4">
