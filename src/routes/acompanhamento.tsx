@@ -28,6 +28,7 @@ import {
   Minimize2,
 } from "lucide-react";
 import { z } from "zod";
+import mapboxgl from "mapbox-gl";
 import { MapView } from "@/components/MapView";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { useChatAlert } from "@/hooks/use-chat-alert";
@@ -131,6 +132,8 @@ function AcompanhamentoCorrida() {
     status: string;
     origem_lat: number;
     origem_lng: number;
+    destino_lat?: number | null;
+    destino_lng?: number | null;
     codigo_embarque?: string | null;
   } | null>(null);
   const [rideSyncing, setRideSyncing] = useState(false);
@@ -159,6 +162,7 @@ function AcompanhamentoCorrida() {
   // ou rastreamento: é a mesma instância do MapView, só maior ou menor.
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const passageiroMapInstance = useRef<import("mapbox-gl").Map | null>(null);
+  const [isPassageiroMapReady, setIsPassageiroMapReady] = useState(false);
 
   // Redimensiona a instância existente do mapa ao trocar de tamanho — a
   // mesma instância continua viva (sem recarregar do zero), só o container
@@ -170,6 +174,134 @@ function AcompanhamentoCorrida() {
     const raf = requestAnimationFrame(() => map.resize());
     return () => cancelAnimationFrame(raf);
   }, [isMapFullscreen]);
+
+  // Rota entre o motorista e o ponto de encontro — mesmo padrão (Directions
+  // API + fitBounds) já usado e validado na tela do motorista. O alvo é o
+  // embarque enquanto o motorista está a caminho/chegou, e passa a ser o
+  // destino assim que a corrida está em andamento.
+  const passageiroRouteAbortRef = useRef<AbortController | null>(null);
+  const passageiroRouteFittedKeyRef = useRef<string | null>(null);
+  const lastPassageiroRouteCoordsRef = useRef<{
+    driverLat: number;
+    driverLng: number;
+    targetLat: number;
+    targetLng: number;
+  } | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const map = passageiroMapInstance.current;
+    if (!map || !corrida || !mapboxToken || !isPassageiroMapReady) return;
+
+    const driverLat = motorista?.ultima_lat ?? null;
+    const driverLng = motorista?.ultima_lng ?? null;
+    const routeStatuses = ["motorista_a_caminho", "motorista_chegou", "em_andamento"];
+
+    const isTrip = corrida.status === "em_andamento";
+    const targetLat = isTrip ? (corrida.destino_lat ?? null) : corrida.origem_lat;
+    const targetLng = isTrip ? (corrida.destino_lng ?? null) : corrida.origem_lng;
+
+    const hasValidDriver = Number.isFinite(driverLat) && Number.isFinite(driverLng);
+    const hasValidTarget = Number.isFinite(targetLat) && Number.isFinite(targetLng);
+
+    const sourceId = "zuvvi-passenger-route-source";
+    const layerId = "zuvvi-passenger-route-layer";
+
+    if (hasValidDriver && hasValidTarget && routeStatuses.includes(corrida.status)) {
+      const coordsChanged =
+        !lastPassageiroRouteCoordsRef.current ||
+        lastPassageiroRouteCoordsRef.current.driverLat !== driverLat ||
+        lastPassageiroRouteCoordsRef.current.driverLng !== driverLng ||
+        lastPassageiroRouteCoordsRef.current.targetLat !== targetLat ||
+        lastPassageiroRouteCoordsRef.current.targetLng !== targetLng;
+
+      if (coordsChanged) {
+        if (passageiroRouteAbortRef.current) {
+          passageiroRouteAbortRef.current.abort();
+          passageiroRouteAbortRef.current = null;
+        }
+
+        const controller = new AbortController();
+        passageiroRouteAbortRef.current = controller;
+
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${driverLng},${driverLat};${targetLng},${targetLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`;
+
+        fetch(url, { signal: controller.signal })
+          .then((res) => res.json())
+          .then((data) => {
+            if (controller.signal.aborted) return;
+
+            if (data.code !== "Ok" || !data.routes?.[0]) {
+              setRouteError("Rota temporariamente indisponível.");
+              return;
+            }
+            setRouteError(null);
+            const route = data.routes[0].geometry;
+
+            const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
+            if (source) {
+              source.setData(route);
+            } else {
+              map.addSource(sourceId, { type: "geojson", data: route });
+              map.addLayer({
+                id: layerId,
+                type: "line",
+                source: sourceId,
+                layout: { "line-join": "round", "line-cap": "round" },
+                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
+              });
+            }
+
+            const fitKey = `${rideId}:${isTrip ? "destination" : "pickup"}`;
+            if (passageiroRouteFittedKeyRef.current !== fitKey) {
+              const bounds = new mapboxgl.LngLatBounds();
+              route.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
+              map.fitBounds(bounds, { padding: 40, duration: 2000 });
+              passageiroRouteFittedKeyRef.current = fitKey;
+            }
+
+            lastPassageiroRouteCoordsRef.current = {
+              driverLat: driverLat!,
+              driverLng: driverLng!,
+              targetLat: targetLat!,
+              targetLng: targetLng!,
+            };
+
+            if (passageiroRouteAbortRef.current === controller) {
+              passageiroRouteAbortRef.current = null;
+            }
+          })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              setRouteError("Rota temporariamente indisponível.");
+            }
+          });
+      }
+    } else {
+      if (passageiroRouteAbortRef.current) {
+        passageiroRouteAbortRef.current.abort();
+        passageiroRouteAbortRef.current = null;
+      }
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      lastPassageiroRouteCoordsRef.current = null;
+      setRouteError(null);
+    }
+  }, [
+    corrida,
+    motorista?.ultima_lat,
+    motorista?.ultima_lng,
+    mapboxToken,
+    isPassageiroMapReady,
+    rideId,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (passageiroRouteAbortRef.current) passageiroRouteAbortRef.current.abort();
+    };
+  }, []);
+
   const hasHandledCancellation = useRef(false);
   const cancellationRedirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [cancellationNotice, setCancellationNotice] = useState<{
@@ -799,6 +931,7 @@ function AcompanhamentoCorrida() {
           <MapView
             center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }}
             token={mapboxToken}
+            markerLabel="Você"
             secondaryMarker={
               motorista?.ultima_lat &&
               motorista?.ultima_lng &&
@@ -806,11 +939,22 @@ function AcompanhamentoCorrida() {
                 ? { lat: motorista.ultima_lat, lng: motorista.ultima_lng }
                 : undefined
             }
+            secondaryMarkerLabel={motorista?.nome || "Motorista"}
             className="w-full h-full"
             onMapInstance={(map) => {
               passageiroMapInstance.current = map;
+              setIsPassageiroMapReady(true);
             }}
           />
+        )}
+        {routeError && (
+          <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
+            <div className="bg-red-500/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-red-500/30">
+              <p className="text-[9px] text-white font-bold uppercase tracking-widest">
+                {routeError}
+              </p>
+            </div>
+          </div>
         )}
         <button
           type="button"

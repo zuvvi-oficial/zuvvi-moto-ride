@@ -16,6 +16,32 @@ interface MapViewProps {
   // perspectiva 3D, então nenhuma tela existente muda sozinha.
   pitch?: number;
   show3DBuildings?: boolean;
+  // Opt-in: legenda fixa acima do marcador principal/secundário. Quem não
+  // passar continua com exatamente os mesmos dois marcadores de sempre —
+  // isso só adiciona uma etiqueta extra por cima, nunca troca o pino em si.
+  markerLabel?: string;
+  secondaryMarkerLabel?: string;
+}
+
+function criarEtiquetaMarcador(texto: string, cor: string): mapboxgl.Marker {
+  const el = document.createElement("div");
+  el.style.transform = "translateY(-4px)";
+  el.style.padding = "3px 9px";
+  el.style.borderRadius = "9999px";
+  el.style.fontSize = "10px";
+  el.style.fontWeight = "800";
+  el.style.textTransform = "uppercase";
+  el.style.letterSpacing = "0.04em";
+  el.style.whiteSpace = "nowrap";
+  el.style.color = "#130F36";
+  el.style.background = cor;
+  el.style.border = "1px solid rgba(255,255,255,0.4)";
+  el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.35)";
+  el.style.pointerEvents = "none";
+  el.textContent = texto;
+  // anchor "bottom" posiciona a etiqueta encostada por cima da ponta do
+  // pino padrão do Mapbox (que aponta pra baixo a partir do mesmo ponto).
+  return new mapboxgl.Marker({ element: el, anchor: "bottom", offset: [0, -38] });
 }
 
 export function MapView({
@@ -28,11 +54,15 @@ export function MapView({
   className = "w-full h-full",
   pitch = 0,
   show3DBuildings = false,
+  markerLabel,
+  secondaryMarkerLabel,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
   const secondaryMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const markerLabelRef = useRef<mapboxgl.Marker | null>(null);
+  const secondaryMarkerLabelRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -65,12 +95,27 @@ export function MapView({
         .setLngLat([center.lng, center.lat])
         .addTo(map.current);
 
+      if (markerLabel) {
+        markerLabelRef.current = criarEtiquetaMarcador(markerLabel, markerColor)
+          .setLngLat([center.lng, center.lat])
+          .addTo(map.current);
+      }
+
       if (secondaryMarker) {
         secondaryMarkerRef.current = new mapboxgl.Marker({
           color: secondaryMarker.color || "#6C3CE9",
         })
           .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
           .addTo(map.current);
+
+        if (secondaryMarkerLabel) {
+          secondaryMarkerLabelRef.current = criarEtiquetaMarcador(
+            secondaryMarkerLabel,
+            secondaryMarker.color || "#6C3CE9",
+          )
+            .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
+            .addTo(map.current);
+        }
       }
     } catch (err) {
       console.error("Erro ao inicializar mapa:", err);
@@ -95,6 +140,9 @@ export function MapView({
 
       if (marker.current) {
         marker.current.setLngLat([center.lng, center.lat]);
+      }
+      if (markerLabelRef.current) {
+        markerLabelRef.current.setLngLat([center.lng, center.lat]);
       }
     }
   }, [center.lat, center.lng, zoom]);
@@ -150,6 +198,9 @@ export function MapView({
       if (secondaryMarker) {
         if (secondaryMarkerRef.current) {
           secondaryMarkerRef.current.setLngLat([secondaryMarker.lng, secondaryMarker.lat]);
+          if (secondaryMarkerLabelRef.current) {
+            secondaryMarkerLabelRef.current.setLngLat([secondaryMarker.lng, secondaryMarker.lat]);
+          }
         } else {
           secondaryMarkerRef.current = new mapboxgl.Marker({
             color: secondaryMarker.color || "#6C3CE9",
@@ -157,12 +208,26 @@ export function MapView({
             .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
             .addTo(map.current);
         }
-      } else if (secondaryMarkerRef.current) {
-        secondaryMarkerRef.current.remove();
-        secondaryMarkerRef.current = null;
+        if (secondaryMarkerLabel && !secondaryMarkerLabelRef.current) {
+          secondaryMarkerLabelRef.current = criarEtiquetaMarcador(
+            secondaryMarkerLabel,
+            secondaryMarker.color || "#6C3CE9",
+          )
+            .setLngLat([secondaryMarker.lng, secondaryMarker.lat])
+            .addTo(map.current);
+        }
+      } else {
+        if (secondaryMarkerRef.current) {
+          secondaryMarkerRef.current.remove();
+          secondaryMarkerRef.current = null;
+        }
+        if (secondaryMarkerLabelRef.current) {
+          secondaryMarkerLabelRef.current.remove();
+          secondaryMarkerLabelRef.current = null;
+        }
       }
     }
-  }, [secondaryMarker?.lat, secondaryMarker?.lng, secondaryMarker?.color]);
+  }, [secondaryMarker?.lat, secondaryMarker?.lng, secondaryMarker?.color, secondaryMarkerLabel]);
 
   return <div ref={mapContainer} className={className} />;
 }
