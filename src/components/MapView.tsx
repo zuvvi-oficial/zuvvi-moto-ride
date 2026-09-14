@@ -21,6 +21,10 @@ interface MapViewProps {
   // isso só adiciona uma etiqueta extra por cima, nunca troca o pino em si.
   markerLabel?: string;
   secondaryMarkerLabel?: string;
+  // Opt-in: anel pulsando (radar) atrás do marcador principal, pra indicar
+  // "localização ao vivo". Quem não passar continua com o pino de sempre,
+  // sem nenhum elemento extra.
+  pulsePrimaryMarker?: boolean;
 }
 
 function criarEtiquetaMarcador(texto: string, cor: string): mapboxgl.Marker {
@@ -44,6 +48,21 @@ function criarEtiquetaMarcador(texto: string, cor: string): mapboxgl.Marker {
   return new mapboxgl.Marker({ element: el, anchor: "bottom", offset: [0, -38] });
 }
 
+function criarAnelPulso(cor: string): mapboxgl.Marker {
+  const el = document.createElement("div");
+  el.style.width = "16px";
+  el.style.height = "16px";
+  el.style.borderRadius = "9999px";
+  el.style.background = cor;
+  el.style.pointerEvents = "none";
+  // Reaproveita a mesma animação "pulse-ring" já usada em outros indicadores
+  // de "ao vivo" no app (ex.: status do motorista) — nenhuma keyframe nova.
+  el.className = "animate-pulse-ring";
+  // anchor "center" encosta o anel exatamente no ponto onde a ponta do pino
+  // padrão do Mapbox toca o chão (mesma coordenada do marcador principal).
+  return new mapboxgl.Marker({ element: el, anchor: "center" });
+}
+
 export function MapView({
   center,
   zoom = 15,
@@ -56,6 +75,7 @@ export function MapView({
   show3DBuildings = false,
   markerLabel,
   secondaryMarkerLabel,
+  pulsePrimaryMarker = false,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -63,6 +83,7 @@ export function MapView({
   const secondaryMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const markerLabelRef = useRef<mapboxgl.Marker | null>(null);
   const secondaryMarkerLabelRef = useRef<mapboxgl.Marker | null>(null);
+  const pulseMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -90,6 +111,13 @@ export function MapView({
           onMapInstance(map.current);
         }
       });
+
+      if (pulsePrimaryMarker) {
+        // Criado antes do pino principal pra ficar sempre por baixo dele.
+        pulseMarkerRef.current = criarAnelPulso(markerColor)
+          .setLngLat([center.lng, center.lat])
+          .addTo(map.current);
+      }
 
       marker.current = new mapboxgl.Marker({ color: markerColor })
         .setLngLat([center.lng, center.lat])
@@ -143,6 +171,9 @@ export function MapView({
       }
       if (markerLabelRef.current) {
         markerLabelRef.current.setLngLat([center.lng, center.lat]);
+      }
+      if (pulseMarkerRef.current) {
+        pulseMarkerRef.current.setLngLat([center.lng, center.lat]);
       }
     }
   }, [center.lat, center.lng, zoom]);

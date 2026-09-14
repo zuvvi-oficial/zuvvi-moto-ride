@@ -188,6 +188,11 @@ function AcompanhamentoCorrida() {
     targetLng: number;
   } | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
+  // Chip de ETA/distância no mapa — dado que a própria resposta da Directions
+  // API já traz (duration/distance), só exibido enquanto a rota é válida.
+  const [routeInfo, setRouteInfo] = useState<{ etaLabel: string; distanceLabel: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     const map = passageiroMapInstance.current;
@@ -233,10 +238,20 @@ function AcompanhamentoCorrida() {
 
             if (data.code !== "Ok" || !data.routes?.[0]) {
               setRouteError("Rota temporariamente indisponível.");
+              setRouteInfo(null);
               return;
             }
             setRouteError(null);
             const route = data.routes[0].geometry;
+
+            const duracaoSegundos: number = data.routes[0].duration ?? 0;
+            const distanciaMetros: number = data.routes[0].distance ?? 0;
+            const etaMin = Math.max(1, Math.round(duracaoSegundos / 60));
+            const distanceLabel =
+              distanciaMetros >= 1000
+                ? `${(distanciaMetros / 1000).toFixed(1)} km`
+                : `${Math.round(distanciaMetros)} m`;
+            setRouteInfo({ etaLabel: `${etaMin} min`, distanceLabel });
 
             const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
             if (source) {
@@ -274,6 +289,7 @@ function AcompanhamentoCorrida() {
           .catch((err) => {
             if (err.name !== "AbortError") {
               setRouteError("Rota temporariamente indisponível.");
+              setRouteInfo(null);
             }
           });
       }
@@ -286,6 +302,7 @@ function AcompanhamentoCorrida() {
       if (map.getSource(sourceId)) map.removeSource(sourceId);
       lastPassageiroRouteCoordsRef.current = null;
       setRouteError(null);
+      setRouteInfo(null);
     }
   }, [
     corrida,
@@ -932,6 +949,7 @@ function AcompanhamentoCorrida() {
             center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }}
             token={mapboxToken}
             markerLabel="Você"
+            pulsePrimaryMarker
             secondaryMarker={
               motorista?.ultima_lat &&
               motorista?.ultima_lng &&
@@ -953,6 +971,15 @@ function AcompanhamentoCorrida() {
               <p className="text-[9px] text-white font-bold uppercase tracking-widest">
                 {routeError}
               </p>
+            </div>
+          </div>
+        )}
+        {routeInfo && !routeError && (
+          <div className="absolute top-3 left-3 pointer-events-none">
+            <div className="bg-zuvvi-indigo/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg flex items-center gap-1.5">
+              <p className="text-[11px] text-zuvvi-volt font-black">{routeInfo.etaLabel}</p>
+              <span className="text-white/30 text-[10px]">•</span>
+              <p className="text-[10px] text-white/70 font-bold">{routeInfo.distanceLabel}</p>
             </div>
           </div>
         )}
