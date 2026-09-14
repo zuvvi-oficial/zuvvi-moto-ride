@@ -235,17 +235,34 @@ function HomeMotorista() {
   // dois mudando ao mesmo tempo (resize + inclinação) deixava a câmera do
   // Mapbox presa num zoom errado até recarregar o app (outro achado do
   // Rafael em teste real).
+  //
+  // O resize/inclinação em si são adiados ~260ms — o suficiente pra
+  // transição de entrada do cartão (abaixo) terminar de "respirar" antes do
+  // redesenho pesado do mapa competir por atenção com ela (o mapa
+  // recalculando tudo de uma vez estava "engolindo" a transição, que ficava
+  // imperceptível — achado do Rafael em teste real).
   const [mapPitch, setMapPitch] = useState(0);
+  const pitchResizeTimeoutRef = useRef<number | null>(null);
   useEffect(() => {
     const wrapper = pickupMapWrapperRef.current;
     const map = pickupMapInstance.current;
     if (!wrapper || !map) return;
     const observer = new ResizeObserver(() => {
-      map.resize();
-      setMapPitch(isMapFullscreen ? 55 : 0);
+      if (pitchResizeTimeoutRef.current) {
+        window.clearTimeout(pitchResizeTimeoutRef.current);
+      }
+      pitchResizeTimeoutRef.current = window.setTimeout(() => {
+        map.resize();
+        setMapPitch(isMapFullscreen ? 55 : 0);
+      }, 260);
     });
     observer.observe(wrapper);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (pitchResizeTimeoutRef.current) {
+        window.clearTimeout(pitchResizeTimeoutRef.current);
+      }
+    };
   }, [isMapFullscreen, isPickupMapReady]);
 
   const watchIdRef = useRef<number | null>(null);
@@ -1581,7 +1598,7 @@ function HomeMotorista() {
                 ref={pickupMapWrapperRef}
                 className={
                   isMapFullscreen
-                    ? "fixed inset-0 z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-300"
+                    ? "fixed inset-0 z-[100] overflow-hidden animate-in fade-in zoom-in-90 duration-500 ease-out"
                     : "h-28 rounded-2xl overflow-hidden border border-white/10 relative"
                 }
               >
