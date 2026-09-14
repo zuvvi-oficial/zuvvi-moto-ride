@@ -1163,9 +1163,20 @@ function AcompanhamentoCorrida() {
             type="button"
             onClick={handleRecentralizarMapa}
             aria-label="Recentralizar mapa"
-            className="absolute bottom-3 left-3 w-9 h-9 rounded-full bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 shadow-lg flex items-center justify-center active:scale-95 transition-transform animate-in fade-in zoom-in-95 duration-200"
+            // Fica no canto oposto ao botão de tela cheia (top-right no mapa
+            // pequeno, bottom-right em tela cheia) — o canto inferior
+            // esquerdo colidia com a logo obrigatória do Mapbox, que não tem
+            // como ser removida, só reposicionada (achado do Rafael em teste
+            // real).
+            className={
+              isMapFullscreen
+                ? "absolute bottom-6 right-6 w-11 h-11 rounded-full bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 shadow-lg shadow-black/20 flex items-center justify-center active:scale-95 transition-transform animate-in fade-in zoom-in-95 duration-200"
+                : "absolute top-3 right-3 w-9 h-9 rounded-full bg-zuvvi-indigo/80 backdrop-blur-md border border-white/10 shadow-lg flex items-center justify-center active:scale-95 transition-transform animate-in fade-in zoom-in-95 duration-200"
+            }
           >
-            <Locate className="w-4 h-4 text-white/90" />
+            <Locate
+              className={isMapFullscreen ? "w-5 h-5 text-white/90" : "w-4 h-4 text-white/90"}
+            />
           </button>
         )}
         <button
