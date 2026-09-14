@@ -27,6 +27,7 @@ import {
   Camera,
   Volume2,
   VolumeX,
+  LocateFixed,
 } from "lucide-react";
 import { ChatConversation } from "@/components/chat/ChatConversation";
 import { ARNavigationOverlay } from "@/components/motorista/ARNavigationOverlay";
@@ -180,6 +181,10 @@ function HomeMotorista() {
   const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null);
   const [isPickupMapReady, setIsPickupMapReady] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  // Some depois que o motorista arrasta/dá zoom manualmente no mapa em tela
+  // cheia, pra ele poder voltar pro pino+rota sem precisar fechar e abrir o
+  // mapa de novo.
+  const [showRecenterButton, setShowRecenterButton] = useState(false);
   const [rainAlert, setRainAlert] = useState<{ local: string } | null>(null);
   const [showARNavigation, setShowARNavigation] = useState(false);
   const [vozLigada, setVozLigada] = useState(true);
@@ -338,6 +343,51 @@ function HomeMotorista() {
       }
     };
   }, [isMapFullscreen, isPickupMapReady]);
+
+  // Detecta gesto manual do motorista (arrastar/pinçar) em tela cheia pra
+  // mostrar o botão de recentralizar — "originalEvent" só existe quando o
+  // movimento partiu de um toque real na tela, nunca de uma chamada
+  // programática (fitBounds, easeTo), então não dispara sozinho.
+  useEffect(() => {
+    const map = pickupMapInstance.current;
+    if (!map || !isPickupMapReady) return;
+
+    const handleDragStart = () => {
+      if (isMapFullscreen) setShowRecenterButton(true);
+    };
+    // zoomstart também dispara em zoom programático (fitBounds/easeTo) — só
+    // conta como gesto do motorista quando vem com um "originalEvent" de
+    // verdade (roda do mouse ou toque de pinça).
+    const handleZoomStart = (e: mapboxgl.MapEventOf<"zoomstart">) => {
+      // O tipo do mapbox-gl para "zoomstart" não expõe originalEvent (união
+      // com void na definição faz o keyof colapsar), mas o objeto real
+      // recebido em runtime sempre carrega esse campo.
+      const originalEvent = (e as { originalEvent?: WheelEvent | TouchEvent }).originalEvent;
+      if (isMapFullscreen && originalEvent) setShowRecenterButton(true);
+    };
+
+    map.on("dragstart", handleDragStart);
+    map.on("zoomstart", handleZoomStart);
+    return () => {
+      map.off("dragstart", handleDragStart);
+      map.off("zoomstart", handleZoomStart);
+    };
+  }, [isPickupMapReady, isMapFullscreen]);
+
+  useEffect(() => {
+    if (!isMapFullscreen) setShowRecenterButton(false);
+  }, [isMapFullscreen]);
+
+  const handleRecenterMap = useCallback(() => {
+    const map = pickupMapInstance.current;
+    if (map && lastRouteBoundsRef.current) {
+      map.fitBounds(lastRouteBoundsRef.current, {
+        padding: { top: 100, bottom: 140, left: 60, right: 60 },
+        duration: 600,
+      });
+    }
+    setShowRecenterButton(false);
+  }, []);
 
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -1770,6 +1820,17 @@ function HomeMotorista() {
                     <Maximize2 className="w-3.5 h-3.5 text-white/80" />
                   )}
                 </button>
+
+                {isMapFullscreen && showRecenterButton && (
+                  <button
+                    type="button"
+                    onClick={handleRecenterMap}
+                    aria-label="Recentralizar mapa"
+                    className="absolute top-16 right-4 w-10 h-10 rounded-full bg-zuvvi-volt text-zuvvi-indigo flex items-center justify-center active:scale-95 transition-transform shadow-lg animate-in fade-in zoom-in-90 duration-300"
+                  >
+                    <LocateFixed className="w-4 h-4" />
+                  </button>
+                )}
 
                 {(() => {
                   const navLat =
