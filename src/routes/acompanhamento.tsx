@@ -287,7 +287,7 @@ function AcompanhamentoCorrida() {
     const map = passageiroMapInstance.current;
     if (!map || !corrida) return;
     if (lastRouteBoundsRef.current) {
-      map.fitBounds(lastRouteBoundsRef.current, { padding: 40, duration: 1000 });
+      map.fitBounds(lastRouteBoundsRef.current, { padding: 40, duration: 1000, maxZoom: 17 });
     } else {
       map.flyTo({ center: [corrida.origem_lng, corrida.origem_lat], zoom: 15 });
     }
@@ -404,7 +404,15 @@ function AcompanhamentoCorrida() {
             if (mudouDeFase || (!mapPannedManuallyRef.current && passaramOitoSegundos)) {
               const bounds = new mapboxgl.LngLatBounds();
               route.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
-              map.fitBounds(bounds, { padding: 40, duration: mudouDeFase ? 2000 : 1200 });
+              // maxZoom evita um zoom exagerado quando o motorista está bem
+              // perto do ponto de encontro (poucos metros de distância) —
+              // sem isso o enquadramento ficava tão apertado que cortava a
+              // etiqueta de nome fora da área visível do mapa.
+              map.fitBounds(bounds, {
+                padding: 40,
+                duration: mudouDeFase ? 2000 : 1200,
+                maxZoom: 17,
+              });
               passageiroRouteFittedKeyRef.current = fitKey;
               lastRouteBoundsRef.current = bounds;
               passageiroUltimoFitAtRef.current = Date.now();
@@ -1091,8 +1099,12 @@ function AcompanhamentoCorrida() {
           <MapView
             center={{ lat: corrida.origem_lat, lng: corrida.origem_lng }}
             token={mapboxToken}
-            markerLabel="Você"
-            pulsePrimaryMarker
+            // Assim que a corrida está em andamento, você e o motorista estão
+            // juntos (acabou de embarcar) — o pino "Você" fica sobre o mesmo
+            // ponto do motorista, então a etiqueta e o pulso "ao vivo" dele
+            // ficam redundantes e só atrapalham a leitura nesse momento.
+            markerLabel={corrida.status === "em_andamento" ? undefined : "Você"}
+            pulsePrimaryMarker={corrida.status !== "em_andamento"}
             secondaryMarker={
               motorista?.ultima_lat &&
               motorista?.ultima_lng &&
