@@ -261,6 +261,17 @@ function AcompanhamentoCorrida() {
   // calculado pra poder voltar exatamente pra ele com um toque.
   const [mapPannedManually, setMapPannedManually] = useState(false);
   const lastRouteBoundsRef = useRef<mapboxgl.LngLatBounds | null>(null);
+  // Espelho em ref do estado acima, pra ler o valor atual de dentro do
+  // efeito de rota (que roda fora do ciclo de render, na resposta de um
+  // fetch) sem precisar colocar mapPannedManually nas dependências dele.
+  const mapPannedManuallyRef = useRef(false);
+  useEffect(() => {
+    mapPannedManuallyRef.current = mapPannedManually;
+  }, [mapPannedManually]);
+  // Câmera "seguindo" o motorista aos poucos: controla o intervalo mínimo
+  // entre reenquadramentos automáticos pra não competir com o fitBounds
+  // inicial nem ficar reajustando a cada leve tremor do GPS.
+  const passageiroUltimoFitAtRef = useRef(0);
 
   useEffect(() => {
     const map = passageiroMapInstance.current;
@@ -382,13 +393,21 @@ function AcompanhamentoCorrida() {
               passageiroRotaDashFrameRef.current = requestAnimationFrame(animarTracejado);
             }
 
+            // Câmera "seguindo" o motorista: sempre reenquadra quando a fase
+            // muda (embarque -> destino), e também acompanha aos poucos as
+            // atualizações de posição — mas só a cada 8s (evita competir com
+            // o pulso do GPS) e só se o usuário não tiver arrastado o mapa
+            // manualmente (nesse caso, o botão de recentralizar assume).
             const fitKey = `${rideId}:${isTrip ? "destination" : "pickup"}`;
-            if (passageiroRouteFittedKeyRef.current !== fitKey) {
+            const mudouDeFase = passageiroRouteFittedKeyRef.current !== fitKey;
+            const passaramOitoSegundos = Date.now() - passageiroUltimoFitAtRef.current > 8000;
+            if (mudouDeFase || (!mapPannedManuallyRef.current && passaramOitoSegundos)) {
               const bounds = new mapboxgl.LngLatBounds();
               route.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
-              map.fitBounds(bounds, { padding: 40, duration: 2000 });
+              map.fitBounds(bounds, { padding: 40, duration: mudouDeFase ? 2000 : 1200 });
               passageiroRouteFittedKeyRef.current = fitKey;
               lastRouteBoundsRef.current = bounds;
+              passageiroUltimoFitAtRef.current = Date.now();
               setMapPannedManually(false);
             }
 
