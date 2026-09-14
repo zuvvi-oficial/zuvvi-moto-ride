@@ -1739,6 +1739,7 @@ function HomeMotorista() {
                 <MapPin className="w-3 h-3 text-white/40 shrink-0" />
                 <p className="text-sm font-medium truncate flex-1">
                   {activeRide.destino_nome || "Local de destino"}
+                  {activeRide.cidade_nome ? `, ${activeRide.cidade_nome}` : ""}
                 </p>
               </div>
             </div>

@@ -18,7 +18,7 @@ async function fetchActiveRide(supabaseAdmin: any, motoristaId: string) {
   const { data, error } = await supabaseAdmin
     .from("corridas")
     .select(
-      "id, status, origem_nome, destino_nome, valor_estimado, forma_pagamento, origem_lat, origem_lng, destino_lat, destino_lng, passageiro_id",
+      "id, status, origem_nome, destino_nome, valor_estimado, forma_pagamento, origem_lat, origem_lng, destino_lat, destino_lng, passageiro_id, cidade_id",
     )
     .eq("motorista_id", motoristaId)
     .in("status", ACTIVE_RIDE_STATUSES as unknown as string[]);
@@ -170,6 +170,19 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
 
     const activeRide = await fetchActiveRide(supabaseAdmin, usuario.id);
 
+    // Nome da cidade da corrida — o card do motorista mostra só o nome da rua
+    // do destino (diferente do embarque, que já vem com endereço completo),
+    // então isso completa o destino com a cidade pra ficar claro qual é.
+    let cidadeNome: string | null = null;
+    if (activeRide?.cidade_id) {
+      const { data: cidade } = await supabaseAdmin
+        .from("cidades")
+        .select("nome")
+        .eq("id", activeRide.cidade_id)
+        .maybeSingle();
+      cidadeNome = cidade?.nome ?? null;
+    }
+
     let passageiroNome = "Passageiro";
     let passageiroFotoUrl: string | null = null;
     let passageiroNotaMedia: number | null = null;
@@ -223,6 +236,7 @@ export const getMotoristaStatusHome = createServerFn({ method: "GET" })
             status: activeRide.status,
             origem_nome: activeRide.origem_nome,
             destino_nome: activeRide.destino_nome,
+            cidade_nome: cidadeNome,
             valor_estimado: activeRide.valor_estimado,
             forma_pagamento: activeRide.forma_pagamento,
             origem_lat: Number(activeRide.origem_lat),
