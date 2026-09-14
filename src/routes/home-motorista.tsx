@@ -543,6 +543,13 @@ function HomeMotorista() {
 
     let cancelled = false;
     setChatLoading(true);
+    // Carrega o chat assim que ele é aberto, em vez de esperar o primeiro
+    // tick do intervalo de segurança abaixo (até 10s depois) — até lá,
+    // "chatData" ainda vazio fazia a tela mostrar "chat pausado" (o mesmo
+    // texto de quando a corrida realmente não permite mensagem), só porque
+    // os dados ainda não tinham chegado, não porque o chat estivesse de fato
+    // indisponível.
+    void refreshChat();
 
     const safetySyncInterval = setInterval(() => {
       if (

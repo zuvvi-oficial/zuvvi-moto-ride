@@ -469,6 +469,18 @@ function AcompanhamentoCorrida() {
     }
   }, [rideId, corrida?.status, refreshChat, syncChatFechado]);
 
+  // Carrega o chat assim que ele é aberto. Sem isso, "chatData" só era
+  // populado por eventos que não têm relação com o ato de abrir a conversa
+  // (mensagem nova, presença, mudança de status, troca de foco da aba) — até
+  // um desses acontecer por coincidência, a tela mostrava "chat pausado" (o
+  // mesmo texto usado quando a corrida realmente não permite mensagem), só
+  // porque "chatData" ainda estava vazio, não porque o chat estivesse de fato
+  // indisponível.
+  useEffect(() => {
+    if (!chatOpen || !rideId) return;
+    void refreshChat();
+  }, [chatOpen, rideId, refreshChat]);
+
   useEffect(() => {
     if (!rideId) return undefined;
 
