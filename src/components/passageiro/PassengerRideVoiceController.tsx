@@ -243,8 +243,8 @@ export function PassengerRideVoiceController() {
       announcedRef.current.add(key);
       speak(
         driverFirstName
-          ? `Corrida confirmada. ${driverFirstName} aceitou seu pedido. Acompanhe a chegada pelo mapa.`
-          : "Corrida confirmada. Seu motorista aceitou o pedido. Acompanhe a chegada pelo mapa.",
+          ? `Boa notícia! ${driverFirstName} aceitou sua corrida e já está se preparando para vir até você. Acompanhe tudo pelo mapa.`
+          : "Boa notícia! Seu motorista aceitou a corrida e já está se preparando para vir até você. Acompanhe tudo pelo mapa.",
       );
       return;
     }
@@ -253,7 +253,9 @@ export function PassengerRideVoiceController() {
       const key = "motorista_a_caminho";
       if (announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
-      speak("Tudo certo. Seu motorista está a caminho. Acompanhe a aproximação pelo mapa.");
+      speak(
+        "Seu motorista já está a caminho até você. Acompanhe a aproximação em tempo real pelo mapa.",
+      );
       return;
     }
 
@@ -269,16 +271,16 @@ export function PassengerRideVoiceController() {
         if (codeKey) announcedRef.current.add(codeKey);
 
         const codeMessage = validCode
-          ? ` Para sua segurança, informe o código de embarque: ${formatCodeForSpeech(validCode)}.`
-          : " Seu código de embarque está sendo preparado na tela.";
+          ? ` Para sua segurança, informe a ele o código de embarque: ${formatCodeForSpeech(validCode)}.`
+          : " Seu código de embarque já está quase pronto, veja na tela em um instante.";
 
-        speak(`Seu motorista chegou ao ponto de embarque.${codeMessage}`);
+        speak(`Chegou a hora! Seu motorista está no ponto de embarque.${codeMessage}`);
         return;
       }
 
       if (validCode && codeKey && !announcedRef.current.has(codeKey)) {
         announcedRef.current.add(codeKey);
-        speak(`Seu código de embarque é: ${formatCodeForSpeech(validCode)}.`);
+        speak(`Pronto! Seu código de embarque é: ${formatCodeForSpeech(validCode)}.`);
       }
       return;
     }
@@ -287,7 +289,7 @@ export function PassengerRideVoiceController() {
       const key = "em_andamento";
       if (announcedRef.current.has(key)) return;
       announcedRef.current.add(key);
-      speak("Código confirmado. Sua corrida começou. Boa viagem com a Zuvvi.");
+      speak("Prontinho! Sua corrida começou. Boa viagem com a Zuvvi.");
     }
   }, [
     enabled,
