@@ -229,11 +229,21 @@ function HomeMotorista() {
   // (requestAnimationFrame podia disparar antes do layout novo já estar
   // aplicado, deixando parte da tela cheia sem desenhar nada, achado do
   // Rafael em teste real).
+  //
+  // A inclinação 3D (pitch) só é aplicada DEPOIS que esse resize acontece
+  // (via mapPitch, atualizado dentro do próprio callback do observer) — os
+  // dois mudando ao mesmo tempo (resize + inclinação) deixava a câmera do
+  // Mapbox presa num zoom errado até recarregar o app (outro achado do
+  // Rafael em teste real).
+  const [mapPitch, setMapPitch] = useState(0);
   useEffect(() => {
     const wrapper = pickupMapWrapperRef.current;
     const map = pickupMapInstance.current;
     if (!wrapper || !map) return;
-    const observer = new ResizeObserver(() => map.resize());
+    const observer = new ResizeObserver(() => {
+      map.resize();
+      setMapPitch(isMapFullscreen ? 55 : 0);
+    });
     observer.observe(wrapper);
     return () => observer.disconnect();
   }, [isMapFullscreen, isPickupMapReady]);
@@ -1582,7 +1592,7 @@ function HomeMotorista() {
                   }}
                   token={mapboxToken}
                   zoom={15}
-                  pitch={isMapFullscreen ? 55 : 0}
+                  pitch={mapPitch}
                   show3DBuildings
                   className="w-full h-full"
                   onMapInstance={(map) => {
