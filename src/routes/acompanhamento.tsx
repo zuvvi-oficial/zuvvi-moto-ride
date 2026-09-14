@@ -1103,6 +1103,7 @@ function AcompanhamentoCorrida() {
             secondaryMarkerLabel={motorista?.nome || "Motorista"}
             secondaryMarkerIcon="motorbike"
             secondaryMarkerBearing={driverBearing}
+            hideClutterLabels
             className="w-full h-full"
             onMapInstance={(map) => {
               passageiroMapInstance.current = map;
