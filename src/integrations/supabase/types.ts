@@ -1634,6 +1634,7 @@ export type Database = {
           motorista_lng: number
           motorista_nome: string
           motorista_nota: number
+          motorista_ultima_localizacao_at: string
           origem_lat: number
           origem_lng: number
           origem_nome: string
