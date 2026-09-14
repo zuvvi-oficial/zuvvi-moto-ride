@@ -337,10 +337,16 @@ function HomeMotorista() {
         setChatData(inicial as ChatData);
         setChatUnreadCount((inicial as ChatData).naoLidas ?? 0);
 
-        await marcarEntreguesFn({ data: { corridaId: currentRideId } });
-        if (activeChatRideIdRef.current !== currentRideId) break;
-
-        await marcarLidasFn({ data: { corridaId: currentRideId } });
+        // Melhor esforço: confirmar entrega/leitura nunca deve derrubar o
+        // carregamento do chat — uma falha passageira aqui não pode
+        // transformar uma conversa que já carregou com sucesso (a linha
+        // acima) num "não foi possível carregar o chat".
+        try {
+          await marcarEntreguesFn({ data: { corridaId: currentRideId } });
+          await marcarLidasFn({ data: { corridaId: currentRideId } });
+        } catch {
+          // Best effort
+        }
         if (activeChatRideIdRef.current !== currentRideId) break;
 
         const atualizado = await carregarChatFn({ data: { corridaId: currentRideId } });
