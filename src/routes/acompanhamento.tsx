@@ -745,16 +745,54 @@ function AcompanhamentoCorrida() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] bg-zuvvi-indigo overflow-hidden font-poppins">
-      {/* Mapa: mini card por padrão, tela cheia ao expandir — mesma instância
-          o tempo todo (só redimensiona), igual ao padrão já usado na tela do
-          motorista. Em tela cheia fica acima do cabeçalho/cartão (z-[100]),
-          cobrindo a tela toda sem precisar desmontar nada abaixo. */}
+    <div className="relative flex h-[100dvh] flex-col bg-zuvvi-indigo overflow-hidden font-poppins">
+      <div className="relative z-10 p-6 flex items-center justify-between pointer-events-auto shrink-0">
+        <button
+          onClick={() => void navigate({ to: "/" })}
+          className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 shadow-lg shadow-black/20 active:scale-95 transition-transform"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          <div className="flex items-center gap-2 bg-zuvvi-indigo/80 backdrop-blur-md pl-3 pr-4 py-2 rounded-2xl border border-white/10 shadow-lg shadow-black/20 pointer-events-auto overflow-hidden">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zuvvi-volt opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-zuvvi-volt" />
+            </span>
+            <p
+              key={corrida.status}
+              className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-1 duration-300"
+            >
+              {corrida.status === "aceita"
+                ? "Motorista Aceitou"
+                : corrida.status === "motorista_a_caminho"
+                  ? "Motorista a Caminho"
+                  : corrida.status === "motorista_chegou"
+                    ? "Motorista Chegou"
+                    : corrida.status === "em_andamento"
+                      ? "Corrida em Andamento"
+                      : corrida.status === "concluida"
+                        ? "Corrida Concluída"
+                        : "Atualizando corrida"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Mapa: preenche sozinho todo o espaço entre o cabeçalho e o cartão do
+          motorista (flex-1), do tamanho que sobrar — sem vão vazio, e sem
+          precisar de um valor fixo que desencontraria do tamanho real do
+          cartão abaixo. Em tela cheia sai do fluxo (fixed) e cobre a tela
+          toda por cima do cabeçalho/cartão (z-[100]), mesma instância do
+          MapView o tempo todo (só redimensiona), igual ao padrão já usado na
+          tela do motorista. */}
       <div
         className={
           isMapFullscreen
             ? "fixed inset-0 z-[100] overflow-hidden"
-            : "absolute top-24 left-6 right-6 z-10 h-64 rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl shadow-black/40"
+            : "relative z-10 min-h-0 flex-1 mx-6 mb-6 rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl shadow-black/40"
         }
       >
         {mapboxToken && (
@@ -792,43 +830,8 @@ function AcompanhamentoCorrida() {
         </button>
       </div>
 
-      <div className="relative z-10 p-6 flex items-center justify-between pointer-events-auto">
-        <button
-          onClick={() => void navigate({ to: "/" })}
-          className="w-12 h-12 bg-zuvvi-indigo/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 shadow-lg shadow-black/20 active:scale-95 transition-transform"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-
-        <div className="flex items-center gap-3">
-          <NotificationBell />
-          <div className="flex items-center gap-2 bg-zuvvi-indigo/80 backdrop-blur-md pl-3 pr-4 py-2 rounded-2xl border border-white/10 shadow-lg shadow-black/20 pointer-events-auto overflow-hidden">
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zuvvi-volt opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-zuvvi-volt" />
-            </span>
-            <p
-              key={corrida.status}
-              className="text-[10px] text-zuvvi-volt font-black uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-1 duration-300"
-            >
-              {corrida.status === "aceita"
-                ? "Motorista Aceitou"
-                : corrida.status === "motorista_a_caminho"
-                  ? "Motorista a Caminho"
-                  : corrida.status === "motorista_chegou"
-                    ? "Motorista Chegou"
-                    : corrida.status === "em_andamento"
-                      ? "Corrida em Andamento"
-                      : corrida.status === "concluida"
-                        ? "Corrida Concluída"
-                        : "Atualizando corrida"}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {motorista && veiculo && corrida.status !== "concluida" && (
-        <div className="absolute bottom-0 left-0 right-0 p-6 z-10 pointer-events-none">
+        <div className="relative z-10 shrink-0 px-6 pb-6 pointer-events-none">
           <div className="max-w-md mx-auto bg-zuvvi-indigo/90 backdrop-blur-xl border border-white/10 ring-1 ring-white/5 rounded-[2.5rem] p-6 shadow-2xl shadow-black/40 pointer-events-auto animate-rise space-y-5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-4 min-w-0">
