@@ -119,6 +119,51 @@ interface ChatData {
   } | null;
 }
 
+// Direção (bearing, em graus, 0 = norte) entre dois pontos — usada pra girar
+// o ícone de moto do motorista na direção real do deslocamento, já que o GPS
+// bruto não traz heading, só lat/lng.
+function calcularBearingMotorista(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const toDeg = (rad: number) => (rad * 180) / Math.PI;
+  const dLng = toRad(lng2 - lng1);
+  const y = Math.sin(dLng) * Math.cos(toRad(lat2));
+  const x =
+    Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+    Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+// Ícone de moto (mesmo desenho já usado e validado no mapa do passageiro,
+// dentro do MapView.tsx) — copiado aqui porque o marcador do motorista
+// nesta tela é gerenciado com a instância direta do Mapbox (pickupMapInstance),
+// sem passar pelas props secondaryMarker* do MapView.
+const MOTORBIKE_SVG_MOTORISTA =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" ' +
+  'fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="m18 14-1-3"/><path d="m3 9 6 2a2 2 0 0 1 2-2h2a2 2 0 0 1 1.99 1.81"/>' +
+  '<path d="M8 17h3a1 1 0 0 0 1-1 6 6 0 0 1 6-6 1 1 0 0 0 1-1v-.75A5 5 0 0 0 17 5"/>' +
+  '<circle cx="19" cy="17" r="3"/><circle cx="5" cy="17" r="3"/></svg>';
+
+function criarMarcadorMotoMotorista(cor: string): {
+  marker: mapboxgl.Marker;
+  rotatableEl: HTMLDivElement;
+} {
+  const badge = document.createElement("div");
+  badge.style.width = "36px";
+  badge.style.height = "36px";
+  badge.style.borderRadius = "9999px";
+  badge.style.background = cor;
+  badge.style.display = "flex";
+  badge.style.alignItems = "center";
+  badge.style.justifyContent = "center";
+  badge.style.boxShadow = "0 2px 10px rgba(0,0,0,0.45)";
+  badge.style.border = "2px solid rgba(255,255,255,0.5)";
+  badge.style.transition = "transform 0.4s ease";
+  badge.innerHTML = MOTORBIKE_SVG_MOTORISTA;
+  const marker = new mapboxgl.Marker({ element: badge, anchor: "center" });
+  return { marker, rotatableEl: badge };
+}
+
 function HomeMotorista() {
   const queryClient = useQueryClient();
   const [isToggling, setIsToggling] = useState(false);
@@ -206,6 +251,7 @@ function HomeMotorista() {
   const pickupMapInstance = useRef<mapboxgl.Map | null>(null);
   const pickupMapWrapperRef = useRef<HTMLDivElement | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const driverMarkerRotateElRef = useRef<HTMLDivElement | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
   // Guarda o último enquadramento (pino + rota) calculado, pra poder voltar
@@ -325,6 +371,27 @@ function HomeMotorista() {
 
   const activeRide = status?.active_ride ?? null;
   const isOnline = !!status?.is_disponivel;
+
+  // Direção do ícone de moto do motorista — recalculada só quando ele se
+  // move de fato (limiar ~3m), pra não "tremer" com o ruído normal do GPS
+  // enquanto ele está parado.
+  const [driverBearing, setDriverBearing] = useState(0);
+  const previousDriverPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    const lat = status?.ultima_lat;
+    const lng = status?.ultima_lng;
+    if (lat == null || lng == null) return;
+
+    const anterior = previousDriverPosRef.current;
+    if (anterior) {
+      const moveu =
+        Math.abs(lat - anterior.lat) > 0.00003 || Math.abs(lng - anterior.lng) > 0.00003;
+      if (moveu) {
+        setDriverBearing(calcularBearingMotorista(anterior.lat, anterior.lng, lat, lng));
+      }
+    }
+    previousDriverPosRef.current = { lat, lng };
+  }, [status?.ultima_lat, status?.ultima_lng]);
 
   const getMotoristaProfilePhotoFn = useServerFn(getMotoristaProfilePhoto);
   const { data: motoristaFoto } = useQuery({
@@ -1206,14 +1273,20 @@ function HomeMotorista() {
     const hasValidDriver = Number.isFinite(driverLat) && Number.isFinite(driverLng);
     const hasValidTarget = Number.isFinite(targetLat) && Number.isFinite(targetLng);
 
-    // 3. Marcador do Motorista
+    // 3. Marcador do Motorista — ícone de moto girando na direção real do
+    // deslocamento (mesmo ícone/rotação já usado e validado no mapa do
+    // passageiro), em vez do pino roxo liso de antes.
     if (hasValidDriver) {
       if (!driverMarkerRef.current) {
-        driverMarkerRef.current = new mapboxgl.Marker({ color: "#6C3CE9" })
-          .setLngLat([driverLng!, driverLat!])
-          .addTo(map);
+        const { marker, rotatableEl } = criarMarcadorMotoMotorista("#6C3CE9");
+        marker.setLngLat([driverLng!, driverLat!]).addTo(map);
+        driverMarkerRef.current = marker;
+        driverMarkerRotateElRef.current = rotatableEl;
       } else {
         driverMarkerRef.current.setLngLat([driverLng!, driverLat!]);
+      }
+      if (driverMarkerRotateElRef.current) {
+        driverMarkerRotateElRef.current.style.transform = `rotate(${driverBearing}deg)`;
       }
     }
 
@@ -1366,7 +1439,15 @@ function HomeMotorista() {
       lastRouteCoordsRef.current = null;
       setRouteError(null);
     }
-  }, [status, status?.ultima_lat, status?.ultima_lng, activeRide, mapboxToken, isPickupMapReady]);
+  }, [
+    status,
+    status?.ultima_lat,
+    status?.ultima_lng,
+    activeRide,
+    mapboxToken,
+    isPickupMapReady,
+    driverBearing,
+  ]);
 
   // Alerta de chuva: consulta a previsão pública do Open-Meteo (gratuita, sem
   // chave) pro ponto de embarque (ou destino, se a corrida já começou).
@@ -1441,6 +1522,7 @@ function HomeMotorista() {
         driverMarkerRef.current.remove();
         driverMarkerRef.current = null;
       }
+      driverMarkerRotateElRef.current = null;
       pickupMapInstance.current = null;
     };
   }, []);
@@ -1462,6 +1544,7 @@ function HomeMotorista() {
         }
         driverMarkerRef.current = null;
       }
+      driverMarkerRotateElRef.current = null;
 
       // 3. Resetar referências operacionais
       routeFittedRideRef.current = null;
