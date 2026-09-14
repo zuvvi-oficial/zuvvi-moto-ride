@@ -208,6 +208,12 @@ function HomeMotorista() {
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
+  // Guarda o último enquadramento (pino + rota) calculado, pra poder voltar
+  // exatamente pra ele ao fechar a tela cheia — sem isso, se o motorista
+  // arrastasse/desse zoom manualmente no mapa antes de fechar, o cartão
+  // pequeno ficava "perdido" onde ele deixou a câmera (achado do Rafael em
+  // teste real).
+  const lastRouteBoundsRef = useRef<mapboxgl.LngLatBounds | null>(null);
   const lastRouteCoordsRef = useRef<{
     driverLat: number;
     driverLng: number;
@@ -241,6 +247,13 @@ function HomeMotorista() {
   // redesenho pesado do mapa competir por atenção com ela (o mapa
   // recalculando tudo de uma vez estava "engolindo" a transição, que ficava
   // imperceptível — achado do Rafael em teste real).
+  //
+  // Ao voltar pro cartão pequeno, reenquadra pino+rota de novo (mesmo
+  // enquadramento salvo em lastRouteBoundsRef) — sem isso, se o motorista
+  // tivesse arrastado ou dado zoom manualmente no mapa antes de fechar a
+  // tela cheia, o cartão pequeno ficava "perdido" onde a câmera tinha sido
+  // deixada, em vez de mostrar o pino e a rota (achado do Rafael em teste
+  // real).
   const [mapPitch, setMapPitch] = useState(0);
   const pitchResizeTimeoutRef = useRef<number | null>(null);
   useEffect(() => {
@@ -254,6 +267,9 @@ function HomeMotorista() {
       pitchResizeTimeoutRef.current = window.setTimeout(() => {
         map.resize();
         setMapPitch(isMapFullscreen ? 55 : 0);
+        if (!isMapFullscreen && lastRouteBoundsRef.current) {
+          map.fitBounds(lastRouteBoundsRef.current, { padding: 16, duration: 0 });
+        }
       }, 260);
     });
     observer.observe(wrapper);
@@ -1303,9 +1319,10 @@ function HomeMotorista() {
 
             // 6. Enquadramento fitBounds (baseado em status e ID)
             const fitKey = `${activeRide.id}:${activeRide.status === "em_andamento" ? "destination" : "pickup"}`;
+            const bounds = new mapboxgl.LngLatBounds();
+            route.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
+            lastRouteBoundsRef.current = bounds;
             if (routeFittedRideRef.current !== fitKey) {
-              const bounds = new mapboxgl.LngLatBounds();
-              route.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
               map.fitBounds(bounds, { padding: 40, duration: 2000 });
               routeFittedRideRef.current = fitKey;
             }
@@ -1441,6 +1458,7 @@ function HomeMotorista() {
 
       // 3. Resetar referências operacionais
       routeFittedRideRef.current = null;
+      lastRouteBoundsRef.current = null;
       lastRouteCoordsRef.current = null;
       driverTrailRef.current = [];
       trailRideIdRef.current = null;
