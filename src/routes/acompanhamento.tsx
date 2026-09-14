@@ -405,8 +405,16 @@ function AcompanhamentoCorrida() {
       const inicial = await carregarChatFn({ data: { corridaId: rideId } });
       setChatData(inicial as ChatData);
 
-      await marcarEntreguesFn({ data: { corridaId: rideId } });
-      await marcarLidasFn({ data: { corridaId: rideId } });
+      // Melhor esforço: confirmar entrega/leitura nunca deve derrubar o
+      // carregamento do chat — uma falha passageira aqui não pode
+      // transformar uma conversa que já carregou com sucesso (a linha
+      // acima) num "não foi possível carregar o chat".
+      try {
+        await marcarEntreguesFn({ data: { corridaId: rideId } });
+        await marcarLidasFn({ data: { corridaId: rideId } });
+      } catch {
+        // Best effort
+      }
 
       const atualizado = await carregarChatFn({ data: { corridaId: rideId } });
       const data = atualizado as ChatData;
