@@ -480,8 +480,8 @@ function ViagemCompartilhadaPublica() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zuvvi-indigo-dark text-white">
-      <header className="border-b border-white/10 bg-zuvvi-indigo/90 px-5 py-4 backdrop-blur-xl">
+    <div className="flex h-dvh flex-col overflow-hidden bg-zuvvi-indigo-dark text-white">
+      <header className="shrink-0 border-b border-white/10 bg-zuvvi-indigo/90 px-5 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center gap-3">
           <ShieldCheck className="h-5 w-5 text-zuvvi-volt" />
           <div>
@@ -493,10 +493,10 @@ function ViagemCompartilhadaPublica() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-md flex-1 space-y-4 px-5 py-6">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-2 overflow-hidden px-5 py-2">
+        <div className="shrink-0 rounded-2xl border border-white/10 bg-white/5 p-3">
           {etapaAtualIndex >= 0 && (
-            <div className="mb-3 flex items-center">
+            <div className="mb-2 flex items-center">
               {PROGRESSO_ETAPAS.map((etapa, index) => {
                 const horario = etapa.timestampKey
                   ? formatarHorarioEtapa(snapshot[etapa.timestampKey])
@@ -552,8 +552,8 @@ function ViagemCompartilhadaPublica() {
         </div>
 
         {snapshot.passageiroNome && (
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zuvvi-volt/10">
+          <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zuvvi-volt/10">
               {snapshot.passageiroFotoPerfilUrl ? (
                 <img
                   src={snapshot.passageiroFotoPerfilUrl}
@@ -577,8 +577,8 @@ function ViagemCompartilhadaPublica() {
         )}
 
         {snapshot.motoristaNome && (
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zuvvi-volt/10">
+          <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zuvvi-volt/10">
               {snapshot.motoristaFotoPerfilUrl ? (
                 <img
                   src={snapshot.motoristaFotoPerfilUrl}
@@ -614,7 +614,7 @@ function ViagemCompartilhadaPublica() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-red-500/25 bg-red-500/5 p-4">
+        <div className="shrink-0 rounded-2xl border border-red-500/25 bg-red-500/5 p-3">
           {sosState === "enviado" ? (
             <div className="flex items-start gap-2">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
@@ -676,9 +676,9 @@ function ViagemCompartilhadaPublica() {
         </div>
 
         {(mostrarAlertaSemAtualizacao || mostrarAlertaParado) && (
-          <div className="space-y-2">
+          <div className="shrink-0 space-y-1.5">
             {mostrarAlertaSemAtualizacao && (
-              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3">
+              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-2.5">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                 <p className="text-xs text-amber-100">
                   Sem atualização de localização há {minutosSemAtualizar} min. Pode ser
@@ -687,7 +687,7 @@ function ViagemCompartilhadaPublica() {
               </div>
             )}
             {mostrarAlertaParado && (
-              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3">
+              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-2.5">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                 <p className="text-xs text-amber-100">
                   O motorista está parado há {minutosParado} min fora do ponto de embarque/destino.
@@ -702,7 +702,7 @@ function ViagemCompartilhadaPublica() {
           className={
             isMapFullscreen
               ? "fixed inset-0 z-[100] overflow-hidden"
-              : "relative h-80 overflow-hidden rounded-2xl border border-white/10"
+              : "relative min-h-[110px] flex-1 overflow-hidden rounded-2xl border border-white/10"
           }
         >
           {mapboxToken && (hasValidTarget || temPosicao) ? (
@@ -781,7 +781,7 @@ function ViagemCompartilhadaPublica() {
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-center text-[10px] uppercase tracking-widest text-white/30">
+        <div className="flex shrink-0 items-center justify-center gap-2 text-center text-[10px] uppercase tracking-widest text-white/30">
           <Clock className="h-3 w-3 shrink-0" />
           <p>
             {formatarTempoDesdeAtualizacao(lastFetchedAt)} · {formatarExpiracao(snapshot.expiraEm)}
