@@ -39,13 +39,20 @@ const STATUS_LABEL: Record<string, string> = {
 
 // Indicador visual de progresso no card de status — cobre só os 4 estados
 // ativos da corrida (concluída/cancelada continuam mostrando apenas o
-// texto do STATUS_LABEL acima, sem a barrinha).
+// texto do STATUS_LABEL acima, sem a barrinha). "A caminho" não tem horário
+// próprio no banco (é o intervalo entre aceite e chegada), por isso não
+// aparece na coluna timestampKey.
 const PROGRESSO_ETAPAS = [
-  { status: "aceita", label: "Aceita" },
-  { status: "motorista_a_caminho", label: "A caminho" },
-  { status: "motorista_chegou", label: "Chegou" },
-  { status: "em_andamento", label: "Em andamento" },
+  { status: "aceita", label: "Aceita", timestampKey: "dataAceite" },
+  { status: "motorista_a_caminho", label: "A caminho", timestampKey: null },
+  { status: "motorista_chegou", label: "Chegou", timestampKey: "dataChegadaMotorista" },
+  { status: "em_andamento", label: "Em andamento", timestampKey: "dataInicio" },
 ] as const;
+
+function formatarHorarioEtapa(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
 const POLL_INTERVAL_MS = 8000;
 
@@ -460,31 +467,39 @@ function ViagemCompartilhadaPublica() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           {etapaAtualIndex >= 0 && (
             <div className="mb-3 flex items-center">
-              {PROGRESSO_ETAPAS.map((etapa, index) => (
-                <div key={etapa.status} className="flex flex-1 items-center last:flex-none">
-                  <div className="flex flex-col items-center gap-1">
-                    <div
-                      className={`h-2 w-2 rounded-full ${
-                        index <= etapaAtualIndex ? "bg-zuvvi-volt" : "bg-white/15"
-                      }`}
-                    />
-                    <p
-                      className={`whitespace-nowrap text-[8px] font-bold uppercase tracking-widest ${
-                        index === etapaAtualIndex ? "text-zuvvi-volt" : "text-white/30"
-                      }`}
-                    >
-                      {etapa.label}
-                    </p>
+              {PROGRESSO_ETAPAS.map((etapa, index) => {
+                const horario = etapa.timestampKey
+                  ? formatarHorarioEtapa(snapshot[etapa.timestampKey])
+                  : null;
+                return (
+                  <div key={etapa.status} className="flex flex-1 items-center last:flex-none">
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className={`h-2 w-2 rounded-full ${
+                          index <= etapaAtualIndex ? "bg-zuvvi-volt" : "bg-white/15"
+                        }`}
+                      />
+                      <p
+                        className={`whitespace-nowrap text-[8px] font-bold uppercase tracking-widest ${
+                          index === etapaAtualIndex ? "text-zuvvi-volt" : "text-white/30"
+                        }`}
+                      >
+                        {etapa.label}
+                      </p>
+                      {index <= etapaAtualIndex && horario && (
+                        <p className="whitespace-nowrap text-[8px] text-white/40">{horario}</p>
+                      )}
+                    </div>
+                    {index < PROGRESSO_ETAPAS.length - 1 && (
+                      <div
+                        className={`mx-1 h-px flex-1 ${
+                          index < etapaAtualIndex ? "bg-zuvvi-volt" : "bg-white/15"
+                        }`}
+                      />
+                    )}
                   </div>
-                  {index < PROGRESSO_ETAPAS.length - 1 && (
-                    <div
-                      className={`mx-1 h-px flex-1 ${
-                        index < etapaAtualIndex ? "bg-zuvvi-volt" : "bg-white/15"
-                      }`}
-                    />
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <p className="text-sm font-bold text-white">
