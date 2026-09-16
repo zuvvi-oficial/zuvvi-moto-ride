@@ -1626,10 +1626,14 @@ export type Database = {
       get_viagem_compartilhada_publica: {
         Args: { p_link_publico: string }
         Returns: {
+          data_aceite: string
+          data_chegada_motorista: string
+          data_inicio: string
           destino_lat: number
           destino_lng: number
           destino_nome: string
           expira_em: string
+          motorista_foto_perfil_path: string
           motorista_lat: number
           motorista_lng: number
           motorista_nome: string

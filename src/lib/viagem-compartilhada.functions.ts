@@ -155,6 +155,9 @@ export const getViagemCompartilhadaPublica = createServerFn({ method: "GET" })
             linha.passageiro_foto_perfil_path as string,
           )
         : null,
+      dataAceite: linha.data_aceite as string | null,
+      dataChegadaMotorista: linha.data_chegada_motorista as string | null,
+      dataInicio: linha.data_inicio as string | null,
     };
   });
 
