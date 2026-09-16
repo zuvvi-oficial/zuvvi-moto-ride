@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Bike,
   Clock,
-  Loader2,
   MapPin,
   Maximize2,
   Minimize2,
@@ -159,6 +158,17 @@ function ViagemCompartilhadaPublica() {
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [, forcarTick] = useState(0);
+
+  // Brilho rápido no card de status a cada vez que um dado novo chega,
+  // reforçando visualmente o "Ao vivo" — não busca nada, só reage ao
+  // mesmo lastFetchedAt que o rodapé já usa.
+  const [justUpdated, setJustUpdated] = useState(false);
+  useEffect(() => {
+    if (lastFetchedAt === null) return;
+    setJustUpdated(true);
+    const timeout = setTimeout(() => setJustUpdated(false), 700);
+    return () => clearTimeout(timeout);
+  }, [lastFetchedAt]);
 
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -461,8 +471,22 @@ function ViagemCompartilhadaPublica() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zuvvi-indigo-dark">
-        <Loader2 className="h-8 w-8 animate-spin text-zuvvi-volt" />
+      <div className="flex h-dvh flex-col overflow-hidden bg-zuvvi-indigo-dark text-white">
+        <div className="shrink-0 border-b border-white/10 bg-zuvvi-indigo/90 px-5 py-3">
+          <div className="mx-auto flex max-w-md items-center gap-3">
+            <div className="h-5 w-5 shrink-0 animate-pulse rounded-full bg-white/10" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3 w-40 animate-pulse rounded bg-white/10" />
+              <div className="h-2.5 w-52 animate-pulse rounded bg-white/5" />
+            </div>
+          </div>
+        </div>
+        <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-2 overflow-hidden px-5 py-2">
+          <div className="h-28 shrink-0 animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-16 shrink-0 animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-16 shrink-0 animate-pulse rounded-2xl bg-white/5" />
+          <div className="min-h-[110px] flex-1 animate-pulse rounded-2xl bg-white/5" />
+        </div>
       </div>
     );
   }
@@ -505,7 +529,7 @@ function ViagemCompartilhadaPublica() {
           <p className="text-lg font-bold">Corrida concluída</p>
           <p className="max-w-xs text-sm text-white/60">
             {snapshot.passageiroNome || "O passageiro"} chegou bem
-            {snapshot.destinoNome ? ` a ${snapshot.destinoNome}` : " ao destino"}.
+            {snapshot.destinoNome ? ` em ${snapshot.destinoNome}` : " ao destino"}.
           </p>
           {snapshot.motoristaNome && (
             <p className="text-xs text-white/40">Levado por {snapshot.motoristaNome}</p>
@@ -542,7 +566,11 @@ function ViagemCompartilhadaPublica() {
       </header>
 
       <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-2 overflow-hidden px-5 py-2">
-        <div className="shrink-0 rounded-2xl border border-white/10 bg-white/5 p-3">
+        <div
+          className={`shrink-0 rounded-2xl border border-white/10 bg-white/5 p-3 transition-shadow duration-700 ${
+            justUpdated ? "ring-1 ring-zuvvi-volt/50" : ""
+          }`}
+        >
           {etapaAtualIndex >= 0 && (
             <div className="mb-2 flex items-center">
               {PROGRESSO_ETAPAS.map((etapa, index) => {
@@ -553,9 +581,9 @@ function ViagemCompartilhadaPublica() {
                   <div key={etapa.status} className="flex flex-1 items-center last:flex-none">
                     <div className="flex flex-col items-center gap-1">
                       <div
-                        className={`h-2 w-2 rounded-full ${
+                        className={`h-2 w-2 rounded-full transition-colors duration-500 ${
                           index <= etapaAtualIndex ? "bg-zuvvi-volt" : "bg-white/15"
-                        }`}
+                        } ${index === etapaAtualIndex ? "animate-in zoom-in-50 duration-300" : ""}`}
                       />
                       <p
                         className={`whitespace-nowrap text-[8px] font-bold uppercase tracking-widest ${
@@ -570,7 +598,7 @@ function ViagemCompartilhadaPublica() {
                     </div>
                     {index < PROGRESSO_ETAPAS.length - 1 && (
                       <div
-                        className={`mx-1 h-px flex-1 ${
+                        className={`mx-1 h-px flex-1 transition-colors duration-500 ${
                           index < etapaAtualIndex ? "bg-zuvvi-volt" : "bg-white/15"
                         }`}
                       />
