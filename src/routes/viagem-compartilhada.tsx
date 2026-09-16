@@ -9,6 +9,8 @@ import {
   Clock,
   Loader2,
   MapPin,
+  Maximize2,
+  Minimize2,
   RefreshCw,
   ShieldCheck,
   Star,
@@ -160,6 +162,11 @@ function ViagemCompartilhadaPublica() {
 
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  // Só controla o tamanho de exibição do mapa (mini card <-> tela cheia) —
+  // mesmo padrão já usado nas telas de motorista/passageiro. Não afeta
+  // nenhum dado, rota ou rastreamento: é a mesma instância do MapView, só
+  // maior ou menor.
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   // Direção do ícone de moto do motorista — recalculada só quando ele se
   // move de fato (limiar ~3m), pra não "tremer" com o ruído normal do GPS
@@ -668,7 +675,13 @@ function ViagemCompartilhadaPublica() {
           </div>
         )}
 
-        <div className="relative h-80 overflow-hidden rounded-2xl border border-white/10">
+        <div
+          className={
+            isMapFullscreen
+              ? "fixed inset-0 z-[100] overflow-hidden"
+              : "relative h-80 overflow-hidden rounded-2xl border border-white/10"
+          }
+        >
           {mapboxToken && (hasValidTarget || temPosicao) ? (
             <MapView
               center={
@@ -726,6 +739,23 @@ function ViagemCompartilhadaPublica() {
               </div>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => setIsMapFullscreen((v) => !v)}
+            aria-label={isMapFullscreen ? "Fechar mapa em tela cheia" : "Ver mapa em tela cheia"}
+            className={
+              isMapFullscreen
+                ? "absolute top-6 right-6 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-zuvvi-indigo/80 shadow-lg shadow-black/20 backdrop-blur-md transition-transform active:scale-95"
+                : "absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-zuvvi-indigo/80 shadow-lg backdrop-blur-md transition-transform active:scale-95"
+            }
+          >
+            {isMapFullscreen ? (
+              <Minimize2 className="h-5 w-5 text-white/90" />
+            ) : (
+              <Maximize2 className="h-4 w-4 text-white/90" />
+            )}
+          </button>
         </div>
 
         <div className="flex items-center justify-center gap-2 text-center text-[10px] uppercase tracking-widest text-white/30">
