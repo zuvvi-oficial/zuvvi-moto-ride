@@ -5,7 +5,7 @@ import { obterUrlAssinadaFotoPerfil } from "@/lib/passenger-profile-photo.functi
 
 // Janela generosa: cobre corridas longas/atrasadas sem precisar regenerar o
 // link no meio do trajeto. O passageiro sempre pode encerrar antes (excluirCompartilhamento).
-const DURACAO_COMPARTILHAMENTO_MS = 4 * 60 * 60 * 1000;
+const DURACAO_COMPARTILHAMENTO_MS = 12 * 60 * 60 * 1000;
 
 const ESTADOS_COMPARTILHAVEIS = [
   "aceita",
