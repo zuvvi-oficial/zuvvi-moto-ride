@@ -479,17 +479,65 @@ function ViagemCompartilhadaPublica() {
     );
   }
 
+  // Estado dedicado pra corrida já concluída — o resto da tela (mapa, SOS,
+  // avisos de segurança, etapas) é sobre acompanhar algo em andamento, sem
+  // sentido depois que a corrida já terminou. O link continua válido até
+  // expirar, então esse estado só troca o que é mostrado, sem afetar nada
+  // da corrida em si.
+  if (snapshot.status === "concluida") {
+    return (
+      <div className="flex h-dvh flex-col overflow-hidden bg-zuvvi-indigo-dark text-white">
+        <header className="shrink-0 border-b border-white/10 bg-zuvvi-indigo/90 px-5 py-3 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-md items-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-zuvvi-volt" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-zuvvi-volt">
+                Acompanhamento Zuvvi
+              </p>
+              <p className="text-[11px] text-white/50">Compartilhado com você por um passageiro</p>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zuvvi-volt/10">
+            <ShieldCheck className="h-8 w-8 text-zuvvi-volt" />
+          </div>
+          <p className="text-lg font-bold">Corrida concluída</p>
+          <p className="max-w-xs text-sm text-white/60">
+            {snapshot.passageiroNome || "O passageiro"} chegou bem
+            {snapshot.destinoNome ? ` a ${snapshot.destinoNome}` : " ao destino"}.
+          </p>
+          {snapshot.motoristaNome && (
+            <p className="text-xs text-white/40">Levado por {snapshot.motoristaNome}</p>
+          )}
+        </main>
+        <p className="shrink-0 pb-4 text-center text-[10px] uppercase tracking-widest text-white/30">
+          {formatarExpiracao(snapshot.expiraEm)}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-zuvvi-indigo-dark text-white">
       <header className="shrink-0 border-b border-white/10 bg-zuvvi-indigo/90 px-5 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center gap-3">
           <ShieldCheck className="h-5 w-5 text-zuvvi-volt" />
-          <div>
+          <div className="flex-1">
             <p className="text-xs font-bold uppercase tracking-widest text-zuvvi-volt">
               Acompanhamento Zuvvi
             </p>
             <p className="text-[11px] text-white/50">Compartilhado com você por um passageiro</p>
           </div>
+          {etapaAtualIndex >= 0 && (
+            <span className="flex shrink-0 items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-emerald-400">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              </span>
+              Ao vivo
+            </span>
+          )}
         </div>
       </header>
 
@@ -603,6 +651,12 @@ function ViagemCompartilhadaPublica() {
                     </span>
                   </span>
                 )}
+                <span className="flex items-center gap-0.5 rounded-full bg-emerald-400/10 px-1.5 py-0.5">
+                  <ShieldCheck className="h-2.5 w-2.5 text-emerald-400" />
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-400">
+                    Verificado
+                  </span>
+                </span>
               </div>
               {(snapshot.veiculoModelo || snapshot.veiculoPlaca || snapshot.veiculoCor) && (
                 <p className="text-xs text-white/60">
