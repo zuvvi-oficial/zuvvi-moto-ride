@@ -496,6 +496,14 @@ function ViagemCompartilhadaPublica() {
               Destino: {snapshot.destinoNome}
             </p>
           )}
+          {routeEtaMin !== null && routeDistanceKm !== null && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs">
+              <Clock className="h-3.5 w-3.5 text-zuvvi-volt" />
+              <span className="font-bold text-zuvvi-volt">{routeEtaMin} min</span>
+              <span className="text-white/30">•</span>
+              <span className="text-white/60">{routeDistanceKm.toFixed(1)} km</span>
+            </p>
+          )}
         </div>
 
         {snapshot.passageiroNome && (
