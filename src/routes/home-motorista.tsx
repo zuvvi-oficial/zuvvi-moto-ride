@@ -120,6 +120,28 @@ interface ChatData {
   } | null;
 }
 
+// Sequência de dasharray que, trocada quadro a quadro, cria a sensação de um
+// traço "fluindo" ao longo da linha — mesma técnica já usada e validada na
+// rota do mapa do passageiro (exemplo oficial do Mapbox GL JS, "Animate a
+// line"), copiada aqui porque esta tela gerencia a rota com a instância
+// direta do Mapbox, sem passar pelo MapView.tsx.
+const ROTA_DASH_SEQUENCE: number[][] = [
+  [0, 4, 3],
+  [0.5, 4, 2.5],
+  [1, 4, 2],
+  [1.5, 4, 1.5],
+  [2, 4, 1],
+  [2.5, 4, 0.5],
+  [3, 4, 0],
+  [0, 0.5, 3, 3.5],
+  [0, 1, 3, 3],
+  [0, 1.5, 3, 2.5],
+  [0, 2, 3, 2],
+  [0, 2.5, 3, 1.5],
+  [0, 3, 3, 1],
+  [0, 3.5, 3, 0.5],
+];
+
 // Direção (bearing, em graus, 0 = norte) entre dois pontos — usada pra girar
 // o ícone de moto do motorista na direção real do deslocamento, já que o GPS
 // bruto não traz heading, só lat/lng.
@@ -264,6 +286,8 @@ function HomeMotorista() {
   const driverMarkerRotateElRef = useRef<HTMLDivElement | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeFittedRideRef = useRef<string | null>(null);
+  const rotaDashFrameRef = useRef<number | null>(null);
+  const rotaDashStepRef = useRef<number>(-1);
   // Guarda o último enquadramento (pino + rota) calculado, pra poder voltar
   // exatamente pra ele ao fechar a tela cheia — sem isso, se o motorista
   // arrastasse/desse zoom manualmente no mapa antes de fechar, o cartão
@@ -1442,17 +1466,41 @@ function HomeMotorista() {
             if (source) {
               source.setData(route);
             } else {
-              map.addSource(sourceId, {
-                type: "geojson",
-                data: route,
-              });
+              // lineMetrics habilita o line-gradient abaixo — a rota fica mais
+              // opaca perto do motorista e vai esmaecendo em direção ao ponto
+              // de embarque/destino (mesmo efeito já usado e validado na rota
+              // do mapa do passageiro).
+              map.addSource(sourceId, { type: "geojson", lineMetrics: true, data: route });
               map.addLayer({
                 id: layerId,
                 type: "line",
                 source: sourceId,
                 layout: { "line-join": "round", "line-cap": "round" },
-                paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
+                paint: {
+                  "line-gradient": [
+                    "interpolate",
+                    ["linear"],
+                    ["line-progress"],
+                    0,
+                    "rgba(198, 255, 61, 0.95)",
+                    1,
+                    "rgba(198, 255, 61, 0.15)",
+                  ],
+                  "line-width": 4,
+                },
               });
+
+              rotaDashStepRef.current = -1;
+              const animarTracejado = (timestamp: number) => {
+                if (!map.getLayer(layerId)) return;
+                const passo = Math.floor((timestamp / 60) % ROTA_DASH_SEQUENCE.length);
+                if (passo !== rotaDashStepRef.current) {
+                  map.setPaintProperty(layerId, "line-dasharray", ROTA_DASH_SEQUENCE[passo]);
+                  rotaDashStepRef.current = passo;
+                }
+                rotaDashFrameRef.current = requestAnimationFrame(animarTracejado);
+              };
+              rotaDashFrameRef.current = requestAnimationFrame(animarTracejado);
             }
 
             // 6. Enquadramento fitBounds (baseado em status e ID)
@@ -1498,6 +1546,10 @@ function HomeMotorista() {
       if (routeAbortRef.current) {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
+      }
+      if (rotaDashFrameRef.current) {
+        cancelAnimationFrame(rotaDashFrameRef.current);
+        rotaDashFrameRef.current = null;
       }
 
       const sourceId = "zuvvi-driver-pickup-route-source";
@@ -1590,6 +1642,7 @@ function HomeMotorista() {
   useEffect(() => {
     return () => {
       if (routeAbortRef.current) routeAbortRef.current.abort();
+      if (rotaDashFrameRef.current) cancelAnimationFrame(rotaDashFrameRef.current);
       if (driverMarkerRef.current) {
         driverMarkerRef.current.remove();
         driverMarkerRef.current = null;
@@ -1606,6 +1659,10 @@ function HomeMotorista() {
       if (routeAbortRef.current) {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
+      }
+      if (rotaDashFrameRef.current) {
+        cancelAnimationFrame(rotaDashFrameRef.current);
+        rotaDashFrameRef.current = null;
       }
       // 2. Remover marcador com segurança
       if (driverMarkerRef.current) {
@@ -1791,6 +1848,7 @@ function HomeMotorista() {
                   zoom={15}
                   pitch={mapPitch}
                   show3DBuildings
+                  hideClutterLabels
                   className="w-full h-full"
                   onMapInstance={(map) => {
                     pickupMapInstance.current = map;
