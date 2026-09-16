@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { obterUrlAssinadaFotoPerfil } from "@/lib/passenger-profile-photo.functions";
 
 // Janela generosa: cobre corridas longas/atrasadas sem precisar regenerar o
 // link no meio do trajeto. O passageiro sempre pode encerrar antes (excluirCompartilhamento).
@@ -140,6 +141,12 @@ export const getViagemCompartilhadaPublica = createServerFn({ method: "GET" })
       expiraEm: linha.expira_em as string,
       motoristaNota: linha.motorista_nota as number | null,
       veiculoCor: linha.veiculo_cor as string | null,
+      motoristaFotoPerfilUrl: linha.motorista_foto_perfil_path
+        ? await obterUrlAssinadaFotoPerfil(
+            supabaseAdmin,
+            linha.motorista_foto_perfil_path as string,
+          )
+        : null,
     };
   });
 
