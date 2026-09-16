@@ -148,6 +148,13 @@ export const getViagemCompartilhadaPublica = createServerFn({ method: "GET" })
             linha.motorista_foto_perfil_path as string,
           )
         : null,
+      passageiroNome: linha.passageiro_nome as string | null,
+      passageiroFotoPerfilUrl: linha.passageiro_foto_perfil_path
+        ? await obterUrlAssinadaFotoPerfil(
+            supabaseAdmin,
+            linha.passageiro_foto_perfil_path as string,
+          )
+        : null,
     };
   });
 

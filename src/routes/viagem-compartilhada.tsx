@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import mapboxgl from "mapbox-gl";
-import { AlertTriangle, Bike, Clock, Loader2, MapPin, ShieldCheck, Star } from "lucide-react";
+import { AlertTriangle, Bike, Clock, Loader2, MapPin, ShieldCheck, Star, User } from "lucide-react";
 import { MapView } from "@/components/MapView";
 import {
   getViagemCompartilhadaPublica,
@@ -379,6 +379,26 @@ function ViagemCompartilhadaPublica() {
       </header>
 
       <main className="mx-auto w-full max-w-md flex-1 space-y-4 px-5 py-6">
+        {snapshot.passageiroNome && (
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zuvvi-volt/10">
+              {snapshot.passageiroFotoPerfilUrl ? (
+                <img
+                  src={snapshot.passageiroFotoPerfilUrl}
+                  alt={`Foto de ${snapshot.passageiroNome}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <User className="h-5 w-5 text-zuvvi-volt" />
+              )}
+            </div>
+            <p className="text-sm text-white/80">
+              Você está acompanhando a corrida de{" "}
+              <span className="font-bold text-white">{snapshot.passageiroNome}</span>
+            </p>
+          </div>
+        )}
+
         <div className="rounded-2xl border border-red-500/25 bg-red-500/5 p-4">
           {sosState === "enviado" ? (
             <div className="flex items-start gap-2">
