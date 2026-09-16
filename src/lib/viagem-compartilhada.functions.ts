@@ -122,6 +122,7 @@ async function buscarViagemCompartilhadaPublica(linkPublico: string) {
 export const getViagemCompartilhadaPublica = createServerFn({ method: "GET" })
   .validator((data: unknown) => publicoSchema.parse(data))
   .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const linha = await buscarViagemCompartilhadaPublica(data.linkPublico);
 
     return {
