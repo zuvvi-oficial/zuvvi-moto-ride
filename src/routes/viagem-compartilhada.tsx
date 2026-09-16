@@ -185,8 +185,14 @@ function ViagemCompartilhadaPublica() {
     targetLng: number;
   } | null>(null);
 
+  // Só true depois da 1ª busca bem-sucedida do token atual — usado abaixo
+  // pra não deixar um erro passageiro (ex.: sem rede ao voltar do plano de
+  // fundo do celular) esconder uma tela que já estava funcionando.
+  const hasSnapshotRef = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
+    hasSnapshotRef.current = false;
 
     async function carregar() {
       try {
@@ -195,10 +201,21 @@ function ViagemCompartilhadaPublica() {
         setSnapshot(data);
         setError(null);
         setLastFetchedAt(Date.now());
+        hasSnapshotRef.current = true;
       } catch (err) {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Não foi possível carregar esta viagem.");
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        const mensagem =
+          err instanceof Error ? err.message : "Não foi possível carregar esta viagem.";
+        // Só a expiração real do link (mensagem específica da RPC) é
+        // definitiva. Qualquer outro erro é tratado como transitório: se a
+        // tela já tinha dados, mantém o que já estava na tela e deixa o
+        // próximo ciclo de polling tentar de novo sozinho, sem travar tudo
+        // e sem exigir recarregar a página manualmente.
+        const linkExpirou = mensagem === "Este link expirou ou não existe mais.";
+        if (linkExpirou || !hasSnapshotRef.current) {
+          setError(mensagem);
+        }
+        if (linkExpirou && intervalRef.current) clearInterval(intervalRef.current);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -228,8 +245,14 @@ function ViagemCompartilhadaPublica() {
       setSnapshot(data);
       setError(null);
       setLastFetchedAt(Date.now());
+      hasSnapshotRef.current = true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível carregar esta viagem.");
+      const mensagem =
+        err instanceof Error ? err.message : "Não foi possível carregar esta viagem.";
+      const linkExpirou = mensagem === "Este link expirou ou não existe mais.";
+      if (linkExpirou || !hasSnapshotRef.current) {
+        setError(mensagem);
+      }
     } finally {
       setRefreshing(false);
     }
