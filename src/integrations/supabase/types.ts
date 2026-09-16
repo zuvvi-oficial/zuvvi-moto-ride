@@ -1633,6 +1633,7 @@ export type Database = {
           destino_lng: number
           destino_nome: string
           expira_em: string
+          motorista_foto_perfil_path: string
           motorista_lat: number
           motorista_lng: number
           motorista_nome: string
