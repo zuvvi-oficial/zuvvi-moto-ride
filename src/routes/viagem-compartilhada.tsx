@@ -37,6 +37,16 @@ const STATUS_LABEL: Record<string, string> = {
   cancelada: "Corrida cancelada",
 };
 
+// Indicador visual de progresso no card de status — cobre só os 4 estados
+// ativos da corrida (concluída/cancelada continuam mostrando apenas o
+// texto do STATUS_LABEL acima, sem a barrinha).
+const PROGRESSO_ETAPAS = [
+  { status: "aceita", label: "Aceita" },
+  { status: "motorista_a_caminho", label: "A caminho" },
+  { status: "motorista_chegou", label: "Chegou" },
+  { status: "em_andamento", label: "Em andamento" },
+] as const;
+
 const POLL_INTERVAL_MS = 8000;
 
 // Etapa 2 (segurança passiva): limiares dos avisos automáticos mostrados
@@ -251,6 +261,8 @@ function ViagemCompartilhadaPublica() {
     }
   }, [snapshot?.motoristaLat, snapshot?.motoristaLng]);
 
+  const etapaAtualIndex = PROGRESSO_ETAPAS.findIndex((etapa) => etapa.status === snapshot?.status);
+
   const temPosicao = snapshot?.motoristaLat != null && snapshot?.motoristaLng != null;
   const isTrip = snapshot?.status === "em_andamento";
   const targetLat = isTrip ? snapshot?.destinoLat : snapshot?.origemLat;
@@ -446,6 +458,35 @@ function ViagemCompartilhadaPublica() {
 
       <main className="mx-auto w-full max-w-md flex-1 space-y-4 px-5 py-6">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          {etapaAtualIndex >= 0 && (
+            <div className="mb-3 flex items-center">
+              {PROGRESSO_ETAPAS.map((etapa, index) => (
+                <div key={etapa.status} className="flex flex-1 items-center last:flex-none">
+                  <div className="flex flex-col items-center gap-1">
+                    <div
+                      className={`h-2 w-2 rounded-full ${
+                        index <= etapaAtualIndex ? "bg-zuvvi-volt" : "bg-white/15"
+                      }`}
+                    />
+                    <p
+                      className={`whitespace-nowrap text-[8px] font-bold uppercase tracking-widest ${
+                        index === etapaAtualIndex ? "text-zuvvi-volt" : "text-white/30"
+                      }`}
+                    >
+                      {etapa.label}
+                    </p>
+                  </div>
+                  {index < PROGRESSO_ETAPAS.length - 1 && (
+                    <div
+                      className={`mx-1 h-px flex-1 ${
+                        index < etapaAtualIndex ? "bg-zuvvi-volt" : "bg-white/15"
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           <p className="text-sm font-bold text-white">
             {STATUS_LABEL[snapshot.status] || "Atualizando corrida"}
           </p>
