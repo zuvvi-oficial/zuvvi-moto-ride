@@ -221,7 +221,10 @@ function ViagemCompartilhadaPublica() {
       targetLng as number,
       snapshot!.motoristaLat as number,
       snapshot!.motoristaLng as number,
-    ) < 40;
+      // 40m era pouco: no zoom fixo desta tela (14), ~100m reais já colidem
+      // no mapa (poucos px de distância entre os pinos). 200m cobre essa
+      // faixa com margem, sem escurecer o pino cedo demais em trajetos longos.
+    ) < 200;
 
   // Avisos de segurança (Etapa 2) — recalculados a cada renderização (o
   // polling a cada 8s já garante isso), nunca em cache, pra "minutos" andar
