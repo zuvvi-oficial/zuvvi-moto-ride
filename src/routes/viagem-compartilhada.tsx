@@ -209,6 +209,20 @@ function ViagemCompartilhadaPublica() {
   const hasValidTarget = targetLat != null && targetLng != null;
   const targetLabel = isTrip ? "Destino" : "Embarque";
 
+  // Quando o motorista já está bem perto do pino (embarque/destino), as duas
+  // etiquetas do mapa (nome dele + "Embarque"/"Destino") ficam próximas
+  // demais e se sobrepõem — some com a do pino nesse caso, já que a mesma
+  // informação já aparece no card de status acima.
+  const pinsMuitoProximos =
+    hasValidTarget &&
+    temPosicao &&
+    distanciaMetros(
+      targetLat as number,
+      targetLng as number,
+      snapshot!.motoristaLat as number,
+      snapshot!.motoristaLng as number,
+    ) < 40;
+
   // Avisos de segurança (Etapa 2) — recalculados a cada renderização (o
   // polling a cada 8s já garante isso), nunca em cache, pra "minutos" andar
   // mesmo quando a posição não muda.
@@ -379,6 +393,18 @@ function ViagemCompartilhadaPublica() {
       </header>
 
       <main className="mx-auto w-full max-w-md flex-1 space-y-4 px-5 py-6">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <p className="text-sm font-bold text-white">
+            {STATUS_LABEL[snapshot.status] || "Atualizando corrida"}
+          </p>
+          {snapshot.destinoNome && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-white/60">
+              <MapPin className="h-3.5 w-3.5" />
+              Destino: {snapshot.destinoNome}
+            </p>
+          )}
+        </div>
+
         {snapshot.passageiroNome && (
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zuvvi-volt/10">
@@ -392,10 +418,53 @@ function ViagemCompartilhadaPublica() {
                 <User className="h-5 w-5 text-zuvvi-volt" />
               )}
             </div>
-            <p className="text-sm text-white/80">
-              Você está acompanhando a corrida de{" "}
-              <span className="font-bold text-white">{snapshot.passageiroNome}</span>
-            </p>
+            <div>
+              <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">
+                Passageiro
+              </p>
+              <p className="text-sm text-white/80">
+                Você está acompanhando a corrida de{" "}
+                <span className="font-bold text-white">{snapshot.passageiroNome}</span>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {snapshot.motoristaNome && (
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zuvvi-volt/10">
+              {snapshot.motoristaFotoPerfilUrl ? (
+                <img
+                  src={snapshot.motoristaFotoPerfilUrl}
+                  alt={`Foto de ${snapshot.motoristaNome}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Bike className="h-5 w-5 text-zuvvi-volt" />
+              )}
+            </div>
+            <div>
+              <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">
+                Motorista
+              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold">{snapshot.motoristaNome}</p>
+                {snapshot.motoristaNota !== null && (
+                  <span className="flex items-center gap-0.5">
+                    <Star className="h-3 w-3 fill-zuvvi-volt text-zuvvi-volt" />
+                    <span className="text-xs font-bold text-zuvvi-volt">
+                      {snapshot.motoristaNota.toFixed(1)}
+                    </span>
+                  </span>
+                )}
+              </div>
+              {(snapshot.veiculoModelo || snapshot.veiculoPlaca || snapshot.veiculoCor) && (
+                <p className="text-xs text-white/60">
+                  {[snapshot.veiculoModelo, snapshot.veiculoCor].filter(Boolean).join(" ")}
+                  {snapshot.veiculoPlaca ? ` · ${snapshot.veiculoPlaca}` : ""}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -460,18 +529,6 @@ function ViagemCompartilhadaPublica() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-sm font-bold text-white">
-            {STATUS_LABEL[snapshot.status] || "Atualizando corrida"}
-          </p>
-          {snapshot.destinoNome && (
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-white/60">
-              <MapPin className="h-3.5 w-3.5" />
-              Destino: {snapshot.destinoNome}
-            </p>
-          )}
-        </div>
-
         {(mostrarAlertaSemAtualizacao || mostrarAlertaParado) && (
           <div className="space-y-2">
             {mostrarAlertaSemAtualizacao && (
@@ -495,41 +552,6 @@ function ViagemCompartilhadaPublica() {
           </div>
         )}
 
-        {snapshot.motoristaNome && (
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-zuvvi-volt/10">
-              {snapshot.motoristaFotoPerfilUrl ? (
-                <img
-                  src={snapshot.motoristaFotoPerfilUrl}
-                  alt={`Foto de ${snapshot.motoristaNome}`}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <Bike className="h-5 w-5 text-zuvvi-volt" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold">{snapshot.motoristaNome}</p>
-                {snapshot.motoristaNota !== null && (
-                  <span className="flex items-center gap-0.5">
-                    <Star className="h-3 w-3 fill-zuvvi-volt text-zuvvi-volt" />
-                    <span className="text-xs font-bold text-zuvvi-volt">
-                      {snapshot.motoristaNota.toFixed(1)}
-                    </span>
-                  </span>
-                )}
-              </div>
-              {(snapshot.veiculoModelo || snapshot.veiculoPlaca || snapshot.veiculoCor) && (
-                <p className="text-xs text-white/60">
-                  {[snapshot.veiculoModelo, snapshot.veiculoCor].filter(Boolean).join(" ")}
-                  {snapshot.veiculoPlaca ? ` · ${snapshot.veiculoPlaca}` : ""}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
         <div className="relative h-80 overflow-hidden rounded-2xl border border-white/10">
           {mapboxToken && (hasValidTarget || temPosicao) ? (
             <MapView
@@ -540,7 +562,7 @@ function ViagemCompartilhadaPublica() {
               }
               token={mapboxToken}
               zoom={14}
-              markerLabel={hasValidTarget ? targetLabel : undefined}
+              markerLabel={hasValidTarget && !pinsMuitoProximos ? targetLabel : undefined}
               hideClutterLabels
               secondaryMarker={
                 hasValidTarget && temPosicao
@@ -590,7 +612,8 @@ function ViagemCompartilhadaPublica() {
           )}
         </div>
 
-        <p className="text-center text-[10px] uppercase tracking-widest text-white/30">
+        <p className="flex items-center justify-center gap-1.5 text-center text-[10px] uppercase tracking-widest text-white/30">
+          <Clock className="h-3 w-3 shrink-0" />
           Atualiza automaticamente · {formatarExpiracao(snapshot.expiraEm)}
         </p>
       </main>
