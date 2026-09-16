@@ -1638,6 +1638,8 @@ export type Database = {
           origem_lat: number
           origem_lng: number
           origem_nome: string
+          passageiro_foto_perfil_path: string
+          passageiro_nome: string
           status: Database["public"]["Enums"]["corrida_status"]
           veiculo_cor: string
           veiculo_modelo: string
