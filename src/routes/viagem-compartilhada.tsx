@@ -3,7 +3,17 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import mapboxgl from "mapbox-gl";
-import { AlertTriangle, Bike, Clock, Loader2, MapPin, ShieldCheck, Star, User } from "lucide-react";
+import {
+  AlertTriangle,
+  Bike,
+  Clock,
+  Loader2,
+  MapPin,
+  RefreshCw,
+  ShieldCheck,
+  Star,
+  User,
+} from "lucide-react";
 import { MapView } from "@/components/MapView";
 import {
   getViagemCompartilhadaPublica,
@@ -83,6 +93,15 @@ function formatarExpiracao(expiraEm: string): string {
   return horas > 0 ? `Expira em ${horas}h ${minutos}min` : `Expira em ${minutos} min`;
 }
 
+function formatarTempoDesdeAtualizacao(lastFetchedAt: number | null): string {
+  if (lastFetchedAt === null) return "Atualizando…";
+  const segundos = Math.floor((Date.now() - lastFetchedAt) / 1000);
+  if (segundos < 5) return "Atualizado agora";
+  if (segundos < 60) return `Atualizado há ${segundos}s`;
+  const minutos = Math.floor(segundos / 60);
+  return `Atualizado há ${minutos} min`;
+}
+
 function ViagemCompartilhadaPublica() {
   const { token } = Route.useSearch();
   const getViagemFn = useServerFn(getViagemCompartilhadaPublica);
@@ -115,6 +134,13 @@ function ViagemCompartilhadaPublica() {
   const [isLoading, setIsLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Só para o texto "Atualizado há Xs" do rodapé: quando os dados chegaram
+  // (via polling ou toque manual) e um contador que força re-render a cada
+  // segundo pra esse texto subir sozinho entre uma busca e outra.
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [, forcarTick] = useState(0);
+
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
 
@@ -144,6 +170,7 @@ function ViagemCompartilhadaPublica() {
         if (cancelled) return;
         setSnapshot(data);
         setError(null);
+        setLastFetchedAt(Date.now());
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Não foi possível carregar esta viagem.");
@@ -161,6 +188,28 @@ function ViagemCompartilhadaPublica() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [token, getViagemFn]);
+
+  // Contador do rodapé ("Atualizado há Xs") — só força re-render a cada
+  // segundo, não busca dados nem interfere no polling automático acima.
+  useEffect(() => {
+    const id = setInterval(() => forcarTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const atualizarAgora = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const data = await getViagemFn({ data: { linkPublico: token } });
+      setSnapshot(data);
+      setError(null);
+      setLastFetchedAt(Date.now());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível carregar esta viagem.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     getTokenFn({ data: { linkPublico: token } })
@@ -615,10 +664,21 @@ function ViagemCompartilhadaPublica() {
           )}
         </div>
 
-        <p className="flex items-center justify-center gap-1.5 text-center text-[10px] uppercase tracking-widest text-white/30">
+        <div className="flex items-center justify-center gap-2 text-center text-[10px] uppercase tracking-widest text-white/30">
           <Clock className="h-3 w-3 shrink-0" />
-          Atualiza automaticamente · {formatarExpiracao(snapshot.expiraEm)}
-        </p>
+          <p>
+            {formatarTempoDesdeAtualizacao(lastFetchedAt)} · {formatarExpiracao(snapshot.expiraEm)}
+          </p>
+          <button
+            type="button"
+            onClick={atualizarAgora}
+            disabled={refreshing}
+            aria-label="Atualizar agora"
+            className="shrink-0 text-white/30 transition hover:text-white/60 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </main>
     </div>
   );
