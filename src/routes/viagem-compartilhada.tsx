@@ -24,6 +24,7 @@ import {
   criarSosViagemCompartilhada,
   getVapidPublicKeyParaViagemCompartilhada,
   inscreverPushViagemCompartilhada,
+  desinscreverPushViagemCompartilhada,
 } from "@/lib/viagem-compartilhada.functions";
 
 const searchSchema = z.object({ token: z.string().min(1) });
@@ -184,6 +185,7 @@ function ViagemCompartilhadaPublica() {
   const criarSosFn = useServerFn(criarSosViagemCompartilhada);
   const getVapidKeyFn = useServerFn(getVapidPublicKeyParaViagemCompartilhada);
   const inscreverPushFn = useServerFn(inscreverPushViagemCompartilhada);
+  const desinscreverPushFn = useServerFn(desinscreverPushViagemCompartilhada);
 
   // Etapa 3 — botão de SOS: "idle" (botão normal) -> "confirmando" (pede
   // confirmação antes de agir, pra um toque sem querer não disparar nada)
@@ -240,13 +242,15 @@ function ViagemCompartilhadaPublica() {
     "PushManager" in window &&
     "Notification" in window;
 
-  useEffect(() => {
-    if (!notificacoesSuportadas) return;
-    navigator.serviceWorker.ready
-      .then((registration) => registration.pushManager.getSubscription())
-      .then((subscription) => setNotificacoesAtivas(!!subscription))
-      .catch(() => {});
-  }, [notificacoesSuportadas]);
+  // Propositalmente NÃO existe nenhum efeito ao montar que verifica se "já
+  // existe uma inscrição de push no navegador" pra decidir o estado inicial
+  // do sino: o navegador só permite UMA inscrição de push por origem, e essa
+  // mesma inscrição pode já pertencer à conta logada da própria pessoa
+  // (motorista/passageiro) neste aparelho — nada a ver com esta viagem
+  // específica. Usar isso pra marcar o sino como "já ativo" fazia o toque no
+  // sino cair direto no ramo de desativar, sem nunca registrar esta viagem.
+  // O sino sempre começa apagado e só liga de verdade após o registro nesta
+  // viagem dar certo (fim do bloco try abaixo).
 
   const alternarNotificacoes = async () => {
     if (!notificacoesSuportadas) return;
@@ -255,7 +259,15 @@ function ViagemCompartilhadaPublica() {
       try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
-        await subscription?.unsubscribe();
+        // Só remove o registro desta viagem — nunca subscription.unsubscribe():
+        // esse mesmo endpoint pode ser a inscrição de push da conta logada da
+        // própria pessoa neste aparelho, e cancelá-la quebraria as notificações
+        // dela também.
+        if (subscription) {
+          await desinscreverPushFn({
+            data: { linkPublico: token, endpoint: subscription.endpoint },
+          });
+        }
       } catch (error) {
         console.error("Erro ao cancelar notificações da viagem compartilhada:", error);
       }
