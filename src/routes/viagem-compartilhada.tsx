@@ -5,6 +5,8 @@ import { z } from "zod";
 import mapboxgl from "mapbox-gl";
 import {
   AlertTriangle,
+  Bell,
+  BellOff,
   Bike,
   Clock,
   MapPin,
@@ -169,6 +171,39 @@ function ViagemCompartilhadaPublica() {
     const timeout = setTimeout(() => setJustUpdated(false), 700);
     return () => clearTimeout(timeout);
   }, [lastFetchedAt]);
+
+  // Notificação leve, só do navegador (Notification API), sem service worker
+  // nem servidor — só funciona enquanto esta aba/app continuar aberto (pode
+  // estar em segundo plano). Não usa nada do sistema de push já existente
+  // (que exige conta/login); é opt-in e local a este dispositivo/navegador.
+  const [notificacoesAtivas, setNotificacoesAtivas] = useState(false);
+  const statusAnteriorRef = useRef<string | null>(null);
+  const notificacoesSuportadas = typeof window !== "undefined" && "Notification" in window;
+
+  const alternarNotificacoes = async () => {
+    if (!notificacoesSuportadas) return;
+    if (Notification.permission === "granted") {
+      setNotificacoesAtivas((v) => !v);
+      return;
+    }
+    const resultado = await Notification.requestPermission();
+    setNotificacoesAtivas(resultado === "granted");
+  };
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const anterior = statusAnteriorRef.current;
+    statusAnteriorRef.current = snapshot.status;
+    if (anterior === null || anterior === snapshot.status) return;
+    if (!notificacoesAtivas || !notificacoesSuportadas) return;
+    if (Notification.permission !== "granted") return;
+    if (document.visibilityState === "visible") return;
+    new Notification("Acompanhamento Zuvvi", {
+      body: STATUS_LABEL[snapshot.status] || "Atualização na corrida",
+      icon: "/brand/icon-192.png",
+      tag: "viagem-compartilhada",
+    });
+  }, [snapshot, notificacoesAtivas, notificacoesSuportadas]);
 
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -877,6 +912,18 @@ function ViagemCompartilhadaPublica() {
           >
             <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
           </button>
+          {notificacoesSuportadas && (
+            <button
+              type="button"
+              onClick={alternarNotificacoes}
+              aria-label={notificacoesAtivas ? "Desativar notificações" : "Ativar notificações"}
+              className={`shrink-0 transition hover:text-white/60 ${
+                notificacoesAtivas ? "text-zuvvi-volt" : "text-white/30"
+              }`}
+            >
+              {notificacoesAtivas ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
+            </button>
+          )}
         </div>
       </main>
     </div>
