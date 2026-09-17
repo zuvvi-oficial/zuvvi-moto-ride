@@ -78,6 +78,10 @@ const SEM_ATUALIZACAO_LIMIAR_MIN = 2;
 const PARADO_LIMIAR_MIN = 4;
 const PARADO_MOVIMENTO_METROS = 25;
 const PARADO_RAIO_PONTO_METROS = 120;
+// Distância mínima até o traçado da rota combinada pra considerar desvio —
+// generosa o bastante pra não disparar com a rua-seguinte/mudança normal de
+// trajeto, só um afastamento bem maior e fora do esperado.
+const DESVIO_ROTA_METROS = 600;
 
 type Snapshot = Awaited<ReturnType<typeof getViagemCompartilhadaPublica>>;
 
@@ -114,6 +118,45 @@ function distanciaMetros(lat1: number, lng1: number, lat2: number, lng2: number)
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
   return 2 * raioTerraMetros * Math.asin(Math.sqrt(a));
+}
+
+// Distância (aprox., projeção local em metros — suficiente pra escala de
+// rua/bairro) de um ponto até o traçado mais próximo de uma rota — usada
+// no aviso de desvio de rota abaixo. `coordenadas` vem no formato GeoJSON
+// ([lng, lat]) porque é assim que a Directions API devolve a geometria.
+function distanciaAoTracadoMetros(
+  lat: number,
+  lng: number,
+  coordenadas: [number, number][],
+): number | null {
+  if (coordenadas.length < 2) return null;
+  const raioTerraMetros = 6371000;
+  const metrosPorGrauLat = (Math.PI / 180) * raioTerraMetros;
+  const metrosPorGrauLng = metrosPorGrauLat * Math.cos((lat * Math.PI) / 180);
+
+  const px = lng * metrosPorGrauLng;
+  const py = lat * metrosPorGrauLat;
+
+  let menorDistancia = Infinity;
+  for (let i = 0; i < coordenadas.length - 1; i++) {
+    const [lng1, lat1] = coordenadas[i]!;
+    const [lng2, lat2] = coordenadas[i + 1]!;
+    const x1 = lng1 * metrosPorGrauLng;
+    const y1 = lat1 * metrosPorGrauLat;
+    const x2 = lng2 * metrosPorGrauLng;
+    const y2 = lat2 * metrosPorGrauLat;
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const comprimentoAoQuadrado = dx * dx + dy * dy;
+    let t =
+      comprimentoAoQuadrado === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / comprimentoAoQuadrado;
+    t = Math.max(0, Math.min(1, t));
+
+    const distancia = Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+    if (distancia < menorDistancia) menorDistancia = distancia;
+  }
+  return menorDistancia;
 }
 
 function formatarExpiracao(expiraEm: string): string {
@@ -277,6 +320,15 @@ function ViagemCompartilhadaPublica() {
   const lastRouteCoordsRef = useRef<{
     driverLat: number;
     driverLng: number;
+    targetLat: number;
+    targetLng: number;
+  } | null>(null);
+  // Guarda o traçado da 1ª rota calculada pra cada trecho (embarque ou
+  // destino) como referência fixa do "combinado" — ao contrário do estado
+  // usado só pra desenhar a linha no mapa, este não é atualizado a cada
+  // recálculo, senão um desvio real nunca teria contra o que comparar.
+  const referenciaRotaRef = useRef<{
+    coords: [number, number][];
     targetLat: number;
     targetLng: number;
   } | null>(null);
@@ -459,6 +511,20 @@ function ViagemCompartilhadaPublica() {
     temPosicao && minutosSemAtualizar !== null && minutosSemAtualizar >= SEM_ATUALIZACAO_LIMIAR_MIN;
   const mostrarAlertaParado = temPosicao && minutosParado >= PARADO_LIMIAR_MIN && !pertoDeUmPonto;
 
+  const distanciaRotaMetros =
+    temPosicao && referenciaRotaRef.current
+      ? distanciaAoTracadoMetros(
+          snapshot!.motoristaLat as number,
+          snapshot!.motoristaLng as number,
+          referenciaRotaRef.current.coords,
+        )
+      : null;
+  const mostrarAlertaDesvio =
+    temPosicao &&
+    distanciaRotaMetros !== null &&
+    distanciaRotaMetros >= DESVIO_ROTA_METROS &&
+    !pertoDeUmPonto;
+
   // Traça a rota do motorista até o ponto de embarque (ou destino, se a
   // corrida já começou) e calcula ETA/distância — mesma chamada à Directions
   // API já usada e validada nas telas do passageiro e do motorista, só que
@@ -475,9 +541,21 @@ function ViagemCompartilhadaPublica() {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
       }
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      // A corrida pode entrar num estado sem MapView renderizado (ex.:
+      // concluída) enquanto esta instância do mapa já foi desmontada — sem
+      // como o MapView (core, intocado) avisar este componente disso, a
+      // referência aqui pode apontar pra um mapa já removido. Métodos
+      // chamados nesse estado lançam exceção de verdade (não Promise), e sem
+      // este try/catch isso derrubava a tela inteira.
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      } catch {
+        mapInstanceRef.current = null;
+        setIsMapReady(false);
+      }
       lastRouteCoordsRef.current = null;
+      referenciaRotaRef.current = null;
       setRouteError(null);
       setRouteEtaMin(null);
       setRouteDistanceKm(null);
@@ -523,18 +601,38 @@ function ViagemCompartilhadaPublica() {
         setRouteDistanceKm(routeData.distance / 1000);
         const route = routeData.geometry;
 
-        const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
-        if (source) {
-          source.setData(route);
-        } else {
-          map.addSource(sourceId, { type: "geojson", data: route });
-          map.addLayer({
-            id: layerId,
-            type: "line",
-            source: sourceId,
-            layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
-          });
+        if (
+          !referenciaRotaRef.current ||
+          referenciaRotaRef.current.targetLat !== tLat ||
+          referenciaRotaRef.current.targetLng !== tLng
+        ) {
+          referenciaRotaRef.current = {
+            coords: route.coordinates,
+            targetLat: tLat,
+            targetLng: tLng,
+          };
+        }
+
+        try {
+          const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
+          if (source) {
+            source.setData(route);
+          } else {
+            map.addSource(sourceId, { type: "geojson", data: route });
+            map.addLayer({
+              id: layerId,
+              type: "line",
+              source: sourceId,
+              layout: { "line-join": "round", "line-cap": "round" },
+              paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
+            });
+          }
+        } catch {
+          // Mesma proteção do ramo acima: mapa pode ter sido desmontado
+          // entre o disparo desta busca e a resposta chegar.
+          mapInstanceRef.current = null;
+          setIsMapReady(false);
+          return;
         }
 
         lastRouteCoordsRef.current = { driverLat, driverLng, targetLat: tLat, targetLng: tLng };
@@ -843,7 +941,7 @@ function ViagemCompartilhadaPublica() {
           )}
         </div>
 
-        {(mostrarAlertaSemAtualizacao || mostrarAlertaParado) && (
+        {(mostrarAlertaSemAtualizacao || mostrarAlertaParado || mostrarAlertaDesvio) && (
           <div className="shrink-0 space-y-1.5">
             {mostrarAlertaSemAtualizacao && (
               <div className="flex items-start gap-2 rounded-2xl border border-amber-400/15 bg-white/5 p-2.5">
@@ -860,6 +958,18 @@ function ViagemCompartilhadaPublica() {
                 <p className="text-xs text-white/60">
                   O motorista está parado há {minutosParado} min fora do ponto de embarque/destino.
                   Pode ser trânsito — vale ficar de olho.
+                </p>
+              </div>
+            )}
+            {mostrarAlertaDesvio && (
+              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/15 bg-white/5 p-2.5">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300/70" />
+                <p className="text-xs text-white/60">
+                  O motorista está a{" "}
+                  {(distanciaRotaMetros as number) >= 1000
+                    ? `${((distanciaRotaMetros as number) / 1000).toFixed(1)} km`
+                    : `${Math.round(distanciaRotaMetros as number)} m`}{" "}
+                  da rota combinada. Pode ser trânsito ou um atalho — vale ficar de olho.
                 </p>
               </div>
             )}
