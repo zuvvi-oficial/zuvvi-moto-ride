@@ -846,18 +846,18 @@ function ViagemCompartilhadaPublica() {
         {(mostrarAlertaSemAtualizacao || mostrarAlertaParado) && (
           <div className="shrink-0 space-y-1.5">
             {mostrarAlertaSemAtualizacao && (
-              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-2.5">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                <p className="text-xs text-amber-100">
+              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/15 bg-white/5 p-2.5">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300/70" />
+                <p className="text-xs text-white/60">
                   Sem atualização de localização há {minutosSemAtualizar} min. Pode ser
                   instabilidade de sinal — se persistir, vale tentar contato direto.
                 </p>
               </div>
             )}
             {mostrarAlertaParado && (
-              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-2.5">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                <p className="text-xs text-amber-100">
+              <div className="flex items-start gap-2 rounded-2xl border border-amber-400/15 bg-white/5 p-2.5">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300/70" />
+                <p className="text-xs text-white/60">
                   O motorista está parado há {minutosParado} min fora do ponto de embarque/destino.
                   Pode ser trânsito — vale ficar de olho.
                 </p>
