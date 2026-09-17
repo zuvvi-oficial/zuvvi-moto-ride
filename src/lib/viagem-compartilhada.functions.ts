@@ -295,3 +295,34 @@ export const inscreverPushViagemCompartilhada = createServerFn({ method: "POST" 
     if (error) throw new Error("Não foi possível ativar as notificações. Tente novamente.");
     return { success: true };
   });
+
+// Desativa só a inscrição desta viagem — nunca chama subscription.unsubscribe()
+// no navegador, porque o mesmo endpoint de push do aparelho pode estar sendo
+// usado também pela conta logada (motorista/passageiro) dessa pessoa; cancelar
+// a inscrição do navegador quebraria as notificações da conta dela também.
+const desinscreverPushSchema = z.object({
+  linkPublico: z.string().trim().min(1).max(200),
+  endpoint: z.string().trim().min(1),
+});
+
+export const desinscreverPushViagemCompartilhada = createServerFn({ method: "POST" })
+  .validator((data: unknown) => desinscreverPushSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: viagem } = await supabaseAdmin
+      .from("viagens_compartilhadas")
+      .select("id")
+      .eq("link_publico", data.linkPublico)
+      .maybeSingle();
+
+    if (!viagem) return { success: true };
+
+    await supabaseAdmin
+      .from("viagem_compartilhada_push_subscriptions")
+      .delete()
+      .eq("viagem_compartilhada_id", viagem.id)
+      .eq("endpoint", data.endpoint);
+
+    return { success: true };
+  });

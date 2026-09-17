@@ -22,6 +22,7 @@ import {
   MessageCircle,
   Send,
   ShieldAlert,
+  ShieldCheck,
   Share2,
   Heart,
   Maximize2,
@@ -1227,6 +1228,12 @@ function AcompanhamentoCorrida() {
                           : "Novo na Zuvvi"}
                       </span>
                     </div>
+                    <span className="flex items-center gap-0.5 rounded-full bg-emerald-400/10 px-1.5 py-0.5">
+                      <ShieldCheck className="h-2.5 w-2.5 text-emerald-400" />
+                      <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-400">
+                        Verificado
+                      </span>
+                    </span>
                   </div>
                   <div className="mt-1.5 space-y-0.5">
                     <p className="text-[10px] text-muted-foreground font-medium truncate">
