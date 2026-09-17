@@ -1524,6 +1524,41 @@ export type Database = {
           },
         ]
       }
+      viagem_compartilhada_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          viagem_compartilhada_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          viagem_compartilhada_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          viagem_compartilhada_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "viagem_compartilhada_push_subscrip_viagem_compartilhada_id_fkey"
+            columns: ["viagem_compartilhada_id"]
+            isOneToOne: false
+            referencedRelation: "viagens_compartilhadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       viagens_compartilhadas: {
         Row: {
           corrida_id: string

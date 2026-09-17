@@ -561,6 +561,14 @@ export const aceitarCorrida = createServerFn({ method: "POST" })
         mensagem: "Seu piloto aceitou a corrida e já está se deslocando.",
         corrida_id: data.rideId,
       });
+      const { notificarInscritosViagemCompartilhada } =
+        await import("./viagem-compartilhada-push.server");
+      await notificarInscritosViagemCompartilhada(supabaseAdmin, {
+        corridaId: data.rideId,
+        tipo: "motorista_aceitou",
+        titulo: "🏍️ Motorista a caminho!",
+        mensagem: "O motorista aceitou a corrida e já está se deslocando.",
+      }).catch(() => {});
     }
 
     return { success: true };
@@ -808,6 +816,14 @@ export const marcarMotoristaACaminho = createServerFn({ method: "POST" })
         mensagem: "O motorista iniciou o deslocamento para o seu local.",
         corrida_id: data.rideId,
       });
+      const { notificarInscritosViagemCompartilhada } =
+        await import("./viagem-compartilhada-push.server");
+      await notificarInscritosViagemCompartilhada(supabaseAdmin, {
+        corridaId: data.rideId,
+        tipo: "motorista_a_caminho",
+        titulo: "📍 Piloto a caminho",
+        mensagem: "O motorista iniciou o deslocamento para o local de embarque.",
+      }).catch(() => {});
     }
 
     return {
@@ -871,6 +887,14 @@ export const marcarMotoristaChegou = createServerFn({ method: "POST" })
         mensagem: "O motorista já está no local de embarque. Tenha o código de 4 dígitos em mãos.",
         corrida_id: data.rideId,
       });
+      const { notificarInscritosViagemCompartilhada } =
+        await import("./viagem-compartilhada-push.server");
+      await notificarInscritosViagemCompartilhada(supabaseAdmin, {
+        corridaId: data.rideId,
+        tipo: "motorista_chegou",
+        titulo: "🏁 Motorista chegou!",
+        mensagem: "O motorista já está no local de embarque.",
+      }).catch(() => {});
     }
 
     return {
@@ -954,6 +978,14 @@ export const iniciarCorrida = createServerFn({ method: "POST" })
         mensagem: "Boa viagem! Você está a caminho do seu destino.",
         corrida_id: data.rideId,
       });
+      const { notificarInscritosViagemCompartilhada } =
+        await import("./viagem-compartilhada-push.server");
+      await notificarInscritosViagemCompartilhada(supabaseAdmin, {
+        corridaId: data.rideId,
+        tipo: "corrida_iniciada",
+        titulo: "🚀 Corrida iniciada",
+        mensagem: "A corrida está a caminho do destino.",
+      }).catch(() => {});
     }
 
     return {
@@ -1686,6 +1718,14 @@ export const finalizarCorrida = createServerFn({ method: "POST" })
         mensagem: `Obrigado por usar o Zuvvi! O valor final foi R$ ${Number(rideData.valor_final).toFixed(2)}.`,
         corrida_id: data.rideId,
       });
+      const { notificarInscritosViagemCompartilhada } =
+        await import("./viagem-compartilhada-push.server");
+      await notificarInscritosViagemCompartilhada(supabaseAdmin, {
+        corridaId: data.rideId,
+        tipo: "corrida_concluida",
+        titulo: "✅ Corrida concluída",
+        mensagem: "A corrida chegou ao destino com segurança.",
+      }).catch(() => {});
 
       // Notificar Motorista
       await criarNotificacao(supabaseAdmin, {
