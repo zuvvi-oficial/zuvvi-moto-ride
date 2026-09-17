@@ -22,6 +22,8 @@ import {
   getViagemCompartilhadaPublica,
   getMapboxTokenParaViagemCompartilhada,
   criarSosViagemCompartilhada,
+  getVapidPublicKeyParaViagemCompartilhada,
+  inscreverPushViagemCompartilhada,
 } from "@/lib/viagem-compartilhada.functions";
 
 const searchSchema = z.object({ token: z.string().min(1) });
@@ -30,6 +32,16 @@ export const Route = createFileRoute("/viagem-compartilhada")({
   validateSearch: (search) => searchSchema.parse(search),
   component: ViagemCompartilhadaPublica,
 });
+
+// Mesma conversão usada em src/lib/pwa/push-subscribe.ts (não exportada de
+// lá) — a chave VAPID pública chega em base64url e a Push API exige um
+// Uint8Array.
+function urlBase64ToUint8Array(base64Url: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
+  const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+}
 
 const STATUS_LABEL: Record<string, string> = {
   aceita: "Motorista aceitou a corrida",
@@ -127,6 +139,8 @@ function ViagemCompartilhadaPublica() {
   const getViagemFn = useServerFn(getViagemCompartilhadaPublica);
   const getTokenFn = useServerFn(getMapboxTokenParaViagemCompartilhada);
   const criarSosFn = useServerFn(criarSosViagemCompartilhada);
+  const getVapidKeyFn = useServerFn(getVapidPublicKeyParaViagemCompartilhada);
+  const inscreverPushFn = useServerFn(inscreverPushViagemCompartilhada);
 
   // Etapa 3 — botão de SOS: "idle" (botão normal) -> "confirmando" (pede
   // confirmação antes de agir, pra um toque sem querer não disparar nada)
@@ -172,38 +186,75 @@ function ViagemCompartilhadaPublica() {
     return () => clearTimeout(timeout);
   }, [lastFetchedAt]);
 
-  // Notificação leve, só do navegador (Notification API), sem service worker
-  // nem servidor — só funciona enquanto esta aba/app continuar aberto (pode
-  // estar em segundo plano). Não usa nada do sistema de push já existente
-  // (que exige conta/login); é opt-in e local a este dispositivo/navegador.
+  // Notificação de verdade (chega com o link fechado), via Web Push +
+  // service worker — mesma tecnologia já usada para o passageiro/motorista
+  // logados, só que numa tabela própria (sem usuario_id nenhum, já que aqui
+  // não existe conta). Opt-in: só inscreve ao tocar no sino.
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(false);
-  const statusAnteriorRef = useRef<string | null>(null);
-  const notificacoesSuportadas = typeof window !== "undefined" && "Notification" in window;
+  const notificacoesSuportadas =
+    typeof window !== "undefined" &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window;
+
+  useEffect(() => {
+    if (!notificacoesSuportadas) return;
+    navigator.serviceWorker.ready
+      .then((registration) => registration.pushManager.getSubscription())
+      .then((subscription) => setNotificacoesAtivas(!!subscription))
+      .catch(() => {});
+  }, [notificacoesSuportadas]);
 
   const alternarNotificacoes = async () => {
     if (!notificacoesSuportadas) return;
-    if (Notification.permission === "granted") {
-      setNotificacoesAtivas((v) => !v);
+
+    if (notificacoesAtivas) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        await subscription?.unsubscribe();
+      } catch (error) {
+        console.error("Erro ao cancelar notificações da viagem compartilhada:", error);
+      }
+      setNotificacoesAtivas(false);
       return;
     }
-    const resultado = await Notification.requestPermission();
-    setNotificacoesAtivas(resultado === "granted");
-  };
 
-  useEffect(() => {
-    if (!snapshot) return;
-    const anterior = statusAnteriorRef.current;
-    statusAnteriorRef.current = snapshot.status;
-    if (anterior === null || anterior === snapshot.status) return;
-    if (!notificacoesAtivas || !notificacoesSuportadas) return;
-    if (Notification.permission !== "granted") return;
-    if (document.visibilityState === "visible") return;
-    new Notification("Acompanhamento Zuvvi", {
-      body: STATUS_LABEL[snapshot.status] || "Atualização na corrida",
-      icon: "/brand/icon-192.png",
-      tag: "viagem-compartilhada",
-    });
-  }, [snapshot, notificacoesAtivas, notificacoesSuportadas]);
+    if (Notification.permission === "denied") return;
+    if (Notification.permission !== "granted") {
+      const resultado = await Notification.requestPermission();
+      if (resultado !== "granted") return;
+    }
+
+    try {
+      const vapidPublicKey = await getVapidKeyFn({ data: { linkPublico: token } });
+      if (!vapidPublicKey) return;
+
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
+        });
+      }
+
+      const keys = subscription.toJSON().keys;
+      if (!keys?.["p256dh"] || !keys?.["auth"]) return;
+
+      await inscreverPushFn({
+        data: {
+          linkPublico: token,
+          endpoint: subscription.endpoint,
+          p256dh: keys["p256dh"],
+          auth: keys["auth"],
+        },
+      });
+      setNotificacoesAtivas(true);
+    } catch (error) {
+      console.error("Erro ao ativar notificações da viagem compartilhada:", error);
+    }
+  };
 
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);

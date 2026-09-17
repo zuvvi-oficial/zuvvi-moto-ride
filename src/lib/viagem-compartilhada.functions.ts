@@ -239,3 +239,63 @@ export const criarSosViagemCompartilhada = createServerFn({ method: "POST" })
 
     return { id: chamado.id, status: chamado.status as string, jaExistia: false as const };
   });
+
+// Chave pública VAPID para o contato de confiança se inscrever em Web Push
+// nesta tela pública — mesmo valor de ambiente já usado pelo push dos
+// usuários logados (getVapidPublicKey em push-subscriptions.functions.ts),
+// só que sem exigir sessão, pelo mesmo motivo do Mapbox token acima. A
+// chave pública em si não é segredo; só validamos o link antes de
+// devolver, pra manter o mesmo padrão de "sempre exige um link válido"
+// desta tela.
+export const getVapidPublicKeyParaViagemCompartilhada = createServerFn({ method: "GET" })
+  .validator((data: unknown) => publicoSchema.parse(data))
+  .handler(async ({ data }) => {
+    await buscarViagemCompartilhadaPublica(data.linkPublico);
+    return process.env["VAPID_PUBLIC_KEY"] || null;
+  });
+
+const inscreverPushSchema = z.object({
+  linkPublico: z.string().trim().min(1).max(200),
+  endpoint: z.string().trim().min(1),
+  p256dh: z.string().trim().min(1),
+  auth: z.string().trim().min(1),
+});
+
+// Notificação "de verdade" (chega com o link fechado), pro contato de
+// confiança que optar por ativar. Guarda a inscrição numa tabela própria
+// (viagem_compartilhada_push_subscriptions), sem usuario_id nenhum — não
+// toca em push_subscriptions nem em nenhuma inscrição de usuário logado.
+// O disparo em si acontece em notificarInscritosViagemCompartilhada
+// (src/lib/viagem-compartilhada-push.server.ts), chamado a partir dos
+// pontos que já notificam o passageiro logado a cada mudança de status.
+export const inscreverPushViagemCompartilhada = createServerFn({ method: "POST" })
+  .validator((data: unknown) => inscreverPushSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: viagem, error: viagemError } = await supabaseAdmin
+      .from("viagens_compartilhadas")
+      .select("id")
+      .eq("link_publico", data.linkPublico)
+      .gt("expira_em", new Date().toISOString())
+      .maybeSingle();
+
+    if (viagemError || !viagem) throw new Error("Este link expirou ou não existe mais.");
+
+    // Tabela ainda não está nos tipos gerados do projeto (mesmo caso da RPC
+    // de leitura pública acima).
+    const { error } = await (supabaseAdmin as any)
+      .from("viagem_compartilhada_push_subscriptions")
+      .upsert(
+        {
+          viagem_compartilhada_id: viagem.id,
+          endpoint: data.endpoint,
+          p256dh: data.p256dh,
+          auth: data.auth,
+        },
+        { onConflict: "endpoint" },
+      );
+
+    if (error) throw new Error("Não foi possível ativar as notificações. Tente novamente.");
+    return { success: true };
+  });
