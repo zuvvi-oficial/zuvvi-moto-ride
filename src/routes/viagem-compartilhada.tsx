@@ -541,8 +541,19 @@ function ViagemCompartilhadaPublica() {
         routeAbortRef.current.abort();
         routeAbortRef.current = null;
       }
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      // A corrida pode entrar num estado sem MapView renderizado (ex.:
+      // concluída) enquanto esta instância do mapa já foi desmontada — sem
+      // como o MapView (core, intocado) avisar este componente disso, a
+      // referência aqui pode apontar pra um mapa já removido. Métodos
+      // chamados nesse estado lançam exceção de verdade (não Promise), e sem
+      // este try/catch isso derrubava a tela inteira.
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      } catch {
+        mapInstanceRef.current = null;
+        setIsMapReady(false);
+      }
       lastRouteCoordsRef.current = null;
       referenciaRotaRef.current = null;
       setRouteError(null);
@@ -602,18 +613,26 @@ function ViagemCompartilhadaPublica() {
           };
         }
 
-        const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
-        if (source) {
-          source.setData(route);
-        } else {
-          map.addSource(sourceId, { type: "geojson", data: route });
-          map.addLayer({
-            id: layerId,
-            type: "line",
-            source: sourceId,
-            layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
-          });
+        try {
+          const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
+          if (source) {
+            source.setData(route);
+          } else {
+            map.addSource(sourceId, { type: "geojson", data: route });
+            map.addLayer({
+              id: layerId,
+              type: "line",
+              source: sourceId,
+              layout: { "line-join": "round", "line-cap": "round" },
+              paint: { "line-color": "#C6FF3D", "line-width": 4, "line-opacity": 0.8 },
+            });
+          }
+        } catch {
+          // Mesma proteção do ramo acima: mapa pode ter sido desmontado
+          // entre o disparo desta busca e a resposta chegar.
+          mapInstanceRef.current = null;
+          setIsMapReady(false);
+          return;
         }
 
         lastRouteCoordsRef.current = { driverLat, driverLng, targetLat: tLat, targetLng: tLng };
