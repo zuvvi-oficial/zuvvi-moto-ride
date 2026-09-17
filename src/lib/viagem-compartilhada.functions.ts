@@ -282,19 +282,15 @@ export const inscreverPushViagemCompartilhada = createServerFn({ method: "POST" 
 
     if (viagemError || !viagem) throw new Error("Este link expirou ou não existe mais.");
 
-    // Tabela ainda não está nos tipos gerados do projeto (mesmo caso da RPC
-    // de leitura pública acima).
-    const { error } = await (supabaseAdmin as any)
-      .from("viagem_compartilhada_push_subscriptions")
-      .upsert(
-        {
-          viagem_compartilhada_id: viagem.id,
-          endpoint: data.endpoint,
-          p256dh: data.p256dh,
-          auth: data.auth,
-        },
-        { onConflict: "endpoint" },
-      );
+    const { error } = await supabaseAdmin.from("viagem_compartilhada_push_subscriptions").upsert(
+      {
+        viagem_compartilhada_id: viagem.id,
+        endpoint: data.endpoint,
+        p256dh: data.p256dh,
+        auth: data.auth,
+      },
+      { onConflict: "endpoint" },
+    );
 
     if (error) throw new Error("Não foi possível ativar as notificações. Tente novamente.");
     return { success: true };
